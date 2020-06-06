@@ -4,41 +4,27 @@ import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib, 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
-import * as ReactDOM from "react-dom";
 import * as rp from 'request-promise';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { FieldValue, Cast, StrCast } from '../new_fields/Types';
-import { Doc, DocListCast, Opt } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
-import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
-import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, returnZero, Utils } from '../Utils';
+import { emptyPath, emptyFunction, returnFalse, returnOne, returnTrue, returnZero, Utils } from '../Utils';
 import { Transform } from '../client/util/Transform';
 import { Scripting } from '../client/util/Scripting';
-import GestureOverlay from '../client/views/GestureOverlay';
 import { InkingControl } from '../client/views/InkingControl';
-import { InkTool } from '../new_fields/InkField';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
 import { DocServer } from '../client/DocServer';
-import { DocumentDecorations } from '../client/views/DocumentDecorations';
-import { PreviewCursor } from '../client/views/PreviewCursor';
-import { RadialMenu } from '../client/views/nodes/RadialMenu';
-import { Id } from '../new_fields/FieldSymbols';
-import { WebField, nullAudio } from "../new_fields/URLField";
-import { FieldResult } from "../new_fields/Doc";
-import { AssignAllExtensions } from '../extensions/General/Extensions';
-import { listSpec } from '../new_fields/Schema';
 import { DocumentManager } from '../client/util/DocumentManager';
-import RichTextMenu from '../client/util/RichTextMenu';
-import { MainView } from '../client/views/MainView';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
-import { Upload } from '../server/SharedMediaTypes';
-import { createTypePredicateNodeWithModifier } from 'typescript';
-import { AudioBox } from '../client/views/nodes/AudioBox';
-import { List } from '../new_fields/List';
 import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
+import { Doc, DocListCast, FieldResult } from '../new_fields/Doc';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
+import { FieldValue, Cast, StrCast } from '../new_fields/Types';
+import { InkTool } from '../new_fields/InkField';
+import { listSpec } from '../new_fields/Schema';
+import { nullAudio, WebField } from '../new_fields/URLField';
+import { Id } from '../new_fields/FieldSymbols';
 
 library.add(faLongArrowAltLeft);
 library.add(faHome);
@@ -50,8 +36,9 @@ export class MobileInterface extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
-    @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
+    @observable private mainDoc: any = CurrentUserUtils.setupMobileDoc(this.userDoc);
     @observable private renderView?: () => JSX.Element;
+    @observable private sidebarActive = true;
 
     public _activeDoc: Doc = this.mainDoc;
 
@@ -125,26 +112,9 @@ export class MobileInterface extends React.Component {
         });
     }
 
-    toggleSidebar = () => {
-        console.log("clicked");
-        let menuButton = document.getElementById("menuButton") as HTMLElement;
-        menuButton.classList.toggle('active');
-
-        let sidebar = document.getElementById("sidebar") as HTMLElement;
-        sidebar.classList.toggle('active');
-
-        let header = document.getElementById("header") as HTMLElement;
-
-        if (!sidebar.classList.contains('active')) {
-            header.textContent = String(this._activeDoc.title);
-        } else {
-            header.textContent = "menu";
-        }
-    }
-
     back = () => {
-        let doc = Cast(this._parents.pop(), Doc) as Doc;
-        if (doc == Cast(this._menu, Doc) as Doc) {
+        const doc = Cast(this._parents.pop(), Doc) as Doc;
+        if (doc === Cast(this._menu, Doc) as Doc) {
             this._child = null;
             this.userDoc.activeMobile = this.mainDoc;
         } else {
@@ -201,7 +171,7 @@ export class MobileInterface extends React.Component {
     }
 
     handleClick(doc: Doc) {
-        let children = DocListCast(doc.data);
+        const children = DocListCast(doc.data);
         if (doc.type !== "collection") {
             this._parents.push(this._activeDoc);
             this._activeDoc = doc;
@@ -237,15 +207,18 @@ export class MobileInterface extends React.Component {
         return pathname;
     }
 
+    @action
+    toggleSidebar = () => this.sidebarActive = !this.sidebarActive
+
     openLibrary() {
         this._activeDoc = this.mainDoc;
-        this.switchCurrentView((userDoc: Doc) => this.mainDoc);
+        this.switchCurrentView(() => this.mainDoc);
         this._child = this._library;
     }
 
     renderDefaultContent = () => {
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-        let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
+        const buttons = DocListCast(this._child ? this._child.data : workspaces.data).map((doc: Doc, index: any) => {
             return (
                 <div
                     className="item"
@@ -255,92 +228,41 @@ export class MobileInterface extends React.Component {
                     <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
                 </div>);
         });
-
-        if (this._child) {
-            buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
-                return (
+        return (
+            <>
+                <div className="navbar">
+                    <div className={"header"}>{this.sidebarActive ? StrCast(this._activeDoc.title) : "Menu"}</div>
                     <div
-                        className="item"
-                        key={index}
-                        onClick={() => this.handleClick(doc)}>{doc.title}
-                        <div className="type">{doc.type}</div>
-                        <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
-                    </div>);
-            });
-        }
-
-        if (!this._child) {
-            return (
-                <div>
-                    <div className="navbar">
-                        <div className="header" id="header">MENU</div>
-                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                    <div className="pathbar">
-                        <div className="pathname">
-                            {this.createPathname()}
-                        </div>
-                    </div>
-                    <div className="sidebar" id="sidebar">
-                        <div>
-                            <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
+                        className={`toggle-btn ${this.sidebarActive ? "active" : ""}`}
+                        onClick={this.toggleSidebar}
+                    />
+                </div>
+                <div className="pathbar">
+                    <div className="pathname">{this.createPathname()}</div>
+                </div>
+                <div className={`sidebar ${this.sidebarActive ? "active" : ""}`}>
+                    <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
+                    {this._child ?
+                        <>
+                            <div className="back" onClick={this.back}>&#8592;</div>
+                            <div>{buttons}</div>
+                            <div className="item" key="home" onClick={this.returnHome}>Home</div>
+                        </> :
+                        <>
                             {buttons}
                             {/* <div className="item" key="library" onClick={this.openLibrary}>
                                 Library
-                            </div> */}
+                                </div> */}
                             <Uploader Document={workspaces} />
-                            <div className="item" key="audio" onClick={this.recordAudio}>
-                                Record Audio
-                            </div>
-                            <div className="item" key="presentation" onClick={this.openDefaultPresentation}>
-                                Presentation
-                            </div>
-                            <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                                Settings
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        {this.renderView}
-                    </div>
+                            <div className="item" key="audio" onClick={this.recordAudio}>Record Audio</div>
+                            <div className="item" key="presentation" onClick={this.openDefaultPresentation}>Presentation</div>
+                            <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>Settings</div>
+                        </>
+                    }
                 </div>
-            );
-        }
-        else {
-            return (
-                <div>
-                    <div className="navbar">
-                        <div className="header" id="header">menu</div>
-                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                    <div className="pathbar">
-                        <div className="pathname">
-                            {this.createPathname()}
-                        </div>
-                    </div>
-                    <div className="sidebar" id="sidebar">
-                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-                        <div className="back" onClick={this.back}>
-                            &#8592;
-                        </div>
-                        <div>
-                            {buttons}
-                        </div>
-                        <div className="item" key="home" onClick={this.returnHome}>
-                            Home
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+                {this._child ? null : <div>{this.renderView}</div>}
+            </>
+        );
     }
 
     pinToPresentation = () => {
@@ -511,6 +433,7 @@ export class MobileInterface extends React.Component {
             }
         }
     }
+
     onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -552,25 +475,6 @@ export class MobileInterface extends React.Component {
 
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
 // WAS 2
-
-AssignAllExtensions();
-
-(async () => {
-    const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + " (mobile)");
-    await Docs.Prototypes.initialize();
-    if (info.id !== "__guest__") {
-        // a guest will not have an id registered
-        await CurrentUserUtils.loadUserDocument(info);
-    }
-    document.getElementById('root')!.addEventListener('wheel', event => {
-        if (event.ctrlKey) {
-            event.preventDefault();
-        }
-    }, true);
-    ReactDOM.render(<MobileInterface />, document.getElementById('root'));
-})();
-
 
 // 1
 // renderUploadContent() {

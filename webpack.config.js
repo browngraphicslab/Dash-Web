@@ -40,7 +40,7 @@ module.exports = {
         viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
         repl: ["./src/debug/Repl.tsx", 'webpack-hot-middleware/client?reload=true'],
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
-        mobileInterface: ["./src/mobile/MobileInterface.tsx", 'webpack-hot-middleware/client?reload=true'],
+        mobileInterface: ["./src/mobile/MobileMain.tsx", 'webpack-hot-middleware/client?reload=true'],
     },
     optimization: {
         noEmitOnErrors: true
@@ -63,42 +63,42 @@ module.exports = {
     },
     module: {
         rules: [{
-            test: [/\.tsx?$/],
-            use: [{
-                loader: 'ts-loader',
-                options: {
-                    transpileOnly: true
-                }
-            }]
-        },
-        {
-            test: /\.scss|css$/,
-            use: [{
-                loader: "style-loader"
+                test: [/\.tsx?$/],
+                use: [{
+                    loader: 'ts-loader',
+                    options: {
+                        transpileOnly: true
+                    }
+                }]
             },
             {
-                loader: "css-loader"
+                test: /\.scss|css$/,
+                use: [{
+                        loader: "style-loader"
+                    },
+                    {
+                        loader: "css-loader"
+                    },
+                    {
+                        loader: "sass-loader"
+                    }
+                ]
             },
             {
-                loader: "sass-loader"
+                test: /\.(jpg|png|pdf)$/,
+                use: [{
+                    loader: 'file-loader'
+                }]
+            },
+            {
+                test: /\.(png|jpg|gif)$/i,
+                use: [{
+                    loader: 'url-loader',
+                    options: {
+                        limit: 8192
+                    }
+                }]
             }
-            ]
-        },
-        {
-            test: /\.(jpg|png|pdf)$/,
-            use: [{
-                loader: 'file-loader'
-            }]
-        },
-        {
-            test: /\.(png|jpg|gif)$/i,
-            use: [{
-                loader: 'url-loader',
-                options: {
-                    limit: 8192
-                }
-            }]
-        }
         ]
     },
     plugins,
