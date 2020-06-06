@@ -1,33 +1,44 @@
-import React = require('react');
+import * as React from "react";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib, faThumbtack, faHome } from '@fortawesome/free-solid-svg-icons';
+import {
+    faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
+    faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
+    faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
+    faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as rp from 'request-promise';
-import { Docs } from '../client/documents/Documents';
-import { DocumentView } from '../client/views/nodes/DocumentView';
+import { Doc, DocListCast, FieldResult } from '../fields/Doc';
+import { Id } from '../fields/FieldSymbols';
+import { FieldValue, Cast, StrCast } from '../fields/Types';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { emptyPath, emptyFunction, returnFalse, returnOne, returnTrue, returnZero, Utils } from '../Utils';
-import { Transform } from '../client/util/Transform';
+import { DocServer } from '../client/DocServer';
+import { Docs } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
+import { DocumentView } from '../client/views/nodes/DocumentView';
+import { Transform } from '../client/util/Transform';
 import { InkingControl } from '../client/views/InkingControl';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
-import { DocServer } from '../client/DocServer';
 import { DocumentManager } from '../client/util/DocumentManager';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
 import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
-import { Doc, DocListCast, FieldResult } from '../fields/Doc';
-import { FieldValue, Cast, StrCast } from '../fields/Types';
 import { InkTool } from '../fields/InkField';
 import { listSpec } from '../fields/Schema';
 import { nullAudio, WebField } from '../fields/URLField';
-import { Id } from '../fields/FieldSymbols';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 
-library.add(faLongArrowAltLeft);
-library.add(faHome);
+library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
+    faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
+    faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
+    faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft);
 
 @observer
 export class MobileInterface extends React.Component {

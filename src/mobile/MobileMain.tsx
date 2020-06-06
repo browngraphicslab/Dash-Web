@@ -1,10 +1,10 @@
-import { DocServer } from '../client/DocServer';
-import { Docs } from '../client/documents/Documents';
-import * as ReactDOM from "react-dom";
-import { MobileInterface } from './MobileInterface';
-import * as React from "react";
-import { AssignAllExtensions } from '../extensions/General/Extensions';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
+import { MobileInterface } from "./MobileInterface";
+import { Docs } from "../client/documents/Documents";
+import { CurrentUserUtils } from "../client/util/CurrentUserUtils";
+import * as ReactDOM from 'react-dom';
+import * as React from 'react';
+import { DocServer } from "../client/DocServer";
+import { AssignAllExtensions } from "../extensions/General/Extensions";
 
 AssignAllExtensions();
 
