@@ -210,8 +210,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // overlays document numbers (ex. d32) over all documents when clicked on
     onFocus = () => {
-        // this._overlayDisposer?.();
-        // this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
+        this._overlayDisposer?.();
+        this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
     // sets field of the corresponding field key (param name) to be dropped document
