@@ -58,15 +58,15 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             iframe.contentDocument.addEventListener('pointerdown', this.iframedown, false);
             iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
             this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
-            iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
-            iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc.scrollLeft);
+            iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc._scrollTop);
+            iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc._scrollLeft);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc.scrollY, x: this.layoutDoc.scrollX }),
+        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc._scrollY, x: this.layoutDoc._scrollX }),
             ({ x, y }) => {
                 if (y !== undefined) {
                     this._outerRef.current!.scrollTop = y;
-                    this.layoutDoc.scrollY = undefined;
+                    this.layoutDoc._scrollY = undefined;
                 }
                 if (x !== undefined) {
                     this._outerRef.current!.scrollLeft = x;
@@ -83,8 +83,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     iframeScrolled = (e: any) => {
         const scrollTop = e.target?.children?.[0].scrollTop;
         const scrollLeft = e.target?.children?.[0].scrollLeft;
-        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scrollTop;
-        this.layoutDoc.scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+        this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
@@ -440,7 +440,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             {this.urlEditor()}
         </>);
     }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc.scrollLeft), NumCast(this.layoutDoc.scrollTop));
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
         return (<div className={`webBox-container`}
             style={{

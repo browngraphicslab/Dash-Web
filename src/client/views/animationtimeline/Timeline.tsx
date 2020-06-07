@@ -11,8 +11,6 @@ import { KeyframeFunc } from "./Keyframe";
 import "./Timeline.scss";
 import { TimelineOverview } from "./TimelineOverview";
 import { Track } from "./Track";
-import { utils } from "mocha";
-import { Util } from "../../../../deploy/assets/pdf.worker";
 import clamp from "../../util/clamp";
 
 /**
