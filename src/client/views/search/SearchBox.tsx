@@ -37,6 +37,7 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { makeInterface, createSchema } from '../../../fields/Schema';
 import { listSpec } from '../../../fields/Schema';
 import * as _ from "lodash";
+import { checkIfStateModificationsAreAllowed } from 'mobx/lib/internal';
 
 
 library.add(faTimes);
@@ -363,7 +364,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable expandedBucket:boolean=false;
     @action
     submitSearch = async (reset?:boolean) => {
-        console.log(this._icons);
+        this.checkIcons();
         if (reset){
             this.layoutDoc._searchString="";
         }
@@ -529,7 +530,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        const res = await this.getAllResults(this.getFinalQuery(StrCast(this.layoutDoc._searchString)));
+    const res = await this.getAllResults(this.getFinalQuery(StrCast(this.layoutDoc._searchString)));
        const filtered = this.filterDocsByType(res.docs);
        const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
@@ -1017,15 +1018,29 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             let cap = icon.charAt(0).toUpperCase() + icon.slice(1)
             console.log(cap);
             let doc = await Cast(this.props.Document[cap], Doc)
-            doc!.backgroundColor= "";
+            doc!.backgroundColor= "black";
         }
         else{
             this._icons.push(icon);
             let cap = icon.charAt(0).toUpperCase() + icon.slice(1)
             let doc = await Cast(this.props.Document[cap], Doc)
-            doc!.backgroundColor= "aaaaa3";
+            doc!.backgroundColor= "grey";
         }
-        console.log(this._icons);
+    }
+
+    @action.bound
+    checkIcons = async ()=>{
+        for (let i=0; i<this._allIcons.length; i++){
+        
+            let cap = this._allIcons[i].charAt(0).toUpperCase() + this._allIcons[i].slice(1)
+            let doc = await Cast(this.props.Document[cap], Doc)
+            if (this._icons.includes(this._allIcons[i])){
+                doc!.backgroundColor= "grey";
+            }
+            else{
+                doc!.backgroundColor= "black";
+            }
+    }
     }
 
     setupDocTypeButtons() {
@@ -1033,23 +1048,24 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts,  
         dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100,
          _height: 100 })) as any as Doc;
-        doc.Music = ficon({ onClick: ScriptField.MakeScript(`updateIcon("audio")`), title: "music button", icon: "music" });
-        doc.Col  = ficon({ onClick: ScriptField.MakeScript(`updateIcon("collection")`), title: "col button", icon: "object-group" });
+        doc.Audio = ficon({ onClick: ScriptField.MakeScript(`updateIcon("audio")`), title: "music button", icon: "music" });
+        doc.Collection  = ficon({ onClick: ScriptField.MakeScript(`updateIcon("collection")`), title: "col button", icon: "object-group" });
         doc.Image = ficon({ onClick: ScriptField.MakeScript(`updateIcon("image")`), title: "image button", icon: "image" });
         doc.Link = ficon({ onClick: ScriptField.MakeScript(`updateIcon("link")`), title: "link button", icon: "link" });
         doc.Pdf = ficon({ onClick: ScriptField.MakeScript(`updateIcon("pdf")`), title: "pdf button", icon: "file-pdf" });
-        doc.Text = ficon({ onClick: ScriptField.MakeScript(`updateIcon("rtf")`), title: "text button", icon: "sticky-note" });
-        doc.Vid = ficon({ onClick: ScriptField.MakeScript(`updateIcon("video")`), title: "vid button", icon: "video" });
+        doc.Rtf = ficon({ onClick: ScriptField.MakeScript(`updateIcon("rtf")`), title: "text button", icon: "sticky-note" });
+        doc.Video = ficon({ onClick: ScriptField.MakeScript(`updateIcon("video")`), title: "vid button", icon: "video" });
         doc.Web = ficon({ onClick: ScriptField.MakeScript(`updateIcon("web")`), title: "web button", icon: "globe-asia" });
 
-        let buttons = [doc.None as Doc, doc.Music as Doc, doc.Col as Doc, doc.Hist as Doc,  
-        doc.Image as Doc, doc.Link as Doc, doc.PDF as Doc, doc.TEXT as Doc, doc.Vid as Doc, doc.Web as Doc];
+        let buttons = [doc.None as Doc, doc.Audio as Doc, doc.Collection as Doc, 
+        doc.Image as Doc, doc.Link as Doc, doc.Pdf as Doc, doc.Rtf as Doc, doc.Video as Doc, doc.Web as Doc];
 
         const dragCreators = Docs.Create.MasonryDocument(buttons, {
             _width: 500, backgroundColor:"#121721", _autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), _yMargin: 5
         });
         doc.nodeButtons= dragCreators;
+        this.checkIcons()
     }
 
 
@@ -1112,7 +1128,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     //Make id layour document
     render() {
-        this.props.Document._gridGap=20;
+        this.props.Document._gridGap=5;
         this.props.Document._searchDoc=true;
 
         return (

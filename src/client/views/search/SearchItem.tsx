@@ -346,6 +346,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
        runInAction(()=>{
         if (StrCast(this.rootDoc.bucketfield)!=="results"){
         SearchBox.Instance._icons=[StrCast(this.rootDoc.bucketfield)];
+        SearchBox.Instance._icons=SearchBox.Instance._icons;
         }
         SearchBox.Instance.expandedBucket= true;
         SearchBox.Instance.submitSearch();
