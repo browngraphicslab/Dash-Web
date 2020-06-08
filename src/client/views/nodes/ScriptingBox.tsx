@@ -39,6 +39,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
+    @observable private _function: boolean = false;
     @observable private _hovered: boolean = false;
     @observable private _spaced: boolean = false;
     @observable private _scriptKeys: any = Scripting.getGlobals();
@@ -59,6 +60,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _paramSuggestion: boolean = false;
     @observable private _scriptSuggestedParams: any = "";
     @observable private _scriptParamsText: any = "";
+
+    @observable private _functionName: any = "";
+    @observable private _functionDescription: any = "";
 
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -213,18 +217,44 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     onEdit = () => {
+        this._errorMessage = "";
         this._applied = false;
+        this._function = false;
     }
 
     @action
     onSave = () => {
         if (this.onCompile()) {
-            this.dataDoc.funcName = "testingTitle";
-            this.dataDoc.descripition = "description test";
-            ScriptManager.Instance.addScript(this.dataDoc);
+            this._function = true;
         } else {
             this._errorMessage = "Can not save script, does not compile";
         }
+    }
+
+    @action
+    onCreate = () => {
+
+        if (this._functionName.length === 0) {
+            this._errorMessage = "Must enter a function name";
+            return false;
+        }
+
+        if (this._functionName.indexOf(" ") > 0) {
+            this._errorMessage = "Name can not include spaces";
+            return false;
+        }
+
+        this.dataDoc.funcName = this._functionName;
+        this.dataDoc.descripition = this._functionDescription;
+
+        ScriptManager.Instance.deleteScript(this.dataDoc);
+
+        this.dataDoc.funcName = "testingTitle";
+        this.dataDoc.descripition = "description test";
+
+        ScriptManager.Instance.addScript(this.dataDoc);
+
+        console.log("created");
     }
 
     // overlays document numbers (ex. d32) over all documents when clicked on
@@ -269,6 +299,40 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         options.push({ description: "Create a Copy", event: this.onCopy, icon: "copy" });
         !existingOptions && ContextMenu.Instance.addItem({ description: "Options...", subitems: options, icon: "hand-point-right" });
     }
+
+    @action
+    renderFunctionInputs() {
+
+        const descriptionInput =
+            <textarea
+                onChange={e => this._functionDescription = e.target.value}
+                placeholder="enter description here"
+                value={this._functionDescription}
+                style={{ height: "40%", width: "100%" }}
+            />;
+
+        const nameInput =
+            <textarea
+                onChange={e => this._functionName = e.target.value}
+                placeholder="enter name here"
+                value={this._functionName}
+                style={{ height: "40%", width: "100%" }}
+            />;
+
+        return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected() && e.stopPropagation()} >
+            <div className="scriptingBox-wrapper">
+                <div className="container">
+                    <div className="child" style={{ textAlign: "center", display: "inline-block" }}> Enter a name for this function: </div>
+                    <div className="child">{nameInput}</div>
+                    <div className="child" style={{ textAlign: "center", display: "inline-block" }}> Enter a description of this function: </div>
+                    <div className="child">{descriptionInput}</div>
+                </div>
+            </div>
+            {this.renderErrorMessage()}
+        </div>;
+    }
+
+
 
     renderErrorMessage() {
         return !this._errorMessage ? (null) : <div className="scriptingBox-errorMessage"> {this._errorMessage} </div>;
@@ -485,12 +549,14 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     suggestionPos() {
         const getCaretCoordinates = require('textarea-caret');
         const This = this;
+        //if (!This._applied && !This._function) {
         document.querySelector('textarea')?.addEventListener("input", function () {
             const caret = getCaretCoordinates(this, this.selectionEnd);
             This._selection = this;
             This._selectionEnd = this.selectionEnd;
             This.resetSuggestionPos(caret);
         });
+        //}
     }
 
     @action
@@ -698,6 +764,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                             </div>
                         </div>)}
                 </div>}
+            {this.renderErrorMessage()}
         </div>;
     }
 
@@ -705,9 +772,19 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     renderParamsTools() {
         const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
         return <div className="scriptingBox-toolbar">
-            {this.renderErrorMessage()}
             <button className={buttonStyle} onPointerDown={e => { this.onEdit(); e.stopPropagation(); }}>Edit</button>
             <button className={buttonStyle} onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
+            {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
+                <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
+        </div>;
+    }
+
+    // toolbar (with edit and run buttons and error message) for params UI
+    renderFunctionTools() {
+        const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
+        return <div className="scriptingBox-toolbar">
+            <button className={buttonStyle} onPointerDown={e => { this.onEdit(); e.stopPropagation(); }}>Edit</button>
+            <button className={buttonStyle} onPointerDown={e => { this.onCreate(); e.stopPropagation(); }}>Create Function</button>
             {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
                 <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
         </div>;
@@ -717,12 +794,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     render() {
         return (
             <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}
-                onPointerUp={this.suggestionPos}>
+                onPointerUp={!this._function ? this.suggestionPos : undefined}>
                 <div className="scriptingBox-outerDiv"
                     onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
                     {this._paramSuggestion ? <div className="boxed" ref={this._suggestionRef} style={{ left: this._suggestionBoxX + 20, top: this._suggestionBoxY - 15, display: "inline" }}> {this._scriptSuggestedParams} </div> : null}
-                    {!this._applied ? this.renderScriptingInputs : this.renderParamsInputs()}
-                    {!this._applied ? this.renderScriptingTools() : this.renderParamsTools()}
+                    {!this._applied && !this._function ? this.renderScriptingInputs : null}
+                    {this._applied && !this._function ? this.renderParamsInputs() : null}
+                    {!this._applied && this._function ? this.renderFunctionInputs() : null}
+
+                    {!this._applied && !this._function ? this.renderScriptingTools() : null}
+                    {this._applied && !this._function ? this.renderParamsTools() : null}
+                    {!this._applied && this._function ? this.renderFunctionTools() : null}
                 </div>
             </div>
         );

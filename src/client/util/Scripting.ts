@@ -65,7 +65,11 @@ export namespace Scripting {
                 obj = [nameOrGlobal];
                 obj.push(global);
                 if (params) {
-                    obj.push(params);
+                    if (params.indexOf("(") > 0) {
+                        obj.push(params);
+                    } else {
+                        n = params;
+                    }
                 }
                 if (name) {
                     n = name;
@@ -91,6 +95,14 @@ export namespace Scripting {
 
     export function setScriptingGlobals(globals: { [key: string]: any }) {
         scriptingGlobals = globals;
+    }
+
+    export function removeGlobal(name: string) {
+        if (_scriptingGlobals.hasKey(name)) {
+            delete _scriptingGlobals.container[name];
+            return true;
+        }
+        return false;
     }
 
     export function resetScriptingGlobals() {
