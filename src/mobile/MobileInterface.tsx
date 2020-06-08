@@ -1123,7 +1123,6 @@ export class MobileInterface extends React.Component {
                             pinToPres={emptyFunction}
                             rootSelected={returnFalse}
                             removeDocument={undefined}
-                            onClick={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
                             NativeHeight={returnZero}
@@ -1168,7 +1167,6 @@ export class MobileInterface extends React.Component {
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined}
                             ContainingCollectionDoc={undefined}
-                        // mobile={true}
                         />
                     </div>
                 );
@@ -1176,12 +1174,10 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    returnWidth = () => 2000;
-    returnHeight = () => 2000;
+    returnWidth = () => window.innerWidth;
+    returnHeight = () => (window.innerHeight - 300);
 
     handleClick(doc: Doc) {
-        console.log(screen.height)
-        console.log(screen.width)
         let children = DocListCast(doc.data);
         if (doc.type !== "collection") {
             this._parents.push(this._activeDoc);
