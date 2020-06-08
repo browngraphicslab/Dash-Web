@@ -27,7 +27,7 @@ import { listSpec } from "../../fields/Schema";
 import { List } from "../../fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import MobileInterface from "../../mobile/MobileInterface";
+import { MobileInterface } from "../../mobile/MobileInterface";
 import { MobileInkOverlayContent } from "../../server/Message";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { RadialMenu } from "./nodes/RadialMenu";
@@ -115,12 +115,12 @@ export default class GestureOverlay extends Touchable {
     onReactTouchStart = (te: React.TouchEvent) => {
         document.removeEventListener("touchmove", this.onReactHoldTouchMove);
         document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-        if (RadialMenu.Instance._display === true) {
-            te.preventDefault();
-            te.stopPropagation();
-            RadialMenu.Instance.closeMenu();
-            return;
-        }
+        // if (RadialMenu.Instance._display === true) {
+        //     te.preventDefault();
+        //     te.stopPropagation();
+        //     RadialMenu.Instance.closeMenu();
+        //     return;
+        // }
 
         // this chunk adds new touch targets to a map of pointer events; this helps us keep track of individual fingers
         // so that we can know, for example, if two fingers are pinching out or in.

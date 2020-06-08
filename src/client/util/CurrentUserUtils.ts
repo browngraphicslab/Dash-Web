@@ -386,23 +386,54 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    static setupMobileButtons(doc: Doc, buttons?: string[]) {
+    // static setupMobileButtons(doc: Doc, buttons?: string[]) {
+    //     const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
+    //         { title: "record", icon: "microphone", ignoreClick: true, click: "FILL" },
+    //         { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
+    //         { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+    //         { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
+    //         { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
+    //         // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "red", activePen: doc },
+    //         { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
+    //         // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
+    //     ];
+    //     return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
+    //         _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
+    //         onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
+    //         ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen,
+    //         backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
+    //     }));
+    // }
+
+    static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-            { title: "record", icon: "microphone", ignoreClick: true, click: "FILL" },
-            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
-            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
-            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
-            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
-            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "red", activePen: doc },
-            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
-            // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
+            { title: "library", icon: "bars", click: 'switchToLibrary()', backgroundColor: "lightgrey" },
+            { title: "record", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey" },
+            { title: "upload", icon: "upload", click: 'uploadMobileImage()', backgroundColor: "lightgrey" },
+            { title: "presentation", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "lightgrey" },
+            { title: "ink", icon: "pen-nib", backgroundColor: "lightgrey" },
+            { title: "settings", icon: "cog", click: 'openMobileSettings()', backgroundColor: "lightgrey" }
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
-            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
-            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
+            _nativeWidth: 150, _nativeHeight: 150, _width: 150, _height: 150,
+            dropAction: undefined,
+            title: data.title,
+            icon: data.icon,
+            ignoreClick: data.ignoreClick,
+            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
+            onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
+            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined,
+            activePen: data.activePen,
+            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]),
+            dragFactory: data.dragFactory,
         }));
+    }
+
+    static setupMobileMenu() {
+        const menu = Cast(Docs.Create.StackingDocument(CurrentUserUtils.setupMobileButtons(), {
+            _width: 980, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "home", _autoHeight: true, _yMargin: 80
+        }), Doc) as Doc;
+        return menu;
     }
 
     static setupThumbButtons(doc: Doc) {
@@ -438,14 +469,18 @@ export class CurrentUserUtils {
         return Cast(userDoc.thumbDoc, Doc);
     }
 
-    static setupMobileDoc(userDoc: Doc) {
-        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
-            columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
-        });
+    static setupLibrary(userDoc: Doc) {
+        return CurrentUserUtils.setupWorkspaces(userDoc);
     }
 
     static setupMobileInkingDoc(userDoc: Doc) {
         return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
+    }
+
+    static setupMobileDoc(userDoc: Doc) {
+        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons2(userDoc), {
+            columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
+        });
     }
 
     static setupMobileUploadDoc(userDoc: Doc) {
@@ -607,6 +642,42 @@ export class CurrentUserUtils {
         ...opts,
         dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
     })) as any as Doc
+
+    static setupMobileButtons2(doc?: Doc, buttons?: string[]) {
+        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
+            { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections" },
+            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your mobile to record audio and access it on Dash Web." },
+            { title: "UPLOAD", icon: "upload", click: 'uploadMobileImage()', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
+            { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
+            // { title: "INK", icon: "pen-nib", backgroundColor: "lightgrey", info: "Doodle and draw with ink on your mobile and have it directly available on Dash Web" },
+            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security" }
+        ];
+        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => this.mobileButton({ title: data.title, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined, _backgroundColor: data.backgroundColor }, [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])]));
+    }
+
+    static mobileButton = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MulticolumnDocument(docs, {
+        ...opts,
+        dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
+        borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled",
+    })) as any as Doc
+
+    static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MultirowDocument(docs, {
+        ...opts,
+        dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
+        backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled",
+    })) as any as Doc
+
+
+    static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonTitle, {
+        ...opts,
+        title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
+    })) as any as Doc
+
+    static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonInfo, {
+        ...opts,
+        title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
+    })) as any as Doc
+
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {

@@ -83,15 +83,17 @@ body {
 
 .sidebar {
     position: absolute;
-    top: 200px;
+    top: 120px;
     opacity: 0;
     right: -100%;
     width: 100%;
-    height: calc(100% - (200px));
-    z-index: 5;
+    height: calc(100% - (120px));
+    z-index: 101;
     background-color: whitesmoke;
     transition: all 400ms ease 50ms;
     padding: 20px;
+    // overflow-y: auto;
+    // -webkit-overflow-scrolling: touch;
     // border-right: 5px solid black;
 }
 
@@ -106,14 +108,23 @@ body {
     font-size: 35px;
     text-transform: uppercase;
     color: black;
+    
 }
 
-.sidebar .home {
+.sidebar .ink:focus {
+    outline: 1px solid blue;
+}
+
+.sidebarButtons {
+    top: 80px;
+    position: relative;
+}
+
+.home {
     position: absolute;
-    top: -135px;
-    right: calc(50% + 80px);
-    transform: translate(0%, -50%);
-    font-size: 40;
+    top: 30px;
+    left: 30px;
+    font-size: 60;
     user-select: none;
     text-transform: uppercase;
     font-family: Arial, Helvetica, sans-serif;
@@ -173,23 +184,26 @@ body {
 
 .back {
     position: absolute;
-    top: -140px;
-    left: 50px;
-    transform: translate(0%, -50%);
-    color: black;
-    font-size: 60;
+    top: 44%;
+    left: 42px;
+    background-color: black;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 10px;
+    transform: translate(0, -50%);
+    font-size: 25px;
     user-select: none;
-    text-transform: uppercase;
     z-index: 100;
-    font-family: Arial, Helvetica, sans-serif;
 }
 
 
 .pathbar {
     position: absolute;
     top: 118px;
+    left: 0px;
     background: #1a1a1a;
-    z-index: 20;
+    z-index: 120;
     border-radius: 0px;
     width: 100%;
     height: 80px;
@@ -200,8 +214,8 @@ body {
     position: relative;
     font-size: 25;
     top: 50%;
-    width: 90%;
-    left: 3%;
+    width: 86%;
+    left: 12%;
     color: whitesmoke;
     transform: translate(0%, -50%);
     z-index: 20;
@@ -214,27 +228,71 @@ body {
     text-transform: uppercase;
 }
 
-.homeContainer {
-    position: relative;
-    top: 200px;
-    height: calc(100% - 250px);
-    width: 90%;
-    overflow: scroll;
-    left: 5%;
-    background-color: lightpink;
-}
-
-.pinButton {
+.docButton {
     position: relative;
     width: 100px;
     height: 100px;
     font-size: 90px;
     text-align: center;
-    left: 50%;
-    transform: translate(-50%, 0);
     border-style: solid;
     border-radius: 50px;
     border-width: medium;
-    background-color: pink;
+    margin: 10px;
     z-index: 100;
+}
+
+.docButtonContainer {
+    top: 90%;
+    position: absolute;
+    display: flex;
+    transform: translate(-50%, 0);
+    left: 50%;
+    z-index: 100;
+}
+
+.scrollmenu {
+    overflow: auto;
+    white-space: nowrap;
+}
+
+.pathbarItem {
+    position: relative;
+    display: inline-flex;
+    color: whitesmoke;
+    text-align: center;
+    transform: translate(100px, 0px);
+    font-size: 30px;
+    padding: 10px;
+    text-transform: uppercase;
+}
+
+.pathbarText {
+    font-family: sans-serif;
+    text-align: center;
+    height: 50px;
+    padding: 10px;
+    background-color: rgb(48, 40, 40);
+    font-size: 30px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    margin-left: 20px;
+    position: relative;
+}
+
+
+.pathIcon {
+    transform: translate(0px, 8px);
+    position: relative;
+}
+
+.hidePath {
+    position: absolute;
+    height: 100%;
+    width: 200px;
+    left: 0px;
+    top: 0px;
+    background-image: linear-gradient(to right, #1a1a1a, rgba(255, 0, 0, 0));
+    text-align: center;
+    user-select: none;
+    z-index: 99;
 }

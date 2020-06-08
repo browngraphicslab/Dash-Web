@@ -1,0 +1,101 @@
+$navbar-height: 120px;
+$pathbar-height: 50px;
+
+* {
+    margin: 0px;
+    padding: 0px;
+    box-sizing: border-box;
+    font-family: "Open Sans";
+}
+
+.homeContainer {
+    position: relative;
+    top: 200px;
+    overflow: scroll;
+    width: 100%;
+    left: 0;
+    height: calc(100% - 120px);
+    overflow-y: scroll;
+}
+
+.homeButton {
+    width: 96%;
+    margin-left: 2.5%;
+    height: 250px;
+    border-radius: 30px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.iconRight {
+    position: absolute;
+    width: 50%;
+    height: 80px;
+    transform: translate(0, 50%);
+    right: 0px;
+    text-align: center;
+    font-size: 80;
+}
+
+.iconLeft {
+    position: absolute;
+    width: 50%;
+    height: 80px;
+    transform: translate(0%, 50%);
+    left: 0px;
+    text-align: center;
+    font-size: 80;
+}
+
+.textLeft {
+    position: absolute;
+    width: 50%;
+    left: 0px;
+    font-size: 40px;
+    text-align: left;
+    margin-left: 110px;
+    margin-top: 40px;
+    font-family: sans-serif;
+    font-weight: bold;
+}
+
+.textRight {
+    position: absolute;
+    width: 50%;
+    right: 0px;
+    font-size: 40px;
+    text-align: right;
+    margin-right: 110px;
+    margin-top: 40px;
+    font-family: sans-serif;
+    font-weight: bold;
+}
+
+.menuView {
+    position: absolute;
+    top: 135px;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    display: flex;
+}
+
+.iconView {
+    height: 60px;
+    width: 60px;
+    background-color: darkgray;
+    border-radius: 5px;
+    border-style: solid;
+    border-width: 2px;
+    border-color: black;
+}
+
+.listView {
+    height: 60px;
+    width: 60px;
+    margin-left: 20;
+    background-color: darkgray;
+    border-radius: 5px;
+    border-style: solid;
+    border-width: 2px;
+    border-color: black;
+}

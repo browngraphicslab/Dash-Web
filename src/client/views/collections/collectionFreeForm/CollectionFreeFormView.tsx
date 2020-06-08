@@ -597,7 +597,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // bcz: theres should be a better way of doing these than referencing these static instances directly
         MarqueeOptionsMenu.Instance?.fadeOut(true);// I think it makes sense for the marquee menu to go away when panned. -syip2
-        PDFMenu.Instance.fadeOut(true);
+        // PDFMenu.Instance.fadeOut(true);
 
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         this.setPan((this.Document._panX || 0) - dx, (this.Document._panY || 0) - dy, undefined, true);
