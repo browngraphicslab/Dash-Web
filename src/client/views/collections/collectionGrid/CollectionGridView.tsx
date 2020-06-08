@@ -19,6 +19,7 @@ import { Docs } from '../../../documents/Documents';
 import { EditableView, EditableProps } from '../../EditableView';
 import "./CollectionGridView.scss";
 import { ContextMenu } from '../../ContextMenu';
+import { ScriptField } from '../../../../fields/ScriptField';
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
@@ -27,19 +28,23 @@ const GridSchema = makeInterface(documentSchema);
 @observer
 export class CollectionGridView extends CollectionSubView(GridSchema) {
     private containerRef: React.RefObject<HTMLDivElement>;
-    @observable private _scroll: number = 0;
+    @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
     private changeListenerDisposer: Opt<Lambda>;
     private rowHeight: number = 0;
-    private sliderDragged: boolean = false;
 
     constructor(props: Readonly<SubCollectionViewProps>) {
         super(props);
 
         this.props.Document.numCols = NumCast(this.props.Document.numCols, 10);
         this.props.Document.rowHeight = NumCast(this.props.Document.rowHeight, 100);
+
+        // determines whether the grid is static/flexible i.e. can nodes be moved around and resized or not
         this.props.Document.flexGrid = BoolCast(this.props.Document.flexGrid, true);
 
+        // determines whether nodes should remain in position, be bound to the top, or to the left
         this.props.Document.compactType = StrCast(this.props.Document.compactType, "vertical");
+
+        // determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
         this.props.Document.preventCollision = BoolCast(this.props.Document.preventCollision, false);
 
         this.setLayout = this.setLayout.bind(this);
@@ -76,7 +81,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                             w: 2,
                             h: 2,
                             x: 2 * (i % Math.floor(NumCast(this.props.Document.numCols) / 2)),
-                            y: 2 * Math.floor(i / Math.floor(NumCast(this.props.Document.numCols) / 2))
+                            y: 2 * Math.floor(i / Math.floor(NumCast(this.props.Document.numCols) / 2)),
+                            static: !this.props.Document.flexGrid
                         });
                     }
                 });
@@ -118,14 +124,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
 
     /**
-     * @returns the transform that will correctly place
-     * the document decorations box, shifted to the right by
-     * the sum of all the resolved column widths of the
-     * documents before the target. 
+     * @returns the transform that will correctly place the document decorations box. 
      */
     private lookupIndividualTransform = (layout: Layout) => {
 
         const index = this.childLayoutPairs.findIndex(({ layout: layoutDoc }) => layoutDoc[Id] === layout.i);
+
+        // translations depend on whether the grid is flexible or static
         const yTranslation = (this.props.Document.flexGrid ? NumCast(layout.y) : 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2))) * this.rowHeightPlusGap + 10 - this._scroll + 30; // 30 is the height of the add text doc bar
         const xTranslation = (this.props.Document.flexGrid ? NumCast(layout.x) : 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2))) * this.colWidthPlusGap + 10;
 
@@ -137,19 +142,26 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    /**
+     * @returns the layout list converted from JSON
+     */
     get parsedLayoutList() { return this.props.Document.gridLayoutString ? JSON.parse(StrCast(this.props.Document.gridLayoutString)) : []; }
+
+    /**
+     * Stores the layout list on the Document as JSON
+     */
     set unStringifiedLayoutList(layouts: Layout[]) { this.props.Document.gridLayoutString = JSON.stringify(layouts); }
 
 
     /**
      * Sets the width of the decorating box.
-     * @param Doc doc
+     * @param layout 
      */
     @observable private width = (layout: Layout) => (this.props.Document.flexGrid ? layout.w : 2) * this.colWidthPlusGap - 10;
 
     /**
      * Sets the height of the decorating box.
-     * @param doc `Doc`
+     * @param layout
      */
     @observable private height = (layout: Layout) => (this.props.Document.flexGrid ? layout.h : 2) * this.rowHeightPlusGap - 10;
 
@@ -161,6 +173,32 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         return this.props.addDocTab(doc, where);
     }
 
+    contextMenuItems = (layoutDoc: Doc) => {
+        const layouts: Layout[] = this.parsedLayoutList;
+        const freezeScript = ScriptField.MakeFunction(
+            // "layouts.find(({ i }) => i === layoutDoc[Id]).static=true;" +
+            // "this.unStringifiedLayoutList = layouts;" +
+            "console.log(doc)", { doc: Doc.name }
+        );
+
+        // const layouts: Layout[] = this.parsedLayoutList;
+
+        // const layoutToChange = layouts.find(({ i }) => i === layoutDoc[Id]);
+        // layoutToChange!.static = true;
+
+        // this.unStringifiedLayoutList = layouts;
+
+        return [{ script: freezeScript!, label: "testing" }];
+    }
+
+    /**
+     * 
+     * @param layout 
+     * @param dxf the x- and y-translations of the decorations box as a transform i.e. this.lookupIndividualTransform
+     * @param width 
+     * @param height 
+     * @returns the `ContentFittingDocumentView` of the node
+     */
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
             {...this.props}
@@ -177,6 +215,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
+            display={"contents"}
+            contextMenuItems={() => this.contextMenuItems(layout)}
         />;
     }
 
@@ -238,20 +278,20 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     /**
-     * @returns a list of Layouts from a list of Docs
-     * @param docLayoutList `Doc[]`
+     * @returns a list of `Layout` objects with attributes depending on whether the grid is flexible or static
      */
     get layoutList(): Layout[] {
         const layouts: Layout[] = this.parsedLayoutList;
-        this.unStringifiedLayoutList = layouts;
+        // this.unStringifiedLayoutList = layouts;
 
         return this.props.Document.flexGrid ?
-            layouts.map(({ i, x, y, w, h }) => ({
+            layouts.map(({ i, x, y, w, h, static: stat }) => ({
                 i: i,
-                x: x + w > NumCast(this.props.Document.numCols) ? 0 : x,
+                x: x + w > NumCast(this.props.Document.numCols) ? 0 : x, // handles wrapping around of nodes when numCols decreases
                 y: y,
                 w: w,
-                h: h
+                h: h,
+                static: stat
             }))
             : layouts.map(({ i }, index) => ({
                 i: i,
@@ -263,33 +303,39 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             }));
     }
 
+    /**
+     * Handles the change in the value of the rowHeight slider.
+     */
     onSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        NumCast(this.props.Document.rowHeight) !== event.currentTarget.valueAsNumber && (this.sliderDragged = true);
+        NumCast(this.props.Document.rowHeight) !== event.currentTarget.valueAsNumber;
         this.props.Document.rowHeight = event.currentTarget.valueAsNumber;
 
     }
 
+    /**
+     * Saves the rowHeight in a temporary variable to make it undoable later.
+     */
     onSliderDown = () => {
         this.rowHeight = NumCast(this.props.Document.rowHeight);
     }
 
+    /**
+     * Uses the stored rowHeight to make the rowHeight change undoable.
+     */
     onSliderUp = () => {
         const tempVal = this.props.Document.rowHeight;
         this.props.Document.rowHeight = this.rowHeight;
         undoBatch(() => this.props.Document.rowHeight = tempVal)();
     }
 
+    /**
+     * Creates a text document and adds it to the grid.
+     */
     @undoBatch @action addTextDocument = (value: string) => this.props.addDocument(Docs.Create.TextDocument(value, { title: value }));
 
-    /**
-     * DocListCast only includes *resolved* documents, i.e. filters out promises. So even if we have a nonzero
-     * number of documents in either of these Dash lists on the document, the DocListCast version may evaluate to empty
-     * if the corresponding documents are all promises, waiting to be fetched from the server. If we don't return early
-     * in the event that promises are encountered, we might feed inaccurate data to the grid since the corresponding gridLayout
-     * documents are unresolved (or the grid may misinterpret an empty array) which has the unfortunate byproduct of triggering
-     * the setLayout event, which makes these unintended changes permanent by writing them to the likely now resolved documents.
-     */
     render() {
+
+        // for the add text document EditableView
         const newEditableViewProps: EditableProps = {
             GetValue: () => "",
             SetValue: this.addTextDocument,
@@ -334,7 +380,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     })}
                     onWheel={e => e.stopPropagation()}
                 >
-                    <input className="rowHeightSlider" type="range" value={NumCast(this.props.Document.rowHeight)} onPointerDown={this.onSliderDown} onPointerUp={this.onSliderUp} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} onClick={() => !this.sliderDragged && console.log("clicking") && (this.sliderDragged = false)} />
+                    <input className="rowHeightSlider" type="range" value={NumCast(this.props.Document.rowHeight)} onPointerDown={this.onSliderDown} onPointerUp={this.onSliderUp} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} />
                     <Grid
                         width={this.props.PanelWidth()}
                         nodeList={childDocumentViews.length ? childDocumentViews : null}
