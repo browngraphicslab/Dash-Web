@@ -471,7 +471,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         const titleArea = this._edtingTitle ?
             <>
-                <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: minimal ? "100%" : "calc(100% - 20px)" }}
+                <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
                 {minimal ? (null) : <div className="publishBox" title="make document referenceable by its title"
                     onPointerDown={action(e => {
@@ -490,7 +490,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
-                    <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
+                    <span style={{ width: "100%", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
                 </div>
             </>;
 

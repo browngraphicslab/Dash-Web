@@ -2,7 +2,6 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast, FieldResult, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
@@ -38,9 +37,7 @@ import { Networking } from "../../Network";
 
 export const pageSchema = createSchema({
     curPage: "number",
-    fitWidth: "boolean",
     rotation: "number",
-    scrollY: "number",
     scrollHeight: "number",
     serachMatch: "boolean"
 });
@@ -95,7 +92,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _showWaiting = true;
     @observable private _showCover = false;
     @observable private _zoomed = 1;
-    @observable private _scrollTop = 0;
 
     private _pdfViewer: any;
     private _retries = 0; // number of times tried to create the PDF viewer 
@@ -143,6 +139,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
+        this._mainCont.current!.scrollTop = this.layoutDoc._scrollTop || 0;
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
             if (search) {
                 this.search(Doc.SearchQuery(), true);
@@ -158,14 +155,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             () => (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(),
             { fireImmediately: true });
         this._reactionDisposer = reaction(
-            () => this.Document.scrollY,
+            () => this.Document._scrollY,
             (scrollY) => {
                 if (scrollY !== undefined) {
-                    if (this._showCover || this._showWaiting) {
-                        this.setupPdfJsViewer();
-                    }
-                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document.scrollY || 0));
-                    this.Document.scrollY = undefined;
+                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
+                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
             { fireImmediately: true }
@@ -220,7 +215,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         await this.initialLoad();
 
         this._scrollTopReactionDisposer = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
-            (stop) => (stop !== undefined) && this._mainCont.current && smoothScroll(500, this._mainCont.current, stop), { fireImmediately: true });
+            (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined) && (this._mainCont.current!.scrollTop = stop), { fireImmediately: true });
+
         this._annotationReactionDisposer = reaction(
             () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
             annotations => annotations?.length && (this._annotations = annotations),
@@ -352,7 +348,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this._scrollTop = this._mainCont.current!.scrollTop;
+        this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
         this._pdfViewer && (this.Document.curPage = this._pdfViewer.currentPageNumber);
     }
 
@@ -604,7 +600,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     scrollXf = () => {
-        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._scrollTop) : this.props.ScreenToLocalTransform();
+        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this.layoutDoc._scrollTop || 0) : this.props.ScreenToLocalTransform();
     }
     onClick = (e: React.MouseEvent) => {
         this._setPreviewCursor &&

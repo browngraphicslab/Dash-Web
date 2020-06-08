@@ -183,7 +183,7 @@ export class FormattedTextBoxComment {
                             const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
                             if (anchor !== target && anchor && target) {
-                                target.scrollY = NumCast(anchor?.y);
+                                target._scrollY = NumCast(anchor?.y);
                             }
                             if (target) {
                                 ReactDOM.render(<ContentFittingDocumentView
