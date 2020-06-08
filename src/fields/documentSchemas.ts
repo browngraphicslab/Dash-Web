@@ -22,10 +22,10 @@ export const documentSchema = createSchema({
     y: "number",                // y coordinate when in a freeform view 
     z: "number",                // z "coordinate" - non-zero specifies the overlay layer of a freeformview
     zIndex: "number",           // zIndex of a document in a freeform view
-    scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    scrollX: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
-    scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
+    _scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
+    _scrollX: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
+    _scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
+    _scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
 
     // appearance properties on the layout
     _autoHeight: "boolean",     // whether the height of the document should be computed automatically based on its contents

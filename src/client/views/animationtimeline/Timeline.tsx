@@ -1,19 +1,17 @@
-import * as React from "react";
-import "./Timeline.scss";
-import { listSpec } from "../../../fields/Schema";
-import { observer } from "mobx-react";
-import { Track } from "./Track";
-import { observable, action, computed, runInAction, IReactionDisposer, reaction, trace } from "mobx";
-import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
-import { List } from "../../../fields/List";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { faBackward, faForward, faGripLines, faPauseCircle, faPlayCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines, faPauseCircle, faEyeSlash, faEye, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
-import { ContextMenu } from "../ContextMenu";
-import { TimelineOverview } from "./TimelineOverview";
+import { action, computed, observable, runInAction, trace } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
+import { Doc, DocListCast } from "../../../fields/Doc";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from "../../../Utils";
 import { FieldViewProps } from "../nodes/FieldView";
 import { KeyframeFunc } from "./Keyframe";
-import { Utils } from "../../../Utils";
+import "./Timeline.scss";
+import { TimelineOverview } from "./TimelineOverview";
+import { Track } from "./Track";
+import clamp from "../../util/clamp";
 
 /**
  * Timeline class controls most of timeline functions besides individual keyframe and track mechanism. Main functions are 
@@ -39,7 +37,6 @@ import { Utils } from "../../../Utils";
 @observer
 export class Timeline extends React.Component<FieldViewProps> {
 
-
     //readonly constants
     private readonly DEFAULT_TICK_SPACING: number = 50;
     private readonly MAX_TITLE_HEIGHT = 75;
@@ -57,7 +54,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
     @observable private _roundToggleRef = React.createRef<HTMLDivElement>();
     @observable private _roundToggleContainerRef = React.createRef<HTMLDivElement>();
-    @observable private _timeInputRef = React.createRef<HTMLInputElement>();
+
 
     //boolean vars and instance vars 
     @observable private _currentBarX: number = 0;
@@ -71,27 +68,18 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _tickIncrement = this.DEFAULT_TICK_INCREMENT;
     @observable private _time = 100000; //DEFAULT
     @observable private _playButton = faPlayCircle;
-    @observable private _mouseToggled = false;
-    @observable private _doubleClickEnabled = false;
     @observable private _titleHeight = 0;
-
-    // so a reaction can be made
-    @observable public _isAuthoring = this.props.Document.isATOn;
 
     /**
      * collection get method. Basically defines what defines collection's children. These will be tracked in the timeline. Do not edit. 
      */
     @computed
-    private get children(): List<Doc> {
-        const extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
-        if (extendedDocument) {
-            if (this.props.Document.data_ext) {
-                return Cast((Cast(this.props.Document[Doc.LayoutFieldKey(this.props.Document) + "-annotations"], Doc) as Doc).annotations, listSpec(Doc)) as List<Doc>;
-            } else {
-                return new List<Doc>();
-            }
+    private get children(): Doc[] {
+        const annotatedDoc = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
+        if (annotatedDoc) {
+            return DocListCast(this.props.Document[Doc.LayoutFieldKey(this.props.Document) + "-annotations"]);
         }
-        return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
+        return DocListCast(this.props.Document[this.props.fieldKey]);
     }
 
     /////////lifecycle functions////////////
@@ -144,9 +132,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     //for playing
-    @action
     onPlay = (e: React.MouseEvent) => {
-        e.preventDefault();
         e.stopPropagation();
         this.play();
     }
@@ -156,24 +142,15 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     play = () => {
-        if (this._isPlaying) {
-            this._isPlaying = false;
-            this._playButton = faPlayCircle;
-        } else {
-            this._isPlaying = true;
-            this._playButton = faPauseCircle;
-            const playTimeline = () => {
-                if (this._isPlaying) {
-                    if (this._currentBarX >= this._totalLength) {
-                        this.changeCurrentBarX(0);
-                    } else {
-                        this.changeCurrentBarX(this._currentBarX + this._windSpeed);
-                    }
-                    setTimeout(playTimeline, 15);
-                }
-            };
-            playTimeline();
-        }
+        const playTimeline = () => {
+            if (this._isPlaying) {
+                this.changeCurrentBarX(this._currentBarX >= this._totalLength ? 0 : this._currentBarX + this._windSpeed);
+                setTimeout(playTimeline, 15);
+            }
+        };
+        this._isPlaying = !this._isPlaying;
+        this._playButton = this._isPlaying ? faPauseCircle : faPlayCircle;
+        this._isPlaying && playTimeline();
     }
 
 
@@ -206,12 +183,7 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     onScrubberDown = (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.addEventListener("pointermove", this.onScrubberMove);
-        document.addEventListener("pointerup", () => {
-            document.removeEventListener("pointermove", this.onScrubberMove);
-        });
+        setupMoveUpEvents(this, e, this.onScrubberMove, emptyFunction, emptyFunction);
     }
 
     /**
@@ -219,12 +191,11 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     onScrubberMove = (e: PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
         const scrubberbox = this._infoContainer.current!;
         const left = scrubberbox.getBoundingClientRect().left;
         const offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
         this.changeCurrentBarX(offsetX + this._visibleStart); //changes scrubber to clicked scrubber position
+        return false;
     }
 
     /**
@@ -232,27 +203,8 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     onPanDown = (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const clientX = e.clientX;
-        if (this._doubleClickEnabled) {
-            this._doubleClickEnabled = false;
-        } else {
-            setTimeout(() => {
-                if (!this._mouseToggled && this._doubleClickEnabled) this.changeCurrentBarX(this._trackbox.current!.scrollLeft + clientX - this._trackbox.current!.getBoundingClientRect().left);
-                this._mouseToggled = false;
-                this._doubleClickEnabled = false;
-            }, 200);
-            this._doubleClickEnabled = true;
-            document.addEventListener("pointermove", this.onPanMove);
-            document.addEventListener("pointerup", () => {
-                document.removeEventListener("pointermove", this.onPanMove);
-                if (!this._doubleClickEnabled) {
-                    this._mouseToggled = false;
-                }
-            });
-
-        }
+        setupMoveUpEvents(this, e, this.onPanMove, emptyFunction, (e) =>
+            this.changeCurrentBarX(this._trackbox.current!.scrollLeft + e.clientX - this._trackbox.current!.getBoundingClientRect().left));
     }
 
     /**
@@ -260,11 +212,6 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     onPanMove = (e: PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.movementX !== 0 || e.movementY !== 0) {
-            this._mouseToggled = true;
-        }
         const trackbox = this._trackbox.current!;
         const titleContainer = this._titleContainer.current!;
         this.movePanX(this._visibleStart - e.movementX);
@@ -276,43 +223,25 @@ export class Timeline extends React.Component<FieldViewProps> {
             this._time -= KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this._tickSpacing, this._tickIncrement);
             this.props.Document.AnimationLength = this._time;
         }
-
+        return false;
     }
 
 
     @action
     movePanX = (pixel: number) => {
-        const infoContainer = this._infoContainer.current!;
-        infoContainer.scrollLeft = pixel;
-        this._visibleStart = infoContainer.scrollLeft;
+        this._infoContainer.current!.scrollLeft = pixel;
+        this._visibleStart = this._infoContainer.current!.scrollLeft;
     }
 
     /**
      * resizing timeline (in editing mode) (the hamburger drag icon)
      */
-    @action
     onResizeDown = (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.addEventListener("pointermove", this.onResizeMove);
-        document.addEventListener("pointerup", () => {
-            document.removeEventListener("pointermove", this.onResizeMove);
-        });
-    }
-
-    @action
-    onResizeMove = (e: PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const offset = e.clientY - this._timelineContainer.current!.getBoundingClientRect().bottom;
-        // let offset = 0;
-        if (this._containerHeight + offset <= this.MIN_CONTAINER_HEIGHT) {
-            this._containerHeight = this.MIN_CONTAINER_HEIGHT;
-        } else if (this._containerHeight + offset >= this.MAX_CONTAINER_HEIGHT) {
-            this._containerHeight = this.MAX_CONTAINER_HEIGHT;
-        } else {
-            this._containerHeight += offset;
-        }
+        setupMoveUpEvents(this, e, action((e) => {
+            const offset = e.clientY - this._timelineContainer.current!.getBoundingClientRect().bottom;
+            this._containerHeight = clamp(this.MIN_CONTAINER_HEIGHT, this._containerHeight + offset, this.MAX_CONTAINER_HEIGHT);
+            return false;
+        }), emptyFunction, emptyFunction);
     }
 
     /**
@@ -323,8 +252,8 @@ export class Timeline extends React.Component<FieldViewProps> {
         time = time / 1000;
         const inSeconds = Math.round(time * 100) / 100;
 
-        const min: (string | number) = Math.floor(inSeconds / 60);
-        const sec: (string | number) = (Math.round((inSeconds % 60) * 100) / 100);
+        const min = Math.floor(inSeconds / 60);
+        const sec = (Math.round((inSeconds % 60) * 100) / 100);
         let secString = sec.toFixed(2);
 
         if (Math.floor(sec / 10) === 0) {
@@ -346,7 +275,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         const offset = e.clientX - this._infoContainer.current!.getBoundingClientRect().left;
         const prevTime = KeyframeFunc.convertPixelTime(this._visibleStart + offset, "mili", "time", this._tickSpacing, this._tickIncrement);
         const prevCurrent = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
-        e.deltaY < 0 ? this.zoom(true) : this.zoom(false);
+        this.zoom(e.deltaY < 0);
         const currPixel = KeyframeFunc.convertPixelTime(prevTime, "mili", "pixel", this._tickSpacing, this._tickIncrement);
         const currCurrent = KeyframeFunc.convertPixelTime(prevCurrent, "mili", "pixel", this._tickSpacing, this._tickIncrement);
         this._infoContainer.current!.scrollLeft = currPixel - offset;
@@ -405,30 +334,17 @@ export class Timeline extends React.Component<FieldViewProps> {
     private timelineToolBox = (scale: number, totalTime: number) => {
         const size = 40 * scale; //50 is default
         const iconSize = 25;
+        const width: number = this.props.PanelWidth();
+        const modeType = this.props.Document.isATOn ? "Author" : "Play";
 
         //decides if information should be omitted because the timeline is very small
         // if its less than 950 pixels then it's going to be overlapping
-        let shouldCompress = false;
-        const width: number = this.props.PanelWidth();
+        let modeString = modeType, overviewString = "", lengthString = "";
         if (width < 850) {
-            shouldCompress = true;
-        }
-
-        let modeString, overviewString, lengthString;
-        const modeType = this.props.Document.isATOn ? "Author" : "Play";
-
-        if (!shouldCompress) {
             modeString = "Mode: " + modeType;
             overviewString = "Overview:";
             lengthString = "Length: ";
         }
-        else {
-            modeString = modeType;
-            overviewString = "";
-            lengthString = "";
-        }
-
-        // let rightInfo = this.timeIndicator;
 
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
@@ -451,8 +367,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                     <div className="time-box overview-tool" style={{ display: "flex" }}>
                         {this.timeIndicator(lengthString, totalTime)}
                         <div className="resetView-tool" title="Return to Default View" onClick={() => this.resetView(this.props.Document)}><FontAwesomeIcon icon="compress-arrows-alt" size="lg" /></div>
-                        <div className="resetView-tool" style={{ display: this._isAuthoring ? "flex" : "none" }} title="Set Default View" onClick={() => this.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
-
+                        <div className="resetView-tool" style={{ display: this.props.Document.isATOn ? "flex" : "none" }} title="Set Default View" onClick={() => this.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
                     </div>
                 </div>
             </div>
@@ -498,15 +413,15 @@ export class Timeline extends React.Component<FieldViewProps> {
         const roundToggle = this._roundToggleRef.current!;
         const roundToggleContainer = this._roundToggleContainerRef.current!;
         const timelineContainer = this._timelineContainer.current!;
-        if (BoolCast(this.props.Document.isATOn)) {
+
+        this.props.Document.isATOn = !this.props.Document.isATOn;
+        if (!BoolCast(this.props.Document.isATOn)) {
             //turning on playmode...
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
             roundToggleContainer.style.animationName = "turnoff";
             roundToggleContainer.style.backgroundColor = "white";
             timelineContainer.style.top = `${-this._containerHeight}px`;
-            this.props.Document.isATOn = false;
-            this._isAuthoring = false;
             this.toPlay();
         } else {
             //turning on authoring mode...
@@ -515,8 +430,6 @@ export class Timeline extends React.Component<FieldViewProps> {
             roundToggleContainer.style.animationName = "turnon";
             roundToggleContainer.style.backgroundColor = "#9acedf";
             timelineContainer.style.top = "0px";
-            this.props.Document.isATOn = true;
-            this._isAuthoring = true;
             this.toAuthoring();
         }
     }
@@ -533,10 +446,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     // @computed
     getCurrentTime = () => {
         let current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
-        if (current > this._time) {
-            current = this._time;
-        }
-        return this.toReadTime(current);
+        return this.toReadTime(current > this._time ? this._time : current);
     }
 
     @observable private mapOfTracks: (Track | null)[] = [];
@@ -562,18 +472,13 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     @action
     toAuthoring = () => {
-        let longestTime = this.findLongestTime();
-        if (longestTime === 0) longestTime = 1;
-        const adjustedTime = Math.ceil(longestTime / 100000) * 100000;
-        // console.log(adjustedTime); 
-        this._totalLength = KeyframeFunc.convertPixelTime(adjustedTime, "mili", "pixel", this._tickSpacing, this._tickIncrement);
-        this._time = adjustedTime;
+        this._time = Math.ceil((this.findLongestTime() ?? 1) / 100000) * 100000;
+        this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
     }
 
     @action
     toPlay = () => {
-        const longestTime = this.findLongestTime();
-        this._time = longestTime;
+        this._time = this.findLongestTime();
         this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
     }
 
@@ -582,40 +487,35 @@ export class Timeline extends React.Component<FieldViewProps> {
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
      */
     render() {
-        setTimeout(() => {
-            this.changeLengths();
-            // this.toPlay();
-            // this._time = longestTime;
-        }, 0);
+        setTimeout(() => this.changeLengths(), 0);
 
-        const longestTime = this.findLongestTime();
         trace();
         // change visible and total width
         return (
             <div style={{ visibility: "visible" }}>
-                <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
+                <div key="timeline_wrapper" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
                     <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
-                        <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
+                        <div key="timeline_info" className="info-container" onPointerDown={this.onPanDown} ref={this._infoContainer} onWheel={this.onWheelZoom}>
                             {this.drawTicks()}
                             <div key="timeline_scrubber" className="scrubber" style={{ transform: `translate(${this._currentBarX}px)` }}>
                                 <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
                             </div>
-                            <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
-                                {DocListCast(this.children).map(doc =>
+                            <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} style={{ width: `${this._totalLength}px` }}>
+                                {this.children.map(doc =>
                                     <Track ref={ref => this.mapOfTracks.push(ref)} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={true} />
                                 )}
                             </div>
                         </div>
                         <div className="currentTime">Current: {this.getCurrentTime()}</div>
                         <div key="timeline_title" className="title-container" ref={this._titleContainer}>
-                            {DocListCast(this.children).map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
+                            {this.children.map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
                         </div>
                         <div key="timeline_resize" onPointerDown={this.onResizeDown}>
                             <FontAwesomeIcon className="resize" icon={faGripLines} />
                         </div>
                     </div>
                 </div>
-                {this.timelineToolBox(1, longestTime)}
+                {this.timelineToolBox(1, this.findLongestTime())}
             </div>
         );
     }

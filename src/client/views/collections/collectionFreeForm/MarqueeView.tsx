@@ -607,7 +607,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @computed
     get marqueeDiv() {
-        const p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
+        const p = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         const v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         /**
          * @RE - The commented out span below

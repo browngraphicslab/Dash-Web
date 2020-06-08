@@ -118,10 +118,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.Document.scale || 1)
 
     @computed get cachedCenteringShiftX(): number {
-        return !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / this.contentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
+        const scaling = this.fitToContent ? 1 : this.contentScaling;
+        return !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / scaling : 0;  // shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedCenteringShiftY(): number {
-        return !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / this.contentScaling : 0;// shift so pan position is at center of window for non-overlay collections
+        const scaling = this.fitToContent ? 1 : this.contentScaling;
+        return !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / scaling : 0;// shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedGetLocalTransform(): Transform {
         return Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
@@ -884,7 +886,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
                 const offset = annotOn && (contextHgt / 2 * 96 / 72);
-                this.props.Document.scrollY = NumCast(doc.y) - offset;
+                this.props.Document._scrollY = NumCast(doc.y) - offset;
             }
 
             afterFocus && setTimeout(afterFocus, 1000);
@@ -1342,7 +1344,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             <CollectionFreeFormViewPannableContents
                 centeringShiftX={this.centeringShiftX}
                 centeringShiftY={this.centeringShiftY}
-                shifted={!this.nativeHeight && !this.isAnnotationOverlay}
                 easing={this.easing}
                 transition={Cast(this.layoutDoc.transition, "string", null)}
                 viewDefDivClick={this.props.viewDefDivClick}
@@ -1428,7 +1429,6 @@ interface CollectionFreeFormViewPannableContentsProps {
     easing: () => boolean;
     viewDefDivClick?: ScriptField;
     children: () => JSX.Element[];
-    shifted: boolean;
     transition?: string;
 }
 
@@ -1443,7 +1443,6 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const zoom = this.props.zoomScaling();
         return <div className={freeformclass}
             style={{
-                width: this.props.shifted ? 0 : undefined, height: this.props.shifted ? 0 : undefined,
                 transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
                 transition: this.props.transition
             }}>
