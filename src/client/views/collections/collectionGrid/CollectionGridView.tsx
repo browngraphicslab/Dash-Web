@@ -10,7 +10,7 @@ import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentVi
 import { CollectionSubView } from '../CollectionSubView';
 import { SubCollectionViewProps } from '../CollectionSubView';
 import { List } from '../../../../fields/List';
-import { returnZero } from '../../../../Utils';
+import { returnZero, returnFalse } from '../../../../Utils';
 import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
@@ -104,25 +104,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         this.changeListenerDisposer && this.changeListenerDisposer();
     }
 
-    // deletePlaceholder(placeholder: Layout, e: MouseEvent) {
-
-    //     const { left, right, top, bottom } = this.containerRef.current!.getBoundingClientRect();
-    //     if (e.clientX > right || e.clientX < left || e.clientY < top || e.clientY > bottom) {
-    //         const layouts: Layout[] = this.parsedLayoutList;
-    //         const index = layouts.findIndex((gridLayout: Layout) => gridLayout.i === placeholder.i);
-    //         index !== -1 && layouts.splice(index, 1);
-
-    //         const i = this.childLayoutPairs.findIndex(({ layout }) => placeholder.i === layout.i);
-    //         i !== -1 && this.childLayoutPairs.splice(i, 1);
-
-    //         console.log("deleting");
-
-    //         this.unStringifiedLayoutList = layouts;
-    //     }
-
-    // }
-
-
     /**
      * @returns the transform that will correctly place the document decorations box. 
      */
@@ -139,8 +120,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     @computed get colWidthPlusGap() { return (this.props.PanelWidth() - 10) / NumCast(this.props.Document.numCols); }
     @computed get rowHeightPlusGap() { return NumCast(this.props.Document.rowHeight) + 10; }
-
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
     /**
      * @returns the layout list converted from JSON
@@ -165,14 +144,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @observable private height = (layout: Layout) => (this.props.Document.flexGrid ? layout.h : 2) * this.rowHeightPlusGap - 10;
 
-    addDocTab = (doc: Doc, where: string) => {
-        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
-            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
-            return true;
-        }
-        return this.props.addDocTab(doc, where);
-    }
-
     contextMenuItems = (layoutDoc: Doc) => {
         const layouts: Layout[] = this.parsedLayoutList;
         const freezeScript = ScriptField.MakeFunction(
@@ -184,7 +155,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         // const layouts: Layout[] = this.parsedLayoutList;
 
         // const layoutToChange = layouts.find(({ i }) => i === layoutDoc[Id]);
-        // layoutToChange!.static = true;
+        // layoutToChange!.static = !layoutToChange!.static;
 
         // this.unStringifiedLayoutList = layouts;
 
@@ -206,13 +177,12 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             DataDoc={layout.resolvedDataDoc as Doc}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
-            addDocTab={this.addDocTab}
+            addDocTab={returnFalse}
             backgroundColor={this.props.backgroundColor}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}
             ScreenToLocalTransform={dxf}
-            onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
             display={"contents"}
@@ -227,8 +197,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @undoBatch
     @action
     setLayout(layoutArray: Layout[]) {
-        // for every child in the collection, check to see if there's a corresponding grid layout document and
-        // updated layout object. If both exist, which they should, update the grid layout document from the updated object 
+        // for every child in the collection, check to see if there's a corresponding grid layout object and
+        // updated layout object. If both exist, which they should, update the grid layout object from the updated object 
         const layouts: Layout[] = this.parsedLayoutList;
         this.childLayoutPairs.forEach(({ layout: doc }) => {
             let update: Opt<Layout>;
@@ -392,8 +362,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         transformScale={this.props.ScreenToLocalTransform().Scale}
                         compactType={StrCast(this.props.Document.compactType)}
                         preventCollision={BoolCast(this.props.Document.preventCollision)}
-
-                    // deletePlaceholder={this.deletePlaceholder}
                     />
 
                 </div>
