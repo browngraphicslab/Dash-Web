@@ -93,7 +93,7 @@ export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
     Scripting.addGlobal(constructor);
 }
 
-const _scriptingGlobals: { [name: string]: any } = {};
+export const _scriptingGlobals: { [name: string]: any } = {};
 let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {

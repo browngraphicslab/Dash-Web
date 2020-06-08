@@ -30,12 +30,14 @@ import { List } from '../../../fields/List';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { Transform } from '../../util/Transform';
 import { MainView } from "../MainView";
-import { Scripting } from '../../util/Scripting';
+import { Scripting,_scriptingGlobals } from '../../util/Scripting';
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { makeInterface, createSchema } from '../../../fields/Schema';
 import { listSpec } from '../../../fields/Schema';
+import * as _ from "lodash";
+
 
 library.add(faTimes);
 
@@ -107,9 +109,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         
         super(props);
         SearchBox.Instance = this;
+        if (!_scriptingGlobals.hasOwnProperty("handleNodeChange")){
         Scripting.addGlobal(this.handleNodeChange);
-        Scripting.addGlobal(this.handleKeyChange);
-        Scripting.addGlobal(this.handleWordQueryChange);
+        }
+        if (!_scriptingGlobals.hasOwnProperty("handleKeyChange")){
+            Scripting.addGlobal(this.handleKeyChange);
+        }
+        if (!_scriptingGlobals.hasOwnProperty("handleWordQueryChange")){
+            Scripting.addGlobal(this.handleWordQueryChange);
+        }
+        if (!_scriptingGlobals.hasOwnProperty("updateIcon")){
+            Scripting.addGlobal(this.updateIcon);
+        }
 
         this.resultsScrolled = this.resultsScrolled.bind(this);
         this.rootDoc._viewType = CollectionViewType.Stacking;
@@ -178,6 +189,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
+            runInAction(()=>{this.expandedBucket=false});
             this.submitSearch();
         }
     }
@@ -348,9 +360,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
 
+    @observable expandedBucket:boolean=false;
     @action
     submitSearch = async (reset?:boolean) => {
-        console.log("yes");
+        console.log(this._icons);
         if (reset){
             this.layoutDoc._searchString="";
         }
@@ -411,7 +424,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         bucket.targetDoc = bucket;      
         bucket._viewType === CollectionViewType.Stacking;
         bucket._height=185;
-        bucket.bucketfield = "Default";
+        bucket.bucketfield = "results";
         bucket.isBucket=true;
         Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
         this.buckets!.push(bucket);
@@ -686,7 +699,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
         }
-        // if (this._numTotalResults>3){
+        if (this._numTotalResults>3 && this.expandedBucket===false){
         this.makenewbuckets();
         for (let i = 0; i < this._numTotalResults; i++) {
             console.log(this._isSearch[i],this._isSorted[i]);
@@ -701,9 +714,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     this.bucketcount[2]+=1;
                 }
                 else if (this.bucketcount[0]<3){
-                    Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
-                    this.bucketcount[0]+=1;
-
+                    //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
+                    //this.bucketcount[0]+=1;
+                    const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
+                    result[0].query=StrCast(this.layoutDoc._searchString);
+                    result[0].lines=new List<string>(result[2]);
+                    result[0].highlighting=highlights.join(", ");
+                    result[0].targetDoc=result[0];
+                    Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                 }
                 this._isSorted[i]="sorted"; 
             }
@@ -721,18 +739,24 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.buckets![2]._height = this.bucketcount[2]*53 + 21;
         }
 
-        if (this.bucketcount[0]===0){
-            Doc.RemoveDocFromList(this.dataDoc, this.props.fieldKey, this.buckets![0]);
-            }
-        // }
-        // else {
-        //     for (let i = 0; i < this._numTotalResults; i++) {
-        //         if ((this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
-        //             let result = this._results[i];
-        //             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-        //         }
+        // if (this.bucketcount[0]===0){
+        //     Doc.RemoveDocFromList(this.dataDoc, this.props.fieldKey, this.buckets![0]);
         //     }
-        // }
+        }
+            
+        else {
+                for (let i = 0; i < this._numTotalResults; i++) {
+                    if ((this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
+                        let result = this._results[i];
+                        const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
+                        result[0].query=StrCast(this.layoutDoc._searchString);
+                        result[0].lines=new List<string>(result[2]);
+                        result[0].highlighting=highlights.join(", ");
+                        result[0].targetDoc=result[0];
+                        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
+                    }
+                }
+            }
 
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
@@ -986,22 +1010,39 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return (null);
     }
 
+    @action.bound
+    updateIcon= async (icon: string) =>{
+        if (this._icons.includes(icon)){
+            _.pull(this._icons, icon);
+            let cap = icon.charAt(0).toUpperCase() + icon.slice(1)
+            console.log(cap);
+            let doc = await Cast(this.props.Document[cap], Doc)
+            doc!.backgroundColor= "";
+        }
+        else{
+            this._icons.push(icon);
+            let cap = icon.charAt(0).toUpperCase() + icon.slice(1)
+            let doc = await Cast(this.props.Document[cap], Doc)
+            doc!.backgroundColor= "aaaaa3";
+        }
+        console.log(this._icons);
+    }
+
     setupDocTypeButtons() {
         let doc = this.props.Document;
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts,  
         dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100,
          _height: 100 })) as any as Doc;
-        doc.Music = ficon({ onClick: undefined, title: "mussic button", icon: "music" });
-        doc.Col = ficon({ onClick: undefined, title: "col button", icon: "object-group" });
-        doc.Hist = ficon({ onClick: undefined, title: "hist button", icon: "chart-bar" });
-        doc.Image = ficon({ onClick: undefined, title: "image button", icon: "image" });
-        doc.Link = ficon({ onClick: undefined, title: "link button", icon: "link" });
-        doc.PDF = ficon({ onClick: undefined, title: "pdf button", icon: "file-pdf" });
-        doc.TEXT = ficon({ onClick: undefined, title: "text button", icon: "sticky-note" });
-        doc.Vid = ficon({ onClick: undefined, title: "vid button", icon: "video" });
-        doc.Web = ficon({ onClick: undefined, title: "web button", icon: "globe-asia" });
+        doc.Music = ficon({ onClick: ScriptField.MakeScript(`updateIcon("audio")`), title: "music button", icon: "music" });
+        doc.Col  = ficon({ onClick: ScriptField.MakeScript(`updateIcon("collection")`), title: "col button", icon: "object-group" });
+        doc.Image = ficon({ onClick: ScriptField.MakeScript(`updateIcon("image")`), title: "image button", icon: "image" });
+        doc.Link = ficon({ onClick: ScriptField.MakeScript(`updateIcon("link")`), title: "link button", icon: "link" });
+        doc.Pdf = ficon({ onClick: ScriptField.MakeScript(`updateIcon("pdf")`), title: "pdf button", icon: "file-pdf" });
+        doc.Text = ficon({ onClick: ScriptField.MakeScript(`updateIcon("rtf")`), title: "text button", icon: "sticky-note" });
+        doc.Vid = ficon({ onClick: ScriptField.MakeScript(`updateIcon("video")`), title: "vid button", icon: "video" });
+        doc.Web = ficon({ onClick: ScriptField.MakeScript(`updateIcon("web")`), title: "web button", icon: "globe-asia" });
 
-        let buttons = [doc.None as Doc, doc.Music as Doc, doc.Col as Doc, doc.Hist as Doc,
+        let buttons = [doc.None as Doc, doc.Music as Doc, doc.Col as Doc, doc.Hist as Doc,  
         doc.Image as Doc, doc.Link as Doc, doc.PDF as Doc, doc.TEXT as Doc, doc.Vid as Doc, doc.Web as Doc];
 
         const dragCreators = Docs.Create.MasonryDocument(buttons, {
@@ -1036,7 +1077,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         let doc = this.props.Document;
         const button = (opts: DocumentOptions) => new PrefetchProxy( Docs.Create.ButtonDocument({...opts,
             _width: 35, _height: 30,
-            borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
+            borderRounding: "16px", border:"1px solid grey", color:"white", 
+            //hovercolor: "rgb(170, 170, 163)", 
+            letterSpacing: "2px",
             _fontSize: 7,
         }))as any as Doc;
         doc.keywords=button({ title: "Keywords", onClick:ScriptField.MakeScript("handleWordQueryChange(self)")});
@@ -1087,18 +1130,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults >0 ? {overflow:"visible"} : {overflow:"hidden"}}>
                     <div id={`filterhead2${this.props.Document[Id]}`} className="filter-header"  >
                         {this.defaultButtons}
-                        {/* <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
-                        <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
-                        <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button> */}
                     </div>
                     <div id={`node${this.props.Document[Id]}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         {this.docButtons}
                     </div>
                     <div className="filter-key" id={`key${this.props.Document[Id]}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        {/* <div className="filter-keybar"> */}
-                            {/* <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
-                            <button className="filter-item" style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
-                            <button className="filter-item" style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button> */}
                         {this.keyButtons}
                     </div>
                 </div>
@@ -1117,9 +1153,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     height: this.resFull ? "auto" : this.resultHeight,
                     overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this._resultsRef}>
-                    {this._visibleElements.length}
-                    
-                    
+                    {this._visibleElements.length}           
                 </div>
             </div>
         );

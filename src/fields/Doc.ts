@@ -1148,13 +1148,3 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });
-// Scripting.addGlobal(function handleNodeChange(doc: any) {
-//     console.log("oi");
-//     // console.log(doc);
-//     console.log(this);
-//     this.handleNodeChange();
-    
-//     // const dv = DocumentManager.Instance.getDocumentView(doc);
-//     // if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
-//     // else dv?.switchViews(true, layoutKey.replace("layout_", ""));
-// });

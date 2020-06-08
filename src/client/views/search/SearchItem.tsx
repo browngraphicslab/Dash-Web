@@ -344,8 +344,11 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     newsearch(){
        runInAction(()=>{
-        SearchBox.Instance._searchString="";
-        SearchBox.Instance.submitSearch(true);
+        if (StrCast(this.rootDoc.bucketfield)!=="results"){
+        SearchBox.Instance._icons=[StrCast(this.rootDoc.bucketfield)];
+        }
+        SearchBox.Instance.expandedBucket= true;
+        SearchBox.Instance.submitSearch();
        }) 
     }
 
@@ -355,26 +358,24 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         if (this.targetDoc.isBucket === true){
             this.props.Document._viewType=CollectionViewType.Stacking;  
             this.props.Document._chromeStatus='disabled';
-
             this.props.Document._height=this.targetDoc._height;
 
             return <div>
             <div className="bucket-title">
-                {StrCast(this.rootDoc.bucketfield)}
+                {StrCast(this.rootDoc.bucketfield)==="results"? null:StrCast(this.rootDoc.bucketfield)}
             </div>
             <CollectionView {...this.props}
             Document={this.props.Document}
             PanelHeight={this.panelHeight}
             whenActiveChanged={emptyFunction}
             onClick={undefined}
-
             moveDocument={returnFalse}
             childLayoutTemplate={this.childLayoutTemplate}
             addDocument={this.addDocument}
             removeDocument={returnFalse}
             focus={this.selectElement}
             ScreenToLocalTransform={this.getTransform} />
-            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, fontFamily:"Arial, sans-serif"}}>See all results...
+            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, fontFamily:"Arial, sans-serif"}}>See all {StrCast(this.rootDoc.bucketfield)}...
             </button>
             </div>
         }
