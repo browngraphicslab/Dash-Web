@@ -6,27 +6,19 @@ import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
+import { WebField } from "../../../fields/URLField";
 import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
-import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
-import { DragManager, dropActionType } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
-import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { SelectionManager } from "../../util/SelectionManager";
-import { WebField } from "../../../fields/URLField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -405,7 +397,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const stringContents = await new Promise<string>(resolve => item.getAsString(resolve));
                     const type = "html";// (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
                     if (type) {
-                        const doc = await Docs.Get.DocumentFromType(type, stringContents, options);
+                        const doc = await DocUtils.DocumentFromType(type, stringContents, options);
                         doc && generatedDocuments.push(doc);
                     }
                 }
@@ -435,7 +427,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 }
                 const full = { ...options, _width: 400, title: name };
                 const pathname = Utils.prepend(result.accessPaths.agnostic.client);
-                const doc = await Docs.Get.DocumentFromType(type, pathname, full);
+                const doc = await DocUtils.DocumentFromType(type, pathname, full);
                 if (!doc) {
                     continue;
                 }
@@ -450,9 +442,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 generatedDocuments.push(doc);
             }
             if (generatedDocuments.length) {
-                const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
+                const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!)!);
+                    addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }
@@ -469,3 +461,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
     return CollectionSubView;
 }
 
+import { DragManager, dropActionType } from "../../util/DragManager";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
+import { CollectionView } from "./CollectionView";
+import { SelectionManager } from "../../util/SelectionManager";

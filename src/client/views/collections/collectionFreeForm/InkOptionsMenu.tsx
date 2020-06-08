@@ -1,269 +1,117 @@
 import React = require("react");
 import AntimodeMenu from "../../AntimodeMenu";
 import { observer } from "mobx-react";
-import { unimplementedFunction } from "../../../../Utils";
 import { observable, action } from "mobx";
 import "./InkOptionsMenu.scss";
-
+import { InkingStroke } from "../../InkingStroke";
+import { Scripting } from "../../../util/Scripting";
+import { InkTool } from "../../../../fields/InkField";
+import { InkingControl } from "../../InkingControl";
+import { StrCast } from "../../../../fields/Types";
+import { ColorState } from "react-color";
+import { ColorBox } from "../../nodes/ColorBox";
 
 @observer
 export default class InkOptionsMenu extends AntimodeMenu {
     static Instance: InkOptionsMenu;
-    public changeColor: (color: string) => void = unimplementedFunction;
-    public changeBezier: (e: React.PointerEvent) => void = unimplementedFunction;
-    public changeWidth: (color: string) => void = unimplementedFunction;
 
-    private _palette: (string)[];
-    private _width: (string)[];
+    private _palette = ["D0021B", "F5A623", "F8E71C", "8B572A", "7ED321", "417505", "9013FE", "4A90E2", "50E3C2", "B8E986", "000000", "4A4A4A", "9B9B9B", "FFFFFF"];
+    private _width = ["1", "5", "10", "100", "200", "300"];
+    private _buttons = ["circle", "triangle", "rectangle", "arrow", "line"];
+    private _icons = ["O", "∆", "ロ", "➜", "-"];
 
-
-    public _circle: boolean;
-    public _triangle: boolean;
-    public _rectangle: boolean;
-    public _arrow: boolean;
-    public _line: boolean;
-    public _widthSelected: string;
-
-    @observable public _circleBt: boolean;
-    @observable public _triangleBt: boolean;
-    @observable public _rectangleBt: boolean;
-    @observable public _arrowBt: boolean;
-    @observable public _lineBt: boolean;
-    @observable public _colorBt: boolean;
-    @observable public _color: string;
-    @observable public _bezierBt: boolean;
-    @observable public _widthBt: boolean;
-
-
+    @observable _colorBtn = false;
+    @observable _widthBtn = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
         InkOptionsMenu.Instance = this;
-        this._canFade = false;
-
-        this._circle = false;
-        this._triangle = false;
-        this._rectangle = false;
-        this._arrow = false;
-        this._line = false;
-        this._circleBt = false;
-        this._triangleBt = false;
-        this._rectangleBt = false;
-        this._arrowBt = false;
-        this._lineBt = false;
-        this._colorBt = false;
-        this._bezierBt = false;
-        this._widthBt = false;
-
-        this._color = "";
-        this._widthSelected = "";
-
-
-        this._palette = [
-            "D0021B", "F5A623", "F8E71C", "8B572A", "7ED321", "417505", "9013FE", "4A90E2", "50E3C2", "B8E986", "000000", "4A4A4A", "9B9B9B", "FFFFFF",
-        ];
-
-        this._width = [
-            "1", "5", "10", "100", "200", "300"
-        ];
-
-    }
-
-
-
-    drag = (e: React.PointerEvent) => {
-        this.dragStart(e);
-    }
-
-
-
-
-
-    @action
-    toggleCircle = (e: React.PointerEvent) => {
-        const curr = this._circle;
-        this.allFalse();
-        curr ? this._circle = false : this._circle = true;
-        this._circleBt = this._circle;
-    }
-    @action
-    toggleTriangle = (e: React.PointerEvent) => {
-        const curr = this._triangle;
-        this.allFalse();
-        curr ? this._triangle = false : this._triangle = true;
-        this._triangleBt = this._triangle;
-    }
-    @action
-    toggleRectangle = (e: React.PointerEvent) => {
-        const curr = this._rectangle;
-        this.allFalse();
-        curr ? this._rectangle = false : this._rectangle = true;
-        this._rectangleBt = this._rectangle;
-    }
-    @action
-    toggleArrow = (e: React.PointerEvent) => {
-        const curr = this._arrow;
-        this.allFalse();
-        curr ? this._arrow = false : this._arrow = true;
-        this._arrowBt = this._arrow;
-    }
-    @action
-    toggleLine = (e: React.PointerEvent) => {
-        const curr = this._line;
-        this.allFalse();
-        curr ? this._line = false : this._line = true;
-        this._lineBt = this._line;
+        this._canFade = false; // don't let the inking menu fade away
     }
 
     @action
-    changeBezierClick = (e: React.PointerEvent) => {
-        const curr = this._bezierBt;
-        this.allFalse();
-        curr ? this._bezierBt = false : this._bezierBt = true;
-        this.changeBezier(e);
+    changeColor = (color: string) => {
+        const col: ColorState = {
+            hex: color, hsl: { a: 0, h: 0, s: 0, l: 0, source: "" }, hsv: { a: 0, h: 0, s: 0, v: 0, source: "" },
+            rgb: { a: 0, r: 0, b: 0, g: 0, source: "" }, oldHue: 0, source: "",
+        };
+        ColorBox.switchColor(col);
     }
 
     @action
-    changeWidthClick = (e: React.PointerEvent) => {
-        this._widthBt ? this._widthBt = false : this._widthBt = true;
-    }
-    @action
-    changeColorClick = (e: React.PointerEvent) => {
-        this._colorBt ? this._colorBt = false : this._colorBt = true;
-    }
-
-    allFalse = () => {
-        this._circle = false;
-        this._triangle = false;
-        this._rectangle = false;
-        this._arrow = false;
-        this._line = false;
-        this._circleBt = false;
-        this._triangleBt = false;
-        this._rectangleBt = false;
-        this._arrowBt = false;
-        this._lineBt = false;
-        this._bezierBt = false;
+    changeBezier = (e: React.PointerEvent): void => {
+        InkingControl.Instance.switchBezier(!InkingStroke.InkBezierApprox ? "300" : "");
     }
 
     render() {
-        var widthPicker;
-        if (this._widthBt) {
+        var widthPicker = <button
+            className="antimodeMenu-button"
+            key="width"
+            onPointerDown={action(e => this._widthBtn = !this._widthBtn)}
+            style={{ backgroundColor: this._widthBtn ? "121212" : "" }}>
+            W
+        </button>;
+        if (this._widthBtn) {
             widthPicker = <div className="btn2-group">
-                <button
-                    className="antimodeMenu-button"
-                    key="width"
-                    onPointerDown={this.changeWidthClick}
-                    style={this._widthBt ? { backgroundColor: "121212" } : {}}>
-                    W
-                </button>
+                {widthPicker}
                 {this._width.map(wid => {
                     return <button
                         className="antimodeMenu-button"
                         key={wid}
-                        onPointerDown={() => this.changeWidth(wid)}
-                        style={this._colorBt ? { backgroundColor: "121212" } : {}}>
+                        onPointerDown={action(() => { InkingControl.Instance.switchWidth(wid); this._widthBtn = false; })}
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "" }}>
                         {wid}
                     </button>;
-
                 })}
             </div>;
-        } else {
-            widthPicker = <button
-                className="antimodeMenu-button"
-                key="width"
-                onPointerDown={this.changeWidthClick}
-                style={this._widthBt ? { backgroundColor: "121212" } : {}}>
-                W
-        </button>;
         }
 
-        var colorPicker;
-        if (this._colorBt) {
+        var colorPicker = <button
+            className="antimodeMenu-button"
+            key="color"
+            title="colorChanger"
+            onPointerDown={action(e => this._colorBtn = !this._colorBtn)}
+            style={{ backgroundColor: this._colorBtn ? "121212" : "" }}>
+            <div className="color-preview" style={{ backgroundColor: InkingStroke.InkColor ?? "121212" }}></div>
+        </button>;
+        if (this._colorBtn) {
             colorPicker = <div className="btn-group">
-                <button
-                    className="antimodeMenu-button"
-                    key="color"
-                    onPointerDown={this.changeColorClick}
-                    style={this._colorBt ? { backgroundColor: "121212" } : {}}>
-                    <div className="color-preview" style={this._color === "" ? { backgroundColor: "121212" } : { backgroundColor: this._color }}></div>
-                </button>
+                {colorPicker}
                 {this._palette.map(color => {
                     return <button
                         className="antimodeMenu-button"
                         key={color}
-                        onPointerDown={() => this.changeColor(color)}
-                        style={this._colorBt ? { backgroundColor: "121212" } : {}}>
+                        onPointerDown={action(() => { this.changeColor(color); this._colorBtn = false; })}
+                        style={{ backgroundColor: this._colorBtn ? "121212" : "" }}>
                         <div className="color-preview" style={{ backgroundColor: color }}></div>
                     </button>;
                 })}
             </div>;
-        } else {
-            colorPicker = <button
-                className="antimodeMenu-button"
-                title="colorChanger"
-                key="color"
-                onPointerDown={this.changeColorClick}
-                style={this._colorBt ? { backgroundColor: "121212" } : {}}>
-                <div className="color-preview" style={this._color === "" ? { backgroundColor: "121212" } : { backgroundColor: this._color }}></div>
-            </button>;
         }
 
-
         const buttons = [
-            <button
-                className="antimodeMenu-button"
+            <button className="antimodeMenu-button"
                 title="Drag"
                 key="drag"
-                onPointerDown={this.drag}>
+                onPointerDown={e => this.dragStart(e)}>
                 ✜
             </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Draw Circle"
-                key="circle"
-                onPointerDown={this.toggleCircle}
-                style={this._circleBt ? { backgroundColor: "121212" } : {}}>
-                O
-            </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Draw Traingle"
-                key="triangle"
-                onPointerDown={this.toggleTriangle}
-                style={this._triangleBt ? { backgroundColor: "121212" } : {}}>
-                ∆
-            </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Draw Rectangle"
-                key="rectangle"
-                onPointerDown={this.toggleRectangle}
-                style={this._rectangleBt ? { backgroundColor: "121212" } : {}}>
-                ロ
-            </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Draw Arrow"
-                key="arrow"
-                onPointerDown={this.toggleArrow}
-                style={this._arrowBt ? { backgroundColor: "121212" } : {}}>
-                ➜
-                </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Draw Line"
-                key="line"
-                onPointerDown={this.toggleLine}
-                style={this._lineBt ? { backgroundColor: "121212" } : {}}>
-                –
-            </button>,
+            <>
+                {this._buttons.map((btn, i) => <button
+                    className="antimodeMenu-button"
+                    title={`Draw ${btn}`}
+                    key={btn}
+                    onPointerDown={action(e => InkingStroke.InkShape = btn)}
+                    style={btn === InkingStroke.InkShape ? { backgroundColor: "121212" } : {}}>
+                    {this._icons[i]}
+                </button>)},
+            </>,
             <button
                 className="antimodeMenu-button"
                 title="Bezier changer"
                 key="bezier"
-                onPointerDown={this.changeBezierClick}
-                style={this._bezierBt ? { backgroundColor: "121212" } : {}}>
+                onPointerDown={e => this.changeBezier(e)}
+                style={InkingStroke.InkBezierApprox ? { backgroundColor: "121212" } : {}}>
                 B
             </button>,
             widthPicker,
@@ -272,3 +120,14 @@ export default class InkOptionsMenu extends AntimodeMenu {
         return this.getElement(buttons);
     }
 }
+Scripting.addGlobal(function activatePen(pen: any) {
+    InkingControl.Instance.switchTool(pen ? InkTool.Pen : InkTool.None);
+    if (pen) {
+        InkingControl.Instance.switchWidth(StrCast(pen.inkWidth, "1"));
+        InkingControl.Instance.switchColor(StrCast(pen.inkColor, "black"));
+        InkingControl.Instance.switchBezier(StrCast(pen.inkBezier, ""));
+        InkOptionsMenu.Instance.jumpTo(300, 300);
+    } else {
+        InkOptionsMenu.Instance.fadeOut(true);
+    }
+});

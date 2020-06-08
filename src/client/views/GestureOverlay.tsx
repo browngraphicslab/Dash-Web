@@ -1,38 +1,30 @@
 import React = require("react");
-import { Touchable } from "./Touchable";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import "./GestureOverlay.scss";
-import { computed, observable, action, runInAction, IReactionDisposer, reaction, flow, trace } from "mobx";
-import { GestureUtils } from "../../pen-gestures/GestureUtils";
-import { InteractionUtils } from "../util/InteractionUtils";
-import { InkingControl } from "./InkingControl";
-import { InkTool, InkData } from "../../fields/InkField";
 import { Doc } from "../../fields/Doc";
-import { LinkManager } from "../util/LinkManager";
-import { DocUtils, Docs } from "../documents/Documents";
-import { undoBatch } from "../util/UndoManager";
-import { Scripting } from "../util/Scripting";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../fields/Types";
-import { CurrentUserUtils } from "../util/CurrentUserUtils";
-import HorizontalPalette from "./Palette";
-import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
-import { DocumentView } from "./nodes/DocumentView";
-import { Transform } from "../util/Transform";
-import { DocumentContentsView } from "./nodes/DocumentContentsView";
+import { InkData, InkTool } from "../../fields/InkField";
+import { Cast, FieldValue, NumCast } from "../../fields/Types";
+import MobileInkOverlay from "../../mobile/MobileInkOverlay";
+import MobileInterface from "../../mobile/MobileInterface";
+import { GestureUtils } from "../../pen-gestures/GestureUtils";
+import { MobileInkOverlayContent } from "../../server/Message";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocServer } from "../DocServer";
-import htmlToImage from "html-to-image";
-import { ScriptField } from "../../fields/ScriptField";
-import { listSpec } from "../../fields/Schema";
-import { List } from "../../fields/List";
-import { CollectionViewType } from "./collections/CollectionView";
-import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import MobileInterface from "../../mobile/MobileInterface";
-import { MobileInkOverlayContent } from "../../server/Message";
-import MobileInkOverlay from "../../mobile/MobileInkOverlay";
+import { DocUtils } from "../documents/Documents";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { InteractionUtils } from "../util/InteractionUtils";
+import { LinkManager } from "../util/LinkManager";
+import { Scripting } from "../util/Scripting";
+import { Transform } from "../util/Transform";
+import "./GestureOverlay.scss";
+import { InkingControl } from "./InkingControl";
+import { DocumentView } from "./nodes/DocumentView";
 import { RadialMenu } from "./nodes/RadialMenu";
-import { SelectionManager } from "../util/SelectionManager";
-import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
+import HorizontalPalette from "./Palette";
+import { Touchable } from "./Touchable";
+import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
+import { InkingStroke } from "./InkingStroke";
 
 
 @observer
@@ -500,7 +492,7 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.selectedTool === InkTool.Highlighter || Doc.selectedTool === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
@@ -514,7 +506,7 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerMove = (e: PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.selectedTool === InkTool.Highlighter || Doc.selectedTool === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
@@ -585,12 +577,11 @@ export default class GestureOverlay extends Touchable {
             //push first points to so interactionUtil knows pointer is up
             this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
             if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
-                const { selectedColor, selectedWidth } = InkingControl.Instance;
                 DocServer.Mobile.dispatchGesturePoints({
                     points: this._points,
                     bounds: B,
-                    color: selectedColor,
-                    width: selectedWidth
+                    color: InkingStroke.InkColor,
+                    width: InkingStroke.InkWidth
                 });
             }
 
@@ -633,21 +624,11 @@ export default class GestureOverlay extends Touchable {
                 }
             }
             //if any of the shape is activated in the InkOptionsMenu
-            else if (InkOptionsMenu.Instance._circle || InkOptionsMenu.Instance._triangle || InkOptionsMenu.Instance._rectangle || InkOptionsMenu.Instance._line || InkOptionsMenu.Instance._arrow) {
-                if (InkOptionsMenu.Instance._circle) {
-                    this.makePolygon("circle", false);
-                } else if (InkOptionsMenu.Instance._triangle) {
-                    this.makePolygon("triangle", false);
-                } else if (InkOptionsMenu.Instance._rectangle) {
-                    this.makePolygon("rectangle", false);
-                } else if (InkOptionsMenu.Instance._line) {
-                    this.makePolygon("line", false);
-                } else if (InkOptionsMenu.Instance._arrow) {
-                    this.makePolygon("arrow", false);
-                }
+            else if (InkingStroke.InkShape) {
+                this.makePolygon(InkingStroke.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                InkOptionsMenu.Instance.allFalse();
+                InkingStroke.InkShape = "";
             }
             // if we're not drawing in a toolglass try to recognize as gesture
             else {
@@ -827,11 +808,11 @@ export default class GestureOverlay extends Touchable {
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
                 return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth, InkingControl.Instance.selectedBezier)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingStroke.InkColor, InkingStroke.InkWidth, InkingStroke.InkBezierApprox, 1, 1, InkingStroke.InkShape)}
                 </svg>;
             }),
             this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth, InkingControl.Instance.selectedBezier)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingStroke.InkColor, InkingStroke.InkWidth, InkingStroke.InkBezierApprox, 1, 1, InkingStroke.InkShape)}
             </svg>]
         ];
     }
@@ -921,15 +902,15 @@ Scripting.addGlobal(function setToolglass(tool: any) {
 });
 Scripting.addGlobal(function setPen(width: any, color: any) {
     runInAction(() => {
-        GestureOverlay.Instance.SavedColor = InkingControl.Instance.selectedColor;
-        InkingControl.Instance.updateSelectedColor(color);
-        GestureOverlay.Instance.SavedWidth = InkingControl.Instance.selectedWidth;
+        GestureOverlay.Instance.SavedColor = InkingStroke.InkColor;
+        InkingControl.Instance.switchColor(color);
+        GestureOverlay.Instance.SavedWidth = InkingStroke.InkWidth;
         InkingControl.Instance.switchWidth(width);
     });
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        InkingControl.Instance.updateSelectedColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
+        InkingControl.Instance.switchColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
         InkingControl.Instance.switchWidth(GestureOverlay.Instance.SavedWidth ?? "2");
     });
 });

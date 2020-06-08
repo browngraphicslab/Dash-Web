@@ -37,7 +37,6 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { InkingControl } from '../InkingControl';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
@@ -330,7 +329,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 } else func();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 const alias = Doc.MakeAlias(this.props.Document);
-                Doc.makeCustomViewClicked(alias, undefined, "onClick");
+                DocUtils.makeCustomViewClicked(alias, undefined, "onClick");
                 this.props.addDocTab(alias, "onRight");
                 // UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
                 //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
@@ -513,7 +512,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
-        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.selectedTool === InkTool.Highlighter || Doc.selectedTool === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
                 // TODO: check here for panning/inking
@@ -544,7 +543,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerMove = (e: PointerEvent): void => {
 
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
-        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) return;
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.selectedTool === InkTool.Highlighter || Doc.selectedTool === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
@@ -728,7 +727,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
+        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
 
@@ -1091,14 +1090,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
             (this.Document.isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
-            (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
+            (this.Document.type === DocumentType.INK && Doc.selectedTool !== InkTool.None);
     }
     @undoBatch
     @action
     setCustomView = (custom: boolean, layout: string): void => {
         Doc.setNativeView(this.props.Document);
         if (custom) {
-            Doc.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
+            DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
         }
     }
     @observable _animateScalingTo = 0;

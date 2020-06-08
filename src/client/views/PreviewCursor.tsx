@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
-import { Docs } from '../documents/Documents';
+import { Docs, DocUtils } from '../documents/Documents';
 import { Doc } from '../../fields/Doc';
 import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
@@ -65,7 +65,7 @@ export class PreviewCursor extends React.Component<{}> {
                         count++;
                         if (doc instanceof Doc) {
                             i === 1 && (first = doc);
-                            const alias = Doc.MakeClone(doc);
+                            const alias = DocUtils.MakeClone(doc);
                             const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
                             const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
                             alias.x = newPoint[0] + deltaX;

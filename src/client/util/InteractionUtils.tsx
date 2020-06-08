@@ -1,7 +1,6 @@
 import React = require("react");
 import * as beziercurve from 'bezier-curve';
 import * as fitCurve from 'fit-curve';
-import InkOptionsMenu from "../views/collections/collectionFreeForm/InkOptionsMenu";
 
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
@@ -90,24 +89,12 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string) {
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, scalex: number, scaley: number, shape: string) {
         var pts = "";
-        var shape = "";
-        if (InkOptionsMenu.Instance._circle) {
-            shape = "circle";
-        } else if (InkOptionsMenu.Instance._rectangle) {
-            shape = "rectangle";
-        } else if (InkOptionsMenu.Instance._triangle) {
-            shape = "triangle";
-        } else if (InkOptionsMenu.Instance._arrow) {
-            shape = "arrow";
-        } else if (InkOptionsMenu.Instance._line) {
-            shape = "line";
-        }
-        if (shape !== "") {
+        if (shape) {
             //if any of the shape are true
             const shapePts = makePolygon(shape, points);
-            pts = shapePts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+            pts = shapePts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
         }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
@@ -124,10 +111,10 @@ export namespace InteractionUtils {
                     newPts.push({ X: point[0], Y: point[1] });
                 }
             }
-            pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+            pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
         } else {
             //in the middle of drawing
-            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
         }
         return (
             <polyline

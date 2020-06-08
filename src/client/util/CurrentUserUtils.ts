@@ -2,7 +2,7 @@ import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
-import { Docs, DocumentOptions } from "../documents/Documents";
+import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
 import { UndoManager } from "./UndoManager";
 import { Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
 import { List } from "../../fields/List";
@@ -221,7 +221,7 @@ export class CurrentUserUtils {
         ];
         if (doc.fieldTypes === undefined) {
             doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
-            Doc.addFieldEnumerations(Doc.GetProto(doc["template-note-Todo"] as any as Doc), "taskStatus", taskStatusValues);
+            DocUtils.addFieldEnumerations(Doc.GetProto(doc["template-note-Todo"] as any as Doc), "taskStatus", taskStatusValues);
         }
 
         if (doc["template-notes"] === undefined) {
@@ -612,7 +612,7 @@ export class CurrentUserUtils {
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-pen"] === undefined) {
             doc["dockedBtn-pen"] = CurrentUserUtils.ficon({
-                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this, this.inkWidth, this.backgroundColor)"),
+                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this)"),
                 author: "systemTemplates", title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.inkPen,  this)`), activePen: doc
             });
         }
@@ -692,6 +692,8 @@ export class CurrentUserUtils {
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
         doc.inkColor = StrCast(doc.backgroundColor, "rgb(0, 0, 0)");
+        doc.inkWidth = StrCast(doc.inkWidth, "1");
+        doc.inkBezier = StrCast(doc.inkBezier, "");
         doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 

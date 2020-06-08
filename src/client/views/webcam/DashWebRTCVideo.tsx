@@ -4,10 +4,8 @@ import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeForm
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { observable, action } from "mobx";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
 import "./DashWebRTCVideo.scss";
-import adapter from 'webrtc-adapter';
 import { initialize, hangup, refreshVideos } from "./WebCamLogic";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
@@ -73,7 +71,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
             </div >;
 
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
-        const classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && !Doc.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
 
 
         return (
