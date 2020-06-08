@@ -34,6 +34,9 @@ import { InkTool } from '../fields/InkField';
 import { listSpec } from '../fields/Schema';
 import { nullAudio, WebField } from '../fields/URLField';
 import GestureOverlay from "../client/views/GestureOverlay";
+import { SelectionManager } from "../client/util/SelectionManager";
+import { SketchPicker } from "react-color";
+import { ScriptField } from "../fields/ScriptField";
 
 library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -498,137 +501,6 @@ library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTras
 //     //     );
 //     // }
 
-//     renderDefaultContent = () => {
-//         let menuButtons = DocListCast(this._homeDoc.data).map((doc: Doc, index: any) => {
-//             if (doc.type !== "ink") {
-//                 return (
-//                     <div
-//                         className="item"
-//                         key={index}
-//                         onClick={() => doc.click}>{doc.title}
-//                     </div>);
-//             }
-//         });
-
-//         if (this._homeMenu === true) {
-//             return (
-//                 <div>
-//                     <div className="navbar">
-//                         <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-//                         <div className="header" id="header">{this._homeDoc.title}</div>
-//                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-//                             <span></span>
-//                             <span></span>
-//                             <span></span>
-//                         </div>
-//                     </div>
-//                     {this.renderPathbar()}
-//                     <div className="sidebar" id="sidebar">
-//                         <div className="sidebarButtons">
-//                             {menuButtons}
-//                         </div>
-//                     </div>
-//                 </div>
-//             );
-//         }
-//         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-//         let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
-//             if (doc.type !== "ink") {
-//                 return (
-//                     <div
-//                         className="item"
-//                         key={index}
-//                         onClick={() => this.handleClick(doc)}>{doc.title}
-//                         <div className="type">{doc.type}</div>
-//                         <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
-//                     </div>);
-//             }
-//         });
-
-//         if (this._child) {
-//             buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
-//                 if (doc.type !== "ink") {
-//                     return (
-//                         <div
-//                             className="item"
-//                             key={index}
-//                             onClick={() => this.handleClick(doc)}>{doc.title}
-//                             <div className="type">{doc.type}</div>
-//                             <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
-//                         </div>);
-//                 }
-//             });
-//         }
-
-//         if (!this._child) {
-//             return (
-//                 <div>
-//                     <div className="navbar">
-//                         <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-//                         <div className="header" id="header">{this._homeDoc.title}</div>
-//                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-//                             <span></span>
-//                             <span></span>
-//                             <span></span>
-//                         </div>
-//                     </div>
-//                     {this.renderPathbar()}
-//                     <div className="sidebar" id="sidebar">
-//                         <div className="sidebarButtons">
-//                             {buttons}
-//                             {/* <div className="item" key="library" onClick={this.openLibrary}>
-//                                 Library
-//                             </div> */}
-//                             {/* <Uploader Document={workspaces} />
-//                             <div className="item" key="audio" onClick={this.recordAudio}>
-//                                 Record Audio
-//                             </div>
-//                             <div className="item" key="presentation" onClick={this.openDefaultPresentation}>
-//                                 Presentation
-//                             </div> */}
-//                             {/* <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
-//                                 Settings
-//                             </div> */}
-//                             <div className="item" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
-//                                 Ink On
-//                             </div>
-//                         </div>
-//                     </div>
-//                     {/* <div>
-//                         {this.renderView}
-//                     </div> */}
-//                 </div>
-//             );
-//         }
-//         else {
-//             return (
-//                 <div>
-//                     <div className="navbar">
-//                         <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-//                         <div className="header" id="header">library</div>
-//                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-//                             <span></span>
-//                             <span></span>
-//                             <span></span>
-//                         </div>
-//                     </div>
-//                     {this.renderPathbar()}
-//                     <div className="sidebar" id="sidebar">
-//                         <div className="sidebarButtons">
-//                             {buttons}
-//                             <div className="item" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
-//                                 Ink On
-//                             </div>
-//                             <div className="item" key="home" onClick={this.returnMain}>
-//                                 Home
-//                             </div>
-//                         </div>
-//                     </div>
-//                 </div>
-//             );
-//         }
-//     }
-
 //     recordAudio = async () => {
 //         // upload to server with known URL
 //         if (this._activeDoc.title !== "mobile audio") {
@@ -1079,6 +951,7 @@ export class MobileInterface extends React.Component {
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu();
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
+    @observable private activeToolbar: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc;
     public _homeDoc: Doc = this.mainDoc;
@@ -1466,7 +1339,7 @@ export class MobileInterface extends React.Component {
                     <div
                         className="item"
                         key={index}
-                        onClick={() => doc.click}>{doc.title}
+                        onClick={() => doc.proto?.onClick}>{doc.title}
                     </div>);
             }
         });
@@ -1603,48 +1476,26 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    toggleSelector = () => {
-        console.log("toggle selector!");
-        let toolbar = document.getElementById("toolbar") as HTMLElement;
-        toolbar.classList.toggle('active');
-    }
+
+    @action
+    toggleSelector = () => this.activeToolbar = !this.activeToolbar
+
 
     colorTool = () => {
         if (this._activeDoc._viewType === "docking") {
             const color = InkingControl.Instance.selectedColor;
-            console.log(color);
+            const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
             return (
                 <div
                     className="docButton"
                     style={{ backgroundColor: color }}
                     onClick={this.toggleSelector}
                 >
-                    <div className="toolbar" id="toolbar">
+                    <div className={`toolbar ${this.activeToolbar ? "active" : ""}`}>
                         <div className="colorSelector">
-                            <div className="colorButton"
-                                style={{ backgroundColor: "red" }}
-                                onClick={() => {
-                                    InkingControl.Instance.updateSelectedColor("rgb(255,0,0)");
-                                    Doc.UserDoc().inkColor = "rgb(255,0,0)";
-                                    console.log(InkingControl.Instance.selectedColor);
-                                }}>
-                            </div>
-                            <div className="colorButton"
-                                style={{ backgroundColor: "green" }}
-                                onClick={e => {
-                                    InkingControl.Instance.updateSelectedColor("rgb(0,128,0)");
-                                    Doc.UserDoc().inkColor = "rgb(0,128,0)";
-                                    console.log(InkingControl.Instance.selectedColor);
-                                }}>
-                            </div>
-                            <div className="colorButton"
-                                style={{ backgroundColor: "blue" }}
-                                onClick={e => {
-                                    InkingControl.Instance.updateSelectedColor("rgb(0,0,255)");
-                                    Doc.UserDoc().inkColor = "rgb(0,0,255)";
-                                    console.log(InkingControl.Instance.selectedColor);
-                                }}>
-                            </div>
+                            <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
+                                color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
+                                    StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
                         </div>
                         <div className="widthSelector">
                             <input type="range" min="1" max="100" defaultValue="2" id="myRange" onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} />
