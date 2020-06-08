@@ -41,15 +41,17 @@ import { InkingControl } from '../InkingControl';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
+// import "cheat-sheet.pdf";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
-    fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
+    fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard, fa.faQuestion);
 
 export type DocFocusFunc = () => boolean;
+
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
@@ -709,7 +711,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.contextMenuItems?.().forEach(item =>
             cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
-
         let options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
@@ -741,16 +742,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const more = cm.findByDescription("More...");
+        console.log("[IN MORE] what is more? " + more)
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+
 
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
+
         if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
             moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
             moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
@@ -769,6 +773,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // a.download = `DocExport-${this.props.Document[Id]}.zip`;
             // a.click();
         });
+
+
+        /*
+        Add a HELP item and its subitems :
+            keyboard 
+        */
+        const help = cm.findByDescription("Help..."); 
+        const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
+        helpItems.push({
+            description: "Keyboard Shortcuts       Ctrl+m",
+
+            event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://134.122.94.184:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
+            // event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
+
+            icon: "keyboard"
+        });
+        cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
+
 
         const recommender_subitems: ContextMenuProps[] = [];
 
