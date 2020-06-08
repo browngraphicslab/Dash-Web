@@ -51,8 +51,9 @@ export namespace Scripting {
     export function addGlobal(name: string, global: any): void;
 
     export function addGlobal(global: { name: string }, decription?: string, params?: any): void;
+    export function addGlobal(global: { name: string }, decription?: string, params?: any, name?: any): void;
 
-    export function addGlobal(nameOrGlobal: any, global?: any, params?: any) {
+    export function addGlobal(nameOrGlobal: any, global?: any, params?: any, name?: any) {
         let n: any;
         let obj: any;
 
@@ -61,11 +62,15 @@ export namespace Scripting {
                 n = nameOrGlobal;
                 obj = global;
             } else {
-                n = nameOrGlobal.name;
                 obj = [nameOrGlobal];
                 obj.push(global);
                 if (params) {
                     obj.push(params);
+                }
+                if (name) {
+                    n = name;
+                } else {
+                    n = nameOrGlobal.name;
                 }
             }
         } else if (nameOrGlobal && typeof nameOrGlobal.name === "string") {

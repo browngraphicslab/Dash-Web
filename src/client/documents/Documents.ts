@@ -262,6 +262,11 @@ export namespace Docs {
                 layout: { view: EmptyBox, dataField: defaultDataKey },
                 options: { childDropAction: "alias", title: "Global Link Database" }
             }],
+            [DocumentType.SCRIPTDB, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Script Database" }
+            }],
             [DocumentType.SCRIPTING, {
                 layout: { view: ScriptingBox, dataField: defaultDataKey }
             }],
@@ -358,6 +363,13 @@ export namespace Docs {
          */
         export function MainLinkDocument() {
             return Prototypes.get(DocumentType.LINKDB);
+        }
+
+        /**
+         * A collection of all scripts in the database
+         */
+        export function MainScriptDocument() {
+            return Prototypes.get(DocumentType.SCRIPTDB);
         }
 
         /**

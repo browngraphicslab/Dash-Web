@@ -22,6 +22,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
 import "@webscopeio/react-textarea-autocomplete/style.css";
+import { ScriptManager } from "../../util/ScriptManager";
 
 
 const ScriptingSchema = createSchema({});
@@ -184,28 +185,46 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.dataDoc.documentText = this.rawScript;
         this.dataDoc.data = result.compiled ? new ScriptField(result) : undefined;
         this.onError(result.compiled ? undefined : result.errors);
+        if (result.compiled) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     // checks if the script compiles and then runs the script
     @action
     onRun = () => {
-        this.onCompile();
-        const bindings: { [name: string]: any } = {};
-        this.paramsNames.forEach(key => bindings[key] = this.dataDoc[key]);
-        // binds vars so user doesnt have to refer to everything as self.<var>
-        ScriptCast(this.dataDoc.data, null)?.script.run({ self: this.rootDoc, this: this.layoutDoc, ...bindings }, this.onError);
+        if (this.onCompile()) {
+            const bindings: { [name: string]: any } = {};
+            this.paramsNames.forEach(key => bindings[key] = this.dataDoc[key]);
+            // binds vars so user doesnt have to refer to everything as self.<var>
+            ScriptCast(this.dataDoc.data, null)?.script.run({ self: this.rootDoc, this: this.layoutDoc, ...bindings }, this.onError);
+        }
     }
 
     // checks if the script compiles and switches to applied UI
     @action
     onApply = () => {
-        this.onCompile();
-        this._applied = true;
+        if (this.onCompile()) {
+            this._applied = true;
+        }
     }
 
     @action
     onEdit = () => {
         this._applied = false;
+    }
+
+    @action
+    onSave = () => {
+        if (this.onCompile()) {
+            this.dataDoc.funcName = "testingTitle";
+            this.dataDoc.descripition = "description test";
+            ScriptManager.Instance.addScript(this.dataDoc);
+        } else {
+            this._errorMessage = "Can not save script, does not compile";
+        }
     }
 
     // overlays document numbers (ex. d32) over all documents when clicked on
@@ -653,8 +672,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     renderScriptingTools() {
         const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
         return <div className="scriptingBox-toolbar">
-            <button className={buttonStyle} onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
-            <button className={buttonStyle} onPointerDown={e => { this.onApply(); e.stopPropagation(); }}>Apply</button>
+            <button className={buttonStyle} style={{ width: "33%" }} onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
+            <button className={buttonStyle} style={{ width: "33%" }} onPointerDown={e => { this.onApply(); e.stopPropagation(); }}>Apply</button>
+            <button className={buttonStyle} style={{ width: "33%" }} onPointerDown={e => { this.onSave(); e.stopPropagation(); }}>Save</button>
+
             {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
                 <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
         </div>;
