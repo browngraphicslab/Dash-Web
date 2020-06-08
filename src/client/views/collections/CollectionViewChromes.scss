@@ -178,6 +178,21 @@
             display: flex;
             margin-left: 10;
 
+            .collectionGridViewChrome-viewPicker {
+                font-size: 75%;
+                //text-transform: uppercase;
+                //letter-spacing: 2px;
+                background: rgb(238, 238, 238);
+                color: grey;
+                outline-color: black;
+                border: none;
+                //padding: 12px 10px 11px 10px;
+            }
+
+            .collectionGridViewChrome-viewPicker:active {
+                outline-color: black;
+            }
+
             .grid-control {
                 align-self: center;
                 width: 30%;

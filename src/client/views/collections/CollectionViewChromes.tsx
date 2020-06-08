@@ -648,8 +648,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
         this.props.CollectionView.props.Document.preventCollision = !this.props.CollectionView.props.Document.preventCollision;
     }
 
-    changeCompactType = () => {
-        this.props.CollectionView.props.Document.compactType = this.props.CollectionView.props.Document.compactType === "vertical" ? "horizontal" : this.props.CollectionView.props.Document.compactType === "horizontal" ? "null" : "vertical";
+    changeCompactType = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        this.props.CollectionView.props.Document.compactType = e.target.selectedOptions[0].value;
     }
 
     render() {
@@ -671,12 +671,22 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                 </span> */}
                 <span className="grid-control" style={{ width: "20%" }}>
                     <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.preventCollision} />
-                    <label className="flexLabel">Collisions </label>
+                    <label className="flexLabel">Collisions</label>
                 </span>
 
-                <span className="grid-control">
-                    <input style={{ marginRight: 5 }} type="button" onClick={this.changeCompactType} value={`Compact: ${this.props.CollectionView.props.Document.compactType}`} />
-                </span>
+                <select className="collectionGridViewChrome-viewPicker"
+                    style={{ marginRight: 5 }}
+                    onPointerDown={stopPropagation}
+                    onChange={this.changeCompactType}
+                >
+                    {["vertical", "horizontal", "null"].map(type =>
+                        <option className="collectionGridViewChrome-viewOption"
+                            onPointerDown={stopPropagation}
+                            value={type}>
+                            {"Compact: " + type}
+                        </option>
+                    )}
+                </select>
 
                 <span className="grid-control">
                     <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
