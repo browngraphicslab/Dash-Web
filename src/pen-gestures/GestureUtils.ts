@@ -39,7 +39,10 @@ export namespace GestureUtils {
         EndBracket = "endbracket",
         Stroke = "stroke",
         Scribble = "scribble",
-        Text = "text"
+        Text = "text",
+        Triangle = "triangle",
+        Circle = "circle",
+        Rectangle = "rectangle",
     }
 
     export const GestureRecognizer = new NDollarRecognizer(false);

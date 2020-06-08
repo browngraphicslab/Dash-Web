@@ -32,6 +32,7 @@ import { MobileInkOverlayContent } from "../../server/Message";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { RadialMenu } from "./nodes/RadialMenu";
 import { SelectionManager } from "../util/SelectionManager";
+import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
 
 
 @observer
@@ -581,7 +582,8 @@ export default class GestureOverlay extends Touchable {
         if (this._points.length > 1) {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
-
+            //push first points to so interactionUtil knows pointer is up
+            this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
             if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
                 const { selectedColor, selectedWidth } = InkingControl.Instance;
                 DocServer.Mobile.dispatchGesturePoints({
@@ -630,6 +632,23 @@ export default class GestureOverlay extends Touchable {
                         break;
                 }
             }
+            //if any of the shape is activated in the InkOptionsMenu
+            else if (InkOptionsMenu.Instance._circle || InkOptionsMenu.Instance._triangle || InkOptionsMenu.Instance._rectangle || InkOptionsMenu.Instance._line || InkOptionsMenu.Instance._arrow) {
+                if (InkOptionsMenu.Instance._circle) {
+                    this.makePolygon("circle", false);
+                } else if (InkOptionsMenu.Instance._triangle) {
+                    this.makePolygon("triangle", false);
+                } else if (InkOptionsMenu.Instance._rectangle) {
+                    this.makePolygon("rectangle", false);
+                } else if (InkOptionsMenu.Instance._line) {
+                    this.makePolygon("line", false);
+                } else if (InkOptionsMenu.Instance._arrow) {
+                    this.makePolygon("arrow", false);
+                }
+                this.dispatchGesture(GestureUtils.Gestures.Stroke);
+                this._points = [];
+                InkOptionsMenu.Instance.allFalse();
+            }
             // if we're not drawing in a toolglass try to recognize as gesture
             else {
                 const result = points.length > 2 && GestureUtils.GestureRecognizer.Recognize(new Array(points));
@@ -651,6 +670,15 @@ export default class GestureOverlay extends Touchable {
                         case GestureUtils.Gestures.Line:
                             actionPerformed = this.handleLineGesture();
                             break;
+                        case GestureUtils.Gestures.Triangle:
+                            this.makePolygon("triangle", true);
+                            break;
+                        case GestureUtils.Gestures.Circle:
+                            this.makePolygon("circle", true);
+                            break;
+                        case GestureUtils.Gestures.Rectangle:
+                            this.makePolygon("rectangle", true);
+                            break;
                         case GestureUtils.Gestures.Scribble:
                             console.log("scribble");
                             break;
@@ -669,6 +697,95 @@ export default class GestureOverlay extends Touchable {
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    makePolygon = (shape: string, gesture: boolean) => {
+        const xs = this._points.map(p => p.X);
+        const ys = this._points.map(p => p.Y);
+        var right = Math.max(...xs);
+        var left = Math.min(...xs);
+        var bottom = Math.max(...ys);
+        var top = Math.min(...ys);
+
+        if (!gesture) {
+            //if shape options is activated in inkOptionMenu
+            //take second to last point because _point[length-1] is _points[0]
+            right = this._points[this._points.length - 2].X;
+            left = this._points[0].X;
+            bottom = this._points[this._points.length - 2].Y;
+            top = this._points[0].Y;
+            if (shape !== "arrow" && shape !== "line") {
+                if (left > right) {
+                    const temp = right;
+                    right = left;
+                    left = temp;
+                }
+                if (top > bottom) {
+                    const temp = top;
+                    top = bottom;
+                    bottom = temp;
+                }
+            }
+        }
+        this._points = [];
+        switch (shape) {
+            //must push an extra point in the end so InteractionUtils knows pointer is up.
+            //must be (points[0].X,points[0]-1) 
+            case "rectangle":
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: left, Y: top - 1 });
+                break;
+            case "triangle":
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom - 1 });
+                break;
+            case "circle":
+                const centerX = (right + left) / 2;
+                const centerY = (bottom + top) / 2;
+                const radius = bottom - centerY;
+                for (var y = top; y < bottom; y++) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    this._points.push({ X: x, Y: y });
+                }
+                for (var y = bottom; y > top; y--) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    const newX = centerX - (x - centerX);
+                    this._points.push({ X: newX, Y: y });
+                }
+                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+                break;
+            case "line":
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom - 1 });
+                break;
+            case "arrow":
+                const x1 = left;
+                const y1 = top;
+                const x2 = right;
+                const y2 = bottom;
+                const L1 = Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + (Math.pow(Math.abs(y1 - y2), 2)));
+                const L2 = L1 / 5;
+                const angle = 0.785398;
+                const x3 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) + (y1 - y2) * Math.sin(angle));
+                const y3 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) - (x1 - x2) * Math.sin(angle));
+                const x4 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) - (y1 - y2) * Math.sin(angle));
+                const y4 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) + (x1 - x2) * Math.sin(angle));
+                this._points.push({ X: x1, Y: y1 });
+                this._points.push({ X: x2, Y: y2 });
+                this._points.push({ X: x3, Y: y3 });
+                this._points.push({ X: x4, Y: y4 });
+                this._points.push({ X: x2, Y: y2 });
+                this._points.push({ X: x1, Y: y1 - 1 });
+        }
     }
 
     dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
@@ -710,11 +827,11 @@ export default class GestureOverlay extends Touchable {
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
                 return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth, InkingControl.Instance.selectedBezier)}
                 </svg>;
             }),
             this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth, InkingControl.Instance.selectedBezier)}
             </svg>]
         ];
     }
