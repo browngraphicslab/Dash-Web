@@ -13,6 +13,7 @@ import { Cast } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
 import { List } from '../fields/List';
 import { Scripting } from '../client/util/Scripting';
+import MainViewModal from '../client/views/MainViewModal';
 
 export interface ImageUploadProps {
     Document: Doc;
@@ -35,6 +36,10 @@ export class Uploader extends React.Component<ImageUploadProps> {
         console.log("uploader click");
         try {
             this.status = "initializing protos";
+            const slab1 = document.getElementById("slab1");
+            if (slab1) {
+                slab1.style.opacity = "1";
+            }
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
@@ -44,8 +49,15 @@ export class Uploader extends React.Component<ImageUploadProps> {
                     const name = files[0].name;
                     const res = await Networking.UploadFilesToServer(files[0]);
                     this.status = "uploading image";
+                    const slab2 = document.getElementById("slab2");
+                    if (slab2) {
+                        slab2.style.opacity = "1";
+                    }
                     this.status = "upload image, getting json";
-
+                    const slab3 = document.getElementById("slab3");
+                    if (slab3) {
+                        slab3.style.opacity = "1";
+                    }
                     res.map(async ({ result }) => {
                         if (result instanceof Error) {
                             return;
@@ -54,7 +66,15 @@ export class Uploader extends React.Component<ImageUploadProps> {
                         const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
 
                         this.status = "getting user document";
-
+                        const slab4 = document.getElementById("slab4");
+                        if (slab4) {
+                            slab4.style.opacity = "1";
+                        }
+                        this.status = "upload image, getting json";
+                        const slab5 = document.getElementById("slab5");
+                        if (slab5) {
+                            slab5.style.opacity = "1";
+                        }
                         const res = await rp.get(Utils.prepend("/getUserDocumentId"));
                         if (!res) {
                             throw new Error("No user id returned");
@@ -66,6 +86,10 @@ export class Uploader extends React.Component<ImageUploadProps> {
                         }
                         if (pending) {
                             this.status = "has pending docs";
+                            const slab6 = document.getElementById("slab6");
+                            if (slab6) {
+                                slab6.style.opacity = "1";
+                            }
                             const data = await Cast(pending.data, listSpec(Doc));
                             if (data) {
                                 data.push(doc);
@@ -74,6 +98,10 @@ export class Uploader extends React.Component<ImageUploadProps> {
                             }
                             this.status = "finished";
                             console.log("hi");
+                            const slab7 = document.getElementById("slab7");
+                            if (slab7) {
+                                slab7.style.opacity = "1";
+                            }
                         }
 
                     });
@@ -84,16 +112,52 @@ export class Uploader extends React.Component<ImageUploadProps> {
         }
     }
 
-    render() {
+    // Updates label after a files is selected (so user knows a file is uploaded)
+    inputLabel = async () => {
+        const files: FileList | null = inputRef.current!.files;
+        await files;
+        var inputs = document.querySelectorAll('.inputFile');
+        const label = document.getElementById("label");
+        if (files && label) {
+            label.innerText = files[0].name;
+        }
+    }
+
+    private get uploadInterface() {
         return (
             <div className="imgupload_cont">
-                <label htmlFor="input_image_file" className="upload_label" onClick={this.onClick}>Upload Image</label>
-                <input type="file" accept="image/*" className="input_file" id="input_image_file" ref={inputRef}></input>
+                <input type="file" accept="image/*" className="inputFile" id="input_image_file" onClick={this.inputLabel} ref={inputRef}></input>
+                <label id="label" htmlFor="input_image_file">Choose an image</label>
+                <div className="upload_label" onClick={this.onClick}>Upload Image</div>
                 {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>
                 {/* <p>{this.status}</p>
                 <p>{this.error}</p> */}
+                <div className="loadingImage">
+                    <div className="loadingSlab" id="slab1" />
+                    <div className="loadingSlab" id="slab2" />
+                    <div className="loadingSlab" id="slab3" />
+                    <div className="loadingSlab" id="slab4" />
+                    <div className="loadingSlab" id="slab5" />
+                    <div className="loadingSlab" id="slab6" />
+                    <div className="loadingSlab" id="slab7" />
+                </div>
             </div>
+        );
+    }
+
+    @observable private dialogueBoxOpacity = 1;
+    @observable private overlayOpacity = 0.4;
+
+    render() {
+        return (
+            <MainViewModal
+                contents={this.uploadInterface}
+                isDisplayed={true}
+                interactive={true}
+                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
+                overlayDisplayedOpacity={this.overlayOpacity}
+            />
         );
     }
 

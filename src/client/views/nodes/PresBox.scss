@@ -84,7 +84,7 @@
 @media only screen and (max-width: 1000px) {
     .presBox-cont .presBox-buttons {
         position: absolute;
-        top: 85%;
+        top: 70%;
         left: 50%;
         transform: translate(-50%, 0);
         width: max-content;
@@ -107,10 +107,10 @@
     .presBox-cont .presBox-buttons .presBox-button {
         margin-right: 10px;
         margin-left: 10px;
-        height: 130px;
-        width: 130px;
-        font-size: 50;
-        border-radius: 5px;
+        height: 250;
+        width: 250;
+        font-size: 70;
+        border-radius: 25px;
         display: flex;
         align-items: center;
         background: #323232;
@@ -118,37 +118,12 @@
     }
 
     .presBox-cont .presBox-buttons .presBox-viewPicker {
+        top: -70;
+        left: 2.5%;
         height: 50;
-        width: 100;
+        width: 95%;
         font-size: 30px;
-        position: relative;
+        position: absolute;
         min-width: 50px;
-    }
-
-    .presElementBox-closeIcon {
-        border-radius: 20px;
-        transform: scale(2);
-        position: absolute;
-        right: 20;
-        top: 20;
-        padding: 8px;
-    }
-
-    .presElementBox-buttons {
-        display: inline-flex;
-        position: absolute;
-        right: 0;
-        width: 50%;
-    }
-
-    .presElementBox-name {
-        font-size: 30px;
-        position: absolute;
-        display: inline-block;
-        top: 10px;
-        width: 50%;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: pre;
     }
 }

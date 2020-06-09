@@ -430,7 +430,7 @@ export class CurrentUserUtils {
     }
 
     static setupMobileMenu() {
-        const menu = Cast(Docs.Create.StackingDocument(CurrentUserUtils.setupMobileButtons(), {
+        const menu = Cast(Docs.Create.StackingDocument(CurrentUserUtils.setupMobileButtons2(), {
             _width: 980, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "home", _autoHeight: true, _yMargin: 80
         }), Doc) as Doc;
         return menu;
@@ -647,7 +647,7 @@ export class CurrentUserUtils {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
             { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections" },
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your mobile to record audio and access it on Dash Web." },
-            { title: "UPLOAD", icon: "upload", click: 'console.log("hi")', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
+            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
             { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
             // { title: "INK", icon: "pen-nib", backgroundColor: "lightgrey", info: "Doodle and draw with ink on your mobile and have it directly available on Dash Web" },
             { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security" }
@@ -658,7 +658,7 @@ export class CurrentUserUtils {
     static mobileButton = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MulticolumnDocument(docs, {
         ...opts,
         dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
-        borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled",
+        borderRounding: "5px", boxShadow: "0 0", _chromeStatus: "disabled",
     })) as any as Doc
 
     static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MultirowDocument(docs, {
@@ -719,6 +719,7 @@ export class CurrentUserUtils {
             doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Right Sidebar" }));
         }
     }
+
 
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {

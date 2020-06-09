@@ -1,7 +1,7 @@
 import * as React from "react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -26,6 +26,7 @@ import { InkingControl } from '../client/views/InkingControl';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
 import "./MobileHome.scss";
+import "./ImageUpload.scss";
 import { DocumentManager } from '../client/util/DocumentManager';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
@@ -38,7 +39,7 @@ import { SelectionManager } from "../client/util/SelectionManager";
 import { SketchPicker } from "react-color";
 import { ScriptField } from "../fields/ScriptField";
 
-library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+library.add(faTasks, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -1240,7 +1241,7 @@ export class MobileInterface extends React.Component {
         // if (this._homeMenu == false) {
         let docArray = this.createPathname();
         let items = docArray.map((doc: Doc, index: any) => {
-            if (index == 0) {
+            if (index === 0) {
                 return (
                     <div className="pathbarItem">
                         <div className="pathbarText"
@@ -1689,6 +1690,9 @@ export class MobileInterface extends React.Component {
                 <SettingsManager />
                 {/* {this.menuOptions()} */}
                 {/* {this.displayHome()} */}
+                <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
+                    {this.uploadImage()}
+                </div>
                 <div className="docButtonContainer">
                     {this.pinToPresentation()}
                     {this.downloadDocument()}
@@ -1719,8 +1723,40 @@ export class MobileInterface extends React.Component {
         );
     }
 
+    @observable private imageUploadActive: boolean = false;
+
+    @action
+    toggleUpload = () => this.imageUploadActive = !this.imageUploadActive
+
+    @action
+    closeUpload = () => {
+        this.imageUploadActive = false;
+    }
+
+    // toggleUpload = () => {
+    //     if (this.imageUploadActive === true) {
+    //         this.imageUploadActive = false;
+    //     } else {
+    //         this.imageUploadActive = true;
+    //     }
+    // }
+
     uploadImage = () => {
-        console.log("hello world of images");
+        if (this.imageUploadActive) {
+            console.log("active");
+        } else if (!this.imageUploadActive) {
+
+        }
+        console.log("upload");
+        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+        return (
+            <div>
+                <div className="closeUpload" onClick={this.toggleUpload}>
+                    <FontAwesomeIcon icon="window-close" size={"lg"} />
+                </div>
+                <Uploader Document={workspaces} />
+            </div>
+        );
     }
 }
 
@@ -1735,7 +1771,7 @@ Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Inst
 Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.recordAudio(); });
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
 Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });
-Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.uploadImage(); });
+Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
 
 
 
