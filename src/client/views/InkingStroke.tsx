@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { observable, runInAction } from "mobx";
+import { observable, runInAction, action } from "mobx";
 import { observer } from "mobx-react";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
@@ -14,6 +14,8 @@ import { ViewBoxBaseComponent } from "./DocComponent";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
+import { Scripting } from "../util/Scripting";
+import { Doc } from "../../fields/Doc";
 
 library.add(faPaintBrush);
 
@@ -23,22 +25,6 @@ const InkDocument = makeInterface(documentSchema);
 @observer
 export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocument>(InkDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
-    @observable public static InkColor: string;
-    @observable public static InkWidth: string;
-    @observable public static InkBezierApprox: string;
-    @observable public static InkShape: string;
-
-    constructor(props: any) {
-        super(props);
-        if (InkingStroke.InkBezierApprox === undefined) {
-            runInAction(() => {
-                InkingStroke.InkBezierApprox = "";
-                InkingStroke.InkWidth = "1";
-                InkingStroke.InkColor = "black";
-                InkingStroke.InkShape = "";
-            });
-        }
-    }
 
     private analyzeStrokes = () => {
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
@@ -59,9 +45,9 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const scaleX = this.props.PanelWidth() / width;
         const scaleY = this.props.PanelHeight() / height;
         const points = InteractionUtils.CreatePolyline(data, left, top,
-            StrCast(this.layoutDoc.color, InkingStroke.InkColor || "black"),
-            StrCast(this.layoutDoc.strokeWidth, InkingStroke.InkWidth || "1"),
-            StrCast(this.layoutDoc.strokeBezier, InkingStroke.InkBezierApprox || ""), scaleX, scaleY, "");
+            StrCast(this.layoutDoc.color, ActiveInkColor()),
+            StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()),
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "");
         return (
             <svg className="inkingStroke"
                 width={width}
@@ -80,3 +66,22 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         );
     }
 }
+
+
+export function SetActiveInkWidth(width: string): void { !isNaN(parseInt(width)) && ActiveInkPen() && (ActiveInkPen().activeInkWidth = width); }
+export function SetActiveBezierApprox(bezier: string): void { ActiveInkPen() && (ActiveInkPen().activeInkBezier = isNaN(parseInt(bezier)) ? "" : bezier); }
+export function SetActiveInkColor(value: string) { ActiveInkPen() && (ActiveInkPen().activeInkColor = value); }
+export function ActiveInkPen(): Doc { return Cast(Doc.UserDoc().activeInkPen, Doc, null); }
+export function ActiveInkColor(): string { return StrCast(ActiveInkPen()?.activeInkColor, "black"); }
+export function ActiveInkWidth(): string { return StrCast(ActiveInkPen()?.activeInkWidth, "1"); }
+export function ActiveInkBezierApprox(): string { return StrCast(ActiveInkPen()?.activeInkBezier); }
+Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) {
+    Doc.SetSelectedTool(pen ? InkTool.Highlighter : InkTool.None);
+    SetActiveInkWidth(width);
+    SetActiveInkColor(color);
+});
+Scripting.addGlobal(function activateEraser(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Eraser : InkTool.None); });
+Scripting.addGlobal(function activateStamp(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Stamp : InkTool.None); });
+Scripting.addGlobal(function deactivateInk() { return Doc.SetSelectedTool(InkTool.None); });
+Scripting.addGlobal(function setInkWidth(width: any) { return Doc.SetSelectedTool(width); });
+Scripting.addGlobal(function setInkColor(color: any) { return Doc.SetSelectedTool(color); });

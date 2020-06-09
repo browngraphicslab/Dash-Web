@@ -349,7 +349,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
 
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
 
-        const classname = "webBox-cont" + (this.props.isSelected() && !Doc.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && !Doc.GetSelectedTool() && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >

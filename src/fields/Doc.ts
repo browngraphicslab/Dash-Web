@@ -6,7 +6,7 @@ import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
-import { intersectRect } from "../Utils";
+import { intersectRect, Utils } from "../Utils";
 import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
 import { InkTool } from "./InkField";
 import { List } from "./List";
@@ -18,6 +18,7 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
+import { LinkManager } from "../client/util/LinkManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -132,7 +133,6 @@ function fetchProto(doc: Doc) {
 @scriptingGlobal
 @Deserializable("Doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
-    @computed public static get selectedTool(): InkTool { return FieldValue(NumCast(Doc.UserDoc().inkTool)) ?? InkTool.None; }
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
         const doc = new Proxy<this>(this, {
@@ -486,6 +486,78 @@ export namespace Doc {
         return alias;
     }
 
+
+
+    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
+        if (Doc.IsBaseProto(doc)) return doc;
+        if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
+        const copy = new Doc(undefined, true);
+        cloneMap.set(doc[Id], copy);
+        if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        Object.keys(doc).forEach(key => {
+            if (exclude.includes(key)) return;
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            const copyObjectField = (field: ObjectField) => {
+                const list = Cast(doc[key], listSpec(Doc));
+                if (list !== undefined && !(list instanceof Promise)) {
+                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+                } else if (doc[key] instanceof Doc) {
+                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                } else {
+                    copy[key] = ObjectField.MakeCopy(field);
+                    if (field instanceof RichTextField) {
+                        if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
+                            rtfs.push({ copy, key, field });
+                        }
+                    }
+                }
+            };
+            if (key === "proto") {
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    copy[key] = field;
+                } else if (cfield instanceof ComputedField) {
+                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
+                } else if (field instanceof ObjectField) {
+                    copyObjectField(field);
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    copy[key] = field;
+                }
+            }
+        });
+        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+        copy.cloneOf = doc;
+        cloneMap.set(doc[Id], copy);
+        return copy;
+    }
+    export function MakeClone(doc: Doc): Doc {
+        const cloneMap = new Map<string, Doc>();
+        const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
+        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        rtfMap.map(({ copy, key, field }) => {
+            const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return attr + "\"" + (mapped ? mapped[Id] : id) + "\"";
+            };
+            const replacer2 = (match: any, href: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return href + (mapped ? mapped[Id] : id);
+            };
+            const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
+            const re = new RegExp(regex, "g");
+            copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
+        });
+        return copy;
+    }
+
     //
     // Determines whether the layout needs to be expanded (as a template).
     // template expansion is rquired when the layout is a template doc/field and there's a datadoc which isn't equal to the layout template
@@ -743,6 +815,9 @@ export namespace Doc {
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
+
+    export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
+    export function GetSelectedTool(): InkTool { return (FieldValue(StrCast(Doc.UserDoc().activeInkTool)) ?? InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {

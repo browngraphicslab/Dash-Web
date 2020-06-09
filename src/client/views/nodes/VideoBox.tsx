@@ -228,7 +228,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
-        const interactive = Doc.selectedTool || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = Doc.GetSelectedTool() || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
             <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
@@ -272,8 +272,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
             this._reactionDisposer = reaction(() => this.layoutDoc.currentTimecode, () => !this._playing && this.Seek((this.layoutDoc.currentTimecode || 0)));
-            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, Doc.selectedTool], () => {
-                const interactive = Doc.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
+            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, Doc.GetSelectedTool()], () => {
+                const interactive = Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
         };

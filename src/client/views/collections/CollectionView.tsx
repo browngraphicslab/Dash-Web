@@ -1,34 +1,37 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEye, faEdit } from '@fortawesome/free-regular-svg-icons';
+import { faEdit, faEye } from '@fortawesome/free-regular-svg-icons';
+import { faColumns, faCopy, faEllipsisV, faFingerprint, faGlobeAmericas, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree, faGlobeAmericas } from '@fortawesome/free-solid-svg-icons';
-import { action, observable, computed } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { DataSym, Doc, DocListCast, Field, Opt, AclSym, AclAddonly, AclReadonly } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../fields/Types';
+import { ObjectField } from '../../../fields/ObjectField';
+import { listSpec } from '../../../fields/Schema';
+import { ComputedField, ScriptField } from '../../../fields/ScriptField';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { Utils, setupMoveUpEvents, returnFalse, returnZero, emptyPath, emptyFunction, returnOne } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { DocumentType } from '../../documents/DocumentTypes';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { InteractionUtils } from '../../util/InteractionUtils';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
-import { Id } from '../../../fields/FieldSymbols';
-import { listSpec } from '../../../fields/Schema';
-import { ScriptField, ComputedField } from '../../../fields/ScriptField';
-import { InteractionUtils } from '../../util/InteractionUtils';
-import { ObjectField } from '../../../fields/ObjectField';
+import './CollectionView.scss';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
+
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faGlobeAmericas, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
@@ -500,6 +503,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         </div>);
     }
 }
+
+
+
+// to avoid an import cycle that will cause runtime errors, 
+// we import all of the bindings needed within methods after the
+// class has been defined.
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionDockingView } from "./CollectionDockingView";
@@ -515,8 +524,6 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionMapView } from './CollectionMapView';
 import { CollectionPileView } from './CollectionPileView';
-import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
-import { DocumentType } from '../../documents/DocumentTypes';
 import { Docs } from '../../documents/Documents';

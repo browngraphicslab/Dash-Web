@@ -1211,7 +1211,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         TraceMobx();
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = Doc.selectedTool || this.layoutDoc.isBackground;
+        const interactive = Doc.GetSelectedTool() || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
             this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
@@ -1266,7 +1266,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     </div>
                     {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :
-                        <div className={"formattedTextBox-sidebar" + (Doc.selectedTool !== InkTool.None ? "-inking" : "")}
+                        <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                             style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
                             <CollectionFreeFormView {...this.props}
                                 PanelHeight={this.props.PanelHeight}

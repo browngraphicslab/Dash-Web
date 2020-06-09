@@ -132,7 +132,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
     }
 
     @computed get content() {
-        const interactive = Doc.selectedTool || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = Doc.GetSelectedTool() || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + interactive;
         return <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
             style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}

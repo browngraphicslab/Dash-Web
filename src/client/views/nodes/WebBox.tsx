@@ -424,7 +424,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const frozen = !this.props.isSelected() || decInteracting;
 
         return (<>
-            <div className={"webBox-cont" + (this.props.isSelected() && Doc.selectedTool === InkTool.None && !decInteracting ? "-interactive" : "")}
+            <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !decInteracting ? "-interactive" : "")}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>;

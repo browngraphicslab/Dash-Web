@@ -37,7 +37,7 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
-import { InkingStroke } from "../views/InkingStroke";
+import { InkingStroke, ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../views/InkingStroke";
 import { InkField } from "../../fields/InkField";
 import { RichTextField } from "../../fields/RichTextField";
 import { extname } from "path";
@@ -47,10 +47,6 @@ import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
-import { Id } from "../../fields/FieldSymbols";
-import { listSpec } from "../../fields/Schema";
-import { ObjectField } from "../../fields/ObjectField";
-import { RefField } from "../../fields/RefField";
 import { runInAction } from "mobx";
 import { UndoManager } from "../util/UndoManager";
 const path = require('path');
@@ -149,7 +145,7 @@ export interface DocumentOptions {
     dbDoc?: Doc;
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
-    activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
+    activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
     onDoubleClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
@@ -855,7 +851,7 @@ export namespace DocUtils {
             created = Docs.Create.AudioDocument((field).url.href, resolved);
             layout = AudioBox.LayoutString;
         } else if (field instanceof InkField) {
-            created = Docs.Create.InkDocument(InkingStroke.InkColor, Doc.selectedTool, InkingStroke.InkWidth, InkingStroke.InkBezierApprox, (field).inkData, resolved);
+            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), (field).inkData, resolved);
             layout = InkingStroke.LayoutString;
         } else if (field instanceof List && field[0] instanceof Doc) {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
@@ -911,76 +907,6 @@ export namespace DocUtils {
             options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
         }
         return ctor ? ctor(path, options) : undefined;
-    }
-
-    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
-        if (Doc.IsBaseProto(doc)) return doc;
-        if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
-        const copy = new Doc(undefined, true);
-        cloneMap.set(doc[Id], copy);
-        if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
-        Object.keys(doc).forEach(key => {
-            if (exclude.includes(key)) return;
-            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
-            const field = ProxyField.WithoutProxy(() => doc[key]);
-            const copyObjectField = (field: ObjectField) => {
-                const list = Cast(doc[key], listSpec(Doc));
-                if (list !== undefined && !(list instanceof Promise)) {
-                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => DocUtils.makeClone(d as Doc, cloneMap, rtfs)));
-                } else if (doc[key] instanceof Doc) {
-                    copy[key] = key.includes("layout[") ? undefined : DocUtils.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
-                } else {
-                    copy[key] = ObjectField.MakeCopy(field);
-                    if (field instanceof RichTextField) {
-                        if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
-                            rtfs.push({ copy, key, field });
-                        }
-                    }
-                }
-            };
-            if (key === "proto") {
-                if (doc[key] instanceof Doc) {
-                    copy[key] = DocUtils.makeClone(doc[key]!, cloneMap, rtfs);
-                }
-            } else {
-                if (field instanceof RefField) {
-                    copy[key] = field;
-                } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
-                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
-                } else if (field instanceof ObjectField) {
-                    copyObjectField(field);
-                } else if (field instanceof Promise) {
-                    debugger; //This shouldn't happend...
-                } else {
-                    copy[key] = field;
-                }
-            }
-        });
-        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
-        copy.cloneOf = doc;
-        cloneMap.set(doc[Id], copy);
-        return copy;
-    }
-    export function MakeClone(doc: Doc): Doc {
-        const cloneMap = new Map<string, Doc>();
-        const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = DocUtils.makeClone(doc, cloneMap, rtfMap);
-        rtfMap.map(({ copy, key, field }) => {
-            const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
-                const mapped = cloneMap.get(id);
-                return attr + "\"" + (mapped ? mapped[Id] : id) + "\"";
-            };
-            const replacer2 = (match: any, href: string, id: string, offset: any, string: any) => {
-                const mapped = cloneMap.get(id);
-                return href + (mapped ? mapped[Id] : id);
-            };
-            const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
-            const re = new RegExp(regex, "g");
-            copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
-        });
-        return copy;
     }
 
     export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {
@@ -1106,7 +1032,6 @@ export namespace DocUtils {
             return newCollection;
         }
     }
-
 
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);

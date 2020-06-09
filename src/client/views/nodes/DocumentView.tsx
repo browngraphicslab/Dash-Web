@@ -512,7 +512,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
-        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.selectedTool === InkTool.Highlighter || Doc.selectedTool === InkTool.Pen)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
                 // TODO: check here for panning/inking
@@ -543,7 +543,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerMove = (e: PointerEvent): void => {
 
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
-        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.selectedTool === InkTool.Highlighter || Doc.selectedTool === InkTool.Pen)) return;
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
@@ -1090,7 +1090,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
             (this.Document.isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
-            (this.Document.type === DocumentType.INK && Doc.selectedTool !== InkTool.None);
+            (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }
     @undoBatch
     @action
