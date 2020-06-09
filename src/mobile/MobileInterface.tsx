@@ -892,7 +892,7 @@ library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTras
 //     // Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
 
 
-// // 3   
+// // 3
 //     // renderInkingContent = () => {
 //         //     console.log("rendering inking content");
 //         //     // TODO: support panning and zooming
@@ -953,6 +953,7 @@ export class MobileInterface extends React.Component {
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;
+    @observable private sidebarActive: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc;
     public _homeDoc: Doc = this.mainDoc;
@@ -987,8 +988,6 @@ export class MobileInterface extends React.Component {
         InkingControl.Instance.switchTool(InkTool.None);
         MobileInterface.Instance.drawingInk = false;
         InkingControl.Instance.updateSelectedColor("#FF0000");
-        console.log(this.userDoc.inkColor);
-        console.log(InkingControl.Instance.selectedColor);
         InkingControl.Instance.switchWidth("2");
         this.switchCurrentView((userDoc: Doc) => this._homeDoc);
     }
@@ -1028,30 +1027,30 @@ export class MobileInterface extends React.Component {
         });
     }
 
-    /**
-     * Handles the functionality to toggle the sidebar
-     */
-    toggleSidebar = () => {
-        if (this._open === false) {
-            this._open = true;
-        } else {
-            this._open = false;
-        }
-        console.log("clicked");
-        let menuButton = document.getElementById("menuButton") as HTMLElement;
-        menuButton.classList.toggle('active');
+    @action
+    toggleSidebar = () => this.sidebarActive = !this.sidebarActive
 
-        let sidebar = document.getElementById("sidebar") as HTMLElement;
-        sidebar.classList.toggle('active');
+    // toggleSidebar = () => {
+    //     if (this._open === false) {
+    //         this._open = true;
+    //     } else {
+    //         this._open = false;
+    //     }
+    //     console.log("clicked");
+    //     let menuButton = document.getElementById("menuButton") as HTMLElement;
+    //     //menuButton.classList.toggle('active');
 
-        let header = document.getElementById("header") as HTMLElement;
+    //     let sidebar = document.getElementById("sidebar") as HTMLElement;
+    //     //sidebar.classList.toggle('active');
 
-        if (!sidebar.classList.contains('active')) {
-            header.textContent = String(this._activeDoc.title);
-        } else {
-            header.textContent = "library";
-        }
-    }
+    //     let header = document.getElementById("header") as HTMLElement;
+
+    //     if (!sidebar.classList.contains('active')) {
+    //         header.textContent = String(this._activeDoc.title);
+    //     } else {
+    //         header.textContent = "library";
+    //     }
+    // }
 
     /**
      * Method called when 'Library' button is pressed
@@ -1061,7 +1060,7 @@ export class MobileInterface extends React.Component {
         this.switchCurrentView((userDoc: Doc) => this._library);
         this._activeDoc = this._library;
         this._homeMenu = false;
-        this.toggleSidebar();
+        this.sidebarActive = true;
     }
 
     /**
@@ -1097,14 +1096,14 @@ export class MobileInterface extends React.Component {
      * Return 'Home", which implies returning to 'Home' buttons
      */
     returnHome = () => {
-        if (this._homeMenu === false || this._open === true) {
+        if (this._homeMenu === false || this.sidebarActive === true) {
             this._homeMenu = true;
             this._parents = [];
             this._activeDoc = this._homeDoc;
             this._child = null;
             this.switchCurrentView((userDoc: Doc) => this._homeDoc);
         }
-        if (this._open) {
+        if (this.sidebarActive) {
             this.toggleSidebar();
         }
     }
@@ -1230,32 +1229,9 @@ export class MobileInterface extends React.Component {
         // let titleArray = [];
         let docArray = [];
         this._parents.map((doc: Doc, index: any) => {
-            // if (doc === this.mainDoc) {
-            //     pathname = pathname;
-            // } else if (doc.type === "audio" || doc.type === "presentation") {
-            //     pathname = pathname;
-            // } else if (doc.type !== "collection") {
-            //     pathname = pathname;
-            // } else {
-            //     pathname = pathname + " > " + doc.title;
-            //     titleArray.push(doc.title);
-            //     docArray.push(doc);
-            // }
             docArray.push(doc);
         });
         docArray.push(this._activeDoc);
-        // if (this._activeDoc.title === "mobile audio") {
-        //     pathname = this._activeDoc.title;
-        // } else if (this._activeDoc.title === "Presentation") {
-        //     pathname = this._activeDoc.title;
-        // } else if (this._activeDoc === this.mainDoc) {
-        //     pathname = pathname;
-        // } else {
-        //     pathname = pathname + " > " + this._activeDoc.title;
-        //     docArray.push(this._activeDoc);
-        //     titleArray.push(this._activeDoc.title);
-        // }
-
         return docArray;
     }
 
@@ -1344,7 +1320,6 @@ export class MobileInterface extends React.Component {
         } else if (doc === this._homeDoc) {
             this.returnHome();
         } else {
-            console.log(index);
             this._activeDoc = doc;
             this._child = doc;
             this.switchCurrentView((userDoc: Doc) => doc);
@@ -1359,7 +1334,7 @@ export class MobileInterface extends React.Component {
                     <div
                         className="item"
                         key={index}
-                        onClick={() => doc.proto?.onClick}>{doc.title}
+                        onClick={() => doc.onClick}>{doc.title}
                     </div>);
             }
         });
@@ -1370,6 +1345,7 @@ export class MobileInterface extends React.Component {
                     <div className="navbar">
                         <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="header" id="header">{this._homeDoc.title}</div>
+                        <div className="cover" id="cover" onClick={(e) => this.stop(e)}></div>
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -1385,7 +1361,12 @@ export class MobileInterface extends React.Component {
                 </div>
             );
         }
-        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+
+        let workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+        if (this._child) {
+            workspaces = this._child
+        }
+
         let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
             if (doc.type !== "ink") {
                 return (
@@ -1399,88 +1380,39 @@ export class MobileInterface extends React.Component {
             }
         });
 
-        if (this._child) {
-            buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
-                if (doc.type !== "ink") {
-                    return (
-                        <div
-                            className="item"
-                            key={index}
-                            onClick={() => this.handleClick(doc)}>{doc.title}
-                            <div className="type">{doc.type}</div>
-                            <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
-                        </div>);
-                }
-            });
-        }
+        return (
+            <div>
+                <div className="navbar">
+                    <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
+                    <div className="header" id="header">{this.sidebarActive ? "library" : this._activeDoc.title}</div>
+                    <div className={`toggle-btn ${this.sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                {this.renderPathbar()}
+                <div className={`sidebar ${this.sidebarActive ? "active" : ""}`}>
+                    <div className="sidebarButtons">
+                        {this._child ?
+                            <>
+                                {buttons}
+                                <div className="item" key="home" onClick={this.returnMain}>
+                                    Return to library
+                            </div>
+                            </> :
+                            <>
+                                {buttons}
+                            </>
+                        }
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
-        if (!this._child) {
-            return (
-                <div>
-                    <div className="navbar">
-                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-                        <div className="header" id="header">{this._homeDoc.title}</div>
-                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                    {this.renderPathbar()}
-                    <div className="sidebar" id="sidebar">
-                        <div className="sidebarButtons">
-                            {buttons}
-                            {/* <div className="item" key="library" onClick={this.openLibrary}>
-                                Library
-                            </div> */}
-                            {/* <Uploader Document={workspaces} />
-                            <div className="item" key="audio" onClick={this.recordAudio}>
-                                Record Audio
-                            </div>
-                            <div className="item" key="presentation" onClick={this.openDefaultPresentation}>
-                                Presentation
-                            </div> */}
-                            {/* <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                                Settings
-                            </div> */}
-                            <div className="item" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
-                                Ink On
-                            </div>
-                        </div>
-                    </div>
-                    {/* <div>
-                        {this.renderView}
-                    </div> */}
-                </div>
-            );
-        }
-        else {
-            return (
-                <div>
-                    <div className="navbar">
-                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-                        <div className="header" id="header">library</div>
-                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                    {this.renderPathbar()}
-                    <div className="sidebar" id="sidebar">
-                        <div className="sidebarButtons">
-                            {buttons}
-                            <div className="item" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
-                                Ink On
-                            </div>
-                            <div className="item" key="home" onClick={this.returnMain}>
-                                Home
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+    stop = (e: React.MouseEvent) => {
+        e.stopPropagation();
     }
 
     uploadAudioButton = () => {
@@ -1580,9 +1512,7 @@ export class MobileInterface extends React.Component {
             this._parents.push(this._activeDoc);
         }
         const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
-        console.log(audioDoc);
         if (audioDoc) {
-            console.log("audioClicked: " + audioDoc.title);
             this._activeDoc = audioDoc;
             this.switchCurrentView((userDoc: Doc) => audioDoc);
             this._homeMenu = false;
@@ -1603,7 +1533,6 @@ export class MobileInterface extends React.Component {
         const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
         const audioDoc = this._activeDoc;
         const data = Cast(audioRightSidebar.data, listSpec(Doc));
-        console.log(audioDoc.proto);
         if (data) {
             data.push(audioDoc);
         }

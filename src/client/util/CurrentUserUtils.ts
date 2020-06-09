@@ -496,8 +496,8 @@ export class CurrentUserUtils {
         });
     }
 
-    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
-    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
+    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
+    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
     static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
@@ -588,7 +588,7 @@ export class CurrentUserUtils {
         return doc["tabs-button-library"] as Doc;
     }
 
-    // setup the Search button which will display the search panel.  
+    // setup the Search button which will display the search panel.
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
@@ -647,7 +647,7 @@ export class CurrentUserUtils {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
             { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections" },
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your mobile to record audio and access it on Dash Web." },
-            { title: "UPLOAD", icon: "upload", click: 'uploadMobileImage()', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
+            { title: "UPLOAD", icon: "upload", click: 'console.log("hi")', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
             { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
             // { title: "INK", icon: "pen-nib", backgroundColor: "lightgrey", info: "Doodle and draw with ink on your mobile and have it directly available on Dash Web" },
             { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security" }
@@ -764,13 +764,13 @@ export class CurrentUserUtils {
         doc.activePen = doc;
         doc.inkColor = StrCast(doc.backgroundColor, "rgb(0, 0, 0)");
         doc.fontSize = NumCast(doc.fontSize, 12);
-        doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
-        doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
+        doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
+        doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
-        this.setupOverlays(doc);  // documents in overlay layer 
+        this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
