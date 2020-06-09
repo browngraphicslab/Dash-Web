@@ -77,7 +77,7 @@ scriptList.forEach((scriptDoc: Doc) => {
     });
 
     if (parameters === "(") {
-        Scripting.addGlobal(f, StrCast(scriptDoc.description), StrCast(scriptDoc.funcName));
+        Scripting.addGlobal(f, StrCast(scriptDoc.description), "", StrCast(scriptDoc.funcName));
     } else {
         Scripting.addGlobal(f, StrCast(scriptDoc.description), parameters, StrCast(scriptDoc.funcName));
     }

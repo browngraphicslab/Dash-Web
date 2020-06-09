@@ -50,36 +50,36 @@ export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
     export function addGlobal(name: string, global: any): void;
 
-    export function addGlobal(global: { name: string }, decription?: string, params?: any): void;
-    export function addGlobal(global: { name: string }, decription?: string, params?: any, name?: any): void;
+    export function addGlobal(global: { name: string }, decription?: string, params?: string): void;
+    export function addGlobal(global: { name: string }, decription?: string, params?: string, name?: string): void;
 
-    export function addGlobal(nameOrGlobal: any, global?: any, params?: any, name?: any) {
+    export function addGlobal(first: any, second?: any, third?: string, fourth?: string) {
         let n: any;
         let obj: any;
 
-        if (global !== undefined) {
-            if (typeof nameOrGlobal === "string") {
-                n = nameOrGlobal;
-                obj = global;
+        if (second !== undefined) {
+            if (typeof first === "string") {
+                n = first;
+                obj = second;
             } else {
-                obj = [nameOrGlobal];
-                obj.push(global);
-                if (params) {
-                    if (params.indexOf("(") > 0) {
-                        obj.push(params);
-                    } else {
-                        n = params;
-                    }
+                obj = [first];
+                obj.push(second);
+                if (third) {
+                    //if (third.indexOf("(") > 0) {
+                    obj.push(third);
+                    //} else {
+                    //n = third;
+                    //}
                 }
-                if (name) {
-                    n = name;
+                if (fourth) {
+                    n = fourth;
                 } else {
-                    n = nameOrGlobal.name;
+                    n = first.name;
                 }
             }
-        } else if (nameOrGlobal && typeof nameOrGlobal.name === "string") {
-            n = nameOrGlobal.name;
-            obj = nameOrGlobal;
+        } else if (first && typeof first.name === "string") {
+            n = first.name;
+            obj = first;
         } else {
             throw new Error("Must either register an object with a name, or give a name and an object");
         }

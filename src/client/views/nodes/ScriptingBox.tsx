@@ -60,15 +60,18 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _scriptSuggestedParams: any = "";
     @observable private _scriptParamsText: any = "";
 
-    @observable private _functionName: any = "";
-    @observable private _functionDescription: any = "";
-
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
     @computed({ keepAlive: true }) get paramsTypes() { return this.compileParams.map(p => p.split(":")[1].trim()); }
     @computed({ keepAlive: true }) get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], ""); }
+    @computed({ keepAlive: true }) get functionName() { return StrCast(this.dataDoc[this.props.fieldKey + "-functionName"], ""); }
+    @computed({ keepAlive: true }) get functionDescription() { return StrCast(this.dataDoc[this.props.fieldKey + "-functionDescription"], ""); }
     @computed({ keepAlive: true }) get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
+
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
+    set functionName(value) { this.dataDoc[this.props.fieldKey + "-functionName"] = value; }
+    set functionDescription(value) { this.dataDoc[this.props.fieldKey + "-functionDescription"] = value; }
+
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = new List<string>(value); }
 
     // WORK ON THIS
@@ -236,24 +239,20 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     onCreate = () => {
 
-        if (this._functionName.length === 0) {
+        if (this.functionName.length === 0) {
             this._errorMessage = "Must enter a function name";
             return false;
         }
 
-        if (this._functionName.indexOf(" ") > 0) {
+        if (this.functionName.indexOf(" ") > 0) {
             this._errorMessage = "Name can not include spaces";
             return false;
         }
 
-        this.dataDoc.funcName = this._functionName;
-        this.dataDoc.descripition = this._functionDescription;
+        this.dataDoc.funcName = this.functionName;
+        this.dataDoc.descripition = this.functionDescription;
 
         ScriptingBox.DeleteScript?.(this.dataDoc);
-
-        this.dataDoc.funcName = "testingTitle";
-        this.dataDoc.descripition = "description test";
-
         ScriptingBox.AddScript?.(this.dataDoc);
 
         console.log("created");
@@ -302,32 +301,31 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         !existingOptions && ContextMenu.Instance.addItem({ description: "Options...", subitems: options, icon: "hand-point-right" });
     }
 
-    @action
     renderFunctionInputs() {
-
         const descriptionInput =
             <textarea
-                onChange={e => this._functionDescription = e.target.value}
+                className="scriptingBox-textarea"
+                onChange={e => this.functionDescription = e.target.value}
                 placeholder="enter description here"
-                value={this._functionDescription}
-                style={{ height: "40%", width: "100%" }}
+                value={this.functionDescription}
+                style={{ maxWidth: "100%", height: "40%", width: "100%", resize: "none" }}
             />;
-
         const nameInput =
             <textarea
-                onChange={e => this._functionName = e.target.value}
+                className="scriptingBox-textarea"
+                onChange={e => this.functionName = e.target.value}
                 placeholder="enter name here"
-                value={this._functionName}
-                style={{ height: "40%", width: "100%" }}
+                value={this.functionName}
+                style={{ maxWidth: "100%", height: "40%", width: "100%", resize: "none" }}
             />;
 
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected() && e.stopPropagation()} >
             <div className="scriptingBox-wrapper">
                 <div className="container">
-                    <div className="child" style={{ textAlign: "center", display: "inline-block" }}> Enter a name for this function: </div>
-                    <div className="child">{nameInput}</div>
-                    <div className="child" style={{ textAlign: "center", display: "inline-block" }}> Enter a description of this function: </div>
-                    <div className="child">{descriptionInput}</div>
+                    <div style={{ textAlign: "center", display: "inline-block" }}> Enter a name for this function: </div>
+                    <div> {nameInput}</div>
+                    <div style={{ textAlign: "center", display: "inline-block" }}> Enter a description of this function: </div>
+                    <div>{descriptionInput}</div>
                 </div>
             </div>
             {this.renderErrorMessage()}
