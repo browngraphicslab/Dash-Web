@@ -119,9 +119,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (!_scriptingGlobals.hasOwnProperty("updateIcon")){
             Scripting.addGlobal(this.updateIcon);
         }
+        if (!_scriptingGlobals.hasOwnProperty("updateTitleStatus")){
+            Scripting.addGlobal(this.updateTitleStatus);
+        }
+        if (!_scriptingGlobals.hasOwnProperty("updateAuthorStatus")){
+            Scripting.addGlobal(this.updateAuthorStatus);
+        }
+        if (!_scriptingGlobals.hasOwnProperty("updateDeletedStatus")){
+            Scripting.addGlobal(this.updateDeletedStatus);
+        }
+
 
         this.resultsScrolled = this.resultsScrolled.bind(this);
-        this.rootDoc._viewType = CollectionViewType.Stacking;
 
        new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", 
        backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
@@ -612,6 +621,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             this._visibleElements = [<div className="no-result">No Search Results</div>];
             //this._visibleDocuments= Docs.Create.
+            let noResult= Docs.Create.TextDocument("",{title:"noResult"})
+            noResult.targetDoc=noResult;
+            noResult.isBucket =false;
+            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, noResult);
             return;
         }
 
@@ -893,7 +906,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     updateAuthorStatus() { this._authorFieldStatus = !this._authorFieldStatus; }
 
     @action.bound
-    updateDataStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
+    updateDeletedStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
 
     addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
     remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
@@ -1079,10 +1092,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
             _fontSize: 7,
         }))as any as Doc;
-        doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
-        doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript(`handleNodeChange()`)});
-        doc.author = button({ title: "Author", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
-
+        doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("updateTitleStatus(self)")});
+        doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript("updateDeletedStatus(self)")});
+        doc.author = button({ title: "Author", onClick:ScriptField.MakeScript("updateAuthorStatus(self)")});
+        
         let buttons = [doc.title as Doc, doc.deleted as Doc, doc.author as Doc];
 
         const dragCreators = Docs.Create.MasonryDocument(buttons, {
@@ -1175,7 +1188,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     height: this.resFull ? "auto" : this.resultHeight,
                     overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this._resultsRef}>
-                    {this._visibleElements.length}           
                 </div>
             </div>
         );

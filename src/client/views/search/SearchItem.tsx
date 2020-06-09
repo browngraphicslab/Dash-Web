@@ -371,6 +371,16 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             </button>
             </div>
         }
+        else if (this.targetDoc.isBucket === false){
+            this.props.Document._chromeStatus='disabled';
+            return      <div className="searchItem">
+                <div className="searchItem-body" >
+                <div className="searchItem-title-container">
+                <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>No Search Results</div>
+                </div>
+                </div>
+            </div>
+        }
         else {
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
             <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
