@@ -32,11 +32,13 @@ export class ScriptManager {
     }
 
     public addScript(scriptDoc: Doc): boolean {
+        console.log("in add script method");
         const scriptList = ScriptManager.Instance.getAllScripts();
         scriptList.push(scriptDoc);
         if (ScriptManager.Instance.ScriptManagerDoc) {
             ScriptManager.Instance.ScriptManagerDoc.data = new List<Doc>(scriptList);
             ScriptManager.addScriptToGlobals(scriptDoc);
+            console.log("script added");
             return true;
         }
         return false;
@@ -63,7 +65,7 @@ export class ScriptManager {
         const params = Cast(scriptDoc.compileParams, listSpec("string"), []);
         const p = params.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
         const f = new Function(...Array.from(Object.keys(p)), StrCast(scriptDoc.rawScript));
-    
+
         let parameters = "(";
         params.forEach((element: string, i: number) => {
             if (i === params.length - 1) {
@@ -72,7 +74,7 @@ export class ScriptManager {
                 parameters = parameters + element + ", ";
             }
         });
-    
+
         if (parameters === "(") {
             Scripting.addGlobal(f, StrCast(scriptDoc.description), "", StrCast(scriptDoc.funcName));
         } else {

@@ -22,6 +22,7 @@ const _global = (window /* browser */ || global /* node */) as any;
 
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
 import "@webscopeio/react-textarea-autocomplete/style.css";
+//import { ScriptManager } from "../../util/ScriptManager";
 
 
 const ScriptingSchema = createSchema({});
@@ -252,8 +253,38 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.dataDoc.funcName = this.functionName;
         this.dataDoc.descripition = this.functionDescription;
 
-        ScriptingBox.DeleteScript?.(this.dataDoc);
-        ScriptingBox.AddScript?.(this.dataDoc);
+        // ScriptingBox.DeleteScript?.(this.dataDoc);
+        // ScriptingBox.AddScript?.(this.dataDoc);
+
+        //const p = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
+        //const f = new Function(...Array.from(Object.keys(p)), this.rawScript);
+
+        const paramNames = this.compileParams.reduce((o: string, p: string) => {
+            if (this.compileParams.indexOf(p) === this.compileParams.length - 1) {
+                o = o + p.split(":")[0].trim();
+            } else {
+                o = o + p.split(":")[0].trim() + ",";
+            }
+            return o;
+        }, "" as string);
+        const f = new Function(paramNames, this.rawScript);
+
+        let parameters = "(";
+        this.compileParams.forEach((element: string, i: number) => {
+            if (i === this.compileParams.length - 1) {
+                parameters = parameters + element + ")";
+            } else {
+                parameters = parameters + element + ", ";
+            }
+        });
+
+        console.log(this.functionName);
+
+        if (parameters === "(") {
+            Scripting.addGlobal(f, this.dataDoc.description, "", this.functionName);
+        } else {
+            Scripting.addGlobal(f, this.dataDoc.description, parameters, this.functionName);
+        }
 
         console.log("created");
     }

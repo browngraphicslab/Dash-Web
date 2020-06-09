@@ -57,23 +57,24 @@ export namespace Scripting {
         let n: any;
         let obj: any;
 
+        console.log("adding global");
+
         if (second !== undefined) {
             if (typeof first === "string") {
+                console.log("name first");
                 n = first;
                 obj = second;
             } else {
                 obj = [first];
                 obj.push(second);
-                if (third) {
-                    //if (third.indexOf("(") > 0) {
+                if (third !== undefined) {
                     obj.push(third);
-                    //} else {
-                    //n = third;
-                    //}
                 }
-                if (fourth) {
+                if (fourth !== undefined) {
+                    console.log("WE SHOULD BE HERE");
                     n = fourth;
                 } else {
+                    console.log("HOW DID WE GET HERE");
                     n = first.name;
                 }
             }
