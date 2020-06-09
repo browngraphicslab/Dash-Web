@@ -22,6 +22,16 @@ body {
     border-bottom: 5px solid black;
 }
 
+.navbar .cover {
+    position: absolute;
+    right: 20px;
+    top: 30px;
+    height: 70px;
+    width: 70px;
+    background-color: whitesmoke;
+    z-index: 200;
+}
+
 .navbar .toggle-btn {
     position: absolute;
     right: 20px;
@@ -29,6 +39,10 @@ body {
     height: 70px;
     width: 70px;
     transition: all 300ms ease-in-out 200ms;
+}
+
+.navbar .toggle-btn-home {
+    right: -200px;
 }
 
 .navbar .header {
@@ -311,7 +325,7 @@ body {
 
 .toolbar.active {
     display: inline-block;
-    width: fit-content;
+    width: 300px;
     padding: 5px;
     opacity: 1;
     height: max-content;
@@ -320,7 +334,7 @@ body {
 
 .toolbar .colorSelector {
     display: inline-flex;
-    width: fit-content;
+    width: max-content;
     padding: 5px;
     height: max-content;
     pointer-events: all;
@@ -328,9 +342,9 @@ body {
 
 .widthSelector {
     display: inline-flex;
-    width: 90%;
+    width: max-content;
     height: 100px;
-    padding: 5px;
+    padding: 10px;
 }
 
 .slider {
