@@ -409,7 +409,7 @@ export class CurrentUserUtils {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "library", icon: "bars", click: 'switchToLibrary()', backgroundColor: "lightgrey" },
             { title: "record", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey" },
-            { title: "upload", icon: "upload", click: 'uploadMobileImage()', backgroundColor: "lightgrey" },
+            { title: "upload", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "lightgrey" },
             { title: "presentation", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "lightgrey" },
             { title: "ink", icon: "pen-nib", backgroundColor: "lightgrey" },
             { title: "settings", icon: "cog", click: 'openMobileSettings()', backgroundColor: "lightgrey" }

@@ -12,6 +12,7 @@ import { Doc, Opt } from '../fields/Doc';
 import { Cast } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
 import { List } from '../fields/List';
+import { Scripting } from '../client/util/Scripting';
 
 export interface ImageUploadProps {
     Document: Doc;

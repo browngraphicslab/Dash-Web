@@ -6,7 +6,7 @@ import {
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
+    faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from 'mobx';
@@ -43,7 +43,7 @@ library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTras
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft);
+    faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft);
 
 // @observer
 // export class MobileInterface extends React.Component {
@@ -948,7 +948,8 @@ export class MobileInterface extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu();
+    // Sets up new mobile menu only if activeMobile already exists
+    @observable private mainDoc: any = Doc.UserDoc().activeMobile !== undefined ? console.log("true") : CurrentUserUtils.setupMobileMenu();
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;
@@ -978,7 +979,7 @@ export class MobileInterface extends React.Component {
     componentDidMount = () => {
         library.add(...[faPenNib, faHighlighter, faEraser, faMousePointer, faThumbtack]);
         if (this.userDoc.activeMobile) {
-            console.log(Doc.UserDoc().activeMobile)
+            console.log(Doc.UserDoc().activeMobile);
         }
         if (this.userDoc && !this.mainContainer) {
             this.userDoc.activeMobile = this._homeDoc;
@@ -1027,6 +1028,9 @@ export class MobileInterface extends React.Component {
         });
     }
 
+    /**
+     * Handles the functionality to toggle the sidebar
+     */
     toggleSidebar = () => {
         if (this._open === false) {
             this._open = true;
@@ -1049,6 +1053,9 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    /**
+     * Method called when 'Library' button is pressed
+     */
     switchToLibrary = () => {
         this._parents.push(this._activeDoc);
         this.switchCurrentView((userDoc: Doc) => this._library);
@@ -1057,6 +1064,9 @@ export class MobileInterface extends React.Component {
         this.toggleSidebar();
     }
 
+    /**
+     * Back method for navigating within library
+     */
     back = () => {
         let header = document.getElementById("header") as HTMLElement;
         let doc = Cast(this._parents.pop(), Doc) as Doc;
@@ -1083,6 +1093,9 @@ export class MobileInterface extends React.Component {
         this._ink = false;
     }
 
+    /**
+     * Return 'Home", which implies returning to 'Home' buttons
+     */
     returnHome = () => {
         if (this._homeMenu === false || this._open === true) {
             this._homeMenu = true;
@@ -1096,6 +1109,9 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    /**
+     * Return to primary Workspace in library (Workspaces Doc)
+     */
     returnMain = () => {
         console.log("home");
         this._parents = [];
@@ -1108,6 +1124,9 @@ export class MobileInterface extends React.Component {
 
     // @computed get onChildClickHandler() { return ScriptCast(Doc.UserDoc.onClick); }
 
+    /**
+     * DocumentView for graphic display of all documents
+     */
     displayWorkspaces = () => {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
@@ -1174,9 +1193,13 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    returnWidth = () => window.innerWidth;
-    returnHeight = () => (window.innerHeight - 300);
+    returnWidth = () => window.innerWidth; //The windows width
+    returnHeight = () => (window.innerHeight - 300); //Calculating the windows height (-300 to account for topbar)
 
+    /**
+     * Handles the click functionality in the library panel
+     * @param doc: doc for which the method is called
+     */
     handleClick(doc: Doc) {
         let children = DocListCast(doc.data);
         if (doc.type !== "collection") {
@@ -1311,6 +1334,7 @@ export class MobileInterface extends React.Component {
         // }
     }
 
+    // Handles when user clicks on document in the pathbar
     handlePathClick = (doc: Doc, index: number) => {
         if (doc === this._library) {
             this._activeDoc = doc;
@@ -1709,7 +1733,6 @@ export class MobileInterface extends React.Component {
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {
-            console.log(this._activeDoc.mobile);
             console.log("presentation clicked: " + presentation.title);
             this._activeDoc = presentation;
             this.switchCurrentView((userDoc: Doc) => presentation);
@@ -1748,7 +1771,6 @@ export class MobileInterface extends React.Component {
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}
                 </GestureOverlay>
-
                 {/* </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />
@@ -1767,7 +1789,16 @@ export class MobileInterface extends React.Component {
             </div>
         );
     }
+
+    uploadImage = () => {
+        console.log("hello world of images");
+    }
 }
+
+
+
+const inputRef = React.createRef<HTMLInputElement>();
+
 
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
 Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); });
@@ -1775,6 +1806,8 @@ Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Inst
 Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.recordAudio(); });
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
 Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });
+Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.uploadImage(); });
+
 
 
 // WAS 2

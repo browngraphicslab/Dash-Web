@@ -16,6 +16,7 @@
         height: calc(100% - 25px);
         width: 100%;
     }
+
     .presBox-buttons {
         width: 100%;
         background: gray;
@@ -24,6 +25,7 @@
         display: grid;
         grid-column-end: 4;
         grid-column-start: 1;
+
         .presBox-viewPicker {
             height: 25;
             position: relative;
@@ -31,10 +33,12 @@
             grid-column: 1/2;
             min-width: 15px;
         }
+
         select {
             background: #323232;
             color: white;
         }
+
         .presBox-button {
             margin-right: 2.5%;
             margin-left: 2.5%;
@@ -44,10 +48,12 @@
             align-items: center;
             background: #323232;
             color: white;
+
             svg {
                 margin: auto;
             }
         }
+
         .collectionViewBaseChrome-viewPicker {
             min-width: 50;
             width: 5%;
@@ -56,17 +62,65 @@
             display: inline-block;
         }
     }
-    .presBox-backward, .presBox-forward {
+
+    .presBox-backward,
+    .presBox-forward {
         width: 25px;
         border-radius: 5px;
-        top:50%;
+        top: 50%;
         position: absolute;
         display: inline-block;
     }
+
     .presBox-backward {
-        left:5;
+        left: 5;
     }
+
     .presBox-forward {
-        right:5;
+        right: 5;
+    }
+}
+
+@media only screen and (max-width: 1000px) {    .presBox-cont .presBox-buttons {
+        position: absolute;
+        top: 85%;
+        left: 50%;
+        transform: translate(-50%, 0);
+        width: max-content;
+        height: 15%;
+        z-index: 2;
+        align-items: center;
+        background: rgba(0, 0, 0, 0);
+        padding-top: 5px;
+        padding-bottom: 5px;
+        display: inline-flex;
+    }
+
+    .presBox-cont .presBox-listCont {
+        position: absolute;
+        top: 50;
+        height: calc(100% - 80px);
+        width: 100%;
+    }
+
+    .presBox-cont .presBox-buttons .presBox-button {
+        margin-right: 10px;
+        margin-left: 10px;
+        height: 130px;
+        width: 130px;
+        font-size: 50;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        background: #323232;
+        color: white;
+    }
+
+    .presBox-cont .presBox-buttons .presBox-viewPicker {
+        height: 50;
+        width: 100;
+        font-size: 30px;
+        position: relative;
+        min-width: 50px;
     }
 }

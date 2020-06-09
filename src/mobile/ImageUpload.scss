@@ -1,12 +1,12 @@
 @import "../client/views/globalCssVariables.scss";
 
 .imgupload_cont {
-    // display: flex;
-    // justify-content: center;
-    // flex-direction: column;
-    // align-items: center;
-    // width: 100vw;
-    // height: 100vh;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    width: 90vw;
+    height: 90vh;
 
     .upload_label {
         font-weight: normal !important;
@@ -31,31 +31,31 @@
         font-size: 3em;
     }
 
-    .input_file {
-        display: none;
-    }
-
-    // .upload_label,
-    // .upload_button {
-    //     background: $dark-color;
-    //     font-size: 500%;
-    //     font-family: $sans-serif;
-    //     text-align: center;
-    //     padding: 5vh;
-    //     margin-bottom: 20px;
-    //     color: white;
+    // .input_file {
+    //     display: none;
     // }
 
-    .upload_button {
-        width: 100%;
-        padding: 13px 12px;
-        border-bottom: 1px solid rgba(200, 200, 200, 0.7);
-        font-family: Arial, Helvetica, sans-serif;
-        font-style: normal;
-        font-weight: normal;
-        user-select: none;
-        font-size: 35px;
-        text-transform: uppercase;
-        color: black;
-    }
+    // // .upload_label,
+    // // .upload_button {
+    // //     background: $dark-color;
+    // //     font-size: 500%;
+    // //     font-family: $sans-serif;
+    // //     text-align: center;
+    // //     padding: 5vh;
+    // //     margin-bottom: 20px;
+    // //     color: white;
+    // // }
+
+    // .upload_button {
+    //     width: 100%;
+    //     padding: 13px 12px;
+    //     border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    //     font-family: Arial, Helvetica, sans-serif;
+    //     font-style: normal;
+    //     font-weight: normal;
+    //     user-select: none;
+    //     font-size: 35px;
+    //     text-transform: uppercase;
+    //     color: black;
+    // }
 }
