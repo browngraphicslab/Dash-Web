@@ -336,12 +336,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         //this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.layoutDoc._itemIndex));
     }
 
-    addDocument = (doc: Doc) => {
-        const newPinDoc = Doc.MakeAlias(doc);
-        newPinDoc.presentationTargetDoc = doc;
-        return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
-    }
-
     newsearch(){
        runInAction(()=>{
         if (StrCast(this.rootDoc.bucketfield)!=="results"){
@@ -362,9 +356,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             this.props.Document._height=this.targetDoc._height;
 
             return <div>
-            <div className="bucket-title">
-                {StrCast(this.rootDoc.bucketfield)==="results"? null:StrCast(this.rootDoc.bucketfield)}
-            </div>
             <CollectionView {...this.props}
             Document={this.props.Document}
             PanelHeight={this.panelHeight}
@@ -372,11 +363,11 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             onClick={undefined}
             moveDocument={returnFalse}
             childLayoutTemplate={this.childLayoutTemplate}
-            addDocument={this.addDocument}
+            addDocument={undefined}
             removeDocument={returnFalse}
             focus={this.selectElement}
             ScreenToLocalTransform={this.getTransform} />
-            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, fontFamily:"Arial, sans-serif"}}>See all {StrCast(this.rootDoc.bucketfield)}...
+            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, marginBottom:-2, paddingTop:2,fontFamily:"Arial, sans-serif"}}>See all {StrCast(this.rootDoc.bucketfield)}...
             </button>
             </div>
         }
@@ -385,9 +376,10 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
-                        <div className="searchItem-title">{StrCast(this.targetDoc.title)}</div>
-                        <div className="searchItem-highlighting">{StrCast(this.targetDoc.highlighting).length ? "Matched fields:" + StrCast(this.targetDoc.highlighting) : Cast(this.targetDoc.lines, listSpec("string"))!.length ? Cast(this.targetDoc.lines, listSpec("string"))![0] : ""}</div>
-                        {Cast(this.targetDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)}
+                        <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>{StrCast(this.targetDoc.title)}</div>
+                        <div className="searchItem-highlighting">
+                        {StrCast(this.targetDoc.highlighting).length ? "Matched fields:" + StrCast(this.targetDoc.highlighting) : Cast(this.targetDoc.lines, listSpec("string"))!.length ? Cast(this.targetDoc.lines, listSpec("string"))![0] : ""}</div>
+                        {/* {Cast(this.targetDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)} */}
                     </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>

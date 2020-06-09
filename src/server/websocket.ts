@@ -236,7 +236,6 @@ export namespace WebSocket {
     };
 
     function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
-        // console.log(val);
 
         if (val === null || val === undefined) {
             return;
@@ -258,7 +257,6 @@ export namespace WebSocket {
             suffix = suffix[0];
 
         }
-        // console.log(suffix);
         return { suffix, value: val };
     }
 
@@ -273,9 +271,7 @@ export namespace WebSocket {
         if (!docfield) {
             return;
         }
-        //console.log(diff);
         const update: any = { id: diff.id };
-        console.log(update);
         let dynfield = false;
         for (let key in docfield) {
             if (!key.startsWith("fields.")) continue;
@@ -295,7 +291,6 @@ export namespace WebSocket {
                     update[key] = { set: value };
                 }
                 update[key + suffix] = { set: value };
-                console.log(update);
             }
         }
         if (dynfield) {

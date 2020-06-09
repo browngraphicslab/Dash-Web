@@ -45,11 +45,8 @@ library.add(faTimes);
 export const searchSchema = createSchema({
     id: "string",
     Document: Doc,
-    sideBar: "boolean",
     searchQuery: "string",
 });
-
-//add back filterquery
 
 export enum Keys {
     TITLE = "title",
@@ -190,7 +187,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
+            if (this._icons!==this._allIcons){
             runInAction(()=>{this.expandedBucket=false});
+            }
             this.submitSearch();
         }
     }
@@ -651,7 +650,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         this.getResults(StrCast(this.layoutDoc._searchString));
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            if (StrCast(result[0].type)!=="search"){
+                            if (!this.blockedTypes.includes(StrCast(result[0].type))){
 
                             if(this.new_buckets[StrCast(result[0].type)]===undefined){
                                 this.new_buckets[StrCast(result[0].type)]=1;
@@ -660,13 +659,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
                             }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            
-                            result[0].query=StrCast(this.layoutDoc._searchString);
-                            //Make alias
                             let lines = new List<string>(result[2]);
                             result[0].lines=lines
                             result[0].highlighting=highlights.join(", ");
-
                             this._visibleDocuments[i] = result[0];
                             result[0].targetDoc=result[0];
 
@@ -678,7 +673,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     else {
                         result = this._results[i];
                         if (result) {
-                            if (StrCast(result[0].type)!=="search"){
+                            if (!this.blockedTypes.includes(StrCast(result[0].type))){
                             if(this.new_buckets[StrCast(result[0].type)]===undefined){
                                 this.new_buckets[StrCast(result[0].type)]=1;
                             }
@@ -686,7 +681,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
                             }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            result[0].query=StrCast(this.layoutDoc._searchString);
                             result[0].lines=new List<string>(result[2]);
                             result[0].highlighting=highlights.join(", ");
                             if(i<this._visibleDocuments.length){
@@ -703,22 +697,24 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this._numTotalResults>3 && this.expandedBucket===false){
         this.makenewbuckets();
         for (let i = 0; i < this._numTotalResults; i++) {
-            console.log(this._isSearch[i],this._isSorted[i]);
+            let result = this._results[i];
+            if (!this.blockedTypes.includes(StrCast(result[0].type))){
             if (this._isSearch[i] === "search" && (this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
-                let result = this._results[i];
+                console.log(StrCast(result[0].type));
                 if (StrCast(result[0].type)=== this.firststring && this.bucketcount[1]<3){
                     Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
                     this.bucketcount[1]+=1;
+                    console.log("1 count")
                 }
-                else if (StrCast(result[0].type)=== this.secondstring && this.bucketcount[1]<3){
+                else if (StrCast(result[0].type)=== this.secondstring && this.bucketcount[2]<3){
                     Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
                     this.bucketcount[2]+=1;
+                    console.log("2 count")
                 }
                 else if (this.bucketcount[0]<3){
                     //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
                     //this.bucketcount[0]+=1;
                     const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                    result[0].query=StrCast(this.layoutDoc._searchString);
                     result[0].lines=new List<string>(result[2]);
                     result[0].highlighting=highlights.join(", ");
                     result[0].targetDoc=result[0];
@@ -727,17 +723,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 this._isSorted[i]="sorted"; 
             }
         }
+        }
         console.log(this.bucketcount[0]);
         console.log(this.bucketcount[1]);
         console.log(this.bucketcount[2]);
         if (this.buckets![0]){
-        this.buckets![0]._height = this.bucketcount[0]*53 + 21;
+        this.buckets![0]._height = this.bucketcount[0]*55 + 25;
         }
         if (this.buckets![1]){
-        this.buckets![1]._height = this.bucketcount[1]*53 + 21;
+        this.buckets![1]._height = this.bucketcount[1]*55 + 25;
         }
         if (this.buckets![2]){  
-        this.buckets![2]._height = this.bucketcount[2]*53 + 21;
+        this.buckets![2]._height = this.bucketcount[2]*55 + 25;
         }
 
         // if (this.bucketcount[0]===0){
@@ -749,13 +746,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 for (let i = 0; i < this._numTotalResults; i++) {
                     if ((this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
                         let result = this._results[i];
+                        if (!this.blockedTypes.includes(StrCast(result[0].type))){
+
                         const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                        result[0].query=StrCast(this.layoutDoc._searchString);
                         result[0].lines=new List<string>(result[2]);
                         result[0].highlighting=highlights.join(", ");
                         result[0].targetDoc=result[0];
                         Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                     }
+                }
                 }
             }
 
@@ -766,6 +765,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
+    
+    blockedTypes:string[]= ["preselement","docholder","collection","search","searchitem", "script", "fonticonbox", "button", "label"];
+    blockedFields: string[]= ["layout"];
 
     @computed
     get resFull() { return this._numTotalResults <= 8; }
@@ -900,9 +902,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @computed get docButtons() {
         const nodeBtns = this.props.Document.nodeButtons;
         let width = () => NumCast(this.props.Document._width);
-        if (this.rootDoc.sideBar===true){
+        // if (StrCast(this.props.Document.title)==="sidebar search stack"){
             width = MainView.Instance.flyoutWidthFunc;
-        }
+
+        // }   
         if (nodeBtns instanceof Doc) {
             return <div id="hi" style={{height:"100px",}}>
                 <DocumentView
@@ -938,9 +941,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @computed get keyButtons() {
         const nodeBtns = this.props.Document.keyButtons;
         let width = () => NumCast(this.props.Document._width);
-        if (this.rootDoc.sideBar===true){
+        // if (StrCast(this.props.Document.title)==="sidebar search stack"){
             width = MainView.Instance.flyoutWidthFunc;
-        }
+        // }
         if (nodeBtns instanceof Doc) {
             return <div id="hi" style={{height:"35px",}}>
                 <DocumentView
@@ -976,9 +979,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @computed get defaultButtons() {
         const defBtns = this.props.Document.defaultButtons;
         let width = () => NumCast(this.props.Document._width);
-        if (this.rootDoc.sideBar===true){
+        // if (StrCast(this.props.Document.title)==="sidebar search stack"){
             width = MainView.Instance.flyoutWidthFunc;
-        }
+        // }
         if (defBtns instanceof Doc) {
             return <div id="hi" style={{height:"35px",}}>
                 <DocumentView
@@ -1122,13 +1125,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     addDocument = (doc: Doc) => {
-        const newPinDoc = Doc.MakeAlias(doc);
-        newPinDoc.presentationTargetDoc = doc;
-        return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
+        return null;
     }
     //Make id layour document
     render() {
-        this.props.Document._gridGap=5;
+        if (this.expandedBucket  === true){
+            this.props.Document._gridGap=5;
+        }
+        else {
+            this.props.Document._gridGap=10;
+        }
         this.props.Document._searchDoc=true;
 
         return (
@@ -1160,7 +1166,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         moveDocument={returnFalse}
                         NativeHeight={()=>400}
                         childLayoutTemplate={this.childLayoutTemplate}
-                        addDocument={this.addDocument}
+                        addDocument={undefined}
                         removeDocument={returnFalse}
                         focus={this.selectElement}
                         ScreenToLocalTransform={Transform.Identity} />
