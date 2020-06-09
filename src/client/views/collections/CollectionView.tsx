@@ -32,7 +32,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionLinearView } from './CollectionLinearView';
-import { CollectionMapView } from './CollectionMapView';
+import CollectionMapView from './CollectionMapView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 import { CollectionPileView } from './CollectionPileView';
