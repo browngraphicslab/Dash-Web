@@ -15,7 +15,6 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
 import { documentSchema } from "../../../fields/documentSchemas";
@@ -229,7 +228,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
-        const interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = Doc.GetSelectedTool() || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
             <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
@@ -273,8 +272,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
             this._reactionDisposer = reaction(() => this.layoutDoc.currentTimecode, () => !this._playing && this.Seek((this.layoutDoc.currentTimecode || 0)));
-            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
-                const interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
+            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, Doc.GetSelectedTool()], () => {
+                const interactive = Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
         };

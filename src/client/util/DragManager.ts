@@ -210,7 +210,7 @@ export namespace DragManager {
             e.docDragData && (e.docDragData.droppedDocuments =
                 dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
-                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeClone(d) : d)
+                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeDelegate(d) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
                 (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)

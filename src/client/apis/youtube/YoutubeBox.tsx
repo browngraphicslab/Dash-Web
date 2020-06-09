@@ -6,7 +6,6 @@ import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from "../../documents/Documents";
 import { DocumentDecorations } from "../../views/DocumentDecorations";
-import { InkingControl } from "../../views/InkingControl";
 import { FieldView, FieldViewProps } from "../../views/nodes/FieldView";
 import "../../views/nodes/WebBox.scss";
 import "./YoutubeBox.scss";
@@ -156,14 +155,14 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     processVideoDetails = (videoDetails: any[]) => {
         this.videoDetails = videoDetails;
-        this.props.Document.cachedDetails = Docs.Get.FromJson({ data: videoDetails, title: "detailBackUp" });
+        this.props.Document.cachedDetails = Doc.Get.FromJson({ data: videoDetails, title: "detailBackUp" });
     }
 
     /**
      * The function that stores the search results in the props document.
      */
     backUpSearchResults = (videos: any[]) => {
-        this.props.Document.cachedSearchResults = Docs.Get.FromJson({ data: videos, title: "videosBackUp" });
+        this.props.Document.cachedSearchResults = Doc.Get.FromJson({ data: videos, title: "videosBackUp" });
     }
 
     /**
@@ -350,7 +349,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
 
         const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
 
-        const classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && !Doc.GetSelectedTool() && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >
