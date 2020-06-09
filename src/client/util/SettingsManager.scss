@@ -135,4 +135,33 @@
     }
 }
 
-@media only screen and (max-width: 1000px) {}
+@media only screen and (max-width: 1000px) {
+    .settings-interface {
+        background-color: whitesmoke !important;
+        color: grey;
+        width: 80vw;
+        height: 25vh;
+    }
+
+    .settings-interface .settings-body .settings-content input {
+        border-radius: 5px;
+        border: none;
+        font-size: 30;
+        padding: 4px;
+        min-width: 100%;
+        margin: 2px 0;
+    }
+
+    .settings-interface button {
+        width: 100%;
+        font-size: 30px;
+        align-self: center;
+        background: #b2cef8;
+        margin-top: 4px;
+    }
+
+    .settings-interface .settings-heading {
+        letter-spacing: .5em;
+        font-size: 25;
+    }
+}

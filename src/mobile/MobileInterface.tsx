@@ -949,7 +949,7 @@ export class MobileInterface extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // Sets up new mobile menu only if activeMobile already exists
-    @observable private mainDoc: any = Doc.UserDoc().activeMobile !== undefined ? console.log("true") : CurrentUserUtils.setupMobileMenu();
+    @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu();
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;

@@ -81,7 +81,8 @@
     }
 }
 
-@media only screen and (max-width: 1000px) {    .presBox-cont .presBox-buttons {
+@media only screen and (max-width: 1000px) {
+    .presBox-cont .presBox-buttons {
         position: absolute;
         top: 85%;
         left: 50%;
@@ -122,5 +123,32 @@
         font-size: 30px;
         position: relative;
         min-width: 50px;
+    }
+
+    .presElementBox-closeIcon {
+        border-radius: 20px;
+        transform: scale(2);
+        position: absolute;
+        right: 20;
+        top: 20;
+        padding: 8px;
+    }
+
+    .presElementBox-buttons {
+        display: inline-flex;
+        position: absolute;
+        right: 0;
+        width: 50%;
+    }
+
+    .presElementBox-name {
+        font-size: 30px;
+        position: absolute;
+        display: inline-block;
+        top: 10px;
+        width: 50%;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: pre;
     }
 }
