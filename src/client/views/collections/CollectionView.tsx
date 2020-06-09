@@ -18,14 +18,32 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Ty
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
+import { CollectionCarouselView } from './CollectionCarouselView';
+import { CollectionDockingView } from "./CollectionDockingView";
+import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
+import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionMapView } from './CollectionMapView';
+import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
+import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
+import { CollectionPileView } from './CollectionPileView';
+import { CollectionSchemaView } from "./CollectionSchemaView";
+import { CollectionStackingView } from './CollectionStackingView';
+import { CollectionStaffView } from './CollectionStaffView';
+import { SubCollectionViewProps } from './CollectionSubView';
+import { CollectionTimeView } from './CollectionTimeView';
+import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
+import { CollectionViewBaseChrome } from './CollectionViewChromes';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -505,25 +523,3 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 }
 
 
-
-// to avoid an import cycle that will cause runtime errors, 
-// we import all of the bindings needed within methods after the
-// class has been defined.
-import { SubCollectionViewProps } from './CollectionSubView';
-import { CollectionCarouselView } from './CollectionCarouselView';
-import { CollectionDockingView } from "./CollectionDockingView";
-import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
-import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { CollectionLinearView } from './CollectionLinearView';
-import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
-import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
-import { CollectionSchemaView } from "./CollectionSchemaView";
-import { CollectionStackingView } from './CollectionStackingView';
-import { CollectionStaffView } from './CollectionStaffView';
-import { CollectionTimeView } from './CollectionTimeView';
-import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionMapView } from './CollectionMapView';
-import { CollectionPileView } from './CollectionPileView';
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
-import { Docs } from '../../documents/Documents';
