@@ -192,7 +192,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     extractFaces = () => {
         const converter = (results: any) => {
-            return results.map((face: CognitiveServices.Image.Face) => Docs.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
+            return results.map((face: CognitiveServices.Image.Face) => Doc.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
         };
         this.url && CognitiveServices.Image.Appliers.ProcessImage(this.dataDoc, [this.fieldKey + "-faces"], this.url, Service.Face, converter);
     }

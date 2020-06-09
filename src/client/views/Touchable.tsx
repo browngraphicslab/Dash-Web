@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { action } from 'mobx';
 import { InteractionUtils } from '../util/InteractionUtils';
-import { SelectionManager } from '../util/SelectionManager';
-import { RadialMenu } from './nodes/RadialMenu';
 
 const HOLD_DURATION = 1000;
 
