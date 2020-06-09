@@ -22,7 +22,6 @@ const _global = (window /* browser */ || global /* node */) as any;
 
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
 import "@webscopeio/react-textarea-autocomplete/style.css";
-import { ScriptManager } from "../../util/ScriptManager";
 
 
 const ScriptingSchema = createSchema({});
@@ -231,6 +230,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         }
     }
 
+    public static DeleteScript: undefined | ((doc: Doc) => void);
+    public static AddScript: undefined | ((doc: Doc) => void);
+
     @action
     onCreate = () => {
 
@@ -247,12 +249,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.dataDoc.funcName = this._functionName;
         this.dataDoc.descripition = this._functionDescription;
 
-        ScriptManager.Instance.deleteScript(this.dataDoc);
+        ScriptingBox.DeleteScript?.(this.dataDoc);
 
         this.dataDoc.funcName = "testingTitle";
         this.dataDoc.descripition = "description test";
 
-        ScriptManager.Instance.addScript(this.dataDoc);
+        ScriptingBox.AddScript?.(this.dataDoc);
 
         console.log("created");
     }

@@ -4,6 +4,7 @@ import { Docs } from "../documents/Documents";
 import { Scripting, ScriptParam } from "./Scripting";
 import { StrCast, Cast } from "../../fields/Types";
 import { listSpec } from "../../fields/Schema";
+import { ScriptingBox } from "../views/nodes/ScriptingBox";
 
 
 export class ScriptManager {
@@ -13,6 +14,8 @@ export class ScriptManager {
         return this._instance || (this._instance = new this());
     }
     private constructor() {
+        ScriptingBox.DeleteScript = this.deleteScript;
+        ScriptingBox.AddScript = this.addScript;
     }
 
     public get ScriptManagerDoc(): Doc | undefined {
