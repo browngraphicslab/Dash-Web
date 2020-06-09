@@ -526,7 +526,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             this.cleanupInteractions(false);
         }
-        if (e.key === "r" || e.key === "l") {
+        if (e.key === "r" || e.key === " ") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
