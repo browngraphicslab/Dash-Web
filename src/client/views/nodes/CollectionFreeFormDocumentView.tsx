@@ -69,19 +69,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     public static getValues(doc: Doc, time: number) {
+        const timecode = Math.round(time);
         return ({
-            x: Cast(doc["x-indexed"], listSpec("number"), []).reduce((p, x, i) => (i <= time && x !== undefined) || p === undefined ? x : p, undefined as any as number),
-            y: Cast(doc["y-indexed"], listSpec("number"), []).reduce((p, y, i) => (i <= time && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            opacity: Cast(doc["opacity-indexed"], listSpec("number"), []).reduce((p, o, i) => i <= time || p === undefined ? o : p, undefined as any as number),
+            x: Cast(doc["x-indexed"], listSpec("number"), []).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
+            y: Cast(doc["y-indexed"], listSpec("number"), []).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
+            opacity: Cast(doc["opacity-indexed"], listSpec("number"), []).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
 
-    public static setValues(timecode: number, d: Doc, x?: number, y?: number, opacity?: number) {
+    public static setValues(time: number, d: Doc, x?: number, y?: number, opacity?: number) {
+        const timecode = Math.round(time);
+        Cast(d["x-indexed"], listSpec("number"), [])[Math.max(0, timecode - 1)] = x as any as number;
+        Cast(d["y-indexed"], listSpec("number"), [])[Math.max(0, timecode - 1)] = y as any as number;
         Cast(d["x-indexed"], listSpec("number"), [])[timecode] = x as any as number;
-        Cast(d["y-indexed"], listSpec("number"), null)[timecode] = y as any as number;
+        Cast(d["y-indexed"], listSpec("number"), [])[timecode] = y as any as number;
         Cast(d["opacity-indexed"], listSpec("number"), null)[timecode] = opacity as any as number;
     }
-    public static updateKeyframe(docs: Doc[], timecode: number) {
+    public static updateKeyframe(docs: Doc[], time: number) {
+        const timecode = Math.round(time);
         docs.forEach(doc => {
             const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
             const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
@@ -91,27 +96,30 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
             doc.transition = "all 1s";
         });
-        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
     }
 
     public static gotoKeyframe(docs: Doc[]) {
         docs.forEach(doc => doc.transition = "all 1s");
-        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
     }
 
-    public static setupKeyframes(docs: Doc[], timecode: number, collection: Doc) {
+    public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
         docs.forEach((doc, i) => {
+            const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            xlist[Math.max(i - 1)] = xlist[timecode + 1] = NumCast(doc.x);
-            ylist[Math.max(i - 1)] = ylist[timecode + 1] = NumCast(doc.y);
+            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
+            xlist[Math.max(curTimecode - 1, 0)] = xlist[curTimecode] = NumCast(doc.x);
+            ylist[Math.max(curTimecode - 1, 0)] = ylist[curTimecode] = NumCast(doc.y);
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
-            doc["opacity-indexed"] = new List<number>(numberRange(timecode).map(i => 1));
-            doc.displayTimecode = ComputedField.MakeFunction("collection ? collection.currentTimecode : 0", {}, { collection });
-            doc.x = ComputedField.MakeInterpolated("x", "displayTimecode");
-            doc.y = ComputedField.MakeInterpolated("y", "displayTimecode");
-            doc.opacity = ComputedField.MakeInterpolated("opacity", "displayTimecode");
+            doc["opacity-indexed"] = olist;
+            doc.activeFrame = ComputedField.MakeFunction("self.context ? (self.context.currentFrame||0) : 0");
+            doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
+            doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
+            doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
+            doc.transition = "inherit";
         });
     }
 
@@ -146,6 +154,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 width: this.width,
                 height: this.height,
                 zIndex: this.ZInd,
+                mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >

@@ -1,21 +1,28 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEye, faEdit } from '@fortawesome/free-regular-svg-icons';
+import { faEdit, faEye } from '@fortawesome/free-regular-svg-icons';
+import { faColumns, faCopy, faEllipsisV, faFingerprint, faGlobeAmericas, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree, faGlobeAmericas } from '@fortawesome/free-solid-svg-icons';
-import { action, observable, computed } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../fields/Types';
+import { ObjectField } from '../../../fields/ObjectField';
+import { listSpec } from '../../../fields/Schema';
+import { ComputedField, ScriptField } from '../../../fields/ScriptField';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { Utils, setupMoveUpEvents, returnFalse, returnZero, emptyPath, emptyFunction, returnOne } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
+import { InteractionUtils } from '../../util/InteractionUtils';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
@@ -25,8 +32,10 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionLinearView } from './CollectionLinearView';
+import { CollectionMapView } from './CollectionMapView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
+import { CollectionPileView } from './CollectionPileView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionStaffView } from './CollectionStaffView';
@@ -35,20 +44,12 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
-import { Id } from '../../../fields/FieldSymbols';
-import { listSpec } from '../../../fields/Schema';
-import { Docs } from '../../documents/Documents';
-import { ScriptField, ComputedField } from '../../../fields/ScriptField';
-import { InteractionUtils } from '../../util/InteractionUtils';
-import { ObjectField } from '../../../fields/ObjectField';
-import CollectionMapView from './CollectionMapView';
-import { CollectionPileView } from './CollectionPileView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
+
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faGlobeAmericas, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
@@ -126,10 +127,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
         if (added.length) {
-            added.map(doc => doc.context = this.props.Document);
-            added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-            targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            if (this.dataDoc[AclSym] === AclReadonly) {
+                return false;
+            } else if (this.dataDoc[AclSym] === AclAddonly) {
+                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+            } else {
+                added.map(doc => doc.context = this.props.Document);
+                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
         }
         return true;
     }
@@ -514,3 +521,5 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         </div>);
     }
 }
+
+

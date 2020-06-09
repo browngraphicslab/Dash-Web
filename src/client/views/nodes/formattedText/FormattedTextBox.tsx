@@ -52,14 +52,12 @@ import { ContextMenu } from '../../ContextMenu';
 import { ContextMenuProps } from '../../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from "../../DocComponent";
 import { DocumentButtonBar } from '../../DocumentButtonBar';
-import { InkingControl } from "../../InkingControl";
 import { AudioBox } from '../AudioBox';
 import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { ScriptField } from '../../../../fields/ScriptField';
-import GoogleAuthenticationManager from '../../../apis/GoogleAuthenticationManager';
+import { InkingStroke } from '../../InkingStroke';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -479,11 +477,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             changeItems.push({
                 description: StrCast(note.title), event: undoBatch(() => {
                     Doc.setNativeView(this.rootDoc);
-                    Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                    DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
                 }), icon: "eye"
             });
         });
-        changeItems.push({ description: "FreeForm", event: undoBatch(() => Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
+        changeItems.push({ description: "FreeForm", event: undoBatch(() => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
     }
 
@@ -721,7 +719,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             },
             { fireImmediately: true }
         );
-        this._disposers.scroll = reaction(() => NumCast(this.layoutDoc.scrollPos),
+        this._disposers.scroll = reaction(() => NumCast(this.layoutDoc._scrollTop),
             pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
         );
 
@@ -869,7 +867,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight", title: title, docref: true });
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: Utils.prepend(`/doc/${linkId}`), location: "onRight", title: title, docref: true });
             marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
@@ -1165,7 +1163,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onscrolled = (ev: React.UIEvent) => {
-        this.layoutDoc.scrollPos = this._scrollRef.current!.scrollTop;
+        this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
     }
     @action
     tryUpdateHeight(limitHeight?: number) {
@@ -1204,7 +1202,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         TraceMobx();
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
+        const interactive = Doc.GetSelectedTool() || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
             this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
@@ -1259,7 +1257,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     </div>
                     {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :
-                        <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
+                        <div className={"formattedTextBox-sidebar" + (Doc.GetSelectedTool() !== InkTool.None ? "-inking" : "")}
                             style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
                             <CollectionFreeFormView {...this.props}
                                 PanelHeight={this.props.PanelHeight}

@@ -1,4 +1,5 @@
-.comparisonBox-interactive, .comparisonBox {
+.comparisonBox-interactive,
+.comparisonBox {
     border-radius: inherit;
     width: 100%;
     height: 100%;
@@ -19,13 +20,13 @@
         }
     }
 
-    .slide-bar { 
+    .slide-bar {
         position: absolute;
         height: 100%;
         width: 3px;
         display: inline-block;
         background: white;
-        cursor: ew-resize;
+
         .slide-handle {
             position: absolute;
             display: none;
@@ -33,7 +34,9 @@
             width: 30px;
             bottom: 0px;
             left: -10.5px;
-            .left-handle, .right-handle{
+
+            .left-handle,
+            .right-handle {
                 width: 15px;
             }
         }
@@ -77,10 +80,13 @@
         }
     }
 }
+
 .comparisonBox-interactive {
     pointer-events: unset;
+    cursor: ew-resize;
+
     .slide-bar {
-        .slide-handle { 
+        .slide-handle {
             display: flex;
         }
     }

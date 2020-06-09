@@ -7,18 +7,17 @@ import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
 import { intersectRect, Utils } from "../Utils";
-import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update, Copy } from "./FieldSymbols";
+import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { InkTool } from "./InkField";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
-import { ComputedField, ScriptField } from "./ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
+import { ComputedField } from "./ScriptField";
+import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { Docs, DocumentOptions } from "../client/documents/Documents";
-import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
 import { LinkManager } from "../client/util/LinkManager";
 
 export namespace Field {
@@ -93,13 +92,44 @@ export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
+export const AclSym = Symbol("Acl");
+export const AclPrivate = Symbol("AclOwnerOnly");
+export const AclReadonly = Symbol("AclReadOnly");
+export const AclAddonly = Symbol("AclAddonly");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
 function fetchProto(doc: Doc) {
+    if (doc.author !== Doc.CurrentUserEmail) {
+        const acl = Doc.Get(doc, "ACL", true);
+        switch (acl) {
+            case "ownerOnly":
+                doc[AclSym] = AclPrivate;
+                return undefined;
+            case "readOnly":
+                doc[AclSym] = AclReadonly;
+                break;
+            case "addOnly":
+                doc[AclSym] = AclAddonly;
+                break;
+        }
+    }
+
     const proto = doc.proto;
     if (proto instanceof Promise) {
+        proto.then(proto => {
+            if (proto.author !== Doc.CurrentUserEmail) {
+                if (proto.ACL === "ownerOnly") {
+                    proto[AclSym] = doc[AclSym] = AclPrivate;
+                    return undefined;
+                } else if (proto.ACL === "readOnly") {
+                    proto[AclSym] = doc[AclSym] = AclReadonly;
+                } else if (proto.ACL === "addOnly") {
+                    proto[AclSym] = doc[AclSym] = AclAddonly;
+                }
+            }
+        });
         return proto;
     }
 }
@@ -113,10 +143,10 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
-            has: (target, key) => key in target.__fields,
+            has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                Object.assign(obj, target.___fields);
+                (target[AclSym] !== AclPrivate) && Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -170,8 +200,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
+    public [AclSym]: any = undefined;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
+    public [ToString]() { return `Doc(${this[AclSym] === AclPrivate ? "-inaccessible-" : this.title})`; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -193,8 +226,6 @@ export class Doc extends RefField {
         return undefined;
     }
 
-    [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
-    [ToString]() { return `Doc(${this.title})`; }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -456,7 +487,80 @@ export namespace Doc {
         }
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        alias.author = Doc.CurrentUserEmail;
         return alias;
+    }
+
+
+
+    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
+        if (Doc.IsBaseProto(doc)) return doc;
+        if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
+        const copy = new Doc(undefined, true);
+        cloneMap.set(doc[Id], copy);
+        if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        Object.keys(doc).forEach(key => {
+            if (exclude.includes(key)) return;
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            const copyObjectField = (field: ObjectField) => {
+                const list = Cast(doc[key], listSpec(Doc));
+                if (list !== undefined && !(list instanceof Promise)) {
+                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+                } else if (doc[key] instanceof Doc) {
+                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                } else {
+                    copy[key] = ObjectField.MakeCopy(field);
+                    if (field instanceof RichTextField) {
+                        if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
+                            rtfs.push({ copy, key, field });
+                        }
+                    }
+                }
+            };
+            if (key === "proto") {
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    copy[key] = field;
+                } else if (cfield instanceof ComputedField) {
+                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
+                } else if (field instanceof ObjectField) {
+                    copyObjectField(field);
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    copy[key] = field;
+                }
+            }
+        });
+        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+        copy.cloneOf = doc;
+        cloneMap.set(doc[Id], copy);
+        return copy;
+    }
+    export function MakeClone(doc: Doc): Doc {
+        const cloneMap = new Map<string, Doc>();
+        const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
+        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        rtfMap.map(({ copy, key, field }) => {
+            const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return attr + "\"" + (mapped ? mapped[Id] : id) + "\"";
+            };
+            const replacer2 = (match: any, href: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return href + (mapped ? mapped[Id] : id);
+            };
+            const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
+            const re = new RegExp(regex, "g");
+            copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
+        });
+        return copy;
     }
 
     //
@@ -586,80 +690,10 @@ export namespace Doc {
                 }
             }
         });
-
+        copy["author"] = Doc.CurrentUserEmail;
         return copy;
     }
 
-    export function MakeClone(doc: Doc): Doc {
-        const cloneMap = new Map<string, Doc>();
-        const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
-        rtfMap.map(({ copy, key, field }) => {
-            const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
-                const mapped = cloneMap.get(id);
-                return attr + "\"" + (mapped ? mapped[Id] : id) + "\"";
-            };
-            const replacer2 = (match: any, href: string, id: string, offset: any, string: any) => {
-                const mapped = cloneMap.get(id);
-                return href + (mapped ? mapped[Id] : id);
-            };
-            const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
-            const re = new RegExp(regex, "g");
-            copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
-        });
-        return copy;
-    }
-
-    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
-        if (Doc.IsBaseProto(doc)) return doc;
-        if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
-        const copy = new Doc(undefined, true);
-        cloneMap.set(doc[Id], copy);
-        if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
-        Object.keys(doc).forEach(key => {
-            if (exclude.includes(key)) return;
-            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
-            const field = ProxyField.WithoutProxy(() => doc[key]);
-            const copyObjectField = (field: ObjectField) => {
-                const list = Cast(doc[key], listSpec(Doc));
-                if (list !== undefined && !(list instanceof Promise)) {
-                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
-                } else if (doc[key] instanceof Doc) {
-                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
-                } else {
-                    copy[key] = ObjectField.MakeCopy(field);
-                    if (field instanceof RichTextField) {
-                        if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
-                            rtfs.push({ copy, key, field });
-                        }
-                    }
-                }
-            };
-            if (key === "proto") {
-                if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
-                }
-            } else {
-                if (field instanceof RefField) {
-                    copy[key] = field;
-                } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
-                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
-                } else if (field instanceof ObjectField) {
-                    copyObjectField(field);
-                } else if (field instanceof Promise) {
-                    debugger; //This shouldn't happend...
-                } else {
-                    copy[key] = field;
-                }
-            }
-        });
-        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
-        copy.cloneOf = doc;
-        cloneMap.set(doc[Id], copy);
-        return copy;
-    }
 
     export function MakeDelegate(doc: Doc, id?: string, title?: string): Doc;
     export function MakeDelegate(doc: Opt<Doc>, id?: string, title?: string): Opt<Doc>;
@@ -786,6 +820,9 @@ export namespace Doc {
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
+
+    export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
+    export function GetSelectedTool(): InkTool { return (FieldValue(StrCast(Doc.UserDoc().activeInkTool)) ?? InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
@@ -794,6 +831,7 @@ export namespace Doc {
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
@@ -802,11 +840,13 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
@@ -836,6 +876,7 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return false;
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
@@ -966,120 +1007,147 @@ export namespace Doc {
         return false;
     }
 
-    // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
-    export function makeCustomViewClicked(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
-        const batch = UndoManager.StartBatch("makeCustomViewClicked");
-        runInAction(() => {
-            doc.layoutKey = "layout_" + templateSignature;
-            if (doc[doc.layoutKey] === undefined) {
-                createCustomView(doc, creator, templateSignature, docLayoutTemplate);
+
+    export namespace Get {
+
+        const primitives = ["string", "number", "boolean"];
+
+        export interface JsonConversionOpts {
+            data: any;
+            title?: string;
+            appendToExisting?: { targetDoc: Doc, fieldKey?: string };
+            excludeEmptyObjects?: boolean;
+        }
+
+        const defaultKey = "json";
+
+        /**
+         * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
+         * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
+         * 
+         * After building a hierarchy within / below a top-level document, it then returns that top-level parent.
+         * 
+         * If we've received a string, treat it like valid JSON and try to parse it into an object. If this fails, the
+         * string is invalid JSON, so we should assume that the input is the result of a JSON.parse()
+         * call that returned a regular string value to be stored as a Field.
+         * 
+         * If we've received something other than a string, since the caller might also pass in the results of a
+         * JSON.parse() call, valid input might be an object, an array (still typeof object), a boolean or a number.
+         * Anything else (like a function, etc. passed in naively as any) is meaningless for this operation.
+         * 
+         * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
+         * lacking the key value structure, gets stored as a field in a wrapper document.
+         * 
+         * @param data for convenience and flexibility, either a valid JSON string to be parsed,
+         * or the result of any JSON.parse() call.
+         * @param title an optional title to give to the highest parent document in the hierarchy.
+         * If whether this function creates a new document or appendToExisting is specified and that document already has a title,
+         * because this title field can be left undefined for the opposite behavior, including a title will overwrite the existing title.
+         * @param appendToExisting **if specified**, there are two cases, both of which return the target document:
+         * 
+         * 1) the json to be converted can be represented as a document, in which case the target document will act as the root
+         * of the tree and receive all the conversion results as new fields on itself
+         * 2) the json can't be represented as a document, in which case the function will assign the field-level conversion
+         * results to either the specified key on the target document, or to its "json" key by default.
+         * 
+         * If not specified, the function creates and returns a new entirely generic document (different from the Doc.Create calls)
+         * to act as the root of the tree.
+         * 
+         * One might choose to specify this field if you want to write to a document returned from a Document.Create function call,
+         * say a TreeView document that will be rendered, not just an untyped, identityless doc that would otherwise be created
+         * from a default call to new Doc.
+         * 
+         * @param excludeEmptyObjects whether non-primitive objects (TypeScript objects and arrays) should be converted even
+         * if they contain no data. By default, empty objects and arrays are ignored.
+         */
+        export function FromJson({ data, title, appendToExisting, excludeEmptyObjects }: JsonConversionOpts): Opt<Doc> {
+            if (excludeEmptyObjects === undefined) {
+                excludeEmptyObjects = true;
             }
-        });
-        batch.end();
-    }
-    export function findTemplate(templateName: string, type: string, signature: string) {
-        let docLayoutTemplate: Opt<Doc>;
-        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
-        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
-        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
-        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
-        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
-        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
-        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
-        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName + "_" + type && (docLayoutTemplate = tempDoc));
-        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
-        return docLayoutTemplate;
-    }
-    export function createCustomView(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
-        const templateName = templateSignature.replace(/\(.*\)/, "");
-        docLayoutTemplate = docLayoutTemplate || findTemplate(templateName, StrCast(doc.type), templateSignature);
-
-        const customName = "layout_" + templateSignature;
-        const _width = NumCast(doc._width);
-        const _height = NumCast(doc._height);
-        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
-
-        let fieldTemplate: Opt<Doc>;
-        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
-            fieldTemplate = Docs.Create.TextDocument("", options);
-        } else if (doc.data instanceof PdfField) {
-            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
-        } else if (doc.data instanceof VideoField) {
-            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
-        } else if (doc.data instanceof AudioField) {
-            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
-        } else if (doc.data instanceof ImageField) {
-            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
-        }
-        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
-
-        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
-        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
-    }
-    export function makeCustomView(doc: Doc, custom: boolean, layout: string) {
-        Doc.setNativeView(doc);
-        if (custom) {
-            makeCustomViewClicked(doc, Docs.Create.StackingDocument, layout, undefined);
-        }
-    }
-    export function iconify(doc: Doc) {
-        const layoutKey = Cast(doc.layoutKey, "string", null);
-        Doc.makeCustomViewClicked(doc, Docs.Create.StackingDocument, "icon", undefined);
-        if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
-    }
-
-    export function pileup(docList: Doc[], x?: number, y?: number) {
-        let w = 0, h = 0;
-        runInAction(() => {
-            docList.forEach(d => {
-                Doc.iconify(d);
-                w = Math.max(d[WidthSym](), w);
-                h = Math.max(d[HeightSym](), h);
-            });
-            h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
-            docList.forEach((d, i) => {
-                d.x = Math.cos(Math.PI * 2 * i / docList.length) * 10 - w / 2;
-                d.y = Math.sin(Math.PI * 2 * i / docList.length) * 10 - h / 2;
-                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
-            });
-        });
-        if (x !== undefined && y !== undefined) {
-            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
-            newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
-            newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
-            newCollection._width = newCollection._height = 110;
-            //newCollection.borderRounding = "40px";
-            newCollection._jitterRotation = 10;
-            newCollection._backgroundColor = "gray";
-            newCollection._overflow = "visible";
-            return newCollection;
-        }
-    }
-
-
-    export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
-        let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
-        if (!(optionsCollection instanceof Doc)) {
-            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
-            Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
-        }
-        const options = optionsCollection as Doc;
-        const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
-        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
-        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
-        targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
-        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));
-        enumerations.map(enumeration => {
-            const found = DocListCast(options.data).find(d => d.title === enumeration.title);
-            if (found) {
-                found._backgroundColor = enumeration._backgroundColor || found._backgroundColor;
-                found._color = enumeration.color || found._color;
+            if (data === undefined || data === null || ![...primitives, "object"].includes(typeof data)) {
+                return undefined;
+            }
+            let resolved: any;
+            try {
+                resolved = JSON.parse(typeof data === "string" ? data : JSON.stringify(data));
+            } catch (e) {
+                return undefined;
+            }
+            let output: Opt<Doc>;
+            if (typeof resolved === "object" && !(resolved instanceof Array)) {
+                output = convertObject(resolved, excludeEmptyObjects, title, appendToExisting?.targetDoc);
             } else {
-                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, enumeration));
+                const result = toField(resolved, excludeEmptyObjects);
+                if (appendToExisting) {
+                    (output = appendToExisting.targetDoc)[appendToExisting.fieldKey || defaultKey] = result;
+                } else {
+                    (output = new Doc).json = result;
+                }
             }
-        });
-        return optionsCollection;
+            title && output && (output.title = title);
+            return output;
+        }
+
+        /**
+         * For each value of the object, recursively convert it to its appropriate field value
+         * and store the field at the appropriate key in the document if it is not undefined
+         * @param object the object to convert
+         * @returns the object mapped from JSON to field values, where each mapping 
+         * might involve arbitrary recursion (since toField might itself call convertObject)
+         */
+        const convertObject = (object: any, excludeEmptyObjects: boolean, title?: string, target?: Doc): Opt<Doc> => {
+            const hasEntries = Object.keys(object).length;
+            if (hasEntries || !excludeEmptyObjects) {
+                const resolved = target ?? new Doc;
+                if (hasEntries) {
+                    let result: Opt<Field>;
+                    Object.keys(object).map(key => {
+                        // if excludeEmptyObjects is true, any qualifying conversions from toField will
+                        // be undefined, and thus the results that would have
+                        // otherwise been empty (List or Doc)s will just not be written
+                        if (result = toField(object[key], excludeEmptyObjects, key)) {
+                            resolved[key] = result;
+                        }
+                    });
+                }
+                title && (resolved.title = title);
+                return resolved;
+            }
+        };
+
+        /**
+         * For each element in the list, recursively convert it to a document or other field 
+         * and push the field to the list if it is not undefined
+         * @param list the list to convert
+         * @returns the list mapped from JSON to field values, where each mapping 
+         * might involve arbitrary recursion (since toField might itself call convertList)
+         */
+        const convertList = (list: Array<any>, excludeEmptyObjects: boolean): Opt<List<Field>> => {
+            const target = new List();
+            let result: Opt<Field>;
+            // if excludeEmptyObjects is true, any qualifying conversions from toField will
+            // be undefined, and thus the results that would have
+            // otherwise been empty (List or Doc)s will just not be written
+            list.map(item => (result = toField(item, excludeEmptyObjects)) && target.push(result));
+            if (target.length || !excludeEmptyObjects) {
+                return target;
+            }
+        };
+
+        const toField = (data: any, excludeEmptyObjects: boolean, title?: string): Opt<Field> => {
+            if (data === null || data === undefined) {
+                return undefined;
+            }
+            if (primitives.includes(typeof data)) {
+                return data;
+            }
+            if (typeof data === "object") {
+                return data instanceof Array ? convertList(data, excludeEmptyObjects) : convertObject(data, excludeEmptyObjects, title, undefined);
+            }
+            throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
+        };
     }
+
 }
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });

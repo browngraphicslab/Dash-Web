@@ -1,4 +1,5 @@
 import { Database } from "./database";
+import { resolvedPorts } from "./server_Initialization";
 
 //npx ts-node src/server/remapUrl.ts
 
@@ -34,7 +35,7 @@ async function update() {
                 if (url.href.includes("localhost") && url.href.includes("Bill")) {
                     dynfield = true;
 
-                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//dash-web.eastus2.cloudapp.azure.com:1050${url.pathname}` };
+                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//dash-web.eastus2.cloudapp.azure.com:${resolvedPorts.server}${url.pathname}` };
                 }
             }
         }

@@ -31,13 +31,14 @@ export class Track extends React.Component<IProps> {
     @observable private _autoKfReaction: any;
     @observable private _newKeyframe: boolean = false;
     private readonly MAX_TITLE_HEIGHT = 75;
-    private _trackHeight = 0;
+    @observable private _trackHeight = 0;
     private primitiveWhitelist = [
         "x",
         "y",
         "_width",
         "_height",
         "opacity",
+        "_scrollTop"
     ];
     private objectWhitelist = [
         "data"
@@ -51,7 +52,7 @@ export class Track extends React.Component<IProps> {
         if (!regions) this.props.node.regions = new List<Doc>(); //if there is no region, then create new doc to store stuff
         //these two lines are exactly same from timeline.tsx 
         const relativeHeight = window.innerHeight / 20;
-        this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //for responsiveness
+        runInAction(() => this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT); //for responsiveness
         this._timelineVisibleReaction = this.timelineVisibleReaction();
         this._currentBarXReaction = this.currentBarXReaction();
         if (DocListCast(this.props.node.regions).length === 0) this.createRegion(this.time);

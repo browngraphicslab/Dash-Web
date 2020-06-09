@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclSym, AclReadonly, AclPrivate } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -37,7 +37,6 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { InkingControl } from '../InkingControl';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
@@ -45,6 +44,7 @@ import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { undo } from 'prosemirror-history';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -332,7 +332,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 } else func();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
                 const alias = Doc.MakeAlias(this.props.Document);
-                Doc.makeCustomViewClicked(alias, undefined, "onClick");
+                DocUtils.makeCustomViewClicked(alias, undefined, "onClick");
                 this.props.addDocTab(alias, "onRight");
                 // UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
                 //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
@@ -515,7 +515,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // console.log(e.button)
         // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
-        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
                 // TODO: check here for panning/inking
@@ -546,7 +546,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerMove = (e: PointerEvent): void => {
 
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
-        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) return;
+        if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
@@ -684,6 +684,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
 
+    @undoBatch
+    @action
+    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
+        this.layoutDoc.ACL = this.dataDoc.ACL = acl;
+        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
+            if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
+        });
+    }
+
     @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
@@ -729,7 +740,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
+        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
 
@@ -744,6 +755,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const more = cm.findByDescription("More...");
         console.log("[IN MORE] what is more? " + more)
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
+        moreItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
@@ -751,7 +765,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
-            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
             // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
 
@@ -987,9 +1001,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
-    panelWidth = () => this.props.PanelWidth();
-    panelHeight = () => this.props.PanelHeight();
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     @computed get contents() {
         TraceMobx();
         return (<>
@@ -1010,10 +1021,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
-                ScreenToLocalTransform={this.screenToLocalTransform}
+                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
+                PanelWidth={this.props.PanelWidth}
+                PanelHeight={this.props.PanelHeight}
                 ignoreAutoHeight={this.props.ignoreAutoHeight}
                 focus={this.props.focus}
                 parentActive={this.props.parentActive}
@@ -1113,14 +1124,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
             (this.Document.isBackground && !this.isSelected() && !SnappingManager.GetIsDragging()) ||
-            (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
+            (this.Document.type === DocumentType.INK && Doc.GetSelectedTool() !== InkTool.None);
     }
     @undoBatch
     @action
     setCustomView = (custom: boolean, layout: string): void => {
         Doc.setNativeView(this.props.Document);
         if (custom) {
-            Doc.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
+            DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
         }
     }
     @observable _animateScalingTo = 0;
@@ -1144,6 +1155,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
         if (!(this.props.Document instanceof Doc)) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));

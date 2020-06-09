@@ -42,7 +42,7 @@ const query = async (data: string | google.maps.LatLngLiteral) => {
 };
 
 @observer
-class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> & { google: any }>(MapSchema) {
+export class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> & { google: any }>(MapSchema) {
 
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();

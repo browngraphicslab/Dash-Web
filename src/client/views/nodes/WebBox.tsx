@@ -15,7 +15,6 @@ import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
@@ -58,15 +57,15 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             iframe.contentDocument.addEventListener('pointerdown', this.iframedown, false);
             iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
             this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
-            iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
-            iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc.scrollLeft);
+            iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc._scrollTop);
+            iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc._scrollLeft);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc.scrollY, x: this.layoutDoc.scrollX }),
+        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc._scrollY, x: this.layoutDoc._scrollX }),
             ({ x, y }) => {
                 if (y !== undefined) {
                     this._outerRef.current!.scrollTop = y;
-                    this.layoutDoc.scrollY = undefined;
+                    this.layoutDoc._scrollY = undefined;
                 }
                 if (x !== undefined) {
                     this._outerRef.current!.scrollLeft = x;
@@ -83,8 +82,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     iframeScrolled = (e: any) => {
         const scrollTop = e.target?.children?.[0].scrollTop;
         const scrollLeft = e.target?.children?.[0].scrollLeft;
-        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scrollTop;
-        this.layoutDoc.scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
+        this.layoutDoc._scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+        this.layoutDoc._scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
@@ -106,7 +105,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             } // else it's an HTMLfield
         } else if (field?.url) {
             const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
-            this.dataDoc.text = htmlToText.fromString(result.content);
+            if (result) {
+                this.dataDoc.text = htmlToText.fromString(result.content);
+            }
         }
     }
 
@@ -409,9 +410,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             view = <span className="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
             const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
-            view = <iframe className="webBox-iframe" ref={this._iframeRef} src={url} onLoad={this.iframeLoaded} />;
+            view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={url} onLoad={this.iframeLoaded} />;
         } else {
-            view = <iframe className="webBox-iframe" ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
+            view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
         return view;
     }
@@ -423,7 +424,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const frozen = !this.props.isSelected() || decInteracting;
 
         return (<>
-            <div className={"webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !decInteracting ? "-interactive" : "")}
+            <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !decInteracting ? "-interactive" : "")}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>;
@@ -438,7 +439,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             {this.urlEditor()}
         </>);
     }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc.scrollLeft), NumCast(this.layoutDoc.scrollTop));
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
         return (<div className={`webBox-container`}
             style={{

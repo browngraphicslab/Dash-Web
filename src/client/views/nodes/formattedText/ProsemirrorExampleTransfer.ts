@@ -141,15 +141,12 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (force || props.Document._singleLine) {
             const layoutKey = StrCast(originalDoc.layoutKey);
-            const newDoc = Docs.Create.TextDocument("", {
-                layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout,
-                layoutKey,
-                _singleLine: BoolCast(originalDoc._singleLine),
-                x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
-            });
+            const newDoc = Doc.MakeCopy(originalDoc, true);
+            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }
+            Doc.GetProto(newDoc).text = undefined;
             FormattedTextBox.SelectOnLoad = newDoc[Id];
             props.addDocument(newDoc);
             return true;
@@ -168,15 +165,12 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (originalDoc instanceof Doc) {
             const layoutKey = StrCast(originalDoc.layoutKey);
-            const newDoc = Docs.Create.TextDocument("", {
-                layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout,
-                layoutKey,
-                _singleLine: BoolCast(originalDoc._singleLine),
-                x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
-            });
+            const newDoc = Doc.MakeCopy(originalDoc, true);
+            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }
+            Doc.GetProto(newDoc).text = undefined;
             FormattedTextBox.SelectOnLoad = newDoc[Id];
             props.addDocument(newDoc);
         }

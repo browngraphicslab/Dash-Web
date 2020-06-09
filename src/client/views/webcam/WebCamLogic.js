@@ -29,7 +29,7 @@ export function initialize(roomName, handlerUI) {
 
     room = roomName;
 
-    socket = io.connect(`${window.location.protocol}//${window.location.hostname}:${4321}`);
+    socket = io.connect(`${window.location.protocol}//${window.location.hostname}:4321`);
 
     if (room !== '') {
         socket.emit('create or join', room);
@@ -104,9 +104,9 @@ export function initialize(roomName, handlerUI) {
 
 
     navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true
-    })
+            audio: true,
+            video: true
+        })
         .then(gotStream)
         .catch(function (e) {
             alert('getUserMedia() error: ' + e.name);

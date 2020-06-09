@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction, Lambda, IReactionDisposer } from 'mobx';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, Opt } from '../../../fields/Doc';
+import { Doc } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { NumCast, Cast, StrCast } from '../../../fields/Types';
@@ -32,13 +32,14 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string, disposerId: number) => {
         this._disposers[disposerId]?.();
         if (ele) {
+            // create disposers identified by disposerId to remove drag & drop listeners
             this._disposers[disposerId] = DragManager.MakeDropTarget(ele, (e, dropEvent) => this.dropHandler(e, dropEvent, fieldKey), this.layoutDoc);
         }
     }
 
     @undoBatch
     private dropHandler = (event: Event, dropEvent: DragManager.DropEvent, fieldKey: string) => {
-        event.stopPropagation();
+        event.stopPropagation(); // prevent parent Doc from registering new position so that it snaps back into place
         const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
             this.dataDoc[fieldKey] = droppedDocs[0];
@@ -47,6 +48,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     private registerSliding = (e: React.PointerEvent<HTMLDivElement>, targetWidth: number) => {
         setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, action(() => {
+            // on click, animate slider movement to the targetWidth
             this._animating = "all 1s";
             this.layoutDoc._clipWidth = targetWidth * 100 / this.props.PanelWidth();
             setTimeout(action(() => this._animating = ""), 1000);
@@ -64,7 +66,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     @undoBatch
     clearDoc = (e: React.MouseEvent, fieldKey: string) => {
-        e.stopPropagation;
+        e.stopPropagation; // prevent click event action (slider movement) in registerSliding
         delete this.dataDoc[fieldKey];
     }
 
@@ -72,7 +74,9 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const clipWidth = NumCast(this.layoutDoc._clipWidth) + "%";
         const childProps: DocumentViewProps = { ...this.props, pointerEvents: false, parentActive: this.props.active };
         const clearButton = (which: string) => {
-            return <div className={`clear-button ${which}`} onPointerDown={e => e.stopPropagation()} onClick={e => this.clearDoc(e, `${which}Doc`)}>
+            return <div className={`clear-button ${which}`}
+                onPointerDown={e => e.stopPropagation()} // prevent triggering slider movement in registerSliding 
+                onClick={e => this.clearDoc(e, `${which}Doc`)}>
                 <FontAwesomeIcon className={`clear-button ${which}`} icon={"times"} size="sm" />
             </div>;
         };
@@ -95,13 +99,14 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         };
 
         return (
-            <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}`}>
+            <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}` /* change className to easily disable/enable pointer events in CSS */}>
                 {displayBox("after", 1, this.props.PanelWidth() - 5)}
                 <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: StrCast(this.layoutDoc._backgroundColor, "gray") }}>
                     {displayBox("before", 0, 5)}
                 </div>
 
-                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}>
+                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}
+                    onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() / 2)} /* if clicked, return slide-bar to center */ >
                     <div className="slide-handle" />
                 </div>
             </div >);

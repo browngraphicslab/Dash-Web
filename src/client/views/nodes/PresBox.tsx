@@ -11,7 +11,6 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
-import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
@@ -20,6 +19,7 @@ import { Docs } from "../../documents/Documents";
 import { PrefetchProxy } from "../../../fields/Proxy";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Scripting } from "../../util/Scripting";
+import { InkingStroke } from "../InkingStroke";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -59,10 +59,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     next = () => {
         this.updateCurrentPresentation();
         const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
-        const lastFrame = Cast(presTargetDoc.lastTimecode, "number", null);
-        const curFrame = NumCast(presTargetDoc.currentTimecode);
+        const lastFrame = Cast(presTargetDoc.lastFrame, "number", null);
+        const curFrame = NumCast(presTargetDoc.currentFrame);
         if (lastFrame !== undefined && curFrame < lastFrame) {
-            presTargetDoc.currentTimecode = curFrame + 1;
+            presTargetDoc.transition = "all 1s";
+            setTimeout(() => presTargetDoc.transition = undefined, 1010);
+            presTargetDoc.currentFrame = curFrame + 1;
         }
         else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             let nextSelected = this.itemIndex + 1;
@@ -199,8 +201,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
             const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
-            if (presTargetDoc.lastTimecode !== undefined) {
-                presTargetDoc.currentTimecode = 0;
+            if (presTargetDoc.lastFrame !== undefined) {
+                presTargetDoc.currentFrame = 0;
             }
 
             if (!this.layoutDoc.presStatus) {
@@ -291,7 +293,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     selectElement = (doc: Doc) => this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 20;
-    active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.layoutDoc.isBackground) &&
+    active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     render() {

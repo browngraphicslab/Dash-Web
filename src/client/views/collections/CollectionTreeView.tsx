@@ -717,7 +717,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { ImageDocument } = Docs.Create;
+                const { ImageDocument, PdfDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailView = Cast(Cast(Doc.UserDoc()["template-button-detail"], Doc, null)?.dragFactory, Doc, null);
@@ -726,13 +726,14 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 heroView._showTitle = "title";
                 heroView._showTitleHover = "titlehover";
 
-                const doubleClickView = ImageDocument("http://cs.brown.edu/~bcz/face.gif", { _width: 400 });  // replace with desired double click target
+                const fallback = ImageDocument("http://cs.brown.edu/~bcz/face.gif", { _width: 400 });  // replace with desired double click target
+                let pdfContent: string;
                 DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
                     DocListCast(d.data).map((img, i) => {
                         const caption = (d.captions as any)[i];
                         if (caption) {
                             Doc.GetProto(img).caption = caption;
-                            Doc.GetProto(img).doubleClickView = doubleClickView;
+                            Doc.GetProto(img).doubleClickView = (pdfContent = StrCast(img.additionalMedia_pdfs)) ? PdfDocument(pdfContent, { title: pdfContent }) : fallback;
                         }
                     });
                     Doc.GetProto(d).type = "buxton";
@@ -748,7 +749,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 Document.childLayoutTemplate = heroView;
                 Document.childClickedOpenTemplateView = new PrefetchProxy(detailView);
                 Document._viewType = CollectionViewType.Time;
-                Document._forceActive = true;
+                Document.forceActive = true;
                 Document._pivotField = "company";
                 Document.childDropAction = "alias";
             }
@@ -756,7 +757,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({
-            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
+            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
         });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }

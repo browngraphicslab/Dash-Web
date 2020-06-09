@@ -193,7 +193,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
 
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const height = () => this.getDocHeight(doc);
-        const opacity = () => this.Document.currentTimecode === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, this.Document.currentTimecode || 0)?.opacity;
+        const opacity = () => this.Document.currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document.currentFrame))?.opacity;
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
@@ -474,7 +474,10 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
                     }}
-                    onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
+                    onScroll={action(e => {
+                        if (!this.props.isSelected()) e.currentTarget.scrollTop = this._scroll;
+                        else this._scroll = e.currentTarget.scrollTop;
+                    })}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
                     onWheel={e => this.props.active() && e.stopPropagation()} >

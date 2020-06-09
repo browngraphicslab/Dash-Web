@@ -1,7 +1,6 @@
 import * as request from "request-promise";
 import { Doc, Field } from "../../fields/Doc";
 import { Cast } from "../../fields/Types";
-import { Docs } from "../documents/Documents";
 import { Utils } from "../../Utils";
 import { InkData } from "../../fields/InkField";
 import { UndoManager } from "../util/UndoManager";
@@ -45,7 +44,11 @@ export enum Confidence {
 export namespace CognitiveServices {
 
     const ExecuteQuery = async <D>(service: Service, manager: APIManager<D>, data: D): Promise<any> => {
-        const apiKey = process.env[service.toUpperCase()];
+        let apiKey = process.env[service.toUpperCase()];
+        // A HACK FOR A DEMO VIDEO - syip2
+        if (service === "handwriting") {
+            apiKey = "61088486d76c4b12ba578775a5f55422";
+        }
         if (!apiKey) {
             console.log(`No API key found for ${service}: ensure youe root directory has .env file with _CLIENT_${service.toUpperCase()}.`);
             return undefined;
@@ -191,7 +194,7 @@ export namespace CognitiveServices {
                 let results = await ExecuteQuery(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
-                    target[keys[0]] = Docs.Get.FromJson({ data: results, title: "Ink Analysis" });
+                    target[keys[0]] = Doc.Get.FromJson({ data: results, title: "Ink Analysis" });
                     const recognizedText = results.map((item: any) => item.recognizedText);
                     const recognizedObjects = results.map((item: any) => item.recognizedObject);
                     const individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);

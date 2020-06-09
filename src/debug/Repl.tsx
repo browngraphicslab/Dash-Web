@@ -7,6 +7,7 @@ import { makeInterface } from '../fields/Schema';
 import { ObjectField } from '../fields/ObjectField';
 import { RefField } from '../fields/RefField';
 import { DocServer } from '../client/DocServer';
+import { resolvedPorts } from '../client/views/Main';
 
 @observer
 class Repl extends React.Component {
@@ -61,6 +62,6 @@ class Repl extends React.Component {
 }
 
 (async function () {
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, "repl");
+    DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "repl");
     ReactDOM.render(<Repl />, document.getElementById("root"));
 })();
