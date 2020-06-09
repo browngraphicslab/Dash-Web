@@ -27,6 +27,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { DocUtils } from "../../documents/Documents";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -412,7 +413,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (value && this.sectionHeaders) {
             const schemaHdrField = new SchemaHeaderField(value);
             this.sectionHeaders.push(schemaHdrField);
-            Doc.addFieldEnumerations(undefined, this.pivotField, [{ title: value, _backgroundColor: schemaHdrField.color }]);
+            DocUtils.addFieldEnumerations(undefined, this.pivotField, [{ title: value, _backgroundColor: schemaHdrField.color }]);
             return true;
         }
         return false;

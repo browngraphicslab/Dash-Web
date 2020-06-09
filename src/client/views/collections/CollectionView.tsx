@@ -164,7 +164,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return true;
         }
         const first = doc instanceof Doc ? doc : doc[0];
-        return !first?.cantLeaveCollection && this.removeDocument(doc) ? addDocument(doc) : false;
+        return !first?.cantLeaveCollection && addDocument !== returnFalse && this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
     showIsTagged = () => {

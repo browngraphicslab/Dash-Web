@@ -10,7 +10,7 @@ import { WebField } from "../../../fields/URLField";
 import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
-import { Utils } from "../../../Utils";
+import { Utils, returnFalse } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Networking } from "../../Network";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -217,7 +217,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.addDocument) : res;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
                 } else {
                     added = this.addDocument(docDragData.droppedDocuments);
                 }

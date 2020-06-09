@@ -1211,7 +1211,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         TraceMobx();
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = Doc.GetSelectedTool() || this.layoutDoc.isBackground;
+        const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
             this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
@@ -1232,7 +1232,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         background: Doc.UserDoc().renderStyle === "comic" ? "transparent" : this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
                         opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
-                        pointerEvents: interactive ? "none" : undefined,
+                        pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit")
                     }}

@@ -67,6 +67,7 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
+    let dragLabel: HTMLDivElement;
     export let StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
 
     export function Root() {
@@ -97,7 +98,8 @@ export namespace DragManager {
             readonly shiftKey: boolean,
             readonly altKey: boolean,
             readonly metaKey: boolean,
-            readonly ctrlKey: boolean
+            readonly ctrlKey: boolean,
+            readonly embedKey: boolean,
         ) { }
     }
 
@@ -309,14 +311,24 @@ export namespace DragManager {
         };
     }
     export let docsBeingDragged: Doc[] = [];
+    export let CanEmbed = false;
     export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
         eles = eles.filter(e => e);
+        CanEmbed = false;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
             dragDiv.style.pointerEvents = "none";
+            dragLabel = document.createElement("div") as HTMLDivElement;
+            dragLabel.className = "dragManager-dragLabel";
+            dragLabel.style.zIndex = "100001";
+            dragLabel.style.fontSize = "10";
+            dragLabel.style.position = "absolute";
+            dragLabel.innerText = "press 'a' to embed on drop";
+            dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
+        dragLabel.style.display = "";
         SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
@@ -358,6 +370,7 @@ export namespace DragManager {
             dragElement.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
+            dragLabel.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0) - 20}px)`;
 
             if (docsBeingDragged.length) {
                 const pdfBox = dragElement.getElementsByTagName("canvas");
@@ -399,20 +412,21 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
-            if (e.shiftKey && dragData.droppedDocuments.length === 1) {
-                !dragData.dropAction && (dragData.dropAction = alias);
-                if (dragData.dropAction === "move") {
-                    dragData.removeDocument?.(dragData.draggedDocuments[0]);
+            if (e)
+                if (e.shiftKey && dragData.droppedDocuments.length === 1) {
+                    !dragData.dropAction && (dragData.dropAction = alias);
+                    if (dragData.dropAction === "move") {
+                        dragData.removeDocument?.(dragData.draggedDocuments[0]);
+                    }
+                    AbortDrag();
+                    finishDrag?.(new DragCompleteEvent(true, dragData));
+                    DragManager.StartWindowDrag?.({
+                        pageX: e.pageX,
+                        pageY: e.pageY,
+                        preventDefault: emptyFunction,
+                        button: 0
+                    }, dragData.droppedDocuments);
                 }
-                AbortDrag();
-                finishDrag?.(new DragCompleteEvent(true, dragData));
-                DragManager.StartWindowDrag?.({
-                    pageX: e.pageX,
-                    pageY: e.pageY,
-                    preventDefault: emptyFunction,
-                    button: 0
-                }, dragData.droppedDocuments);
-            }
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
 
@@ -421,12 +435,14 @@ export namespace DragManager {
             const moveY = thisY - lastY;
             lastX = thisX;
             lastY = thisY;
+            dragLabel.style.transform = `translate(${xs[0] + moveX + (options?.offsetX || 0)}px, ${ys[0] + moveY + (options?.offsetY || 0) - 20}px)`;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
                 `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
         const hideDragShowOriginalElements = () => {
+            dragLabel.style.display = "none";
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
         };
@@ -481,7 +497,8 @@ export namespace DragManager {
                         shiftKey: e.shiftKey,
                         altKey: e.altKey,
                         metaKey: e.metaKey,
-                        ctrlKey: e.ctrlKey
+                        ctrlKey: e.ctrlKey,
+                        embedKey: CanEmbed
                     }
                 })
             );
@@ -496,7 +513,8 @@ export namespace DragManager {
                         shiftKey: e.shiftKey,
                         altKey: e.altKey,
                         metaKey: e.metaKey,
-                        ctrlKey: e.ctrlKey
+                        ctrlKey: e.ctrlKey,
+                        embedKey: CanEmbed
                     }
                 })
             );
