@@ -221,7 +221,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 } else {
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
-                e.stopPropagation();
+                added && e.stopPropagation();
                 return added;
             }
             else if (de.complete.annoDragData) {

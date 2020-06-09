@@ -163,7 +163,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
-        return this.removeDocument(doc) ? addDocument(doc) : false;
+        const first = doc instanceof Doc ? doc : doc[0];
+        return !first?.cantLeaveCollection && this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
     showIsTagged = () => {

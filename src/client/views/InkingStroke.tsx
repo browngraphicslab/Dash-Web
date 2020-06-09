@@ -31,6 +31,14 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);
     }
 
+    private makeMask = () => {
+        this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
+        this.props.Document.mixBlendMode = "hard-light";
+        this.props.Document.color = "#9b9b9bff";
+        this.props.Document.cantLeaveCollection = true;
+        this.props.Document.isInkMask = true;
+    }
+
     render() {
         TraceMobx();
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
@@ -52,13 +60,14 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             <svg className="inkingStroke"
                 width={width}
                 height={height}
-                style={{ mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset" }}
+                style={{
+                    pointerEvents: this.props.Document.isInkMask ? "all" : undefined,
+                    transform: this.props.Document.isInkMask ? "translate(2500px, 2500px)" : undefined,
+                    mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset"
+                }}
                 onContextMenu={() => {
-                    ContextMenu.Instance.addItem({
-                        description: "Analyze Stroke",
-                        event: this.analyzeStrokes,
-                        icon: "paint-brush"
-                    });
+                    ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
+                    ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
                 }}
             >
                 {points}
