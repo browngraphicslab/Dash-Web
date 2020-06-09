@@ -36,6 +36,7 @@ export class ScriptManager {
         scriptList.push(scriptDoc);
         if (ScriptManager.Instance.ScriptManagerDoc) {
             ScriptManager.Instance.ScriptManagerDoc.data = new List<Doc>(scriptList);
+            ScriptManager.addScriptToGlobals(scriptDoc);
             return true;
         }
         return false;
@@ -57,29 +58,32 @@ export class ScriptManager {
         }
         return false;
     }
+
+    public static addScriptToGlobals(scriptDoc: Doc): void {
+        const params = Cast(scriptDoc.compileParams, listSpec("string"), []);
+        const p = params.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
+        const f = new Function(...Array.from(Object.keys(p)), StrCast(scriptDoc.rawScript));
+    
+        let parameters = "(";
+        params.forEach((element: string, i: number) => {
+            if (i === params.length - 1) {
+                parameters = parameters + element + ")";
+            } else {
+                parameters = parameters + element + ", ";
+            }
+        });
+    
+        if (parameters === "(") {
+            Scripting.addGlobal(f, StrCast(scriptDoc.description), "", StrCast(scriptDoc.funcName));
+        } else {
+            Scripting.addGlobal(f, StrCast(scriptDoc.description), parameters, StrCast(scriptDoc.funcName));
+        }
+    }
 }
+
 
 const scriptList = ScriptManager.Instance.getAllScripts();
 
 scriptList.forEach((scriptDoc: Doc) => {
-
-    const params = Cast(scriptDoc.compileParams, listSpec("string"), []);
-    const p = params.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
-    const f = new Function(...Array.from(Object.keys(p)), StrCast(scriptDoc.rawScript));
-
-    let parameters = "(";
-    params.forEach((element: string, i: number) => {
-        if (i === params.length - 1) {
-            parameters = parameters + element + ")";
-        } else {
-            parameters = parameters + element + ", ";
-        }
-    });
-
-    if (parameters === "(") {
-        Scripting.addGlobal(f, StrCast(scriptDoc.description), "", StrCast(scriptDoc.funcName));
-    } else {
-        Scripting.addGlobal(f, StrCast(scriptDoc.description), parameters, StrCast(scriptDoc.funcName));
-    }
-
+    ScriptManager.addScriptToGlobals(scriptDoc);
 });
