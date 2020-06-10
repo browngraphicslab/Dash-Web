@@ -1,4 +1,6 @@
-import { action, computed, observable, trace, runInAction } from "mobx";
+import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
+import "@webscopeio/react-textarea-autocomplete/style.css";
+import { action, computed, observable, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import { Doc } from "../../../fields/Doc";
@@ -10,7 +12,8 @@ import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { returnEmptyString } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { InteractionUtils } from "../../util/InteractionUtils";
-import { CompileScript, ScriptParam, Scripting } from "../../util/Scripting";
+import { CompileScript, Scripting, ScriptParam } from "../../util/Scripting";
+import { ScriptManager } from "../../util/ScriptManager";
 import { ContextMenu } from "../ContextMenu";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { EditableView } from "../EditableView";
@@ -19,10 +22,6 @@ import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
 import "./ScriptingBox.scss";
 const _global = (window /* browser */ || global /* node */) as any;
-
-import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
-import "@webscopeio/react-textarea-autocomplete/style.css";
-
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -233,9 +232,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         }
     }
 
-    public static DeleteScript: undefined | ((doc: Doc) => void);
-    public static AddScript: undefined | ((doc: Doc) => void);
-
     @action
     onCreate = () => {
 
@@ -254,8 +250,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.dataDoc.funcName = this.functionName;
         this.dataDoc.descripition = this.functionDescription;
 
-        ScriptingBox.DeleteScript?.(this.dataDoc);
-        ScriptingBox.AddScript?.(this.dataDoc);
+        ScriptManager.Instance.deleteScript(this.dataDoc);
+        ScriptManager.Instance.addScript(this.dataDoc);
 
         console.log("created");
     }

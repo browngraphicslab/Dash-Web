@@ -1,28 +1,28 @@
 import { Doc, DocListCast } from "../../fields/Doc";
 import { List } from "../../fields/List";
-import { Docs } from "../documents/Documents";
 import { Scripting } from "./Scripting";
 import { StrCast, Cast } from "../../fields/Types";
 import { listSpec } from "../../fields/Schema";
-import { ScriptingBox } from "../views/nodes/ScriptingBox";
-
+import { Docs } from "../documents/Documents";
 
 export class ScriptManager {
 
+    static _initialized = false;
     private static _instance: ScriptManager;
     public static get Instance(): ScriptManager {
         return this._instance || (this._instance = new this());
     }
     private constructor() {
         console.log("CONSTRUCTED");
-        ScriptingBox.DeleteScript = this.deleteScript;
-        ScriptingBox.AddScript = this.addScript;
+        if (!ScriptManager._initialized) {
+            ScriptManager._initialized = true;
+            this.getAllScripts().forEach(scriptDoc => ScriptManager.addScriptToGlobals(scriptDoc));
+        }
     }
 
     public get ScriptManagerDoc(): Doc | undefined {
         return Docs.Prototypes.MainScriptDocument();
     }
-
     public getAllScripts(): Doc[] {
         const sdoc = ScriptManager.Instance.ScriptManagerDoc;
         if (sdoc) {
@@ -35,7 +35,7 @@ export class ScriptManager {
     public addScript(scriptDoc: Doc): boolean {
         console.log("in add script method");
 
-        const scriptList = ScriptManager.Instance.getAllScripts();
+        const scriptList = this.getAllScripts();
         scriptList.push(scriptDoc);
         if (ScriptManager.Instance.ScriptManagerDoc) {
             ScriptManager.Instance.ScriptManagerDoc.data = new List<Doc>(scriptList);
@@ -53,8 +53,8 @@ export class ScriptManager {
         if (scriptDoc.functionName) {
             Scripting.removeGlobal(StrCast(scriptDoc.functionName));
         }
-        const scriptList = ScriptManager.Instance.getAllScripts();
-        const index = ScriptManager.Instance.getAllScripts().indexOf(scriptDoc);
+        const scriptList = this.getAllScripts();
+        const index = scriptList.indexOf(scriptDoc);
         if (index > -1) {
             scriptList.splice(index, 1);
             if (ScriptManager.Instance.ScriptManagerDoc) {
@@ -99,10 +99,3 @@ export class ScriptManager {
         }
     }
 }
-
-
-const scriptList = ScriptManager.Instance.getAllScripts();
-
-scriptList.forEach((scriptDoc: Doc) => {
-    ScriptManager.addScriptToGlobals(scriptDoc);
-});
