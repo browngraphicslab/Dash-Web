@@ -33,6 +33,7 @@ export class ScriptManager {
 
     public addScript(scriptDoc: Doc): boolean {
         console.log("in add script method");
+
         const scriptList = ScriptManager.Instance.getAllScripts();
         scriptList.push(scriptDoc);
         if (ScriptManager.Instance.ScriptManagerDoc) {
@@ -46,8 +47,10 @@ export class ScriptManager {
 
     public deleteScript(scriptDoc: Doc): boolean {
 
-        if (scriptDoc.funcName) {
-            Scripting.removeGlobal(StrCast(scriptDoc.funcName));
+        console.log("in delete script method");
+
+        if (scriptDoc.functionName) {
+            Scripting.removeGlobal(StrCast(scriptDoc.functionName));
         }
         const scriptList = ScriptManager.Instance.getAllScripts();
         const index = ScriptManager.Instance.getAllScripts().indexOf(scriptDoc);
@@ -62,9 +65,22 @@ export class ScriptManager {
     }
 
     public static addScriptToGlobals(scriptDoc: Doc): void {
+
+        Scripting.removeGlobal(StrCast(scriptDoc.functionName));
+
         const params = Cast(scriptDoc.compileParams, listSpec("string"), []);
-        const p = params.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
-        const f = new Function(...Array.from(Object.keys(p)), StrCast(scriptDoc.rawScript));
+        const paramNames = params.reduce((o: string, p: string) => {
+            if (params.indexOf(p) === params.length - 1) {
+                o = o + p.split(":")[0].trim();
+            } else {
+                o = o + p.split(":")[0].trim() + ",";
+            }
+            return o;
+        }, "" as string);
+
+        const f = new Function(paramNames, StrCast(scriptDoc.rawScript));
+
+        Object.defineProperty(f, 'name', { value: StrCast(scriptDoc.functionName), writable: false });
 
         let parameters = "(";
         params.forEach((element: string, i: number) => {
@@ -76,9 +92,9 @@ export class ScriptManager {
         });
 
         if (parameters === "(") {
-            Scripting.addGlobal(f, StrCast(scriptDoc.description), "", StrCast(scriptDoc.funcName));
+            Scripting.addGlobal(f, StrCast(scriptDoc.functionDescription));
         } else {
-            Scripting.addGlobal(f, StrCast(scriptDoc.description), parameters, StrCast(scriptDoc.funcName));
+            Scripting.addGlobal(f, StrCast(scriptDoc.functionDescription), parameters);
         }
     }
 }
