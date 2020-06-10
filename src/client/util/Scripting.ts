@@ -51,7 +51,6 @@ export namespace Scripting {
     export function addGlobal(name: string, global: any): void;
 
     export function addGlobal(global: { name: string }, decription?: string, params?: string): void;
-    export function addGlobal(global: { name: string }, decription?: string, params?: string, name?: string): void;
 
     export function addGlobal(first: any, second?: any, third?: string) {
         let n: any;
