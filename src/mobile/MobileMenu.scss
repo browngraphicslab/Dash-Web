@@ -122,7 +122,7 @@ body {
     font-size: 35px;
     text-transform: uppercase;
     color: black;
-    
+
 }
 
 .sidebar .ink:focus {
@@ -368,4 +368,35 @@ body {
     border-style: solid;
     border-width: 3px;
     border-radius: 100%;
+}
+
+.homeSwitch {
+    position: absolute;
+    top: 212;
+    right: 36px;
+    display: inline-flex;
+    width: max-content;
+    z-index: 99;
+    height: 70px;
+}
+
+.list {
+    width: 70px;
+    height: 70px;
+    margin: 5;
+    padding: 10;
+    align-items: center;
+    text-align: center;
+    font-size: 50;
+    border-style: solid;
+    border-width: 3;
+    border-color: black;
+    background: whitesmoke;
+    align-self: center;
+    border-radius: 10px;
+}
+
+.list.active {
+    color: darkred;
+    border-color: darkred;
 }
