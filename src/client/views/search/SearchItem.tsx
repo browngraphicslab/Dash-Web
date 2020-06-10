@@ -248,6 +248,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         setTimeout(() => this.targetDoc!.searchMatch = true, 0);
     }
     highlightDoc = (e: React.PointerEvent) => {
+        console.log(Cast(this.targetDoc.lines, listSpec("string"))!.length);
+
         if (this.targetDoc!.type === DocumentType.LINK) {
             if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
 

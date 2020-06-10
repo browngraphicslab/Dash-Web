@@ -253,10 +253,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            console.log(res);
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
+            console.log(flattened);
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
+            console.log(lastSel)
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
