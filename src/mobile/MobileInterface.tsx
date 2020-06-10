@@ -1731,7 +1731,6 @@ export class MobileInterface extends React.Component {
     @action
     closeUpload = () => {
         this.imageUploadActive = false;
-        console.log("1dude");
     }
 
     // toggleUpload = () => {
@@ -1749,7 +1748,6 @@ export class MobileInterface extends React.Component {
 
         }
         console.log("upload");
-        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         return (
             <div>
                 <div className="closeUpload" onClick={this.toggleUpload}>

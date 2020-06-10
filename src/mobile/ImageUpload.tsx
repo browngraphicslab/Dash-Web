@@ -43,7 +43,9 @@ export class Uploader extends React.Component {
             }
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
+            console.log("buddy");
             if (imgPrev) {
+                console.log("hi");
                 const files: FileList | null = inputRef.current!.files;
                 if (files && files.length !== 0) {
                     console.log(files[0]);
@@ -103,12 +105,12 @@ export class Uploader extends React.Component {
                             if (slab7) {
                                 slab7.style.opacity = "1";
                             }
-                            setTimeout(this.clearUpload, 3000);
+
                         }
 
                     });
                 }
-
+                setTimeout(this.clearUpload, 3000);
             }
         } catch (error) {
             this.error = JSON.stringify(error);
@@ -120,22 +122,10 @@ export class Uploader extends React.Component {
     inputLabel = async () => {
         const files: FileList | null = inputRef.current!.files;
         await files;
-        var inputs = document.querySelectorAll('.inputFile');
-        const label = document.getElementById("label");
-        if (files && label && files.length !== 0) {
-            label.innerText = await files[0].name;
-            setTimeout(this.updateName, 1000);
+        if (files && files.length !== 0) {
+            console.log(files);
+            this.nm = files[0].name;
         }
-    }
-
-    @action
-    updateName = () => {
-        const label = document.getElementById("label");
-        if (label) {
-            this.nm = label.innerText;
-
-        }
-        console.log("lol");
     }
 
     @action
@@ -168,19 +158,20 @@ export class Uploader extends React.Component {
         if (slab7) {
             slab7.style.opacity = "0.4";
         }
+        this.nm = "Choose an image";
 
-        const label = document.getElementById("label");
-        if (label) {
-            label.innerText = "Choose an image"
-            this.nm = "Choose an image";
+        if (inputRef.current) {
+            inputRef.current.value = "";
         }
+        console.log(inputRef.current!.files);
     }
+
 
 
     private get uploadInterface() {
         return (
             <div className="imgupload_cont">
-                <input type="file" accept="image/*" className="inputFile" id="input_image_file" onClick={this.inputLabel} ref={inputRef}></input>
+                <input type="file" accept="image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel}></input>
                 <label id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>Upload Image</div>
                 {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
