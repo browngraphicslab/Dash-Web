@@ -12,7 +12,6 @@ import { Scripting } from '../client/util/Scripting';
 import { Transform } from '../client/util/Transform';
 import { DocumentDecorations } from '../client/views/DocumentDecorations';
 import GestureOverlay from '../client/views/GestureOverlay';
-import { InkingControl } from '../client/views/InkingControl';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { RadialMenu } from '../client/views/nodes/RadialMenu';
 import { PreviewCursor } from '../client/views/PreviewCursor';
@@ -26,6 +25,7 @@ import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from '../Utils';
 import "./MobileInterface.scss";
 import { CollectionView } from '../client/views/collections/CollectionView';
+import { InkingStroke } from '../client/views/InkingStroke';
 
 library.add(faLongArrowAltLeft);
 
@@ -68,7 +68,7 @@ export default class MobileInterface extends React.Component {
     }
 
     onSwitchInking = () => {
-        InkingControl.Instance.switchTool(InkTool.Pen);
+        Doc.SetSelectedTool(InkTool.Pen);
         MobileInterface.Instance.drawingInk = true;
 
         DocServer.Mobile.dispatchOverlayTrigger({
@@ -134,7 +134,7 @@ export default class MobileInterface extends React.Component {
 
     onBack = (e: React.MouseEvent) => {
         this.switchCurrentView((userDoc: Doc) => this.mainDoc);
-        InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
+        Doc.SetSelectedTool(InkTool.None); // TODO: switch to previous tool
 
         DocServer.Mobile.dispatchOverlayTrigger({
             enableOverlay: false,
@@ -187,6 +187,7 @@ export default class MobileInterface extends React.Component {
                         Document={this.mainContainer}
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
+                        filterAddDocument={returnTrue}
                         fieldKey={""}
                         dropAction={"alias"}
                         bringToFront={emptyFunction}

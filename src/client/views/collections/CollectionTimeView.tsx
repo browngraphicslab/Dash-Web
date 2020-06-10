@@ -19,6 +19,7 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
+import { DocUtils } from "../../documents/Documents";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -28,7 +29,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _childClickedScript: Opt<ScriptField>;
     @observable _viewDefDivClick: Opt<ScriptField>;
     async componentDidMount() {
-        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || Doc.findTemplate("detailView", StrCast(this.props.Document.type), "");
+        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || DocUtils.findTemplate("detailView", StrCast(this.props.Document.type), "");
         const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
         runInAction(() => {
             this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });

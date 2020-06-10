@@ -4,11 +4,11 @@ import { ObjectField } from "./ObjectField";
 import { Copy, ToScriptString, ToString } from "./FieldSymbols";
 
 export enum InkTool {
-    None,
-    Pen,
-    Highlighter,
-    Eraser,
-    Stamp
+    None = "none",
+    Pen = "pen",
+    Highlighter = "highlighter",
+    Eraser = "eraser",
+    Stamp = "stamp"
 }
 
 export interface PointData {

@@ -142,7 +142,7 @@ export class Result {
 //
 // NDollarRecognizer constants
 //
-const NumMultistrokes = 4;
+const NumMultistrokes = 7;
 const NumPoints = 96;
 const SquareSize = 250.0;
 const OneDThreshold = 0.25; // customize to desired gesture set (usually 0.20 - 0.35)
@@ -189,6 +189,21 @@ export class NDollarRecognizer {
             // new Array(new Point(150, 21), new Point(149, 150), new Point(26, 152))
             // new Array(new Point(150, 150), new Point(150, 0), new Point(150, 150), new Point(0, 150))
             new Array(new Point(10, 100), new Point(100, 100), new Point(150, 12), new Point(200, 103), new Point(300, 100))
+        ));
+        this.Multistrokes[4] = new Multistroke(GestureUtils.Gestures.Triangle, useBoundedRotationInvariance, new Array(
+            new Array(new Point(40, 100), new Point(100, 200), new Point(140, 102), new Point(42, 100))
+        ));
+        this.Multistrokes[5] = new Multistroke(GestureUtils.Gestures.Circle, useBoundedRotationInvariance, new Array(
+            new Array(new Point(200, 250), new Point(240, 230), new Point(248, 210), new Point(248, 190), new Point(240, 170), new Point(200, 150), new Point(160, 170), new Point(151, 190), new Point(151, 210), new Point(160, 230), new Point(201, 250))
+        ));
+        this.Multistrokes[6] = new Multistroke(GestureUtils.Gestures.Rectangle, useBoundedRotationInvariance, new Array(
+            new Array(
+                new Point(30, 146), //new Point(29, 160), new Point(30, 180), new Point(31, 200),
+                new Point(30, 222), //new Point(50, 219), new Point(70, 225), new Point(90, 230),
+                new Point(106, 225), //new Point(100, 200), new Point(106, 180), new Point(110, 160),
+                new Point(106, 146), //new Point(80, 150), new Point(50, 146),
+                new Point(30, 143),
+                new Point(29, 220))
         ));
 
         //
