@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Opt } from "../../../../fields/Doc";
-import { InkData, InkField } from "../../../../fields/InkField";
+import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
@@ -270,10 +270,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     onClick = (e: React.MouseEvent): void => {
-        if (
-            Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+            if (Doc.GetSelectedTool() === InkTool.None) {
+                !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+            }
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
