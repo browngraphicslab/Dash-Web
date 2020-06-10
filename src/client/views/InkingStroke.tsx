@@ -92,5 +92,5 @@ Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) {
 Scripting.addGlobal(function activateEraser(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Eraser : InkTool.None); });
 Scripting.addGlobal(function activateStamp(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Stamp : InkTool.None); });
 Scripting.addGlobal(function deactivateInk() { return Doc.SetSelectedTool(InkTool.None); });
-Scripting.addGlobal(function setInkWidth(width: any) { return Doc.SetSelectedTool(width); });
-Scripting.addGlobal(function setInkColor(color: any) { return Doc.SetSelectedTool(color); });
+Scripting.addGlobal(function setInkWidth(width: any) { return SetActiveInkWidth(width); });
+Scripting.addGlobal(function setInkColor(color: any) { return SetActiveInkColor(color); });

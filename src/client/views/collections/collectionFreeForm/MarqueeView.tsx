@@ -62,7 +62,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
         this._pointsX = [];
         this._pointsY = [];
-        this._freeHand = false;
     }
 
     @undoBatch
@@ -352,7 +351,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
         selected.forEach(d => this.props.removeDocument(d));
-        const newCollection = Doc.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
+        const newCollection = DocUtils.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
         this.props.addDocument(newCollection!);
         this.props.selectDocuments([newCollection!], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -527,7 +526,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             this.cleanupInteractions(false);
         }
-        if (e.key === "r") {
+        if (e.key === "r" || e.key === " ") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -537,7 +536,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     changeFreeHand = (x: boolean) => {
-        this._freeHand = x;
+        this._freeHand = !this._freeHand;
     }
     // @action
     // marqueeInkSelect(ink: Map<any, any>) {
@@ -697,7 +696,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 width: `${Math.abs(v[0])}`,
                 height: `${Math.abs(v[1])}`, zIndex: 2000
             }} >
-                {/* <span className="marquee-legend" /> */}
+                <span className="marquee-legend"></span>
             </div>;
 
         } else {

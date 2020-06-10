@@ -690,7 +690,7 @@ export namespace Doc {
                 }
             }
         });
-        copy["author"] = Doc.CurrentUserEmail;
+        copy.author = Doc.CurrentUserEmail;
         return copy;
     }
 
@@ -822,7 +822,7 @@ export namespace Doc {
     export function UserDoc(): Doc { return manager._user_doc; }
 
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
-    export function GetSelectedTool(): InkTool { return (FieldValue(StrCast(Doc.UserDoc().activeInkTool)) ?? InkTool.None) as InkTool; }
+    export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {

@@ -180,10 +180,10 @@ export class Keyframe extends React.Component<IProps> {
             const fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
             const fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
             const finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.end);
-            (fadeIn as Doc).opacity = 1;
-            (fadeOut as Doc).opacity = 1;
-            (start as Doc).opacity = 0.1;
-            (finish as Doc).opacity = 0.1;
+            fadeIn.opacity = 1;
+            fadeOut.opacity = 1;
+            start.opacity = 0.1;
+            finish.opacity = 0.1;
             this.forceUpdate(); //not needed, if setTimeout is gone...
         }, 1000);
     }

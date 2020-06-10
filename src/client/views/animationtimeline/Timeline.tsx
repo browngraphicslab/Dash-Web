@@ -445,7 +445,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     // @computed
     getCurrentTime = () => {
-        let current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
+        const current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
         return this.toReadTime(current > this._time ? this._time : current);
     }
 

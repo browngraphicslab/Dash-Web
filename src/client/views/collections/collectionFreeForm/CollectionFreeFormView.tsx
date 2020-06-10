@@ -177,7 +177,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }
         }
         return retVal;
-    })
+    });
 
     private selectDocuments = (docs: Doc[]) => {
         SelectionManager.DeselectAll();
@@ -251,11 +251,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         // if (this.props.Document.isBackground) return false;
         const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
-        if (this.isAnnotationOverlay !== true && de.complete.linkDragData)
+        if (this.isAnnotationOverlay !== true && de.complete.linkDragData) {
             return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
-        if (de.complete.annoDragData?.dropDocument && super.onInternalDrop(e, de))
+        } else if (de.complete.annoDragData?.dropDocument && super.onInternalDrop(e, de)) {
             return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
-        if (de.complete.docDragData?.droppedDocuments.length && this.internalDocDrop(e, de, de.complete.docDragData, xp, yp)) {
+        } else if (de.complete.docDragData?.droppedDocuments.length && this.internalDocDrop(e, de, de.complete.docDragData, xp, yp)) {
             return true;
         } else {
             UndoManager.Undo();
@@ -530,9 +530,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         }
                     });
 
-                    console.log(this._wordPalette)
                     CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
-                        console.log(results);
                         const wordResults = results.filter((r: any) => r.category === "inkWord");
                         for (const word of wordResults) {
                             const indices: number[] = word.strokeIds;
@@ -617,8 +615,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return;
         }
         if (!e.cancelBubble) {
-            const selectedTool = Doc.GetSelectedTool();
-            if (selectedTool === InkTool.None) {
+            if (Doc.GetSelectedTool() === InkTool.None) {
                 if (this._hitCluster && this.tryDragCluster(e)) {
                     e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                     e.preventDefault();
