@@ -89,7 +89,7 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, scalex: number, scaley: number, shape: string) {
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
         var pts = "";
         if (shape) {
             //if any of the shape are true
@@ -120,7 +120,9 @@ export namespace InteractionUtils {
             <polyline
                 points={pts}
                 style={{
+                    filter: drawHalo ? "url(#dangerShine)" : undefined,
                     fill: "none",
+                    pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
                     strokeWidth: parseInt(width),
                     strokeLinejoin: "round",

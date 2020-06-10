@@ -674,6 +674,8 @@ export default class GestureOverlay extends Touchable {
                     this._points = [];
                 }
             }
+        } else {
+            this._points = [];
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);

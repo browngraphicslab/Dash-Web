@@ -16,6 +16,7 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { Scripting } from "../util/Scripting";
 import { Doc } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
 
 library.add(faPaintBrush);
 
@@ -35,7 +36,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
         this.props.Document.mixBlendMode = "hard-light";
         this.props.Document.color = "#9b9b9bff";
-        this.props.Document.cantLeaveCollection = true;
+        this.props.Document.stayInCollection = true;
         this.props.Document.isInkMask = true;
     }
 
@@ -52,16 +53,22 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const height = bottom - top;
         const scaleX = this.props.PanelWidth() / width;
         const scaleY = this.props.PanelHeight() / height;
+        const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
+        const strokeColor = StrCast(this.layoutDoc.color, ActiveInkColor());
         const points = InteractionUtils.CreatePolyline(data, left, top,
-            StrCast(this.layoutDoc.color, ActiveInkColor()),
-            StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()),
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "");
+            strokeColor,
+            strokeWidth.toString(),
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
+        const hpoints = InteractionUtils.CreatePolyline(data, left, top,
+            this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent",
+            (strokeWidth + 15).toString(),
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);
         return (
             <svg className="inkingStroke"
                 width={width}
                 height={height}
                 style={{
-                    pointerEvents: this.props.Document.isInkMask ? "all" : undefined,
+                    pointerEvents: this.props.Document.isInkMask ? "all" : "none",
                     transform: this.props.Document.isInkMask ? "translate(2500px, 2500px)" : undefined,
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset"
                 }}
@@ -69,7 +76,25 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
                     ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
                 }}
-            >
+            ><defs>
+                    <filter id="dangerShine">
+                        <feColorMatrix type="matrix"
+                            result="color"
+                            values="1 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 1 0">
+                        </feColorMatrix>
+                        <feGaussianBlur in="color" stdDeviation="4" result="blur"></feGaussianBlur>
+                        <feOffset in="blur" dx="0" dy="0" result="offset"></feOffset>
+                        <feMerge>
+                            <feMergeNode in="bg"></feMergeNode>
+                            <feMergeNode in="offset"></feMergeNode>
+                            <feMergeNode in="SourceGraphic"></feMergeNode>
+                        </feMerge>
+                    </filter>
+                </defs>
+                {hpoints}
                 {points}
             </svg>
         );
