@@ -14,6 +14,7 @@ import { List } from "../../../fields/List";
 import { numberRange } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -156,7 +157,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
+                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :
                 <div style={{ width: "100%", height: "100%", position: "absolute" }}>
