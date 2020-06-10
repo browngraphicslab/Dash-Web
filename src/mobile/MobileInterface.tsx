@@ -1,7 +1,7 @@
 import * as React from "react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTasks, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -39,7 +39,7 @@ import { SelectionManager } from "../client/util/SelectionManager";
 import { SketchPicker } from "react-color";
 import { ScriptField } from "../fields/ScriptField";
 
-library.add(faTasks, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -950,12 +950,14 @@ export class MobileInterface extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // Sets up new mobile menu only if activeMobile already exists
+    // @observable private mainDoc: any = this.userDoc.activeMobile === undefined ? CurrentUserUtils.setupMobileMenu() : this.userDoc.activeMobile;
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu();
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;
     @observable private sidebarActive: boolean = false;
     @observable private imageUploadActive: boolean = false;
+    @observable private menuListView: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc;
     public _homeDoc: Doc = this.mainDoc;
@@ -987,6 +989,7 @@ export class MobileInterface extends React.Component {
         if (this.userDoc && !this.mainContainer) {
             this.userDoc.activeMobile = this._homeDoc;
         }
+        this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
         InkingControl.Instance.switchTool(InkTool.None);
         MobileInterface.Instance.drawingInk = false;
         InkingControl.Instance.updateSelectedColor("#FF0000");
@@ -1656,6 +1659,63 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    switchMenuView = () => {
+        if (this._activeDoc.title === this._homeDoc.title) {
+            return (
+                <div className="homeSwitch">
+                    <div className={`list ${!this.menuListView ? "active" : ""}`} onClick={this.changeToIconView}>
+                        <FontAwesomeIcon size="sm" icon="th-large" />
+                    </div>
+                    <div className={`list ${this.menuListView ? "active" : ""}`} onClick={this.changeToListView}>
+                        <FontAwesomeIcon size="sm" icon="bars" />
+                    </div>
+                </div>
+            );
+        }
+    }
+
+    @action
+    changeToIconView = () => {
+        if (this._homeDoc._viewType = "stacking") {
+            this.menuListView = false;
+            this._homeDoc._viewType = "masonry";
+            this._homeDoc.columnWidth = 300;
+            const menuButtons = DocListCast(this._homeDoc.data);
+            console.log('hello');
+            menuButtons.map((doc: Doc, index: any) => {
+                console.log(index);
+                const buttonData = DocListCast(doc.data);
+                buttonData[1]._nativeWidth = 0.1;
+                buttonData[1]._width = 0.1;
+                buttonData[1]._dimMagnitude = 0;
+                buttonData[1]._opacity = 0;
+                console.log(buttonData);
+                console.log(doc._nativeWidth);
+                doc._nativeWidth = 400;
+                console.log(doc._nativeWidth);
+            });
+        }
+    }
+
+    @action
+    changeToListView = () => {
+        if (this._homeDoc._viewType = "masonry") {
+            this._homeDoc._viewType = "stacking";
+            this.menuListView = true;
+            const menuButtons = DocListCast(this._homeDoc.data);
+            console.log('hello');
+            menuButtons.map((doc: Doc, index: any) => {
+                const buttonData = DocListCast(doc.data);
+                buttonData[1]._nativeWidth = 450;
+                buttonData[1]._dimMagnitude = 2;
+                buttonData[1]._opacity = 1;
+                console.log(doc._nativeWidth);
+                doc._nativeWidth = 900;
+                console.log(doc._nativeWidth);
+            });
+        }
+    }
+
     setupDefaultPresentation = () => {
         if (this._activeDoc.title !== "Presentation") {
             this._parents.push(this._activeDoc);
@@ -1694,6 +1754,7 @@ export class MobileInterface extends React.Component {
                 <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
                     {this.uploadImage()}
                 </div>
+                {this.switchMenuView()}
                 <div className="docButtonContainer">
                     {this.pinToPresentation()}
                     {this.downloadDocument()}

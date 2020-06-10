@@ -319,6 +319,9 @@ export class CurrentUserUtils {
         if (doc.emptyWebpage === undefined) {
             doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
+        if (doc.activeMobile === undefined) {
+            doc.activeMobile = CurrentUserUtils.setupMobileMenu();
+        }
         return [
             { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
@@ -332,7 +335,7 @@ export class CurrentUserUtils {
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
-            { title: "Drag a mobile view", label: "Phone", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
+            { title: "Drag a mobile view", label: "Phone", icon: "mobile", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.activeMobile as Doc },
             { title: "Drag an instance of the device collection", label: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
             // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
             // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
@@ -386,55 +389,53 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    // static setupMobileButtons(doc: Doc, buttons?: string[]) {
-    //     const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-    //         { title: "record", icon: "microphone", ignoreClick: true, click: "FILL" },
-    //         { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
-    //         { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
-    //         { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
-    //         { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
-    //         // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "red", activePen: doc },
-    //         { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
-    //         // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
-    //     ];
-    //     return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
-    //         _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
-    //         onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-    //         ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen,
-    //         backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
-    //     }));
+    // static setupActiveMobile(doc: Doc) {
+    //     if (doc.activeMobile === undefined) {
+    //         doc.activeMobile = CurrentUserUtils.setupMobileMenu();
+    //     }
     // }
 
-    static setupMobileButtons(doc?: Doc, buttons?: string[]) {
-        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-            { title: "library", icon: "bars", click: 'switchToLibrary()', backgroundColor: "lightgrey" },
-            { title: "record", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey" },
-            { title: "upload", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "lightgrey" },
-            { title: "presentation", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "lightgrey" },
-            { title: "ink", icon: "pen-nib", backgroundColor: "lightgrey" },
-            { title: "settings", icon: "cog", click: 'openMobileSettings()', backgroundColor: "lightgrey" }
-        ];
-        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
-            _nativeWidth: 150, _nativeHeight: 150, _width: 150, _height: 150,
-            dropAction: undefined,
-            title: data.title,
-            icon: data.icon,
-            ignoreClick: data.ignoreClick,
-            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
-            onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined,
-            activePen: data.activePen,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]),
-            dragFactory: data.dragFactory,
-        }));
-    }
-
     static setupMobileMenu() {
-        const menu = Cast(Docs.Create.StackingDocument(CurrentUserUtils.setupMobileButtons2(), {
-            _width: 980, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "home", _autoHeight: true, _yMargin: 80
+        const menu = Cast(Docs.Create.StackingDocument(CurrentUserUtils.setupMobileButtons(), {
+            _width: 980, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "home", _yMargin: 100
         }), Doc) as Doc;
         return menu;
     }
+
+    static setupMobileButtons(doc?: Doc, buttons?: string[]) {
+        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
+            { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections" },
+            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your mobile to record audio and access it on Dash Web." },
+            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
+            { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
+            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security" }
+        ];
+        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => this.mobileButton({ title: data.title, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined, _backgroundColor: data.backgroundColor }, [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])]));
+    }
+
+    static mobileButton = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MulticolumnDocument(docs, {
+        ...opts,
+        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
+        borderRounding: "5px", boxShadow: "0 0", _chromeStatus: "disabled",
+    })) as any as Doc
+
+    static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MultirowDocument(docs, {
+        ...opts,
+        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
+        backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled", ignoreClick: true
+    })) as any as Doc
+
+
+    static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonTitle, {
+        ...opts,
+        dropAction: undefined, title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
+    })) as any as Doc
+
+    static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonInfo, {
+        ...opts,
+        dropAction: undefined, title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
+    })) as any as Doc
+
 
     static setupThumbButtons(doc: Doc) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, pointerDown?: string, pointerUp?: string, ischecked?: string, clipboard?: Doc, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
@@ -643,42 +644,6 @@ export class CurrentUserUtils {
         dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
     })) as any as Doc
 
-    static setupMobileButtons2(doc?: Doc, buttons?: string[]) {
-        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections" },
-            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your mobile to record audio and access it on Dash Web." },
-            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
-            { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
-            // { title: "INK", icon: "pen-nib", backgroundColor: "lightgrey", info: "Doodle and draw with ink on your mobile and have it directly available on Dash Web" },
-            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security" }
-        ];
-        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => this.mobileButton({ title: data.title, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined, _backgroundColor: data.backgroundColor }, [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])]));
-    }
-
-    static mobileButton = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MulticolumnDocument(docs, {
-        ...opts,
-        dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
-        borderRounding: "5px", boxShadow: "0 0", _chromeStatus: "disabled",
-    })) as any as Doc
-
-    static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MultirowDocument(docs, {
-        ...opts,
-        dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
-        backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled",
-    })) as any as Doc
-
-
-    static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonTitle, {
-        ...opts,
-        title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
-    })) as any as Doc
-
-    static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonInfo, {
-        ...opts,
-        title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
-    })) as any as Doc
-
-
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-pen"] === undefined) {
@@ -716,7 +681,7 @@ export class CurrentUserUtils {
 
     static setupRightSidebar(doc: Doc) {
         if (doc.rightSidebarCollection === undefined) {
-            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Right Sidebar" }));
+            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
         }
     }
 
@@ -771,6 +736,7 @@ export class CurrentUserUtils {
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        // this.setupActiveMobile(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
