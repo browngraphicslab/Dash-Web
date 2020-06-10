@@ -21,6 +21,7 @@ interface GridProps {
     childrenDraggable: boolean;
     preventCollision: boolean;
     compactType: string;
+    margin: number;
 }
 
 /**
@@ -47,6 +48,7 @@ export default class Grid extends React.Component<GridProps> {
                 preventCollision={this.props.preventCollision}
                 transformScale={1 / this.props.transformScale} // still doesn't work :(
                 style={{ zIndex: 5 }}
+                margin={[this.props.margin, this.props.margin]}
             >
                 {this.props.nodeList}
             </GridLayout>

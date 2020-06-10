@@ -1,4 +1,4 @@
-import { computed, observable, Lambda, action, autorun } from 'mobx';
+import { computed, observable, Lambda, action, reaction } from 'mobx';
 import * as React from "react";
 import { Doc, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
@@ -9,7 +9,7 @@ import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from '../CollectionSubView';
 import { SubCollectionViewProps } from '../CollectionSubView';
-import { returnZero, returnFalse } from '../../../../Utils';
+import { returnZero } from '../../../../Utils';
 import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
@@ -18,7 +18,8 @@ import { Docs } from '../../../documents/Documents';
 import { EditableView, EditableProps } from '../../EditableView';
 import "./CollectionGridView.scss";
 import { ContextMenu } from '../../ContextMenu';
-import { ScriptField } from '../../../../fields/ScriptField';
+import { List } from '../../../../fields/List';
+import { ContextMenuProps } from '../../ContextMenuItem';
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
@@ -48,8 +49,16 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         // determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
         this.props.Document.preventCollision = BoolCast(this.props.Document.preventCollision, false);
 
+        this.props.Document.defaultW = NumCast(this.props.Document.defaultW, 2);
+        this.props.Document.defaultH = NumCast(this.props.Document.defaultH, 2);
+
+        this.props.Document.margin = NumCast(this.props.Document.margin, 10);
+
+        this.props.Document.display = StrCast(this.props.Document.display, "contents");
+
         this.setLayout = this.setLayout.bind(this);
         this.onSliderChange = this.onSliderChange.bind(this);
+        this.onContextMenu = this.onContextMenu.bind(this);
 
         this.containerRef = React.createRef();
     }
@@ -65,6 +74,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
             // if grid view has been opened and then exited and a document has been deleted
             // this deletes the layout of that document from the layouts list
+
             if (!oldValue && newValue.length) {
                 layouts.forEach(({ i }, index) => {
                     const targetId = i;
@@ -76,16 +86,15 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
             if (!oldValue || newValue.length > oldValue.length) {
                 // for each document that was added, add a corresponding grid layout object
-
                 newValue.forEach(({ layout }, i) => {
                     const targetId = layout[Id];
                     if (!layouts.find((gridLayout: Layout) => gridLayout.i === targetId)) {
                         layouts.push({
                             i: targetId,
-                            w: 2,
-                            h: 2,
-                            x: 2 * (i % Math.floor(NumCast(this.props.Document.numCols) / 2)),
-                            y: 2 * Math.floor(i / Math.floor(NumCast(this.props.Document.numCols) / 2)),
+                            w: this.defaultW,
+                            h: this.defaultH,
+                            x: this.defaultW * (i % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW)),
+                            y: this.defaultH * Math.floor(i / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH)),
                             static: !this.props.Document.flexGrid
                         });
                     }
@@ -104,24 +113,19 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         }, true);
 
         // updates the layouts if the reset button has been clicked
-        this.resetListenerDisposer = autorun(() => {
-            if (this.props.Document.resetLayout) {
-                if (this.props.Document.flexGrid) {
-                    console.log("Resetting layout");
-                    const layouts: Layout[] = this.parsedLayoutList;
-
-                    this.setLayout(
-                        layouts.map(({ i }, index) => ({
-                            i: i,
-                            x: 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2)),
-                            y: 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2)),
-                            w: 2,
-                            h: 2,
-                        })));
-                }
-
-                this.props.Document.resetLayout = false;
+        this.resetListenerDisposer = reaction(() => this.props.Document.resetLayout, () => {
+            if (this.props.Document.flexGrid) {
+                const layouts: Layout[] = this.parsedLayoutList;
+                this.setLayout(
+                    layouts.map(({ i }, index) => ({
+                        i: i,
+                        x: this.defaultW * (index % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW)),
+                        y: this.defaultH * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH)),
+                        w: this.defaultW,
+                        h: this.defaultH,
+                    })));
             }
+            this.props.Document.resetLayout = false;
         });
     }
 
@@ -142,16 +146,28 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         const index = this.childLayoutPairs.findIndex(({ layout: layoutDoc }) => layoutDoc[Id] === layout.i);
 
         // translations depend on whether the grid is flexible or static
-        const yTranslation = (this.props.Document.flexGrid ? NumCast(layout.y) : 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2))) * this.rowHeightPlusGap + 10 - this._scroll + 30; // 30 is the height of the add text doc bar
-        const xTranslation = (this.props.Document.flexGrid ? NumCast(layout.x) : 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2))) * this.colWidthPlusGap + 10;
+        const xTranslation = (this.props.Document.flexGrid ? NumCast(layout.x) : this.defaultW * (index % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW))) * this.colWidthPlusGap + this.margin;
+        const yTranslation = (this.props.Document.flexGrid ? NumCast(layout.y) : this.defaultH * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH))) * this.rowHeightPlusGap + this.margin - this._scroll + 30; // 30 is the height of the add text doc bar
 
         return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
     }
-    // is this needed? it seems to never be called
+
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
-    @computed get colWidthPlusGap() { return (this.props.PanelWidth() - 10) / NumCast(this.props.Document.numCols); }
-    @computed get rowHeightPlusGap() { return NumCast(this.props.Document.rowHeight) + 10; }
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
+
+    @computed get colWidthPlusGap() { return (this.props.PanelWidth() - this.margin) / NumCast(this.props.Document.numCols); }
+    @computed get rowHeightPlusGap() { return NumCast(this.props.Document.rowHeight) + this.margin; }
+
+    @computed get margin() { return NumCast(this.props.Document.margin); }
+    @computed get defaultW() { return NumCast(this.props.Document.defaultW); }
+    @computed get defaultH() { return NumCast(this.props.Document.defaultH); }
 
     /**
      * @returns the layout list converted from JSON
@@ -169,9 +185,10 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         // sometimes there are issues with rendering when you switch from a different view
         // where the nodes are all squeezed together on the left hand side of the screen
         // until you click on the screen or close the chrome or interact with it in some way
+        // the component doesn't rerender when the component mounts
         // this seems to fix that though it isn't very elegant
 
-        console.log("setting unstringified")
+        console.log("setting unstringified");
         this.mounted && (this.props.Document.gridLayoutString = "");
         this.props.Document.gridLayoutString = JSON.stringify(layouts);
         this.mounted = false;
@@ -182,31 +199,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * Sets the width of the decorating box.
      * @param layout 
      */
-    @observable private width = (layout: Layout) => (this.props.Document.flexGrid ? layout.w : 2) * this.colWidthPlusGap - 10;
+    @observable private width = (layout: Layout) => (this.props.Document.flexGrid ? layout.w : this.defaultW) * this.colWidthPlusGap - this.margin;
 
     /**
      * Sets the height of the decorating box.
      * @param layout
      */
-    @observable private height = (layout: Layout) => (this.props.Document.flexGrid ? layout.h : 2) * this.rowHeightPlusGap - 10;
-
-    contextMenuItems = (layoutDoc: Doc) => {
-        const layouts: Layout[] = this.parsedLayoutList;
-        const freezeScript = ScriptField.MakeFunction(
-            // "layouts.find(({ i }) => i === layoutDoc[Id]).static=true;" +
-            // "this.unStringifiedLayoutList = layouts;" +
-            "console.log(doc)", { doc: Doc.name }
-        );
-
-        // const layouts: Layout[] = this.parsedLayoutList;
-
-        // const layoutToChange = layouts.find(({ i }) => i === layoutDoc[Id]);
-        // layoutToChange!.static = !layoutToChange!.static;
-
-        // this.unStringifiedLayoutList = layouts;
-
-        return [{ script: freezeScript!, label: "testing" }];
-    }
+    @observable private height = (layout: Layout) => (this.props.Document.flexGrid ? layout.h : this.defaultH) * this.rowHeightPlusGap - this.margin;
 
     /**
      * 
@@ -223,7 +222,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             DataDoc={layout.resolvedDataDoc as Doc}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
-            addDocTab={returnFalse}
+            addDocTab={this.addDocTab}
             backgroundColor={this.props.backgroundColor}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
@@ -232,8 +231,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            display={"contents"}
-            contextMenuItems={() => this.contextMenuItems(layout)}
+            display={StrCast(this.props.Document.display)}
         />;
     }
 
@@ -292,7 +290,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             collector.push(
                 <div className={this.props.Document.flexGrid && (this.props.isSelected() ? true : false) ? "document-wrapper" : "document-wrapper static"}
                     key={gridLayout.i}
-                // onContextMenu={() => ContextMenu.Instance.addItem({ description: "test", event: () => console.log("test"), icon: "rainbow" })}
                 >
                     {this.getDisplayDoc(layout, dxf, width, height)}
                 </div >
@@ -310,21 +307,22 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         console.log("getting layoutlist");
         const layouts: Layout[] = this.parsedLayoutList;
 
+
         return this.props.Document.flexGrid ?
-            layouts.map(({ i, x, y, w, h, static: staticVal }) => ({
+            layouts.map(({ i, x, y, w, h }) => ({
                 i: i,
                 x: x + w > NumCast(this.props.Document.numCols) ? 0 : x, // handles wrapping around of nodes when numCols decreases
                 y: y,
                 w: w > NumCast(this.props.Document.numCols) ? NumCast(this.props.Document.numCols) : w, // reduces width if greater than numCols
                 h: h,
-                static: staticVal // only needed if we implement freeze in place
+                static: BoolCast(this.childLayoutPairs.find(({ layout }) => layout[Id] === i)?.layout.lockedPosition, false) // checks if the lock position item has been selected in the context menu
             }))
             : layouts.map(({ i }, index) => ({
                 i: i,
-                x: 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2)),
-                y: 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2)),
-                w: 2,
-                h: 2,
+                x: this.defaultW * (index % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW)),
+                y: this.defaultH * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH)),
+                w: this.defaultW,
+                h: this.defaultH,
                 static: true
             }));
     }
@@ -357,6 +355,14 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @undoBatch @action addTextDocument = (value: string) => this.props.addDocument(Docs.Create.TextDocument(value, { title: value }));
 
+    onContextMenu = () => {
+        const displayOptionsMenu: ContextMenuProps[] = [];
+        displayOptionsMenu.push({ description: "Contents", event: () => this.props.Document.display = "contents", icon: "copy" });
+        displayOptionsMenu.push({ description: "Undefined", event: () => this.props.Document.display = undefined, icon: "exclamation" });
+
+        ContextMenu.Instance.addItem({ description: "Display", subitems: displayOptionsMenu, icon: "tv" });
+    }
+
     render() {
 
         console.log("and render");
@@ -376,7 +382,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 style={{
                     pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
-                // onContextMenu={() => ContextMenu.Instance.addItem({ description: "test", event: () => console.log("test"), icon: "rainbow" })}
+                onContextMenu={this.onContextMenu}
                 ref={this.createDashEventsTarget}
                 onPointerDown={e => {
                     if (this.props.active(true)) {
@@ -417,6 +423,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         transformScale={this.props.ScreenToLocalTransform().Scale}
                         compactType={StrCast(this.props.Document.compactType)}
                         preventCollision={BoolCast(this.props.Document.preventCollision)}
+                        margin={this.margin}
                     />
 
                 </div>
