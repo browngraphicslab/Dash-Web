@@ -688,7 +688,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
                 </span> */}
                 <span className="grid-control" style={{ width: "20%" }}>
-                    <input type="checkbox" onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.preventCollision} />
+                    <input type="checkbox" style={{ marginRight: 5 }} onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.preventCollision} />
                     <label className="flexLabel">Collisions</label>
                 </span>
 
@@ -711,6 +711,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
                     <label className="flexLabel">Flexible</label>
                 </span>
+
+                <button onClick={() => this.props.CollectionView.props.Document.resetLayout = true}>Reset</button>
+
             </div>
         );
     }

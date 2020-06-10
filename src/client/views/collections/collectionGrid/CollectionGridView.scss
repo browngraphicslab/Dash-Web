@@ -14,14 +14,22 @@
         display: flex;
         flex-direction: row;
 
-        .rowHeightSlider {
+        .react-grid-item>.react-resizable-handle {
+            z-index: 4; // doesn't work on prezi otherwise
+        }
 
+        .react-grid-item>.react-resizable-handle::after {
+            // grey so it can be seen on the audiobox
+            border-right: 2px solid slategrey;
+            border-bottom: 2px solid slategrey;
+        }
+
+        .rowHeightSlider {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
             height: 15px;
             background: #d3d3d3;
-            // border-radius: 5px;
 
             position: absolute;
             height: 3;
@@ -116,7 +124,6 @@
 
 }
 
-
 // .documentDecorations-container .documentDecorations-resizer {
 //     pointer-events: none;
 // }
@@ -128,7 +135,6 @@
 //     visibility: collapse;
 // }
 
-// .collectionGridView-contents
 
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,

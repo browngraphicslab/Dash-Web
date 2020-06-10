@@ -30,6 +30,7 @@ interface GridProps {
 export default class Grid extends React.Component<GridProps> {
 
     render() {
+        console.log(this.props.transformScale);
         const compactType = this.props.compactType === "vertical" || this.props.compactType === "horizontal" ? this.props.compactType : null;
         return (
             <GridLayout className="layout"
@@ -44,11 +45,11 @@ export default class Grid extends React.Component<GridProps> {
                 useCSSTransforms={true}
                 onLayoutChange={this.props.setLayout}
                 preventCollision={this.props.preventCollision}
-                transformScale={this.props.transformScale} // still doesn't work :(
+                transformScale={1 / this.props.transformScale} // still doesn't work :(
                 style={{ zIndex: 5 }}
             >
                 {this.props.nodeList}
-            </GridLayout >
+            </GridLayout>
         );
     }
 }
