@@ -10,6 +10,8 @@ export { ts };
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d';
 import { Doc, Field } from '../../fields/Doc';
+import { Cast } from "../../fields/Types";
+import { listSpec } from "../../fields/Schema";
 
 export interface ScriptSucccess {
     success: true;
@@ -69,6 +71,7 @@ export namespace Scripting {
                 if (third !== undefined) {
                     obj.push(third);
                 }
+                n = first.name;
             }
         } else if (first && typeof first.name === "string") {
             n = first.name;
@@ -162,6 +165,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             }
             return { success: true, result };
         } catch (error) {
+
             if (batch) {
                 batch.end();
             }

@@ -22,7 +22,6 @@ const _global = (window /* browser */ || global /* node */) as any;
 
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
 import "@webscopeio/react-textarea-autocomplete/style.css";
-//import { ScriptManager } from "../../util/ScriptManager";
 
 
 const ScriptingSchema = createSchema({});
@@ -240,6 +239,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     onCreate = () => {
 
+        this._errorMessage = "";
+
         if (this.functionName.length === 0) {
             this._errorMessage = "Must enter a function name";
             return false;
@@ -321,12 +322,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             />;
 
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected() && e.stopPropagation()} >
-            <div className="scriptingBox-wrapper">
-                <div className="container">
-                    <div style={{ textAlign: "center", display: "inline-block" }}> Enter a name for this function: </div>
-                    <div> {nameInput}</div>
-                    <div style={{ textAlign: "center", display: "inline-block" }}> Enter a description of this function: </div>
-                    <div>{descriptionInput}</div>
+            <div className="scriptingBox-wrapper" style={{ maxWidth: "100%" }}>
+                <div className="container" style={{ maxWidth: "100%" }}>
+                    <div className="descriptor" style={{ textAlign: "center", display: "inline-block", maxWidth: "100%" }}> Enter a function name: </div>
+                    <div style={{ maxWidth: "100%" }}> {nameInput}</div>
+                    <div className="descriptor" style={{ textAlign: "center", display: "inline-block", maxWidth: "100%" }}> Enter a function description: </div>
+                    <div style={{ maxWidth: "100%" }}>{descriptionInput}</div>
                 </div>
             </div>
             {this.renderErrorMessage()}
