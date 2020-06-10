@@ -5,7 +5,7 @@ import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
 import { observer } from 'mobx-react';
-import { observable } from 'mobx';
+import { observable, action } from 'mobx';
 import { Utils } from '../Utils';
 import { Networking } from '../client/Network';
 import { Doc, Opt } from '../fields/Doc';
@@ -28,9 +28,10 @@ export interface ImageUploadProps {
 const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
-export class Uploader extends React.Component<ImageUploadProps> {
+export class Uploader extends React.Component {
     @observable error: string = "";
     @observable status: string = "";
+    @observable nm: string = "Choose an image";
 
     onClick = async () => {
         console.log("uploader click");
@@ -102,14 +103,17 @@ export class Uploader extends React.Component<ImageUploadProps> {
                             if (slab7) {
                                 slab7.style.opacity = "1";
                             }
+                            setTimeout(this.clearUpload, 3000);
                         }
 
                     });
                 }
+
             }
         } catch (error) {
             this.error = JSON.stringify(error);
         }
+
     }
 
     // Updates label after a files is selected (so user knows a file is uploaded)
@@ -118,16 +122,66 @@ export class Uploader extends React.Component<ImageUploadProps> {
         await files;
         var inputs = document.querySelectorAll('.inputFile');
         const label = document.getElementById("label");
-        if (files && label) {
-            label.innerText = files[0].name;
+        if (files && label && files.length !== 0) {
+            label.innerText = await files[0].name;
+            setTimeout(this.updateName, 1000);
         }
     }
+
+    @action
+    updateName = () => {
+        const label = document.getElementById("label");
+        if (label) {
+            this.nm = label.innerText;
+
+        }
+        console.log("lol");
+    }
+
+    @action
+    clearUpload = () => {
+        const slab1 = document.getElementById("slab1");
+        if (slab1) {
+            slab1.style.opacity = "0.4";
+        }
+        const slab2 = document.getElementById("slab2");
+        if (slab2) {
+            slab2.style.opacity = "0.4";
+        }
+        const slab3 = document.getElementById("slab3");
+        if (slab3) {
+            slab3.style.opacity = "0.4";
+        }
+        const slab4 = document.getElementById("slab4");
+        if (slab4) {
+            slab4.style.opacity = "0.4";
+        }
+        const slab5 = document.getElementById("slab5");
+        if (slab5) {
+            slab5.style.opacity = "0.4";
+        }
+        const slab6 = document.getElementById("slab6");
+        if (slab6) {
+            slab6.style.opacity = "0.4";
+        }
+        const slab7 = document.getElementById("slab7");
+        if (slab7) {
+            slab7.style.opacity = "0.4";
+        }
+
+        const label = document.getElementById("label");
+        if (label) {
+            label.innerText = "Choose an image"
+            this.nm = "Choose an image";
+        }
+    }
+
 
     private get uploadInterface() {
         return (
             <div className="imgupload_cont">
                 <input type="file" accept="image/*" className="inputFile" id="input_image_file" onClick={this.inputLabel} ref={inputRef}></input>
-                <label id="label" htmlFor="input_image_file">Choose an image</label>
+                <label id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>Upload Image</div>
                 {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>

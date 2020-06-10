@@ -955,6 +955,7 @@ export class MobileInterface extends React.Component {
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;
     @observable private sidebarActive: boolean = false;
+    @observable private imageUploadActive: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc;
     public _homeDoc: Doc = this.mainDoc;
@@ -1723,14 +1724,14 @@ export class MobileInterface extends React.Component {
         );
     }
 
-    @observable private imageUploadActive: boolean = false;
-
     @action
     toggleUpload = () => this.imageUploadActive = !this.imageUploadActive
+
 
     @action
     closeUpload = () => {
         this.imageUploadActive = false;
+        console.log("1dude");
     }
 
     // toggleUpload = () => {
@@ -1754,7 +1755,7 @@ export class MobileInterface extends React.Component {
                 <div className="closeUpload" onClick={this.toggleUpload}>
                     <FontAwesomeIcon icon="window-close" size={"lg"} />
                 </div>
-                <Uploader Document={workspaces} />
+                <Uploader />
             </div>
         );
     }
