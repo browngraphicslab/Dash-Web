@@ -96,10 +96,8 @@ export namespace Scripting {
 
     export function removeGlobal(name: string) {
         if (getGlobals().includes(name)) {
-            //if (_scriptingGlobals.container[name]) {
-            delete _scriptingGlobals.container[name];
+            delete _scriptingGlobals[name];
             return true;
-            //}
         }
         return false;
     }
