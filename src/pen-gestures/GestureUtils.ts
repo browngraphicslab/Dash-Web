@@ -1,12 +1,6 @@
-import { NDollarRecognizer } from "./ndollar";
-import { Type } from "typescript";
-import { InkField, PointData } from "../fields/InkField";
-import { Docs } from "../client/documents/Documents";
-import { Doc, WidthSym, HeightSym } from "../fields/Doc";
-import { NumCast } from "../fields/Types";
-import { CollectionFreeFormView } from "../client/views/collections/collectionFreeForm/CollectionFreeFormView";
 import { Rect } from "react-measure";
-import { Scripting } from "../client/util/Scripting";
+import { PointData } from "../fields/InkField";
+import { NDollarRecognizer } from "./ndollar";
 
 export namespace GestureUtils {
     export class GestureEvent {
@@ -39,7 +33,10 @@ export namespace GestureUtils {
         EndBracket = "endbracket",
         Stroke = "stroke",
         Scribble = "scribble",
-        Text = "text"
+        Text = "text",
+        Triangle = "triangle",
+        Circle = "circle",
+        Rectangle = "rectangle",
     }
 
     export const GestureRecognizer = new NDollarRecognizer(false);

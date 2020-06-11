@@ -1,43 +1,35 @@
 import React = require("react");
-import { Touchable } from "./Touchable";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import "./GestureOverlay.scss";
-import { computed, observable, action, runInAction, IReactionDisposer, reaction, flow, trace } from "mobx";
-import { GestureUtils } from "../../pen-gestures/GestureUtils";
-import { InteractionUtils } from "../util/InteractionUtils";
-import { InkingControl } from "./InkingControl";
-import { InkTool, InkData } from "../../fields/InkField";
 import { Doc } from "../../fields/Doc";
-import { LinkManager } from "../util/LinkManager";
-import { DocUtils, Docs } from "../documents/Documents";
-import { undoBatch } from "../util/UndoManager";
-import { Scripting } from "../util/Scripting";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../fields/Types";
-import { CurrentUserUtils } from "../util/CurrentUserUtils";
-import HorizontalPalette from "./Palette";
-import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
-import { DocumentView } from "./nodes/DocumentView";
-import { Transform } from "../util/Transform";
-import { DocumentContentsView } from "./nodes/DocumentContentsView";
+import { InkData, InkTool } from "../../fields/InkField";
+import { Cast, FieldValue, NumCast } from "../../fields/Types";
+import MobileInkOverlay from "../../mobile/MobileInkOverlay";
+import { GestureUtils } from "../../pen-gestures/GestureUtils";
+import { MobileInkOverlayContent } from "../../server/Message";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocServer } from "../DocServer";
-import htmlToImage from "html-to-image";
-import { ScriptField } from "../../fields/ScriptField";
-import { listSpec } from "../../fields/Schema";
-import { List } from "../../fields/List";
-import { CollectionViewType } from "./collections/CollectionView";
+import { DocUtils } from "../documents/Documents";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { InteractionUtils } from "../util/InteractionUtils";
+import { LinkManager } from "../util/LinkManager";
+import { Scripting } from "../util/Scripting";
+import { Transform } from "../util/Transform";
+import "./GestureOverlay.scss";
+import { ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke, SetActiveInkColor, SetActiveInkWidth } from "./InkingStroke";
+import { DocumentView } from "./nodes/DocumentView";
+import { RadialMenu } from "./nodes/RadialMenu";
+import HorizontalPalette from "./Palette";
+import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import { MobileInterface } from "../../mobile/MobileInterface";
-import { MobileInkOverlayContent } from "../../server/Message";
-import MobileInkOverlay from "../../mobile/MobileInkOverlay";
-import { RadialMenu } from "./nodes/RadialMenu";
-import { SelectionManager } from "../util/SelectionManager";
-
 
 @observer
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
+    @observable public InkShape: string = "";
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
@@ -499,7 +491,7 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
@@ -513,7 +505,7 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerMove = (e: PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
@@ -581,14 +573,14 @@ export default class GestureOverlay extends Touchable {
         if (this._points.length > 1) {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
-
+            //push first points to so interactionUtil knows pointer is up
+            this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
             if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
-                const { selectedColor, selectedWidth } = InkingControl.Instance;
                 DocServer.Mobile.dispatchGesturePoints({
                     points: this._points,
                     bounds: B,
-                    color: selectedColor,
-                    width: selectedWidth
+                    color: ActiveInkColor(),
+                    width: ActiveInkWidth()
                 });
             }
 
@@ -630,6 +622,13 @@ export default class GestureOverlay extends Touchable {
                         break;
                 }
             }
+            //if any of the shape is activated in the InkOptionsMenu
+            else if (this.InkShape) {
+                this.makePolygon(this.InkShape, false);
+                this.dispatchGesture(GestureUtils.Gestures.Stroke);
+                this._points = [];
+                this.InkShape = "";
+            }
             // if we're not drawing in a toolglass try to recognize as gesture
             else {
                 const result = points.length > 2 && GestureUtils.GestureRecognizer.Recognize(new Array(points));
@@ -651,6 +650,15 @@ export default class GestureOverlay extends Touchable {
                         case GestureUtils.Gestures.Line:
                             actionPerformed = this.handleLineGesture();
                             break;
+                        case GestureUtils.Gestures.Triangle:
+                            this.makePolygon("triangle", true);
+                            break;
+                        case GestureUtils.Gestures.Circle:
+                            this.makePolygon("circle", true);
+                            break;
+                        case GestureUtils.Gestures.Rectangle:
+                            this.makePolygon("rectangle", true);
+                            break;
                         case GestureUtils.Gestures.Scribble:
                             console.log("scribble");
                             break;
@@ -666,9 +674,100 @@ export default class GestureOverlay extends Touchable {
                     this._points = [];
                 }
             }
+        } else {
+            this._points = [];
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    makePolygon = (shape: string, gesture: boolean) => {
+        const xs = this._points.map(p => p.X);
+        const ys = this._points.map(p => p.Y);
+        var right = Math.max(...xs);
+        var left = Math.min(...xs);
+        var bottom = Math.max(...ys);
+        var top = Math.min(...ys);
+
+        if (!gesture) {
+            //if shape options is activated in inkOptionMenu
+            //take second to last point because _point[length-1] is _points[0]
+            right = this._points[this._points.length - 2].X;
+            left = this._points[0].X;
+            bottom = this._points[this._points.length - 2].Y;
+            top = this._points[0].Y;
+            if (shape !== "arrow" && shape !== "line") {
+                if (left > right) {
+                    const temp = right;
+                    right = left;
+                    left = temp;
+                }
+                if (top > bottom) {
+                    const temp = top;
+                    top = bottom;
+                    bottom = temp;
+                }
+            }
+        }
+        this._points = [];
+        switch (shape) {
+            //must push an extra point in the end so InteractionUtils knows pointer is up.
+            //must be (points[0].X,points[0]-1) 
+            case "rectangle":
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: left, Y: top - 1 });
+                break;
+            case "triangle":
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom - 1 });
+                break;
+            case "circle":
+                const centerX = (right + left) / 2;
+                const centerY = (bottom + top) / 2;
+                const radius = bottom - centerY;
+                for (var y = top; y < bottom; y++) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    this._points.push({ X: x, Y: y });
+                }
+                for (var y = bottom; y > top; y--) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    const newX = centerX - (x - centerX);
+                    this._points.push({ X: newX, Y: y });
+                }
+                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+                break;
+            case "line":
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom - 1 });
+                break;
+            case "arrow":
+                const x1 = left;
+                const y1 = top;
+                const x2 = right;
+                const y2 = bottom;
+                const L1 = Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + (Math.pow(Math.abs(y1 - y2), 2)));
+                const L2 = L1 / 5;
+                const angle = 0.785398;
+                const x3 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) + (y1 - y2) * Math.sin(angle));
+                const y3 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) - (x1 - x2) * Math.sin(angle));
+                const x4 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) - (y1 - y2) * Math.sin(angle));
+                const y4 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) + (x1 - x2) * Math.sin(angle));
+                this._points.push({ X: x1, Y: y1 });
+                this._points.push({ X: x2, Y: y2 });
+                this._points.push({ X: x3, Y: y3 });
+                this._points.push({ X: x4, Y: y4 });
+                this._points.push({ X: x2, Y: y2 });
+                this._points.push({ X: x1, Y: y1 - 1 });
+        }
     }
 
     dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
@@ -710,11 +809,11 @@ export default class GestureOverlay extends Touchable {
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
                 return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape)}
                 </svg>;
             }),
             this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape)}
             </svg>]
         ];
     }
@@ -804,16 +903,16 @@ Scripting.addGlobal(function setToolglass(tool: any) {
 });
 Scripting.addGlobal(function setPen(width: any, color: any) {
     runInAction(() => {
-        GestureOverlay.Instance.SavedColor = InkingControl.Instance.selectedColor;
-        InkingControl.Instance.updateSelectedColor(color);
-        GestureOverlay.Instance.SavedWidth = InkingControl.Instance.selectedWidth;
-        InkingControl.Instance.switchWidth(width);
+        GestureOverlay.Instance.SavedColor = ActiveInkColor();
+        SetActiveInkColor(color);
+        GestureOverlay.Instance.SavedWidth = ActiveInkWidth();
+        SetActiveInkWidth(width);
     });
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        InkingControl.Instance.updateSelectedColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
-        InkingControl.Instance.switchWidth(GestureOverlay.Instance.SavedWidth ?? "2");
+        SetActiveInkColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
+        SetActiveInkWidth(GestureOverlay.Instance.SavedWidth ?? "2");
     });
 });
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {

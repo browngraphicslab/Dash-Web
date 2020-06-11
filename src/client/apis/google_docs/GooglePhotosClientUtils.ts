@@ -8,7 +8,7 @@ import { Cast, StrCast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { MediaItem, NewMediaItemResult } from "../../../server/apis/google/SharedTypes";
 import { Utils } from "../../../Utils";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { Networking } from "../../Network";
 import { FormattedTextBox } from "../../views/nodes/formattedText/FormattedTextBox";
 import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
@@ -332,7 +332,7 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                await Doc.makeCustomViewClicked(target, Docs.Create.FreeformDocument);
+                await DocUtils.makeCustomViewClicked(target, Docs.Create.FreeformDocument);
                 media.push({ url, description });
             }
             if (media.length) {

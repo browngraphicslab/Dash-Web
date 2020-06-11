@@ -33,6 +33,7 @@ import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
+import InkOptionsMenu from './collections/collectionFreeForm/InkOptionsMenu';
 import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionView, CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
@@ -567,6 +568,7 @@ export class MainView extends React.Component {
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
+            <InkOptionsMenu />
             <RichTextMenu />
             <OverlayView />
             <TimelineMenu />

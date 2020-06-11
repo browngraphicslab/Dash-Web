@@ -18,7 +18,7 @@ import { ComputedField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../../../fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { CollectionViewType } from "../../collections/CollectionView";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
@@ -245,7 +245,7 @@ export class DashDocView {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && Doc.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && DocUtils.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });

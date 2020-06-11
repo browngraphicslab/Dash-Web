@@ -1,7 +1,7 @@
 import * as React from "react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTasks, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -22,7 +22,7 @@ import { Docs } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { Transform } from '../client/util/Transform';
-import { InkingControl } from '../client/views/InkingControl';
+// import { InkingControl } from '../client/views/InkingControl';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
 import "./MobileHome.scss";
@@ -38,8 +38,9 @@ import GestureOverlay from "../client/views/GestureOverlay";
 import { SelectionManager } from "../client/util/SelectionManager";
 import { SketchPicker } from "react-color";
 import { ScriptField } from "../fields/ScriptField";
+import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
 
-library.add(faTasks, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -950,12 +951,14 @@ export class MobileInterface extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // Sets up new mobile menu only if activeMobile already exists
+    // @observable private mainDoc: any = this.userDoc.activeMobile === undefined ? CurrentUserUtils.setupMobileMenu() : this.userDoc.activeMobile;
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu();
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;
     @observable private sidebarActive: boolean = false;
     @observable private imageUploadActive: boolean = false;
+    @observable private menuListView: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc;
     public _homeDoc: Doc = this.mainDoc;
@@ -971,7 +974,7 @@ export class MobileInterface extends React.Component {
     private _open: boolean = false;
 
     // private _library: Doc = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-    private _ink: boolean = false;
+    @observable private _ink: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -987,10 +990,8 @@ export class MobileInterface extends React.Component {
         if (this.userDoc && !this.mainContainer) {
             this.userDoc.activeMobile = this._homeDoc;
         }
-        InkingControl.Instance.switchTool(InkTool.None);
-        MobileInterface.Instance.drawingInk = false;
-        InkingControl.Instance.updateSelectedColor("#FF0000");
-        InkingControl.Instance.switchWidth("2");
+        this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
+        Doc.SetSelectedTool(InkTool.None);
         this.switchCurrentView((userDoc: Doc) => this._homeDoc);
     }
 
@@ -1449,7 +1450,8 @@ export class MobileInterface extends React.Component {
 
     colorTool = () => {
         if (this._activeDoc._viewType === "docking") {
-            const color = InkingControl.Instance.selectedColor;
+            // const color = InkingControl.Instance.selectedColor;
+            const color = "lightpink";
             const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
             return (
                 <div
@@ -1459,12 +1461,14 @@ export class MobileInterface extends React.Component {
                 >
                     <div className={`toolbar ${this.activeToolbar ? "active" : ""}`}>
                         <div className="colorSelector">
-                            <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
+                            {/* <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
                                 color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
-                                    StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
+                                StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} /> */}
+                            <InkOptionsMenu />
                         </div>
+
                         <div className="widthSelector">
-                            <input type="range" min="1" max="100" defaultValue="2" id="myRange" onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} />
+                            {/* <input type="range" min="1" max="100" defaultValue="2" id="myRange" onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} /> */}
                         </div>
                     </div>
                 </div>
@@ -1472,35 +1476,55 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    @action
     onSwitchInking = () => {
         const button = document.getElementById("inkButton") as HTMLElement;
-        const color = InkingControl.Instance.selectedColor;
+        // const color = InkingControl.Instance.selectedColor;
+        const color = "lightpink";
         button.style.backgroundColor = this._ink ? "white" : color;
         button.style.color = this._ink ? "black" : "white";
 
         if (!this._ink) {
             console.log("INK IS ACTIVE");
-            InkingControl.Instance.switchTool(InkTool.Pen);
-            MobileInterface.Instance.drawingInk = true;
+            // InkingControl.Instance.switchTool(InkTool.Pen);
+            Doc.SetSelectedTool(InkTool.Pen);
+            InkOptionsMenu.Instance.jumpTo(300, 300);
             this._ink = true;
         } else {
             console.log("INK IS INACTIVE");
-            InkingControl.Instance.switchTool(InkTool.None);
-            MobileInterface.Instance.drawingInk = false;
+            // InkingControl.Instance.switchTool(InkTool.None);
+            Doc.SetSelectedTool(InkTool.None);
+            InkOptionsMenu.Instance.fadeOut(true);
             this._ink = false;
+        }
+    }
+
+    inkMenu = () => {
+        if (this._activeDoc._viewType === "docking") {
+            if (this._ink) {
+                return <InkOptionsMenu />
+            }
         }
     }
 
     drawInk = () => {
         if (this._activeDoc._viewType === "docking") {
             const inkIsOn = this._ink;
-            return <div className="docButton"
-                id="inkButton"
-                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
-                onClick={this.onSwitchInking}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
-                />
-            </div>;
+            return (
+                <>
+                    <div className="docButton"
+                        id="inkButton"
+                        title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
+                        onClick={this.onSwitchInking}>
+                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
+                        />
+                    </div>
+                    {/* <div className={`colorMenu ${this._ink ? "active" : ""}`}>
+                        <InkOptionsMenu />
+                    </div> */}
+                    :
+
+                </>);
         }
     }
 
@@ -1566,7 +1590,7 @@ export class MobileInterface extends React.Component {
 
     onBack = (e: React.MouseEvent) => {
         this.switchCurrentView((userDoc: Doc) => this.mainDoc);
-        InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
+        Doc.SetSelectedTool(InkTool.None); // TODO: switch to previous tool
 
         DocServer.Mobile.dispatchOverlayTrigger({
             enableOverlay: false,
@@ -1668,6 +1692,63 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    switchMenuView = () => {
+        if (this._activeDoc.title === this._homeDoc.title) {
+            return (
+                <div className="homeSwitch">
+                    <div className={`list ${!this.menuListView ? "active" : ""}`} onClick={this.changeToIconView}>
+                        <FontAwesomeIcon size="sm" icon="th-large" />
+                    </div>
+                    <div className={`list ${this.menuListView ? "active" : ""}`} onClick={this.changeToListView}>
+                        <FontAwesomeIcon size="sm" icon="bars" />
+                    </div>
+                </div>
+            );
+        }
+    }
+
+    @action
+    changeToIconView = () => {
+        if (this._homeDoc._viewType = "stacking") {
+            this.menuListView = false;
+            this._homeDoc._viewType = "masonry";
+            this._homeDoc.columnWidth = 300;
+            const menuButtons = DocListCast(this._homeDoc.data);
+            console.log('hello');
+            menuButtons.map((doc: Doc, index: any) => {
+                console.log(index);
+                const buttonData = DocListCast(doc.data);
+                buttonData[1]._nativeWidth = 0.1;
+                buttonData[1]._width = 0.1;
+                buttonData[1]._dimMagnitude = 0;
+                buttonData[1]._opacity = 0;
+                console.log(buttonData);
+                console.log(doc._nativeWidth);
+                doc._nativeWidth = 400;
+                console.log(doc._nativeWidth);
+            });
+        }
+    }
+
+    @action
+    changeToListView = () => {
+        if (this._homeDoc._viewType = "masonry") {
+            this._homeDoc._viewType = "stacking";
+            this.menuListView = true;
+            const menuButtons = DocListCast(this._homeDoc.data);
+            console.log('hello');
+            menuButtons.map((doc: Doc, index: any) => {
+                const buttonData = DocListCast(doc.data);
+                buttonData[1]._nativeWidth = 450;
+                buttonData[1]._dimMagnitude = 2;
+                buttonData[1]._opacity = 1;
+                console.log(doc._nativeWidth);
+                doc._nativeWidth = 900;
+                console.log(doc._nativeWidth);
+            });
+        }
+    }
+
     setupDefaultPresentation = () => {
         if (this._activeDoc.title !== "Presentation") {
             this._parents.push(this._activeDoc);
@@ -1706,12 +1787,15 @@ export class MobileInterface extends React.Component {
                 <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
                     {this.uploadImage()}
                 </div>
+                {this.switchMenuView()}
                 <div className="docButtonContainer">
                     {this.pinToPresentation()}
                     {this.downloadDocument()}
                     {this.drawInk()}
                     {this.uploadAudioButton()}
-                    {this.colorTool()}
+                    {/* {this.colorTool()} */}
+                    {this.inkMenu()}
+                    <InkOptionsMenu />
                 </div>
                 <GestureOverlay>
                     {this.displayWorkspaces()}

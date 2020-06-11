@@ -42,9 +42,9 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         this.setOverviewWidth();
 
         this._authoringReaction = reaction(
-            () => this.props.parent._isAuthoring,
+            () => this.props.isAuthoring,
             () => {
-                if (!this.props.parent._isAuthoring) {
+                if (!this.props.isAuthoring) {
                     runInAction(() => {
                         this.setOverviewWidth();
                     });
