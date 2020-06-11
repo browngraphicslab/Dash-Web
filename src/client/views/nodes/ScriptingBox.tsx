@@ -247,13 +247,18 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             return false;
         }
 
-        this.dataDoc.funcName = this.functionName;
-        this.dataDoc.descripition = this.functionDescription;
+        this.dataDoc.name = this.functionName;
+        this.dataDoc.description = this.functionDescription;
+        //this.dataDoc.parameters = this.compileParams;
+        this.dataDoc.script = this.rawScript;
 
-        ScriptManager.Instance.deleteScript(this.dataDoc);
+        //ScriptManager.Instance.deleteScript(this.dataDoc);
         ScriptManager.Instance.addScript(this.dataDoc);
 
         console.log("created");
+
+        this._scriptKeys = Scripting.getGlobals();
+        this._scriptGlobals = Scripting.getGlobalObj();
     }
 
     // overlays document numbers (ex. d32) over all documents when clicked on

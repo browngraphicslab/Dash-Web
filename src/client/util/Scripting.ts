@@ -58,11 +58,8 @@ export namespace Scripting {
         let n: any;
         let obj: any;
 
-        console.log("adding global");
-
         if (second !== undefined) {
             if (typeof first === "string") {
-                console.log("name first");
                 n = first;
                 obj = second;
             } else {
@@ -71,6 +68,7 @@ export namespace Scripting {
                 if (third !== undefined) {
                     obj.push(third);
                 }
+                console.log("are we here");
                 n = first.name;
             }
         } else if (first && typeof first.name === "string") {
@@ -84,6 +82,7 @@ export namespace Scripting {
         } else if (_scriptingGlobals.hasOwnProperty(n)) {
             throw new Error(`Global with name ${n} is already registered, choose another name`);
         }
+        console.log(n);
         _scriptingGlobals[n] = obj;
     }
 
@@ -97,8 +96,10 @@ export namespace Scripting {
 
     export function removeGlobal(name: string) {
         if (getGlobals().includes(name)) {
+            //if (_scriptingGlobals.container[name]) {
             delete _scriptingGlobals.container[name];
             return true;
+            //}
         }
         return false;
     }
@@ -113,7 +114,7 @@ export namespace Scripting {
     }
 
     export function getGlobals() {
-        return Object.keys(scriptingGlobals);
+        return Object.keys(_scriptingGlobals);
     }
 
     export function getGlobalObj() {

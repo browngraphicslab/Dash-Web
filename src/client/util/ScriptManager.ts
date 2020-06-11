@@ -33,6 +33,7 @@ export class ScriptManager {
     }
 
     public addScript(scriptDoc: Doc): boolean {
+
         console.log("in add script method");
 
         const scriptList = this.getAllScripts();
@@ -50,8 +51,8 @@ export class ScriptManager {
 
         console.log("in delete script method");
 
-        if (scriptDoc.functionName) {
-            Scripting.removeGlobal(StrCast(scriptDoc.functionName));
+        if (scriptDoc.name) {
+            Scripting.removeGlobal(StrCast(scriptDoc.name));
         }
         const scriptList = this.getAllScripts();
         const index = scriptList.indexOf(scriptDoc);
@@ -67,9 +68,10 @@ export class ScriptManager {
 
     public static addScriptToGlobals(scriptDoc: Doc): void {
 
-        Scripting.removeGlobal(StrCast(scriptDoc.functionName));
+        Scripting.removeGlobal(StrCast(scriptDoc.name));
 
-        const params = Cast(scriptDoc.compileParams, listSpec("string"), []);
+        const params = Cast(scriptDoc["data-params"], listSpec("string"), []);
+        console.log(params);
         const paramNames = params.reduce((o: string, p: string) => {
             if (params.indexOf(p) === params.length - 1) {
                 o = o + p.split(":")[0].trim();
@@ -79,9 +81,11 @@ export class ScriptManager {
             return o;
         }, "" as string);
 
-        const f = new Function(paramNames, StrCast(scriptDoc.rawScript));
+        const f = new Function(paramNames, StrCast(scriptDoc.script));
 
-        Object.defineProperty(f, 'name', { value: StrCast(scriptDoc.functionName), writable: false });
+        console.log(scriptDoc.script);
+
+        Object.defineProperty(f, 'name', { value: StrCast(scriptDoc.name), writable: false });
 
         let parameters = "(";
         params.forEach((element: string, i: number) => {
@@ -93,9 +97,9 @@ export class ScriptManager {
         });
 
         if (parameters === "(") {
-            Scripting.addGlobal(f, StrCast(scriptDoc.functionDescription));
+            Scripting.addGlobal(f, StrCast(scriptDoc.description));
         } else {
-            Scripting.addGlobal(f, StrCast(scriptDoc.functionDescription), parameters);
+            Scripting.addGlobal(f, StrCast(scriptDoc.description), parameters);
         }
     }
 }
