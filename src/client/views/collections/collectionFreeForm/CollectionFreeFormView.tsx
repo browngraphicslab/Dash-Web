@@ -835,8 +835,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     bringToFront = action((doc: Doc, sendToBack?: boolean) => {
         if (sendToBack || doc.isBackground) {
             doc.zIndex = 0;
-        }
-        else {
+        } else if (doc.isInkMask) {
+            doc.zIndex = 5000;
+        } else {
             const docs = this.childLayoutPairs.map(pair => pair.layout);
             docs.slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
             let zlast = docs.length ? NumCast(docs[docs.length - 1].zIndex) : 1;

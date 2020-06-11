@@ -84,7 +84,7 @@ export const documentSchema = createSchema({
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 
     // drag drop properties
-    cantLeaveCollection: "boolean",// whether document can be dropped into a different collection
+    stayInCollection: "boolean",// whether document can be dropped into a different collection
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")
     targetDropAction: "string", // allows the target of a drop event to specify the dropAction ("alias", "copy", "move") NOTE: if the document is dropped within the same collection, the dropAction is coerced to 'move'

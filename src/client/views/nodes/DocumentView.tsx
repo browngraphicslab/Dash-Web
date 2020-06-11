@@ -1149,7 +1149,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
-        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
+        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
             id={this.props.Document[Id]}
