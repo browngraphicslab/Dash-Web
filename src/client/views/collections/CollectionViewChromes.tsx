@@ -1,8 +1,8 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, autorun, Lambda } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast, HeightSym } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -572,6 +572,22 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     private clicked: boolean = false;
     private entered: boolean = false;
     private decrementLimitReached: boolean = false;
+    @observable private resize = false;
+    private resizeListenerDisposer: Opt<Lambda>;
+
+    componentDidMount() {
+
+        runInAction(() => this.resize = this.props.CollectionView.props.PanelWidth() < 700);
+
+        // listener to reduce text on chrome resize (panel resize)
+        this.resizeListenerDisposer = computed(() => this.props.CollectionView.props.PanelWidth()).observe(({ newValue }) => {
+            runInAction(() => this.resize = newValue < 700);
+        });
+    }
+
+    componentWillUnmount() {
+        this.resizeListenerDisposer?.();
+    }
 
     /**
      * Sets the value of `numCols` on the grid's Document to the value entered.
@@ -673,7 +689,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     render() {
         return (
             <div className="collectionGridViewChrome-cont" >
-                <span className="grid-control">
+                <span className="grid-control" style={{ width: this.resize ? "25%" : "30%" }}>
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
@@ -687,9 +703,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     </span>
                     <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
                 </span> */}
-                <span className="grid-control" style={{ width: "20%" }}>
+                <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
                     <input type="checkbox" style={{ marginRight: 5 }} onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.preventCollision} />
-                    <label className="flexLabel">Collisions</label>
+                    <label className="flexLabel">{this.resize ? "Coll" : "Collisions"}</label>
                 </span>
 
                 <select className="collectionGridViewChrome-viewPicker"
@@ -702,17 +718,20 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                         <option className="collectionGridViewChrome-viewOption"
                             onPointerDown={stopPropagation}
                             value={type}>
-                            {"Compact: " + type}
+                            {this.resize ? type[0].toUpperCase() + type.substring(1) : "Compact: " + type}
                         </option>
                     )}
                 </select>
 
-                <span className="grid-control">
+                <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
                     <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
-                    <label className="flexLabel">Flexible</label>
+                    <label className="flexLabel">{this.resize ? "Flex" : "Flexible"}</label>
                 </span>
 
-                <button onClick={() => this.props.CollectionView.props.Document.resetLayout = true}>Reset</button>
+                <button onClick={() => this.props.CollectionView.props.Document.resetLayout = true}>
+                    {!this.resize ? "Reset" :
+                        <FontAwesomeIcon icon="redo-alt" size="1x" />}
+                </button>
 
             </div>
         );
