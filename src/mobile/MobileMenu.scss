@@ -211,7 +211,6 @@ body {
     z-index: 100;
 }
 
-
 .pathbar {
     position: absolute;
     top: 118px;
@@ -274,6 +273,7 @@ body {
     display: inline-flex;
     color: whitesmoke;
     text-align: center;
+    user-select: none;
     transform: translate(100px, 0px);
     font-size: 30px;
     padding: 10px;

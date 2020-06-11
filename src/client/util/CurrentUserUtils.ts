@@ -120,6 +120,16 @@ export class CurrentUserUtils {
             });
         }
 
+        if (doc["mobile-button"] === undefined) {
+            const mobileTemplate = this.mobileButton({ title: "mobile button", _backgroundColor: "lightgrey" }, [this.ficon({ ignoreClick: true, icon: "mobile", backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, "text"), this.mobileButtonInfo({}, "This is a default mobile button for use in the mobile menu")])]);
+            mobileTemplate.isTemplateDoc = makeTemplate(mobileTemplate);
+            doc["mobile-button"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(mobileTemplate) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "mobile button view", icon: "mobile"
+            });
+        }
+
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
 
@@ -172,7 +182,7 @@ export class CurrentUserUtils {
 
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc], {
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc, doc["mobile-button"] as Doc], {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
@@ -180,7 +190,7 @@ export class CurrentUserUtils {
         } else {
             const curButnTypes = Cast(doc["template-buttons"], Doc, null);
             const requiredTypes = [doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc];
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc, doc["mobile-button"] as Doc];
             DocListCastAsync(curButnTypes.data).then(async curBtns => {
                 await Promise.all(curBtns!);
                 requiredTypes.map(btype => Doc.AddDocToList(curButnTypes, "data", btype));
@@ -476,12 +486,6 @@ export class CurrentUserUtils {
 
     static setupMobileInkingDoc(userDoc: Doc) {
         return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
-    }
-
-    static setupMobileDoc(userDoc: Doc) {
-        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons2(userDoc), {
-            columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
-        });
     }
 
     static setupMobileUploadDoc(userDoc: Doc) {
