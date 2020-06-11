@@ -1115,7 +1115,7 @@ export class MobileInterface extends React.Component {
      */
     returnMain = () => {
         console.log("home");
-        this._parents = [];
+        this._parents = [this._homeDoc];
         // this.toggleSidebar();
         this._activeDoc = this._library;
         this.switchCurrentView((userDoc: Doc) => this._library);
@@ -1201,7 +1201,7 @@ export class MobileInterface extends React.Component {
      * Handles the click functionality in the library panel
      * @param doc: doc for which the method is called
      */
-    handleClick(doc: Doc) {
+    handleClick = async (doc: Doc) => {
         let children = DocListCast(doc.data);
         if (doc.type !== "collection") {
             this._parents.push(this._activeDoc);
@@ -1244,12 +1244,24 @@ export class MobileInterface extends React.Component {
         let items = docArray.map((doc: Doc, index: any) => {
             if (index === 0) {
                 return (
-                    <div className="pathbarItem">
-                        <div className="pathbarText"
-                            key={index}
-                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                        </div>
-                    </div>);
+                    <>
+                        {this._homeMenu ?
+                            <div className="pathbarItem">
+                                <div className="pathbarText"
+                                    style={{ backgroundColor: "rgb(119, 37, 37)" }}
+                                    key={index}
+                                    onClick={() => this.handlePathClick(doc, index)}>{doc.title}
+                                </div>
+                            </div>
+                            :
+                            <div className="pathbarItem">
+                                <div className="pathbarText"
+                                    key={index}
+                                    onClick={() => this.handlePathClick(doc, index)}>{doc.title}
+                                </div>
+                            </div>}
+                    </>);
+
             } else if (doc === this._activeDoc) {
                 return (
                     <div className="pathbarItem">
