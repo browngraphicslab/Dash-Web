@@ -1,7 +1,6 @@
 import * as request from "request-promise";
 import { Doc, Field } from "../../fields/Doc";
 import { Cast } from "../../fields/Types";
-import { Docs } from "../documents/Documents";
 import { Utils } from "../../Utils";
 import { InkData } from "../../fields/InkField";
 import { UndoManager } from "../util/UndoManager";
@@ -195,7 +194,7 @@ export namespace CognitiveServices {
                 let results = await ExecuteQuery(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
-                    target[keys[0]] = Docs.Get.FromJson({ data: results, title: "Ink Analysis" });
+                    target[keys[0]] = Doc.Get.FromJson({ data: results, title: "Ink Analysis" });
                     const recognizedText = results.map((item: any) => item.recognizedText);
                     const recognizedObjects = results.map((item: any) => item.recognizedObject);
                     const individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);

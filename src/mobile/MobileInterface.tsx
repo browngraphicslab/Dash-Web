@@ -22,7 +22,7 @@ import { Docs } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { Transform } from '../client/util/Transform';
-import { InkingControl } from '../client/views/InkingControl';
+// import { InkingControl } from '../client/views/InkingControl';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
 import "./MobileHome.scss";
@@ -990,10 +990,10 @@ export class MobileInterface extends React.Component {
             this.userDoc.activeMobile = this._homeDoc;
         }
         this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
-        InkingControl.Instance.switchTool(InkTool.None);
+        // InkingStroke.switchTool(InkTool.None);
         MobileInterface.Instance.drawingInk = false;
-        InkingControl.Instance.updateSelectedColor("#FF0000");
-        InkingControl.Instance.switchWidth("2");
+        // InkingControl.Instance.updateSelectedColor("#FF0000");
+        // InkingControl.Instance.switchWidth("2");
         this.switchCurrentView((userDoc: Doc) => this._homeDoc);
     }
 
@@ -1440,7 +1440,8 @@ export class MobileInterface extends React.Component {
 
     colorTool = () => {
         if (this._activeDoc._viewType === "docking") {
-            const color = InkingControl.Instance.selectedColor;
+            // const color = InkingControl.Instance.selectedColor;
+            const color = "lightpink";
             const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
             return (
                 <div
@@ -1450,12 +1451,12 @@ export class MobileInterface extends React.Component {
                 >
                     <div className={`toolbar ${this.activeToolbar ? "active" : ""}`}>
                         <div className="colorSelector">
-                            <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
+                            {/* <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']} */}
                                 color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
-                                    StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
+                                StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
                         </div>
                         <div className="widthSelector">
-                            <input type="range" min="1" max="100" defaultValue="2" id="myRange" onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} />
+                            {/* <input type="range" min="1" max="100" defaultValue="2" id="myRange" onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} /> */}
                         </div>
                     </div>
                 </div>
@@ -1465,18 +1466,19 @@ export class MobileInterface extends React.Component {
 
     onSwitchInking = () => {
         const button = document.getElementById("inkButton") as HTMLElement;
-        const color = InkingControl.Instance.selectedColor;
+        // const color = InkingControl.Instance.selectedColor;
+        const color = "lightpink";
         button.style.backgroundColor = this._ink ? "white" : color;
         button.style.color = this._ink ? "black" : "white";
 
         if (!this._ink) {
             console.log("INK IS ACTIVE");
-            InkingControl.Instance.switchTool(InkTool.Pen);
+            // InkingControl.Instance.switchTool(InkTool.Pen);
             MobileInterface.Instance.drawingInk = true;
             this._ink = true;
         } else {
             console.log("INK IS INACTIVE");
-            InkingControl.Instance.switchTool(InkTool.None);
+            // InkingControl.Instance.switchTool(InkTool.None);
             MobileInterface.Instance.drawingInk = false;
             this._ink = false;
         }
@@ -1557,7 +1559,7 @@ export class MobileInterface extends React.Component {
 
     onBack = (e: React.MouseEvent) => {
         this.switchCurrentView((userDoc: Doc) => this.mainDoc);
-        InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
+        Doc.SetSelectedTool(InkTool.None); // TODO: switch to previous tool
 
         DocServer.Mobile.dispatchOverlayTrigger({
             enableOverlay: false,

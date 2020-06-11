@@ -93,7 +93,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 this.props.collapse?.(true);
                 break;
         }
-    })
+    });
 
     @undoBatch
     viewChanged = (e: React.ChangeEvent) => {

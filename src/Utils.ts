@@ -2,6 +2,7 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket, Room } from 'socket.io';
 import { Message } from './server/Message';
+import { ColorState } from 'react-color';
 
 export namespace Utils {
     export let DRAG_THRESHOLD = 4;
@@ -73,6 +74,18 @@ export namespace Utils {
         try { document.execCommand('copy'); } catch (err) { }
 
         document.body.removeChild(textArea);
+    }
+
+    export function decimalToHexString(number: number) {
+        if (number < 0) {
+            number = 0xFFFFFFFF + number + 1;
+        }
+        return (number < 16 ? "0" : "") + number.toString(16).toUpperCase();
+    }
+
+    export function colorString(color: ColorState) {
+        return color.hex.startsWith("#") ?
+            color.hex + (color.rgb.a ? decimalToHexString(Math.round(color.rgb.a * 255)) : "ff") : color.hex;
     }
 
     export function fromRGBAstr(rgba: string) {

@@ -1,4 +1,6 @@
 import React = require("react");
+import * as beziercurve from 'bezier-curve';
+import * as fitCurve from 'fit-curve';
 
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
@@ -87,13 +89,40 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string) {
-        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
+        var pts = "";
+        if (shape) {
+            //if any of the shape are true
+            const shapePts = makePolygon(shape, points);
+            pts = shapePts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+        }
+        else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
+            //pointer is up (first and last points are the same)
+            const newPoints: number[][] = [];
+            const newPts: { X: number; Y: number; }[] = [];
+            //convert to [][] for fitcurve module
+            for (var i = 0; i < points.length - 1; i++) {
+                newPoints.push([points[i].X, points[i].Y]);
+            }
+            const bezierCurves = fitCurve(newPoints, parseInt(bezier));
+            for (var i = 0; i < bezierCurves.length; i++) {
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, bezierCurves[i]);
+                    newPts.push({ X: point[0], Y: point[1] });
+                }
+            }
+            pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+        } else {
+            //in the middle of drawing
+            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+        }
         return (
             <polyline
                 points={pts}
                 style={{
+                    filter: drawHalo ? "url(#dangerShine)" : undefined,
                     fill: "none",
+                    pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
                     strokeWidth: parseInt(width),
                     strokeLinejoin: "round",
@@ -103,6 +132,101 @@ export namespace InteractionUtils {
         );
     }
 
+    export function makePolygon(shape: string, points: { X: number, Y: number }[]) {
+        if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y + 1 === points[0].Y) {
+            //pointer is up (first and last points are the same)
+            if (shape === "arrow" || shape === "line") {
+                //if arrow or line, the two end points should be the starting and the ending point
+                var left = points[0].X;
+                var top = points[0].Y;
+                var right = points[1].X;
+                var bottom = points[1].Y;
+            } else {
+                //otherwise take max and min
+                const xs = points.map(p => p.X);
+                const ys = points.map(p => p.Y);
+                right = Math.max(...xs);
+                left = Math.min(...xs);
+                bottom = Math.max(...ys);
+                top = Math.min(...ys);
+            }
+        } else {
+            //if in the middle of drawing
+            //take first and last points
+            right = points[points.length - 1].X;
+            left = points[0].X;
+            bottom = points[points.length - 1].Y;
+            top = points[0].Y;
+            if (shape !== "arrow" && shape !== "line") {
+                //switch left/right and top/bottom if needed
+                if (left > right) {
+                    const temp = right;
+                    right = left;
+                    left = temp;
+                }
+                if (top > bottom) {
+                    const temp = top;
+                    top = bottom;
+                    bottom = temp;
+                }
+            }
+        }
+        points = [];
+        switch (shape) {
+            case "rectangle":
+                points.push({ X: left, Y: top });
+                points.push({ X: right, Y: top });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: top });
+                return points;
+            case "triangle":
+                points.push({ X: left, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: left, Y: bottom });
+                return points;
+            case "circle":
+                const centerX = (right + left) / 2;
+                const centerY = (bottom + top) / 2;
+                const radius = bottom - centerY;
+                for (var y = top; y < bottom; y++) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    points.push({ X: x, Y: y });
+                }
+                for (var y = bottom; y > top; y--) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    const newX = centerX - (x - centerX);
+                    points.push({ X: newX, Y: y });
+                }
+                points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+                return points;
+            case "arrow":
+                const x1 = left;
+                const y1 = top;
+                const x2 = right;
+                const y2 = bottom;
+                const L1 = Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + (Math.pow(Math.abs(y1 - y2), 2)));
+                const L2 = L1 / 5;
+                const angle = 0.785398;
+                const x3 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) + (y1 - y2) * Math.sin(angle));
+                const y3 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) - (x1 - x2) * Math.sin(angle));
+                const x4 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) - (y1 - y2) * Math.sin(angle));
+                const y4 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) + (x1 - x2) * Math.sin(angle));
+                points.push({ X: x1, Y: y1 });
+                points.push({ X: x2, Y: y2 });
+                points.push({ X: x3, Y: y3 });
+                points.push({ X: x4, Y: y4 });
+                points.push({ X: x2, Y: y2 });
+                return points;
+            case "line":
+                points.push({ X: left, Y: top });
+                points.push({ X: right, Y: bottom });
+                return points;
+            default:
+                return points;
+        }
+    }
     /**
      * Returns whether or not the pointer event passed in is of the type passed in
      * @param e - pointer event. this event could be from a mouse, a pen, or a finger
