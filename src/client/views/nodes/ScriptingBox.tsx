@@ -119,11 +119,13 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.rawScript = ScriptCast(this.dataDoc[this.props.fieldKey])?.script?.originalScript ?? this.rawScript;
 
         const observer = new _global.ResizeObserver(action((entries: any) => {
-            for (const { } of entries) {
-
-                const getCaretCoordinates = require('textarea-caret');
-                const caret = getCaretCoordinates(this._selection, this._selectionEnd);
-                this.resetSuggestionPos(caret);
+            const area = document.querySelector('textarea');
+            if (area) {
+                for (const { } of entries) {
+                    const getCaretCoordinates = require('textarea-caret');
+                    const caret = getCaretCoordinates(area, this._selection);
+                    this.resetSuggestionPos(caret);
+                }
             }
         }));
         observer.observe(document.getElementsByClassName("scriptingBox")[0]);
@@ -131,6 +133,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     resetSuggestionPos(caret: any) {
+        if (!this._suggestionRef.current || !this._scriptTextRef.current) return;
         console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
         let top = caret.top;
         let left = caret.left;
@@ -172,7 +175,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     // displays error message
     @action
     onError = (error: any) => {
-        this._errorMessage = error?.map((entry: any) => entry.messageText).join("  ") || "";
+        this._errorMessage = error?.message ? error.message : error?.map((entry: any) => entry.messageText).join("  ") || "";
     }
 
     // checks if the script compiles using CompileScript method and inputting params
@@ -549,7 +552,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     @action
-    suggestionPos() {
+    suggestionPos = () => {
         const getCaretCoordinates = require('textarea-caret');
         const This = this;
         //if (!This._applied && !This._function) {
