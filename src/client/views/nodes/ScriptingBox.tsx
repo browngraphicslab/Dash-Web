@@ -40,8 +40,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _function: boolean = false;
     @observable private _hovered: boolean = false;
     @observable private _spaced: boolean = false;
+
     @observable private _scriptKeys: any = Scripting.getGlobals();
     @observable private _scriptGlobals: any = Scripting.getGlobalObj();
+    @observable private _scriptingDescriptions: any = Scripting.getDescriptions();
+    @observable private _scriptingParams: any = Scripting.getParameters();
+
     @observable private _currWord: string = "";
     @observable private _suggestions: string[] = [];
 
@@ -73,26 +77,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = new List<string>(value); }
 
-    // WORK ON THIS
-    // in: global, description, params
-    @computed get _descriptions() {
-        const descrip: string[] = [];
-        this._scriptKeys.forEach((element: any) => {
-            const result = this._scriptGlobals[element];
-            descrip.push(this.getValue(result, true));
-        });
-        return descrip;
-    }
-
-    @computed get _scriptParams() {
-        const params: string[] = [];
-        this._scriptKeys.forEach((element: any) => {
-            const result = this._scriptGlobals[element];
-            params.push(this.getValue(result, false));
-        });
-        return params;
-    }
-
     getValue(result: any, descrip: boolean) {
         let value = "";
         if (typeof result === "object") {
@@ -112,7 +96,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         }
         return value;
     }
-
 
     @action
     componentDidMount() {
@@ -250,18 +233,22 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             return false;
         }
 
+        if (this.functionName.indexOf(".") > 0) {
+            this._errorMessage = "Name can not include '.'";
+            return false;
+        }
+
         this.dataDoc.name = this.functionName;
         this.dataDoc.description = this.functionDescription;
         //this.dataDoc.parameters = this.compileParams;
         this.dataDoc.script = this.rawScript;
 
-        //ScriptManager.Instance.deleteScript(this.dataDoc);
         ScriptManager.Instance.addScript(this.dataDoc);
-
-        console.log("created");
 
         this._scriptKeys = Scripting.getGlobals();
         this._scriptGlobals = Scripting.getGlobalObj();
+        this._scriptingDescriptions = Scripting.getDescriptions();
+        this._scriptingParams = Scripting.getParameters();
     }
 
     // overlays document numbers (ex. d32) over all documents when clicked on
@@ -487,16 +474,14 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         const scriptString = this.rawScript.slice(0, pos - 2);
         this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
         this._suggestions = [];
-        const index = this._scriptKeys.indexOf(this._currWord);
-        const params = StrCast(this._scriptParams[index]);
+        const params = StrCast(this._scriptingParams[this._currWord]);
         this._suggestions.push(params);
         return (this._suggestions);
     }
 
 
     getDescription(value: string) {
-        const index = this._scriptKeys.indexOf(value);
-        const descrip = this._descriptions[index];
+        const descrip = this._scriptingDescriptions[value];
         let display = "";
         if (descrip !== undefined) {
             if (descrip.length > 0) {
@@ -507,12 +492,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     getParams(value: string) {
-        const index = this._scriptKeys.indexOf(value);
-        const descrip = this._scriptParams[index];
+        const params = this._scriptingParams[value];
         let display = "";
-        if (descrip !== undefined) {
-            if (descrip.length > 0) {
-                display = descrip;
+        if (params !== undefined) {
+            if (params.length > 0) {
+                display = params;
             }
         }
         return display;
@@ -547,8 +531,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         } else {
             func = firstScript.slice(indexS + 1, firstScript.length + 1);
         }
-        const indexF = this._scriptKeys.indexOf(func);
-        return this._scriptParams[indexF];
+        if (this._scriptingParams[func]) {
+            return this._scriptingParams[func];
+        } else {
+            return "";
+        }
     }
 
     @action

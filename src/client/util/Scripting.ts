@@ -63,13 +63,12 @@ export namespace Scripting {
                 n = first;
                 obj = second;
             } else {
-                obj = [first];
-                obj.push(second);
-                if (third !== undefined) {
-                    obj.push(third);
-                }
-                console.log("are we here");
+                obj = first;
                 n = first.name;
+                _scriptingDescriptions[n] = second;
+                if (third !== undefined) {
+                    _scriptingParams[n] = third;
+                }
             }
         } else if (first && typeof first.name === "string") {
             n = first.name;
@@ -82,7 +81,6 @@ export namespace Scripting {
         } else if (_scriptingGlobals.hasOwnProperty(n)) {
             throw new Error(`Global with name ${n} is already registered, choose another name`);
         }
-        console.log(n);
         _scriptingGlobals[n] = obj;
     }
 
@@ -97,6 +95,12 @@ export namespace Scripting {
     export function removeGlobal(name: string) {
         if (getGlobals().includes(name)) {
             delete _scriptingGlobals[name];
+            if (_scriptingDescriptions[name]){
+                delete _scriptingDescriptions[name];
+            }
+            if (_scriptingParams[name]){
+                delete _scriptingParams[name];
+            }
             return true;
         }
         return false;
@@ -118,6 +122,14 @@ export namespace Scripting {
     export function getGlobalObj() {
         return _scriptingGlobals;
     }
+
+    export function getDescriptions(){
+        return _scriptingDescriptions;
+    }
+
+    export function getParameters(){
+        return _scriptingParams;
+    }
 }
 
 export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
@@ -126,6 +138,8 @@ export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
 
 const _scriptingGlobals: { [name: string]: any } = {};
 let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
+const _scriptingDescriptions: { [name: string]: any } = {};
+const _scriptingParams: { [name: string]: any } = {};
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
