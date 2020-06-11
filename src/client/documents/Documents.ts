@@ -21,7 +21,7 @@ import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
-import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
+import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
