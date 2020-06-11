@@ -14,6 +14,13 @@
         display: flex;
         flex-direction: row;
 
+        .imageBox-cont img {
+            height: auto;
+            width: auto;
+            max-height: 100%;
+            max-width: 100%;
+        }
+
         .react-grid-item>.react-resizable-handle {
             z-index: 4; // doesn't work on prezi otherwise
         }

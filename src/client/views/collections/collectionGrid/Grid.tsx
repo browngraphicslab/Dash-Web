@@ -31,7 +31,6 @@ interface GridProps {
 export default class Grid extends React.Component<GridProps> {
 
     render() {
-        console.log(this.props.transformScale);
         const compactType = this.props.compactType === "vertical" || this.props.compactType === "horizontal" ? this.props.compactType : null;
         return (
             <GridLayout className="layout"

@@ -49,11 +49,14 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         // determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
         this.props.Document.preventCollision = BoolCast(this.props.Document.preventCollision, false);
 
+        // sets the default width and height of the grid nodes 
         this.props.Document.defaultW = NumCast(this.props.Document.defaultW, 2);
         this.props.Document.defaultH = NumCast(this.props.Document.defaultH, 2);
 
+        // sets the margin between grid nodes
         this.props.Document.margin = NumCast(this.props.Document.margin, 10);
 
+        // sets the css display type of the ContentFittingDocumentView component
         this.props.Document.display = StrCast(this.props.Document.display, "contents");
 
         this.setLayout = this.setLayout.bind(this);
@@ -64,8 +67,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     componentDidMount() {
-
-        console.log("mounting");
         this.mounted = true;
 
         this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
@@ -130,7 +131,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     componentWillUnmount() {
-        console.clear();
         this.mounted = false;
         this.changeListenerDisposer && this.changeListenerDisposer();
         this.resetListenerDisposer?.();
@@ -140,9 +140,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * @returns the transform that will correctly place the document decorations box. 
      */
     private lookupIndividualTransform = (layout: Layout) => {
-
-        console.log("lookup");
-
         const index = this.childLayoutPairs.findIndex(({ layout: layoutDoc }) => layoutDoc[Id] === layout.i);
 
         // translations depend on whether the grid is flexible or static
@@ -173,7 +170,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * @returns the layout list converted from JSON
      */
     get parsedLayoutList() {
-        console.log("parsedlayoutlist");
         return this.props.Document.gridLayoutString ? JSON.parse(StrCast(this.props.Document.gridLayoutString)) : [];
     }
 
@@ -188,7 +184,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         // the component doesn't rerender when the component mounts
         // this seems to fix that though it isn't very elegant
 
-        console.log("setting unstringified");
         this.mounted && (this.props.Document.gridLayoutString = "");
         this.props.Document.gridLayoutString = JSON.stringify(layouts);
         this.mounted = false;
@@ -245,8 +240,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         // for every child in the collection, check to see if there's a corresponding grid layout object and
         // updated layout object. If both exist, which they should, update the grid layout object from the updated object 
 
-        console.log("settinglayout");
-
         if (this.props.Document.flexGrid) {
             const layouts: Layout[] = this.parsedLayoutList;
             this.childLayoutPairs.forEach(({ layout: doc }) => {
@@ -272,8 +265,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @computed
     private get contents(): JSX.Element[] {
 
-        console.log("getting contents");
-
         const { childLayoutPairs } = this;
         const collector: JSX.Element[] = [];
         const layouts: Layout[] = this.parsedLayoutList;
@@ -295,7 +286,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 </div >
             );
         }
-
         return collector;
     }
 
@@ -304,9 +294,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     get layoutList(): Layout[] {
 
-        console.log("getting layoutlist");
         const layouts: Layout[] = this.parsedLayoutList;
-
 
         return this.props.Document.flexGrid ?
             layouts.map(({ i, x, y, w, h }) => ({
@@ -355,6 +343,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @undoBatch @action addTextDocument = (value: string) => this.props.addDocument(Docs.Create.TextDocument(value, { title: value }));
 
+    /**
+     * Adds the display option to change the css display attribute of the `ContentFittingDocumentView`s
+     */
     onContextMenu = () => {
         const displayOptionsMenu: ContextMenuProps[] = [];
         displayOptionsMenu.push({ description: "Contents", event: () => this.props.Document.display = "contents", icon: "copy" });
@@ -365,7 +356,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     render() {
 
-        console.log("and render");
         // for the add text document EditableView
         const newEditableViewProps: EditableProps = {
             GetValue: () => "",
