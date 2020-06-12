@@ -381,6 +381,18 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
        }) 
     }
 
+    returnButtons(){
+        return <div>
+              {`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`}
+             <button onClick={this.nextHighlight} style={{padding:2}}>
+                        <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
+                        </button>
+                        <button onClick={this.nextHighlight2} style={{padding:2}}>                    
+                        <FontAwesomeIcon icon="arrow-down" size="sm"  />
+                        </button>
+        </div>
+    }
+
     render() {
         const doc1 = Cast(this.rootDoc!.anchor1, Doc);
         const doc2 = Cast(this.rootDoc!.anchor2, Doc);
@@ -424,9 +436,13 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                         <div className="searchItem-highlighting">
                         {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
                         {/* {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)} */}
-                        <button onClick={this.nextHighlight} style={{height:3, width:5}}/>
-                        {NumCast(this.rootDoc.length) > 1? `${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex)} of ${NumCast(this.rootDoc.length)}`: null} 
-                        <button onClick={this.nextHighlight2}style={{height:3, width:5}}/>
+                        {NumCast(this.rootDoc.length) > 1? this.returnButtons(): null} 
+                        {/* <button onClick={this.nextHighlight} style={{padding:2}}>
+                        <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
+                        </button>
+                        <button onClick={this.nextHighlight2} style={{padding:2}}>                    
+                        <FontAwesomeIcon icon="arrow-down" size="sm"  />
+                        </button> */}
                         </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
