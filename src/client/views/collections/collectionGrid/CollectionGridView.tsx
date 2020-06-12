@@ -197,9 +197,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     private get contents(): JSX.Element[] {
         const collector: JSX.Element[] = [];
         const layouts = this.parsedLayoutList;
-        if (layouts.length !== this.childLayoutPairs.length) {
-            setTimeout(action(() => this.props.Document.gridResetLayout = true), 0);
-        } else {
+        if (layouts.length == this.childLayoutPairs.length) {
             this.layoutList.forEach((l, i) => {
                 const child = this.childLayoutPairs.find(c => c.layout[Id] === l.i);
                 const dxf = () => this.lookupIndividualTransform(layouts[i]);
@@ -229,6 +227,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             this.parsedLayoutList.map((layout, index) => Object.assign(layout, this.unflexedPosition(index)));
     }
 
+    @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const layouts = this.parsedLayoutList;
         const dropped = de.complete.docDragData?.droppedDocuments;
