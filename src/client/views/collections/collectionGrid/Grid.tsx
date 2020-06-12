@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { observer } from "mobx-react";
 
-
 import "../../../../../node_modules/react-grid-layout/css/styles.css";
 import "../../../../../node_modules/react-resizable/css/styles.css";
 
@@ -29,7 +28,6 @@ interface GridProps {
  */
 @observer
 export default class Grid extends React.Component<GridProps> {
-
     render() {
         const compactType = this.props.compactType === "vertical" || this.props.compactType === "horizontal" ? this.props.compactType : null;
         return (

@@ -21,6 +21,10 @@
             max-width: 100%;
         }
 
+        .react-grid-layout {
+            width : 100%;
+        }
+
         .react-grid-item>.react-resizable-handle {
             z-index: 4; // doesn't work on prezi otherwise
         }
@@ -41,7 +45,7 @@
             position: absolute;
             height: 3;
             left: 5;
-            top: 40;
+            top: 30;
             transform-origin: left;
             transform: rotate(90deg);
             outline: none;

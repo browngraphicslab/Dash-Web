@@ -244,38 +244,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            const existingVm = ContextMenu.Instance.findByDescription("View Modes...");
-            const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
-            subItems.push({ description: "Freeform", event: () => { this.props.Document._viewType = CollectionViewType.Freeform; }, icon: "signature" });
-            if (CollectionView._safeMode) {
-                ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document._viewType = CollectionViewType.Invalid, icon: "project-diagram" });
-            }
-            subItems.push({ description: "Schema", event: () => this.props.Document._viewType = CollectionViewType.Schema, icon: "th-list" });
-            subItems.push({ description: "Treeview", event: () => this.props.Document._viewType = CollectionViewType.Tree, icon: "tree" });
-            subItems.push({ description: "Stacking", event: () => this.props.Document._viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
-            subItems.push({
-                description: "Stacking (AutoHeight)", event: () => {
-                    this.props.Document._viewType = CollectionViewType.Stacking;
-                    this.props.Document._autoHeight = true;
-                }, icon: "ellipsis-v"
-            });
-            subItems.push({ description: "Staff", event: () => this.props.Document._viewType = CollectionViewType.Staff, icon: "music" });
-            subItems.push({ description: "Multicolumn", event: () => this.props.Document._viewType = CollectionViewType.Multicolumn, icon: "columns" });
-            subItems.push({ description: "Multirow", event: () => this.props.Document._viewType = CollectionViewType.Multirow, icon: "columns" });
-            subItems.push({ description: "Masonry", event: () => this.props.Document._viewType = CollectionViewType.Masonry, icon: "columns" });
-            subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
-            subItems.push({ description: "Pivot/Time", event: () => this.props.Document._viewType = CollectionViewType.Time, icon: "columns" });
-            subItems.push({ description: "Map", event: () => this.props.Document._viewType = CollectionViewType.Map, icon: "globe-americas" });
-            subItems.push({ description: "Grid", event: () => this.props.Document._viewType = CollectionViewType.Grid, icon: "th-list" });
-            switch (this.props.Document._viewType) {
-                case CollectionViewType.Freeform: {
-                    subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
-                    break;
-                }
-            }
-            subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
-            !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
-
             this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;

@@ -16,6 +16,7 @@ import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { undo } from "prosemirror-history";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -589,14 +590,16 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
         this.resizeListenerDisposer?.();
     }
 
+    get numCols() { return NumCast(this.props.CollectionView.props.Document.gridNumCols, 10); }
+
     /**
      * Sets the value of `numCols` on the grid's Document to the value entered.
      */
     @undoBatch
     onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" || e.key === "Tab") {
-            if (e.currentTarget.valueAsNumber > 0 && this.props.CollectionView.props.Document.numCols as number !== e.currentTarget.valueAsNumber) {
-                this.props.CollectionView.props.Document.numCols = e.currentTarget.valueAsNumber;
+            if (e.currentTarget.valueAsNumber > 0) {
+                this.props.CollectionView.props.Document.gridNumCols = e.currentTarget.valueAsNumber;
             }
 
         }
@@ -617,8 +620,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     /**
      * Sets whether the grid is flexible or not on the grid's Document.
      */
+    @undoBatch
     toggleFlex = () => {
-        this.props.CollectionView.props.Document.flexGrid = !this.props.CollectionView.props.Document.flexGrid;
+        this.props.CollectionView.props.Document.gridFlex = !this.props.CollectionView.props.Document.gridFlex;
     }
 
     /**
@@ -626,8 +630,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
      */
     onIncrementButtonClick = () => {
         this.clicked = true;
-        this.entered && (this.props.CollectionView.props.Document.numCols as number)--;
-        undoBatch(() => (this.props.CollectionView.props.Document.numCols as number)++)();
+        this.entered && (this.props.CollectionView.props.Document.gridNumCols as number)--;
+        undoBatch(() => this.props.CollectionView.props.Document.gridNumCols = this.numCols + 1)();
         this.entered = false;
     }
 
@@ -637,8 +641,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     onDecrementButtonClick = () => {
         this.clicked = true;
         if (!this.decrementLimitReached) {
-            this.entered && (this.props.CollectionView.props.Document.numCols as number)++;
-            undoBatch(() => (this.props.CollectionView.props.Document.numCols as number)--)();
+            this.entered && (this.props.CollectionView.props.Document.gridNumCols as number)++;
+            undoBatch(() => this.props.CollectionView.props.Document.gridNumCols = this.numCols - 1)();
         }
         this.entered = false;
     }
@@ -649,7 +653,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     incrementValue = () => {
         this.entered = true;
         if (!this.clicked && !this.decrementLimitReached) {
-            (this.props.CollectionView.props.Document.numCols as number)++;
+            this.props.CollectionView.props.Document.gridNumCols = this.numCols + 1;
         }
         this.decrementLimitReached = false;
         this.clicked = false;
@@ -661,8 +665,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     decrementValue = () => {
         this.entered = true;
         if (!this.clicked) {
-            if (this.props.CollectionView.props.Document.numCols as number !== 1) {
-                (this.props.CollectionView.props.Document.numCols as number)--;
+            if (this.numCols !== 1) {
+                this.props.CollectionView.props.Document.gridNumCols = this.numCols - 1;
             }
             else {
                 this.decrementLimitReached = true;
@@ -676,14 +680,15 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
      * Toggles the value of preventCollision
      */
     toggleCollisions = () => {
-        this.props.CollectionView.props.Document.preventCollision = !this.props.CollectionView.props.Document.preventCollision;
+        this.props.CollectionView.props.Document.gridPreventCollision = !this.props.CollectionView.props.Document.gridPreventCollision;
     }
 
     /**
      * Changes the value of the compactType
      */
+    @undoBatch
     changeCompactType = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        this.props.CollectionView.props.Document.compactType = e.target.selectedOptions[0].value;
+        this.props.CollectionView.props.Document.gridCompaction = e.target.selectedOptions[0].value;
     }
 
     render() {
@@ -693,7 +698,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
-                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.numCols as string} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.numCols.toString()} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
                     <input className="columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
                     <input className="columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
                 </span>
@@ -704,7 +709,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
                 </span> */}
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
-                    <input type="checkbox" style={{ marginRight: 5 }} onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.preventCollision} />
+                    <input type="checkbox" style={{ marginRight: 5 }} onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.gridPreventCollision} />
                     <label className="flexLabel">{this.resize ? "Coll" : "Collisions"}</label>
                 </span>
 
@@ -712,7 +717,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     style={{ marginRight: 5 }}
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
-                    value={StrCast(this.props.CollectionView.props.Document.compactType)}>
+                    value={StrCast(this.props.CollectionView.props.Document.gridCompaction)}>
                     >
                     {["vertical", "horizontal", "null"].map(type =>
                         <option className="collectionGridViewChrome-viewOption"
@@ -724,11 +729,11 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                 </select>
 
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
-                    <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
+                    <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={BoolCast(this.props.CollectionView.props.Document.gridFlex)} />
                     <label className="flexLabel">{this.resize ? "Flex" : "Flexible"}</label>
                 </span>
 
-                <button onClick={() => this.props.CollectionView.props.Document.resetLayout = true}>
+                <button onClick={() => this.props.CollectionView.props.Document.gridResetLayout = true}>
                     {!this.resize ? "Reset" :
                         <FontAwesomeIcon icon="redo-alt" size="1x" />}
                 </button>

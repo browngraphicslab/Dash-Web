@@ -1,85 +1,61 @@
-import { computed, observable, Lambda, action, reaction } from 'mobx';
+import { action, computed, Lambda, observable, reaction } from 'mobx';
+import { observer } from 'mobx-react';
 import * as React from "react";
 import { Doc, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
+import { Id } from '../../../../fields/FieldSymbols';
 import { makeInterface } from '../../../../fields/Schema';
-import { BoolCast, NumCast, StrCast, ScriptCast } from '../../../../fields/Types';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
+import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents } from '../../../../Utils';
+import { Docs } from '../../../documents/Documents';
+import { DragManager } from '../../../util/DragManager';
+import { SnappingManager } from '../../../util/SnappingManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
-import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
-import { CollectionSubView } from '../CollectionSubView';
-import { SubCollectionViewProps } from '../CollectionSubView';
-import { returnZero } from '../../../../Utils';
-import Grid, { Layout } from "./Grid";
-import { Id } from '../../../../fields/FieldSymbols';
-import { observer } from 'mobx-react';
-import { SnappingManager } from '../../../util/SnappingManager';
-import { Docs } from '../../../documents/Documents';
-import { EditableView, EditableProps } from '../../EditableView';
-import "./CollectionGridView.scss";
 import { ContextMenu } from '../../ContextMenu';
-import { List } from '../../../../fields/List';
 import { ContextMenuProps } from '../../ContextMenuItem';
-
+import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
+import { FormattedTextBox } from '../../nodes/formattedText/FormattedTextBox';
+import { CollectionSubView } from '../CollectionSubView';
+import "./CollectionGridView.scss";
+import Grid, { Layout } from "./Grid";
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
 const GridSchema = makeInterface(documentSchema);
 
 @observer
 export class CollectionGridView extends CollectionSubView(GridSchema) {
-    private containerRef: React.RefObject<HTMLDivElement>;
+    private _containerRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _changeListenerDisposer: Opt<Lambda>; // listens for changes in this.childLayoutPairs
+    private _resetListenerDisposer: Opt<Lambda>; // listens for when the reset button is clicked
+    @observable private _rowHeight: Opt<number>; // temporary store of row height to make change undoable
     @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
-    private changeListenerDisposer: Opt<Lambda>; // listens for changes in this.childLayoutPairs
-    private rowHeight: number = 0; // temporary store of row height to make change undoable
-    private mounted: boolean = false; // hack to fix the issue of not rerendering when mounting
-    private resetListenerDisposer: Opt<Lambda>; // listens for when the reset button is clicked
 
-    constructor(props: Readonly<SubCollectionViewProps>) {
-        super(props);
+    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
-        this.props.Document.numCols = NumCast(this.props.Document.numCols, 10);
-        this.props.Document.rowHeight = NumCast(this.props.Document.rowHeight, 100);
+    @computed get numCols() { return NumCast(this.props.Document.gridNumCols, 10); }
+    @computed get rowHeight() { return this._rowHeight === undefined ? NumCast(this.props.Document.gridRowHeight, 100) : this._rowHeight; }
+    // sets the default width and height of the grid nodes 
+    @computed get defaultW() { return NumCast(this.props.Document.gridDefaultW, 2); }
+    @computed get defaultH() { return NumCast(this.props.Document.gridDefaultH, 2); }
 
-        // determines whether the grid is static/flexible i.e. whether can nodes be moved around and resized or not
-        this.props.Document.flexGrid = BoolCast(this.props.Document.flexGrid, true);
+    @computed get colWidthPlusGap() { return (this.props.PanelWidth() - this.margin) / this.numCols; }
+    @computed get rowHeightPlusGap() { return this.rowHeight + this.margin; }
 
-        // determines whether nodes should remain in position, be bound to the top, or to the left
-        this.props.Document.compactType = StrCast(this.props.Document.compactType, "vertical");
+    @computed get margin() { return NumCast(this.props.Document.margin, 10); }  // sets the margin between grid nodes
 
-        // determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
-        this.props.Document.preventCollision = BoolCast(this.props.Document.preventCollision, false);
-
-        // sets the default width and height of the grid nodes 
-        this.props.Document.defaultW = NumCast(this.props.Document.defaultW, 2);
-        this.props.Document.defaultH = NumCast(this.props.Document.defaultH, 2);
-
-        // sets the margin between grid nodes
-        this.props.Document.margin = NumCast(this.props.Document.margin, 10);
-
-        // sets the css display type of the ContentFittingDocumentView component
-        this.props.Document.display = StrCast(this.props.Document.display, "contents");
-
-        this.setLayout = this.setLayout.bind(this);
-        this.onSliderChange = this.onSliderChange.bind(this);
-        this.onContextMenu = this.onContextMenu.bind(this);
-
-        this.containerRef = React.createRef();
-    }
+    @computed get flexGrid() { return BoolCast(this.props.Document.gridFlex, true); } // is grid static/flexible i.e. whether nodes be moved around and resized
 
     componentDidMount() {
-        this.mounted = true;
-
-        this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
-
-            const layouts: Layout[] = this.parsedLayoutList;
+        this._changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
+            const layouts = this.parsedLayoutList;
 
             // if grid view has been opened and then exited and a document has been deleted
             // this deletes the layout of that document from the layouts list
 
             if (!oldValue && newValue.length) {
                 layouts.forEach(({ i }, index) => {
-                    const targetId = i;
-                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === targetId)) {
+                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === i)) {
                         layouts.splice(index, 1);
                     }
                 });
@@ -88,119 +64,83 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             if (!oldValue || newValue.length > oldValue.length) {
                 // for each document that was added, add a corresponding grid layout object
                 newValue.forEach(({ layout }, i) => {
-                    const targetId = layout[Id];
-                    if (!layouts.find((gridLayout: Layout) => gridLayout.i === targetId)) {
-                        layouts.push({
-                            i: targetId,
-                            w: this.defaultW,
-                            h: this.defaultH,
-                            x: this.defaultW * (i % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW)),
-                            y: this.defaultH * Math.floor(i / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH)),
-                            static: !this.props.Document.flexGrid
-                        });
+                    if (!layouts.find(gridLayout => gridLayout.i === layout[Id])) {
+                        this.addLayoutItem(layouts, this.makeLayoutItem(layout, this.unflexedPosition(i), !this.flexGrid))
                     }
-                });
+                })
             } else {
                 // for each document that was removed, remove its corresponding grid layout object
                 oldValue.forEach(({ layout }) => {
-                    const targetId = layout[Id];
-                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === targetId)) {
-                        const index = layouts.findIndex((gridLayout: Layout) => gridLayout.i === targetId);
+                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === layout[Id])) {
+                        const index = layouts.findIndex((gridLayout: Layout) => gridLayout.i === layout[Id]);
                         index !== -1 && layouts.splice(index, 1);
                     }
                 });
             }
-            this.unStringifiedLayoutList = layouts;
+            this.setLayoutList(layouts);
         }, true);
 
         // updates the layouts if the reset button has been clicked
-        this.resetListenerDisposer = reaction(() => this.props.Document.resetLayout, () => {
-            if (this.props.Document.flexGrid) {
-                const layouts: Layout[] = this.parsedLayoutList;
-                this.setLayout(
-                    layouts.map(({ i }, index) => ({
-                        i: i,
-                        x: this.defaultW * (index % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW)),
-                        y: this.defaultH * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH)),
-                        w: this.defaultW,
-                        h: this.defaultH,
-                    })));
+        this._resetListenerDisposer = reaction(() => this.props.Document.gridResetLayout, (reset) => {
+            if (reset && this.flexGrid) {
+                this.setLayout(this.childLayoutPairs.map((pair, index) => this.makeLayoutItem(pair.layout, this.unflexedPosition(index))));
             }
-            this.props.Document.resetLayout = false;
+            this.props.Document.gridResetLayout = false;
         });
     }
 
     componentWillUnmount() {
-        this.mounted = false;
-        this.changeListenerDisposer && this.changeListenerDisposer();
-        this.resetListenerDisposer?.();
+        this._changeListenerDisposer?.();
+        this._resetListenerDisposer?.();
     }
 
+    unflexedPosition(index: number) {
+        return {
+            x: (index % Math.floor(this.numCols / this.defaultW)) * this.defaultW,
+            y: Math.floor(index / Math.floor(this.numCols / this.defaultH)) * this.defaultH
+        };
+    }
+
+    screenToCell(sx: number, sy: number) {
+        const pt = this.props.ScreenToLocalTransform().transformPoint(sx, sy);
+        const x = Math.floor(pt[0] / this.colWidthPlusGap);
+        const y = Math.floor((pt[1] + this._scroll) / this.rowHeight);
+        return { x, y };
+    }
+
+    makeLayoutItem = (doc: Doc, pos: { x: number, y: number }, Static: boolean = false, w: number = this.defaultW, h: number = this.defaultH) => {
+        return ({ i: doc[Id], w, h, x: pos.x, y: pos.y, static: Static });
+    }
+
+    addLayoutItem = (layouts: Layout[], layout: Layout) => {
+        const f = layouts.findIndex(l => l.i === layout.i);
+        f !== -1 && layouts.splice(f, 1);
+        layouts.push(layout);
+        return layouts;
+    }
     /**
      * @returns the transform that will correctly place the document decorations box. 
      */
     private lookupIndividualTransform = (layout: Layout) => {
-        const index = this.childLayoutPairs.findIndex(({ layout: layoutDoc }) => layoutDoc[Id] === layout.i);
+        const xypos = this.flexGrid ? layout : this.unflexedPosition(this.layoutList.findIndex(l => l.i === layout.i));
+        const pos = { x: xypos.x * this.colWidthPlusGap + this.margin, y: xypos.y * this.rowHeightPlusGap + this.margin - this._scroll };
 
-        // translations depend on whether the grid is flexible or static
-        const xTranslation = (this.props.Document.flexGrid ? NumCast(layout.x) : this.defaultW * (index % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW))) * this.colWidthPlusGap + this.margin;
-        const yTranslation = (this.props.Document.flexGrid ? NumCast(layout.y) : this.defaultH * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH))) * this.rowHeightPlusGap + this.margin - this._scroll + 30; // 30 is the height of the add text doc bar
-
-        return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
+        return this.props.ScreenToLocalTransform().translate(-pos.x, -pos.y);
     }
-
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-
-    addDocTab = (doc: Doc, where: string) => {
-        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
-            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
-            return true;
-        }
-        return this.props.addDocTab(doc, where);
-    }
-
-    @computed get colWidthPlusGap() { return (this.props.PanelWidth() - this.margin) / NumCast(this.props.Document.numCols); }
-    @computed get rowHeightPlusGap() { return NumCast(this.props.Document.rowHeight) + this.margin; }
-
-    @computed get margin() { return NumCast(this.props.Document.margin); }
-    @computed get defaultW() { return NumCast(this.props.Document.defaultW); }
-    @computed get defaultH() { return NumCast(this.props.Document.defaultH); }
 
     /**
      * @returns the layout list converted from JSON
      */
     get parsedLayoutList() {
-        return this.props.Document.gridLayoutString ? JSON.parse(StrCast(this.props.Document.gridLayoutString)) : [];
+        return (this.props.Document.gridLayoutString ? JSON.parse(StrCast(this.props.Document.gridLayoutString)) : []) as Layout[];
     }
 
     /**
      * Stores the layout list on the Document as JSON
      */
-    set unStringifiedLayoutList(layouts: Layout[]) {
-
-        // sometimes there are issues with rendering when you switch from a different view
-        // where the nodes are all squeezed together on the left hand side of the screen
-        // until you click on the screen or close the chrome or interact with it in some way
-        // the component doesn't rerender when the component mounts
-        // this seems to fix that though it isn't very elegant
-
-        this.mounted && (this.props.Document.gridLayoutString = "");
+    setLayoutList(layouts: Layout[]) {
         this.props.Document.gridLayoutString = JSON.stringify(layouts);
-        this.mounted = false;
     }
-
-
-    /**
-     * Sets the width of the decorating box.
-     * @param layout 
-     */
-    @observable private width = (layout: Layout) => (this.props.Document.flexGrid ? layout.w : this.defaultW) * this.colWidthPlusGap - this.margin;
-
-    /**
-     * Sets the height of the decorating box.
-     * @param layout
-     */
-    @observable private height = (layout: Layout) => (this.props.Document.flexGrid ? layout.h : this.defaultH) * this.rowHeightPlusGap - this.margin;
 
     /**
      * 
@@ -217,7 +157,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             DataDoc={layout.resolvedDataDoc as Doc}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
-            addDocTab={this.addDocTab}
             backgroundColor={this.props.backgroundColor}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
@@ -226,7 +165,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            display={StrCast(this.props.Document.display)}
+            display={StrCast(this.props.Document.display, "contents")} // sets the css display type of the ContentFittingDocumentView component
         />;
     }
 
@@ -234,27 +173,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * Saves the layouts received from the Grid to the Document.
      * @param layouts `Layout[]`
      */
-    @undoBatch
     @action
-    setLayout(layoutArray: Layout[]) {
+    setLayout = (layoutArray: Layout[]) => {
         // for every child in the collection, check to see if there's a corresponding grid layout object and
         // updated layout object. If both exist, which they should, update the grid layout object from the updated object 
-
-        if (this.props.Document.flexGrid) {
-            const layouts: Layout[] = this.parsedLayoutList;
+        if (this.flexGrid) {
+            const layouts = this.parsedLayoutList;
             this.childLayoutPairs.forEach(({ layout: doc }) => {
-                let update: Opt<Layout>;
-                const targetId = doc[Id];
-                const gridLayout = layouts.find(gridLayout => gridLayout.i === targetId);
-                if (gridLayout && (update = layoutArray.find(layout => layout.i === targetId))) {
-                    gridLayout.x = update.x;
-                    gridLayout.y = update.y;
-                    gridLayout.w = update.w;
-                    gridLayout.h = update.h;
-                }
+                let gridLayout = layouts.find(gridLayout => gridLayout.i === doc[Id]);
+                gridLayout && Object.assign(gridLayout, layoutArray.find(layout => layout.i === doc[Id]) || gridLayout);
             });
 
-            this.unStringifiedLayoutList = layouts;
+            this.setLayoutList(layouts);
         }
     }
 
@@ -264,27 +194,22 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @computed
     private get contents(): JSX.Element[] {
-
-        const { childLayoutPairs } = this;
         const collector: JSX.Element[] = [];
-        const layouts: Layout[] = this.parsedLayoutList;
-        if (!layouts.length || layouts.length !== childLayoutPairs.length) {
-            return [];
-        }
-
-        for (let i = 0; i < childLayoutPairs.length; i++) {
-            const { layout } = childLayoutPairs[i];
-            const gridLayout = layouts[i];
-            const dxf = () => this.lookupIndividualTransform(gridLayout);
-            const width = () => this.width(gridLayout);
-            const height = () => this.height(gridLayout);
-            collector.push(
-                <div className={this.props.Document.flexGrid && (this.props.isSelected() ? true : false) ? "document-wrapper" : "document-wrapper static"}
-                    key={gridLayout.i}
-                >
-                    {this.getDisplayDoc(layout, dxf, width, height)}
-                </div >
-            );
+        const layouts = this.parsedLayoutList;
+        if (layouts.length !== this.childLayoutPairs.length) {
+            setTimeout(action(() => this.props.Document.gridResetLayout = true), 0);
+        } else {
+            this.layoutList.forEach((l, i) => {
+                const child = this.childLayoutPairs.find(c => c.layout[Id] === l.i);
+                const dxf = () => this.lookupIndividualTransform(layouts[i]);
+                const width = () => (this.flexGrid ? layouts[i].w : this.defaultW) * this.colWidthPlusGap - this.margin;
+                const height = () => (this.flexGrid ? layouts[i].h : this.defaultH) * this.rowHeightPlusGap - this.margin;
+                child && collector.push(
+                    <div key={child.layout[Id]} className={"document-wrapper" + (this.flexGrid && this.props.isSelected() ? "" : " static")} >
+                        {this.getDisplayDoc(child.layout, dxf, width, height)}
+                    </div >
+                );
+            });
         }
         return collector;
     }
@@ -293,56 +218,42 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * @returns a list of `Layout` objects with attributes depending on whether the grid is flexible or static
      */
     get layoutList(): Layout[] {
-
-        const layouts: Layout[] = this.parsedLayoutList;
-
-        return this.props.Document.flexGrid ?
-            layouts.map(({ i, x, y, w, h }) => ({
-                i: i,
-                x: x + w > NumCast(this.props.Document.numCols) ? 0 : x, // handles wrapping around of nodes when numCols decreases
-                y: y,
-                w: w > NumCast(this.props.Document.numCols) ? NumCast(this.props.Document.numCols) : w, // reduces width if greater than numCols
-                h: h,
+        return this.flexGrid ?
+            this.parsedLayoutList.map(({ i, x, y, w, h }) => ({
+                i, y, h,
+                x: x + w > this.numCols ? 0 : x, // handles wrapping around of nodes when numCols decreases
+                w: Math.max(w, this.numCols), // reduces width if greater than numCols
                 static: BoolCast(this.childLayoutPairs.find(({ layout }) => layout[Id] === i)?.layout.lockedPosition, false) // checks if the lock position item has been selected in the context menu
-            }))
-            : layouts.map(({ i }, index) => ({
-                i: i,
-                x: this.defaultW * (index % Math.floor(NumCast(this.props.Document.numCols) / this.defaultW)),
-                y: this.defaultH * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / this.defaultH)),
-                w: this.defaultW,
-                h: this.defaultH,
-                static: true
-            }));
+            })) :
+            this.parsedLayoutList.map((layout, index) => Object.assign(layout, this.unflexedPosition(index)));
+    }
+
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        const layouts = this.parsedLayoutList;
+        const dropped = de.complete.docDragData?.droppedDocuments;
+        if (dropped && super.onInternalDrop(e, de) && layouts.length !== this.childDocs.length) {
+            dropped.forEach(doc => this.addLayoutItem(layouts, this.makeLayoutItem(doc, this.screenToCell(de.x, de.y)))); // shouldn't place all docs in the same cell;
+            this.setLayoutList(layouts);
+            return true;
+        }
+        return false;
     }
 
     /**
      * Handles the change in the value of the rowHeight slider.
      */
+    @action
     onSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        this.props.Document.rowHeight = event.currentTarget.valueAsNumber;
+        this._rowHeight = event.currentTarget.valueAsNumber;
     }
-
-    /**
-     * Saves the rowHeight in a temporary variable to make it undoable later.
-     */
-    onSliderDown = () => {
-        this.rowHeight = NumCast(this.props.Document.rowHeight);
+    @action
+    onSliderDown = (e: React.PointerEvent) => {
+        this._rowHeight = this.rowHeight; // uses _rowHeight during dragging and sets doc's rowHeight when finished so that operation is undoable
+        setupMoveUpEvents(this, e, returnFalse, action(() => {
+            undoBatch(() => this.props.Document.gridRowHeight = this._rowHeight)();
+            this._rowHeight = undefined;
+        }), emptyFunction, false, false);
     }
-
-    /**
-     * Uses the stored rowHeight to make the rowHeight change undoable.
-     */
-    onSliderUp = () => {
-        const tempVal = this.props.Document.rowHeight;
-        this.props.Document.rowHeight = this.rowHeight;
-        undoBatch(() => this.props.Document.rowHeight = tempVal)();
-    }
-
-    /**
-     * Creates a text document and adds it to the grid.
-     */
-    @undoBatch @action addTextDocument = (value: string) => this.props.addDocument(Docs.Create.TextDocument(value, { title: value }));
-
     /**
      * Adds the display option to change the css display attribute of the `ContentFittingDocumentView`s
      */
@@ -350,72 +261,50 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         const displayOptionsMenu: ContextMenuProps[] = [];
         displayOptionsMenu.push({ description: "Contents", event: () => this.props.Document.display = "contents", icon: "copy" });
         displayOptionsMenu.push({ description: "Undefined", event: () => this.props.Document.display = undefined, icon: "exclamation" });
-
         ContextMenu.Instance.addItem({ description: "Display", subitems: displayOptionsMenu, icon: "tv" });
     }
 
+    onPointerDown = (e: React.PointerEvent) => {
+        this.props.isSelected(true) && setupMoveUpEvents(this, e, returnFalse, returnFalse, action((e: PointerEvent, doubleTap?: boolean) => {
+            if (doubleTap) {
+                const text = Docs.Create.TextDocument("", { _width: 150, _height: 50 });
+                FormattedTextBox.SelectOnLoad = text[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
+                Doc.AddDocToList(this.props.Document, this.props.fieldKey, text);
+                this.setLayoutList(this.addLayoutItem(this.parsedLayoutList, this.makeLayoutItem(text, this.screenToCell(e.clientX, e.clientY))));
+            }
+        }), false);
+        e.stopPropagation();
+    }
+
     render() {
-
-        // for the add text document EditableView
-        const newEditableViewProps: EditableProps = {
-            GetValue: () => "",
-            SetValue: this.addTextDocument,
-            contents: "+ ADD TEXT DOCUMENT",
-        };
-
-        const childDocumentViews: JSX.Element[] = this.contents;
-        const chromeStatus = this.props.Document._chromeStatus;
-        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
-
         return (
-            <div className="collectionGridView-contents"
-                style={{
-                    pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
-                }}
+            <div className="collectionGridView-contents" ref={this.createDashEventsTarget}
+                style={{ pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                 onContextMenu={this.onContextMenu}
-                ref={this.createDashEventsTarget}
-                onPointerDown={e => {
-                    if (this.props.active(true)) {
-                        if (this.props.isSelected(true)) {
-                            e.stopPropagation();
-                        }
-                    }
-                    // is the following section needed? it prevents the slider from being easily used and I'm not sure what it's preventing
-
-                    // if (this.props.isSelected(true)) {
-                    //     !((e.target as any)?.className.includes("react-resizable-handle")) && e.preventDefault();
-                    // }
-
-                }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
-            >
-                {showChrome ?
-                    <div className="collectionGridView-addDocumentButton">
-                        <EditableView {...newEditableViewProps} />
-                    </div> : null
-                }
-                <div className="collectionGridView-gridContainer"
-                    ref={this.containerRef}
+                onPointerDown={e => this.onPointerDown(e)} >
+                <div className="collectionGridView-gridContainer" ref={this._containerRef}
+                    onWheel={e => e.stopPropagation()}
                     onScroll={action(e => {
                         if (!this.props.isSelected()) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
-                    })}
-                    onWheel={e => e.stopPropagation()}
-                >
-                    <input className="rowHeightSlider" type="range" value={NumCast(this.props.Document.rowHeight)} onPointerDown={this.onSliderDown} onPointerUp={this.onSliderUp} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} />
+                    })} >
+                    <input className="rowHeightSlider" type="range"
+                        style={{ width: this.props.PanelHeight() - 30 }}
+                        min={1} value={this.rowHeight} max={this.props.PanelHeight() - 30}
+                        onPointerDown={this.onSliderDown} onChange={this.onSliderChange} />
                     <Grid
                         width={this.props.PanelWidth()}
-                        nodeList={childDocumentViews.length ? childDocumentViews : null}
-                        layout={childDocumentViews.length ? this.layoutList : undefined}
+                        nodeList={this.contents.length ? this.contents : null}
+                        layout={this.contents.length ? this.layoutList : undefined}
                         childrenDraggable={this.props.isSelected() ? true : false}
-                        numCols={NumCast(this.props.Document.numCols)}
-                        rowHeight={NumCast(this.props.Document.rowHeight)}
+                        numCols={this.numCols}
+                        rowHeight={this.rowHeight}
                         setLayout={this.setLayout}
                         transformScale={this.props.ScreenToLocalTransform().Scale}
-                        compactType={StrCast(this.props.Document.compactType)}
-                        preventCollision={BoolCast(this.props.Document.preventCollision)}
+                        compactType={StrCast(this.props.Document.gridCompaction, "vertical")} // determines whether nodes should remain in position, be bound to the top, or to the left
+                        preventCollision={BoolCast(this.props.Document.gridPreventCollision)}// determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
                         margin={this.margin}
                     />
-
                 </div>
             </div >
         );
