@@ -13,7 +13,6 @@ export class ScriptManager {
         return this._instance || (this._instance = new this());
     }
     private constructor() {
-        console.log("CONSTRUCTED");
         if (!ScriptManager._initialized) {
             ScriptManager._initialized = true;
             this.getAllScripts().forEach(scriptDoc => ScriptManager.addScriptToGlobals(scriptDoc));

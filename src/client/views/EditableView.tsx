@@ -50,6 +50,7 @@ export interface EditableProps {
     toggle?: () => void;
     color?: string | undefined;
     onDrop?: any;
+    placeholder?: string;
 }
 
 /**
@@ -177,6 +178,7 @@ export class EditableView extends React.Component<EditableProps> {
                     onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
                     onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                     style={{ display: this.props.display, fontSize: this.props.fontSize }}
+                    placeholder={this.props.placeholder}
                 />;
         } else {
             this.props.autosuggestProps?.resetValue();
@@ -184,8 +186,9 @@ export class EditableView extends React.Component<EditableProps> {
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     ref={this._ref}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
-                    onClick={this.onClick}>
-                    <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{this.props.contents}</span>
+                    onClick={this.onClick} placeholder={this.props.placeholder}>
+
+                    <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
                 </div>
             );
         }

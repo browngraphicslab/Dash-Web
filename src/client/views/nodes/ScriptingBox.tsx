@@ -359,7 +359,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // rendering when a string's value can be set in applied UI
     renderString(parameter: string) {
-        return <div className="scriptingBox-paramInputs">
+        return <div className="scriptingBox-paramInputs" style={{ overflowY: "hidden" }}>
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
                 contents={this.dataDoc[parameter] ?? "undefined"}
                 GetValue={() => StrCast(this.dataDoc[parameter]) ?? "undefined"}
@@ -694,12 +694,14 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     // inputs for scripting div (script box, params box, and params column)
     @computed({ keepAlive: true }) get renderScriptingInputs() {
 
+        // should there be a border? style={{ borderStyle: "groove", borderBlockWidth: "1px" }}
         // params box on bottom
         const parameterInput = <div className="scriptingBox-params">
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={22}
                 contents={""}
                 GetValue={returnEmptyString}
                 SetValue={value => value && value !== " " ? this.compileParam(value) : false}
+                placeholder={"enter parameters here"}
             />
         </div>;
 
@@ -744,11 +746,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     renderParamsInputs() {
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
             {!this.compileParams.length || !this.paramsNames ? (null) :
-                <div className="scriptingBox-plist">
+                <div className="scriptingBox-plist" style={{ overflowY: "scroll" }}>
                     {this.paramsNames.map((parameter: string, i: number) =>
                         <div className="scriptingBox-pborder" onKeyPress={e => e.key === "Enter" && this._overlayDisposer?.()}  >
-                            <div className="scriptingBox-wrapper">
-                                <div className="scriptingBox-paramNames"> {`${parameter}:${this.paramsTypes[i]} = `} </div>
+                            <div className="scriptingBox-wrapper" style={{ maxHeight: "40px" }}>
+                                <div className="scriptingBox-paramNames" > {`${parameter}:${this.paramsTypes[i]} = `} </div>
                                 {this.paramsTypes[i] === "boolean" ? this.renderBoolean(parameter) : (null)}
                                 {this.paramsTypes[i] === "string" ? this.renderString(parameter) : (null)}
                                 {this.paramsTypes[i] === "number" ? this.renderNumber(parameter) : (null)}
