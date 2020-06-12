@@ -58,6 +58,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         super(props);
         this.fetchDocuments();
         
+        
     }
 
     async fetchDocuments() {
@@ -180,18 +181,29 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             search => {console.log(NumCast(search));this.searchPos=NumCast(search) },{ fireImmediately: true }
         );
 
+        this._reactionDisposer2 = reaction(
+            () => this._useIcons,
+            el=> {console.log("YUH"); 
+            setTimeout(() =>(this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null), 1);
+        }
+        );
+
         Doc.SetSearchQuery(this.query);
         this.rootDoc.searchMatch = true;
     }
     componentWillUnmount() {
         this.rootDoc.searchMatch = undefined;
         this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer2 && this._reactionDisposer2();
+
     }
 
     
     @observable searchPos: number|undefined =0;
 
     private _reactionDisposer?: IReactionDisposer;
+    private _reactionDisposer2?: IReactionDisposer;
+
     
     @computed get highlightPos(){return NumCast(this.rootDoc.searchIndex)}
 
@@ -243,9 +255,12 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                                 layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
                                     layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
                                         faCaretUp;
-        return <div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
+        return <div><div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
-        </div>;
+        </div>
+        <div className="searchItem-label">{this.rootDoc.type ? this.rootDoc.type : "Other"}</div>
+        </div>
+        ;
     }
 
     collectionRef = React.createRef<HTMLDivElement>();
@@ -380,10 +395,36 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         SearchBox.Instance.submitSearch();
        }) 
     }
+    
+    @action
+    returnLines(){
+        if (!this._displayLines) {
+            return <div style={{height:50, width: 10}}
+            onPointerDown={action(() => {
+                this._displayLines = !this._displayLines;
+                //this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
+            })}
+            //onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
+             >
+            {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)}
+            </div>;;
+        }
+        else {
+        return <button style={{padding:2}} onClick={action(() => { this._displayLines = false; 
+        })} >
+            <FontAwesomeIcon icon="arrow-up" size="sm" />
+        </button>;
+        }
+    }
+    
+    //this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); 
+
+    @observable _displayLines: boolean = true;
 
     returnButtons(){
         return <div>
-              {`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`}
+            {this.returnLines()}
+            {`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`}
              <button onClick={this.nextHighlight} style={{padding:2}}>
                         <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
                         </button>
@@ -392,6 +433,9 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                         </button>
         </div>
     }
+
+    private _mainRef: React.RefObject<HTMLDivElement> = React.createRef();
+
 
     render() {
         const doc1 = Cast(this.rootDoc!.anchor1, Doc);
@@ -429,26 +473,20 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         }
         else {
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-            <div className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
+            <div ref={this._mainRef} className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
                         <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>{StrCast(this.rootDoc.title)}</div>
                         <div className="searchItem-highlighting">
                         {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
-                        {/* {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)} */}
+                        <div className={`icon-${this._displayLines ? "q" : "a"}`}>
                         {NumCast(this.rootDoc.length) > 1? this.returnButtons(): null} 
-                        {/* <button onClick={this.nextHighlight} style={{padding:2}}>
-                        <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
-                        </button>
-                        <button onClick={this.nextHighlight2} style={{padding:2}}>                    
-                        <FontAwesomeIcon icon="arrow-down" size="sm"  />
-                        </button> */}
+                        </div>
                         </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
                     <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                         <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
-                        <div className="searchItem-label">{this.rootDoc.type ? this.rootDoc.type : "Other"}</div>
                     </div>
                 </div>
                 <div className="searchItem-context" title="Drag as document">
