@@ -44,7 +44,6 @@ export default class Grid extends React.Component<GridProps> {
                 onLayoutChange={this.props.setLayout}
                 preventCollision={this.props.preventCollision}
                 transformScale={1 / this.props.transformScale} // still doesn't work :(
-                style={{ zIndex: 5 }}
                 margin={[this.props.margin, this.props.margin]}
             >
                 {this.props.nodeList}

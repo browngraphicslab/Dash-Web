@@ -97,7 +97,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     unflexedPosition(index: number) {
         return {
             x: (index % Math.floor(this.numCols / this.defaultW)) * this.defaultW,
-            y: Math.floor(index / Math.floor(this.numCols / this.defaultH)) * this.defaultH
+            y: Math.floor(index / Math.floor(this.numCols / this.defaultH)) * this.defaultH,
+            static: true
         };
     }
 
@@ -253,6 +254,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             undoBatch(() => this.props.Document.gridRowHeight = this._rowHeight)();
             this._rowHeight = undefined;
         }), emptyFunction, false, false);
+        e.stopPropagation();
     }
     /**
      * Adds the display option to change the css display attribute of the `ContentFittingDocumentView`s
@@ -265,15 +267,19 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     onPointerDown = (e: React.PointerEvent) => {
-        this.props.isSelected(true) && setupMoveUpEvents(this, e, returnFalse, returnFalse, action((e: PointerEvent, doubleTap?: boolean) => {
-            if (doubleTap) {
-                const text = Docs.Create.TextDocument("", { _width: 150, _height: 50 });
-                FormattedTextBox.SelectOnLoad = text[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-                Doc.AddDocToList(this.props.Document, this.props.fieldKey, text);
-                this.setLayoutList(this.addLayoutItem(this.parsedLayoutList, this.makeLayoutItem(text, this.screenToCell(e.clientX, e.clientY))));
-            }
-        }), false);
-        e.stopPropagation();
+        if (this.props.isSelected(true)) {
+            setupMoveUpEvents(this, e, returnFalse, returnFalse,
+                action((e: PointerEvent, doubleTap?: boolean) => {
+                    if (doubleTap) {
+                        const text = Docs.Create.TextDocument("", { _width: 150, _height: 50 });
+                        FormattedTextBox.SelectOnLoad = text[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
+                        Doc.AddDocToList(this.props.Document, this.props.fieldKey, text);
+                        this.setLayoutList(this.addLayoutItem(this.parsedLayoutList, this.makeLayoutItem(text, this.screenToCell(e.clientX, e.clientY))));
+                    }
+                }),
+                false);
+            e.stopPropagation();
+        }
     }
 
     render() {
@@ -288,10 +294,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         if (!this.props.isSelected()) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
                     })} >
-                    <input className="rowHeightSlider" type="range"
-                        style={{ width: this.props.PanelHeight() - 30 }}
-                        min={1} value={this.rowHeight} max={this.props.PanelHeight() - 30}
-                        onPointerDown={this.onSliderDown} onChange={this.onSliderChange} />
                     <Grid
                         width={this.props.PanelWidth()}
                         nodeList={this.contents.length ? this.contents : null}
@@ -305,6 +307,10 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         preventCollision={BoolCast(this.props.Document.gridPreventCollision)}// determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
                         margin={this.margin}
                     />
+                    <input className="rowHeightSlider" type="range"
+                        style={{ width: this.props.PanelHeight() - 30 }}
+                        min={1} value={this.rowHeight} max={this.props.PanelHeight() - 30}
+                        onPointerDown={this.onSliderDown} onChange={this.onSliderChange} />
                 </div>
             </div >
         );
