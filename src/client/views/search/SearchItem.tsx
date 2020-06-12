@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocCastAsync } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
@@ -149,7 +149,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     constructor(props:any){
         super(props);
-        this.targetDoc._viewType= CollectionViewType.Stacking;
+        this.rootDoc._viewType= CollectionViewType.Stacking;
         this.rootDoc._viewType = CollectionViewType.Stacking;
         if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
@@ -166,7 +166,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     @observable _selected: boolean = false;
 
     onClick = () => {
-        DocumentManager.Instance.jumpToDocument(this.targetDoc, false);
+        DocumentManager.Instance.jumpToDocument(this.rootDoc, false);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
@@ -175,17 +175,29 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     componentDidMount() {
 
-        console.log(this.query);
+        this._reactionDisposer = reaction(
+            () => this.rootDoc.searchIndex,
+            search => {console.log(NumCast(search));this.searchPos=NumCast(search) },{ fireImmediately: true }
+        );
+
         Doc.SetSearchQuery(this.query);
-        this.targetDoc.searchMatch = true;
+        this.rootDoc.searchMatch = true;
     }
     componentWillUnmount() {
-        this.targetDoc.searchMatch = undefined;
+        this.rootDoc.searchMatch = undefined;
+        this._reactionDisposer && this._reactionDisposer();
     }
+
+    
+    @observable searchPos: number|undefined =0;
+
+    private _reactionDisposer?: IReactionDisposer;
+    
+    @computed get highlightPos(){return NumCast(this.rootDoc.searchIndex)}
 
     @action
     public DocumentIcon() {
-        const layoutresult = StrCast(this.targetDoc.type);
+        const layoutresult = StrCast(this.rootDoc.type);
         if (!this._useIcons) {
             const returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             const returnYDimension = () => this._displayDim;
@@ -196,10 +208,10 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                 })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))} >
                 <ContentFittingDocumentView
-                    Document={this.targetDoc}
+                    Document={this.rootDoc}
                     LibraryPath={emptyPath}
                     rootSelected={returnFalse}
-                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
+                    fitToBox={StrCast(this.rootDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
@@ -241,40 +253,60 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
-    nextHighlight = (e: React.PointerEvent) => {
+    @action
+    nextHighlight = (e: React.MouseEvent) => {
         e.preventDefault();
-        e.button === 0 && SearchBox.Instance.openSearch(e);
-        this.targetDoc!.searchMatch = false;
-        setTimeout(() => this.targetDoc!.searchMatch = true, 0);
+        //e.button === 0 && SearchBox.Instance.openSearch(e);
+
+        this.rootDoc!.searchMatch = false;
+        setTimeout(() => this.rootDoc!.searchMatch = true, 0);
+        this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
+
+        this.searchPos=NumCast(this.rootDoc!.searchIndex);
+        this.length=NumCast(this.rootDoc!.length);
     }
+
+    @action
+    nextHighlight2 = (e: React.MouseEvent) => {
+        e.preventDefault();
+        //e.button === 0 && SearchBox.Instance.openSearch(e);
+
+        this.rootDoc!.searchMatch2 = false;
+        setTimeout(() => this.rootDoc!.searchMatch2 = true, 0);
+        this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
+
+        this.searchPos=NumCast(this.rootDoc!.searchIndex);
+        this.length=NumCast(this.rootDoc!.length);
+    }
+
+    @observable length:number|undefined = 0;
+
     highlightDoc = (e: React.PointerEvent) => {
-        console.log(Cast(this.targetDoc.lines, listSpec("string"))!.length);
+        if (this.rootDoc!.type === DocumentType.LINK) {
+            if (this.rootDoc!.anchor1 && this.rootDoc!.anchor2) {
 
-        if (this.targetDoc!.type === DocumentType.LINK) {
-            if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
-
-                const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
-                const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
+                const doc1 = Cast(this.rootDoc!.anchor1, Doc, null);
+                const doc2 = Cast(this.rootDoc!.anchor2, Doc, null);
                 Doc.BrushDoc(doc1);
                 Doc.BrushDoc(doc2);
             }
         } else {
-            Doc.BrushDoc(this.targetDoc!);
+            Doc.BrushDoc(this.rootDoc!);
         }
         e.stopPropagation();
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        if (this.targetDoc!.type === DocumentType.LINK) {
-            if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
+        if (this.rootDoc!.type === DocumentType.LINK) {
+            if (this.rootDoc!.anchor1 && this.rootDoc!.anchor2) {
 
-                const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
-                const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
+                const doc1 = Cast(this.rootDoc!.anchor1, Doc, null);
+                const doc2 = Cast(this.rootDoc!.anchor2, Doc, null);
                 Doc.UnBrushDoc(doc1);
                 Doc.UnBrushDoc(doc2);
             }
         } else {
-            Doc.UnBrushDoc(this.targetDoc!);
+            Doc.UnBrushDoc(this.rootDoc!);
         }
     }
 
@@ -284,7 +316,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({
             description: "Copy ID", event: () => {
-                Utils.CopyText(StrCast(this.targetDoc[Id]));
+                Utils.CopyText(StrCast(this.rootDoc[Id]));
             },
             icon: "fingerprint"
         });
@@ -309,7 +341,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             Math.abs(e.clientY - this._downY) > Utils.DRAG_THRESHOLD) {
             document.removeEventListener("pointermove", this.onPointerMoved);
             document.removeEventListener("pointerup", this.onPointerUp);
-            const doc = Doc.IsPrototype(this.targetDoc) ? Doc.MakeDelegate(this.targetDoc) : this.targetDoc;
+            const doc = Doc.IsPrototype(this.rootDoc) ? Doc.MakeDelegate(this.rootDoc) : this.rootDoc;
             DragManager.StartDocumentDrag([this._target], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
         }
     }
@@ -320,7 +352,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     @computed
     get contextButton() {
-        return <ParentDocSelector Document={this.targetDoc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return <ParentDocSelector Document={this.rootDoc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
     @computed get searchElementDoc() { return this.rootDoc; }
@@ -350,12 +382,12 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     }
 
     render() {
-        const doc1 = Cast(this.targetDoc!.anchor1, Doc);
-        const doc2 = Cast(this.targetDoc!.anchor2, Doc);
-        if (this.targetDoc.isBucket === true){
+        const doc1 = Cast(this.rootDoc!.anchor1, Doc);
+        const doc2 = Cast(this.rootDoc!.anchor2, Doc);
+        if (this.rootDoc.isBucket === true){
             this.props.Document._viewType=CollectionViewType.Stacking;  
             this.props.Document._chromeStatus='disabled';
-            this.props.Document._height=this.targetDoc._height;
+            this.props.Document._height=this.rootDoc._height;
 
             return <div>
             <CollectionView {...this.props}
@@ -373,7 +405,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             </button>
             </div>
         }
-        else if (this.targetDoc.isBucket === false){
+        else if (this.rootDoc.isBucket === false){
             this.props.Document._chromeStatus='disabled';
             return      <div className="searchItem">
                 <div className="searchItem-body" >
@@ -385,23 +417,26 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         }
         else {
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-            <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
+            <div className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
-                        <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>{StrCast(this.targetDoc.title)}</div>
+                        <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>{StrCast(this.rootDoc.title)}</div>
                         <div className="searchItem-highlighting">
-                        {StrCast(this.targetDoc.highlighting).length ? "Matched fields:" + StrCast(this.targetDoc.highlighting) : Cast(this.targetDoc.lines, listSpec("string"))!.length ? Cast(this.targetDoc.lines, listSpec("string"))![0] : ""}</div>
-                        {/* {Cast(this.targetDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)} */}
-                    </div>
+                        {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
+                        {/* {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)} */}
+                        <button onClick={this.nextHighlight} style={{height:3, width:5}}/>
+                        {NumCast(this.rootDoc.length) > 1? `${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex)} of ${NumCast(this.rootDoc.length)}`: null} 
+                        <button onClick={this.nextHighlight2}style={{height:3, width:5}}/>
+                        </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
                     <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                         <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
-                        <div className="searchItem-label">{this.targetDoc.type ? this.targetDoc.type : "Other"}</div>
+                        <div className="searchItem-label">{this.rootDoc.type ? this.rootDoc.type : "Other"}</div>
                     </div>
                 </div>
                 <div className="searchItem-context" title="Drag as document">
-                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.targetDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
+                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.rootDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
                         this.contextButton}
                 </div>
             </div>
