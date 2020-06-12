@@ -267,7 +267,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     }
                 },
                 false);
-            e.stopPropagation();
+            if (this.props.isSelected(true)) e.stopPropagation();
         }
     }
 
