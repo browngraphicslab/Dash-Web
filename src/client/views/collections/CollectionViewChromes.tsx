@@ -718,7 +718,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
                     value={StrCast(this.props.CollectionView.props.Document.gridStartCompaction, StrCast(this.props.CollectionView.props.Document.gridCompaction))}>
-                    {["vertical", "horizontal", "null"].map(type =>
+                    {["vertical", "horizontal", "none"].map(type =>
                         <option className="collectionGridViewChrome-viewOption"
                             onPointerDown={stopPropagation}
                             value={type}>

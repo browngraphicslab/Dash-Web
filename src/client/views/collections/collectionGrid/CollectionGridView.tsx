@@ -254,7 +254,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     onPointerDown = (e: React.PointerEvent) => {
-        if (this.props.isSelected(true)) {
+        if (this.props.active(true)) {
             setupMoveUpEvents(this, e, returnFalse, returnFalse,
                 (e: PointerEvent, doubleTap?: boolean) => {
                     if (doubleTap) {
