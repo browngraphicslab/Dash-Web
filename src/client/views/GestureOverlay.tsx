@@ -107,7 +107,7 @@ export default class GestureOverlay extends Touchable {
     onReactTouchStart = (te: React.TouchEvent) => {
         document.removeEventListener("touchmove", this.onReactHoldTouchMove);
         document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-        if (RadialMenu.Instance._display === true) {
+        if (RadialMenu.Instance?._display === true) {
             te.preventDefault();
             te.stopPropagation();
             RadialMenu.Instance.closeMenu();

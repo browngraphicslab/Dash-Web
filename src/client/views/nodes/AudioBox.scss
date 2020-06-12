@@ -1,146 +1,250 @@
-.audiobox-container, .audiobox-container-interactive {
+.audiobox-container,
+.audiobox-container-interactive {
     width: 100%;
     height: 100%;
     position: inherit;
-    display:flex;
+    display: flex;
     pointer-events: all;
-    cursor:default;
+    cursor: default;
+
     .audiobox-buttons {
         display: flex;
         width: 100%;
         align-items: center;
     }
+
     .audiobox-handle {
-        width:20px;
-        height:100%;
-        display:inline-block;
+        width: 20px;
+        height: 100%;
+        display: inline-block;
     }
-    .audiobox-control, .audiobox-control-interactive {
-        top:0;
+
+    .audiobox-control,
+    .audiobox-control-interactive {
+        top: 0;
         max-height: 32px;
         width: 100%;
-        display:inline-block;
+        display: inline-block;
         pointer-events: none;
     }
+
     .audiobox-control-interactive {
         pointer-events: all;
     }
+
     .audiobox-record {
         pointer-events: all;
-        width:100%;
-        height:100%;
+        width: 100%;
+        height: 100%;
         position: relative;
         pointer-events: none;
     }
+
     .audiobox-record-interactive {
         pointer-events: all;
-        width:100%;
-        height:100%;
+        width: 100%;
+        height: 100%;
         position: relative;
     }
+
     .audiobox-controls {
-        width:100%;
-        height:100%;
+        width: 100%;
+        height: 100%;
         position: relative;
         display: flex;
         padding-left: 2px;
+
         .audiobox-player {
-            margin-top:auto;
-            margin-bottom:auto;
-            width:100%;
+            margin-top: auto;
+            margin-bottom: auto;
+            width: 100%;
             height: 80%;
             position: relative;
             padding-right: 5px;
             display: flex;
-            .audiobox-playhead, .audiobox-dictation {
+
+            .audiobox-playhead,
+            .audiobox-dictation {
                 position: relative;
                 margin-top: auto;
                 margin-bottom: auto;
                 width: 25px;
                 padding: 2px;
             }
+
             .audiobox-dictation {
                 align-items: center;
                 display: inherit;
                 background: dimgray;
             }
+
             .audiobox-timeline {
-                position:relative;
-                height:100%;
-                width:100%;
+                position: relative;
+                height: 100%;
+                width: 100%;
                 background: white;
                 border: gray solid 1px;
                 border-radius: 3px;
+
                 .audiobox-current {
                     width: 1px;
-                    height:100%;
+                    height: 100%;
                     background-color: red;
                     position: absolute;
                 }
-                .audiobox-linker, .audiobox-linker-mini {
-                    position:absolute;
-                    width:15px;
-                    min-height:10px;
-                    height:15px;
-                    margin-left:-2.55px;
-                    background:gray;
+
+                .audiobox-linker,
+                .audiobox-linker-mini {
+                    position: absolute;
+                    width: 15px;
+                    min-height: 10px;
+                    height: 15px;
+                    margin-left: -2.55px;
+                    background: gray;
                     border-radius: 100%;
-                    opacity:0.9;
+                    opacity: 0.9;
                     background-color: transparent;
                     box-shadow: black 2px 2px 1px;
+
                     .linkAnchorBox-cont {
                         position: relative !important;
-                        height: 100%  !important;
+                        height: 100% !important;
                         width: 100% !important;
-                        left:unset !important;
-                        top:unset !important;
+                        left: unset !important;
+                        top: unset !important;
                     }
                 }
+
                 .audiobox-linker-mini {
-                    width:8px;
-                    min-height:8px;
-                    height:8px;
+                    width: 8px;
+                    min-height: 8px;
+                    height: 8px;
                     box-shadow: black 1px 1px 1px;
                     margin-left: -1;
                     margin-top: -2;
+
                     .linkAnchorBox-cont {
                         position: relative !important;
-                        height: 100%  !important;
+                        height: 100% !important;
                         width: 100% !important;
-                        left:unset !important;
-                        top:unset !important;
+                        left: unset !important;
+                        top: unset !important;
                     }
                 }
-                .audiobox-linker:hover, .audiobox-linker-mini:hover {
-                    opacity:1;
+
+                .audiobox-linker:hover,
+                .audiobox-linker-mini:hover {
+                    opacity: 1;
                 }
-                .audiobox-marker-container, .audiobox-marker-minicontainer {
-                    position:absolute;
-                    width:10px;
-                    height:90%;
-                    top:2.5%;
-                    background:gray;
+
+                .audiobox-marker-container,
+                .audiobox-marker-minicontainer {
+                    position: absolute;
+                    width: 10px;
+                    height: 90%;
+                    top: 2.5%;
+                    background: gray;
                     border-radius: 5px;
                     box-shadow: black 2px 2px 1px;
+
                     .audiobox-marker {
-                        position:relative;
+                        position: relative;
                         height: calc(100% - 15px);
                         margin-top: 15px;
                     }
+
                     .audio-marker:hover {
                         border: orange 2px solid;
                     }
                 }
+
                 .audiobox-marker-minicontainer {
-                    width:5px;
+                    width: 5px;
                     border-radius: 1px;
+
                     .audiobox-marker {
-                        position:relative;
+                        position: relative;
                         height: calc(100% - 8px);
                         margin-top: 8px;
                     }
                 }
             }
         }
+    }
+}
+
+
+@media only screen and (max-width: 1000px) {
+
+    .audiobox-container,
+    .audiobox-container-interactive {
+        width: max-content;
+        /* align-self: center; */
+        left: 50%;
+        top: 40%;
+        transform: translate(-50%, 0);
+        height: 100px;
+        position: absolute;
+        display: flex;
+        pointer-events: all;
+        /* cursor: default; */
+    }
+
+    .audiobox-container .audiobox-buttons,
+    .audiobox-container-interactive .audiobox-buttons {
+        display: flex;
+        width: 500px;
+        /* left: 50%; */
+        /* transform: translate(-50%,0); */
+        align-items: center;
+    }
+
+    .audiobox-dictation {
+        width: 100;
+        height: 100;
+        font-size: 50;
+        /* background-color: white; */
+    }
+
+    .audiobox-container .audiobox-record-interactive,
+    .audiobox-container-interactive .audiobox-record-interactive {
+        width: 95%;
+        user-select: none;
+        font-size: 50px;
+        font-weight: 100;
+        left: 5%;
+        height: 100%;
+        position: relative;
+    }
+
+    .audiobox-container .audiobox-controls .audiobox-player .audiobox-playhead,
+    .audiobox-container .audiobox-controls .audiobox-player .audiobox-dictation,
+    .audiobox-container-interactive .audiobox-controls .audiobox-player .audiobox-playhead,
+    .audiobox-container-interactive .audiobox-controls .audiobox-player .audiobox-dictation {
+        position: relative;
+        align-self: center;
+        width: 50px;
+        height: max-content;
+        padding: 0;
+    }
+
+    .audiobox-container .audiobox-controls .audiobox-player,
+    .audiobox-container-interactive .audiobox-controls .audiobox-player {
+        margin-top: auto;
+        margin-bottom: auto;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        padding-right: 5px;
+        display: flex;
+    }
+
+    .audiobox-container .audiobox-controls,
+    .audiobox-container-interactive .audiobox-controls {
+        width: 500px;
+        height: 100%;
+        position: relative;
+        display: flex;
+        padding-left: 2px;
     }
 }
