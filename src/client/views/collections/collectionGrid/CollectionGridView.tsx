@@ -65,9 +65,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 // for each document that was added, add a corresponding grid layout object
                 newValue.forEach(({ layout }, i) => {
                     if (!layouts.find(gridLayout => gridLayout.i === layout[Id])) {
-                        this.addLayoutItem(layouts, this.makeLayoutItem(layout, this.unflexedPosition(i), !this.flexGrid))
+                        this.addLayoutItem(layouts, this.makeLayoutItem(layout, this.unflexedPosition(i), !this.flexGrid));
                     }
-                })
+                });
             } else {
                 // for each document that was removed, remove its corresponding grid layout object
                 oldValue.forEach(({ layout }) => {
@@ -94,10 +94,12 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         this._resetListenerDisposer?.();
     }
 
-    unflexedPosition(index: number) {
+    unflexedPosition(index: number): Omit<Layout, "i"> {
         return {
             x: (index % Math.floor(this.numCols / this.defaultW)) * this.defaultW,
             y: Math.floor(index / Math.floor(this.numCols / this.defaultH)) * this.defaultH,
+            w: this.defaultW,
+            h: this.defaultH,
             static: true
         };
     }

@@ -622,7 +622,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
      */
     @undoBatch
     toggleFlex = () => {
-        this.props.CollectionView.props.Document.gridFlex = !this.props.CollectionView.props.Document.gridFlex;
+        this.props.CollectionView.props.Document.gridFlex = !BoolCast(this.props.CollectionView.props.Document.gridFlex, true);
     }
 
     /**
@@ -718,7 +718,6 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
                     value={StrCast(this.props.CollectionView.props.Document.gridCompaction)}>
-                    >
                     {["vertical", "horizontal", "null"].map(type =>
                         <option className="collectionGridViewChrome-viewOption"
                             onPointerDown={stopPropagation}
@@ -729,7 +728,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                 </select>
 
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
-                    <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={BoolCast(this.props.CollectionView.props.Document.gridFlex)} />
+                    <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={BoolCast(this.props.CollectionView.props.Document.gridFlex, true)} />
                     <label className="flexLabel">{this.resize ? "Flex" : "Flexible"}</label>
                 </span>
 
