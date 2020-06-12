@@ -5,6 +5,7 @@
     justify-content: center;
     flex-direction: column;
     align-items: center;
+    max-width: 400px;
 
     .upload_label {
         font-size: 3em;
@@ -15,6 +16,13 @@
         margin: 10;
         width: 100%;
         border-radius: 10px;
+    }
+
+    .file {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        direction: ltr;
     }
 
     .upload_label:hover {
@@ -53,6 +61,10 @@
     .inputfile:focus+label,
     .inputfile+label:hover {
         background-color: darkred;
+    }
+
+    .status {
+        font-size: 2em;
     }
 
 }

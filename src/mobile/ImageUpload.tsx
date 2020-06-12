@@ -32,6 +32,7 @@ export class Uploader extends React.Component {
     @observable error: string = "";
     @observable status: string = "";
     @observable nm: string = "Choose an image";
+    @observable process: string = "";
 
     onClick = async () => {
         console.log("uploader click");
@@ -48,6 +49,7 @@ export class Uploader extends React.Component {
                 console.log("hi");
                 const files: FileList | null = inputRef.current!.files;
                 if (files && files.length !== 0) {
+                    this.process = "Uploading Image"
                     console.log(files[0]);
                     const name = files[0].name;
                     const res = await Networking.UploadFilesToServer(files[0]);
@@ -100,15 +102,18 @@ export class Uploader extends React.Component {
                                 pending.data = new List([doc]);
                             }
                             this.status = "finished";
+
                             console.log("hi");
                             const slab7 = document.getElementById("slab7");
                             if (slab7) {
                                 slab7.style.opacity = "1";
                             }
-
+                            this.process = "Image Uploaded";
                         }
 
                     });
+                } else {
+                    this.process = "No file selected";
                 }
                 setTimeout(this.clearUpload, 3000);
             }
@@ -163,6 +168,7 @@ export class Uploader extends React.Component {
         if (inputRef.current) {
             inputRef.current.value = "";
         }
+        this.process = "";
         console.log(inputRef.current!.files);
     }
 
@@ -172,7 +178,7 @@ export class Uploader extends React.Component {
         return (
             <div className="imgupload_cont">
                 <input type="file" accept="image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel}></input>
-                <label id="label" htmlFor="input_image_file">{this.nm}</label>
+                <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>Upload Image</div>
                 {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>
@@ -187,6 +193,7 @@ export class Uploader extends React.Component {
                     <div className="loadingSlab" id="slab6" />
                     <div className="loadingSlab" id="slab7" />
                 </div>
+                <p className="status">{this.process}</p>
             </div>
         );
     }
