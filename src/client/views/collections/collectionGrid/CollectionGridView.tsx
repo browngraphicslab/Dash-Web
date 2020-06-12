@@ -222,7 +222,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             this.parsedLayoutList.map(({ i, x, y, w, h }) => ({
                 i, y, h,
                 x: x + w > this.numCols ? 0 : x, // handles wrapping around of nodes when numCols decreases
-                w: Math.max(w, this.numCols), // reduces width if greater than numCols
+                w: Math.min(w, this.numCols), // reduces width if greater than numCols
                 static: BoolCast(this.childLayoutPairs.find(({ layout }) => layout[Id] === i)?.layout.lockedPosition, false) // checks if the lock position item has been selected in the context menu
             })) :
             this.parsedLayoutList.map((layout, index) => Object.assign(layout, this.unflexedPosition(index)));
