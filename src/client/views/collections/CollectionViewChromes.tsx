@@ -686,9 +686,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     /**
      * Changes the value of the compactType
      */
-    @undoBatch
     changeCompactType = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        this.props.CollectionView.props.Document.gridCompaction = e.target.selectedOptions[0].value;
+        // need to change startCompaction so that this operation will be undoable.
+        this.props.CollectionView.props.Document.gridStartCompaction = e.target.selectedOptions[0].value;
     }
 
     render() {
@@ -709,7 +709,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
                 </span> */}
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
-                    <input type="checkbox" style={{ marginRight: 5 }} onClick={this.toggleCollisions} defaultChecked={!this.props.CollectionView.props.Document.gridPreventCollision} />
+                    <input type="checkbox" style={{ marginRight: 5 }} onChange={this.toggleCollisions} checked={!this.props.CollectionView.props.Document.gridPreventCollision} />
                     <label className="flexLabel">{this.resize ? "Coll" : "Collisions"}</label>
                 </span>
 
@@ -717,7 +717,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     style={{ marginRight: 5 }}
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
-                    value={StrCast(this.props.CollectionView.props.Document.gridCompaction)}>
+                    value={StrCast(this.props.CollectionView.props.Document.gridStartCompaction, StrCast(this.props.CollectionView.props.Document.gridCompaction))}>
                     {["vertical", "horizontal", "null"].map(type =>
                         <option className="collectionGridViewChrome-viewOption"
                             onPointerDown={stopPropagation}
@@ -728,7 +728,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                 </select>
 
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
-                    <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={BoolCast(this.props.CollectionView.props.Document.gridFlex, true)} />
+                    <input style={{ marginRight: 5 }} type="checkbox" onChange={this.toggleFlex}
+                        checked={BoolCast(this.props.CollectionView.props.Document.gridFlex, true)} />
                     <label className="flexLabel">{this.resize ? "Flex" : "Flexible"}</label>
                 </span>
 

@@ -45,6 +45,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @computed get margin() { return NumCast(this.props.Document.margin, 10); }  // sets the margin between grid nodes
 
     @computed get flexGrid() { return BoolCast(this.props.Document.gridFlex, true); } // is grid static/flexible i.e. whether nodes be moved around and resized
+    @computed get compaction() { return StrCast(this.props.Document.gridStartCompaction, StrCast(this.props.Document.gridCompaction, "vertical")); } // is grid static/flexible i.e. whether nodes be moved around and resized
 
     componentDidMount() {
         this._changeListenerDisposer = reaction(() => this.childLayoutPairs, (pairs) => {
@@ -55,7 +56,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 if (existing) newLayouts.push(existing);
                 else this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.unflexedPosition(i), !this.flexGrid));
             });
-            this.setLayoutList(newLayouts);
+            pairs?.length && this.setLayoutList(newLayouts);
         }, { fireImmediately: true });
 
         // updates the layouts if the reset button has been clicked
@@ -165,7 +166,15 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 gridLayout && Object.assign(gridLayout, layoutArray.find(layout => layout.i === doc[Id]) || gridLayout);
             });
 
-            this.setLayoutList(savedLayouts);
+            if (this.props.Document.gridStartCompaction) {
+                undoBatch(() => {
+                    this.props.Document.gridCompaction = this.props.Document.gridStartCompaction;
+                    this.setLayoutList(savedLayouts);
+                })();
+                this.props.Document.gridStartCompaction = undefined;
+            } else {
+                undoBatch(() => this.setLayoutList(savedLayouts))();
+            }
         }
     }
 
@@ -247,14 +256,16 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     onPointerDown = (e: React.PointerEvent) => {
         if (this.props.isSelected(true)) {
             setupMoveUpEvents(this, e, returnFalse, returnFalse,
-                action((e: PointerEvent, doubleTap?: boolean) => {
+                (e: PointerEvent, doubleTap?: boolean) => {
                     if (doubleTap) {
-                        const text = Docs.Create.TextDocument("", { _width: 150, _height: 50 });
-                        FormattedTextBox.SelectOnLoad = text[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
-                        Doc.AddDocToList(this.props.Document, this.props.fieldKey, text);
-                        this.setLayoutList(this.addLayoutItem(this.savedLayoutList, this.makeLayoutItem(text, this.screenToCell(e.clientX, e.clientY))));
+                        undoBatch(action(() => {
+                            const text = Docs.Create.TextDocument("", { _width: 150, _height: 50 });
+                            FormattedTextBox.SelectOnLoad = text[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
+                            Doc.AddDocToList(this.props.Document, this.props.fieldKey, text);
+                            this.setLayoutList(this.addLayoutItem(this.savedLayoutList, this.makeLayoutItem(text, this.screenToCell(e.clientX, e.clientY))));
+                        }))();
                     }
-                }),
+                },
                 false);
             e.stopPropagation();
         }
@@ -281,7 +292,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         rowHeight={this.rowHeight}
                         setLayout={this.setLayout}
                         transformScale={this.props.ScreenToLocalTransform().Scale}
-                        compactType={StrCast(this.props.Document.gridCompaction, "vertical")} // determines whether nodes should remain in position, be bound to the top, or to the left
+                        compactType={this.compaction} // determines whether nodes should remain in position, be bound to the top, or to the left
                         preventCollision={BoolCast(this.props.Document.gridPreventCollision)}// determines whether nodes should move out of the way (i.e. collide) when other nodes are dragged over them
                         margin={this.margin}
                     />
