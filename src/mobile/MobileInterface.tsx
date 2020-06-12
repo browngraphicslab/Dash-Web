@@ -1481,20 +1481,20 @@ export class MobileInterface extends React.Component {
         const button = document.getElementById("inkButton") as HTMLElement;
         // const color = InkingControl.Instance.selectedColor;
         const color = "lightpink";
-        button.style.backgroundColor = this._ink ? "white" : color;
+        button.style.backgroundColor = this._ink ? "white" : "black";
         button.style.color = this._ink ? "black" : "white";
 
         if (!this._ink) {
             console.log("INK IS ACTIVE");
             // InkingControl.Instance.switchTool(InkTool.Pen);
             Doc.SetSelectedTool(InkTool.Pen);
-            InkOptionsMenu.Instance.jumpTo(300, 300);
+            //InkOptionsMenu.Instance.jumpTo(300, 300);
             this._ink = true;
         } else {
             console.log("INK IS INACTIVE");
             // InkingControl.Instance.switchTool(InkTool.None);
             Doc.SetSelectedTool(InkTool.None);
-            InkOptionsMenu.Instance.fadeOut(true);
+            //InkOptionsMenu.Instance.fadeOut(true);
             this._ink = false;
         }
     }
@@ -1502,7 +1502,11 @@ export class MobileInterface extends React.Component {
     inkMenu = () => {
         if (this._activeDoc._viewType === "docking") {
             if (this._ink) {
-                return <InkOptionsMenu />
+                console.log("here");
+                return <div className="colorSelector">
+                    <InkOptionsMenu />
+                </div>
+
             }
         }
     }
@@ -1794,9 +1798,8 @@ export class MobileInterface extends React.Component {
                     {this.drawInk()}
                     {this.uploadAudioButton()}
                     {/* {this.colorTool()} */}
-                    {this.inkMenu()}
-                    <InkOptionsMenu />
                 </div>
+                {this.inkMenu()}
                 <GestureOverlay>
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}

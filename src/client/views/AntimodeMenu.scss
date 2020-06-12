@@ -53,18 +53,19 @@
         display: flex;
     
         &.with-rows {
-            flex-direction: column
+            flex-direction: column-reverse;
         }
     
         .antimodeMenu-row {
             display: flex;
-            height: 35px;
+            height: 100%;
+            width:100%;
         }
     
         .antimodeMenu-button {
             background-color: transparent;
-            width: 35px;
-            height: 35px;
+            width: 100px;
+            height: 100px;
     
             &.active {
                 background-color: #121212;
