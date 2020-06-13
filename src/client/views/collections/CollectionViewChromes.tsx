@@ -1,8 +1,8 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction, autorun, Lambda } from "mobx";
+import { action, computed, observable, runInAction, Lambda } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast, HeightSym, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -16,8 +16,6 @@ import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { undo } from "prosemirror-history";
-const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
