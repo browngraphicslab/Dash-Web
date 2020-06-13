@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, DocListCast } from '../../fields/Doc';
+import { Doc, Opt, DataSym, DocListCast, AclSym, AclReadonly, AclAddonly } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
@@ -138,9 +138,15 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
             if (added.length) {
-                added.map(doc => doc.context = this.props.Document);
-                targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                if (this.dataDoc[AclSym] === AclReadonly) {
+                    return false;
+                } else if (this.dataDoc[AclSym] === AclAddonly) {
+                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
+                } else {
+                    added.map(doc => doc.context = this.props.Document);
+                    targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                    targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
             }
             return true;
         }
