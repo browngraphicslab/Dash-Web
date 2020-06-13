@@ -8,7 +8,6 @@ import { IDatabase, DocumentsCollection } from './IDatabase';
 import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
 import { Upload } from './SharedMediaTypes';
-import { timeout } from 'async';
 
 export namespace Database {
 
