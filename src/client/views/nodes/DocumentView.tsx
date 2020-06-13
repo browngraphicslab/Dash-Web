@@ -96,6 +96,7 @@ export interface DocumentViewProps {
     dontRegisterView?: boolean;
     layoutKey?: string;
     radialMenu?: String[];
+    display?: string;
 }
 
 @observer
@@ -516,6 +517,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
+                if (SelectionManager.IsSelected(this, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
                 // TODO: check here for panning/inking
             }
             return;
@@ -529,8 +531,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !this.Document.inOverlay) {
-                e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
-
+                e.stopPropagation();
+                if (SelectionManager.IsSelected(this, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
