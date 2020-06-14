@@ -24,6 +24,7 @@ import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { ComputedField } from "../../../fields/ScriptField";
+import { ImageField } from "../../../fields/URLField";
 
 library.add(faExpand);
 
@@ -205,6 +206,18 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             const doc = FieldValue(Cast(field, Doc));
             contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
         }
+        if (type === "image") {
+            // fix this
+
+            const image = FieldValue(Cast(field, ImageField));
+            const doc = FieldValue(Cast(field, Doc));
+            contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
+        }
+        if (type === "list") {
+            // fix this
+            contents = typeof field === "object" ? doc ? StrCast(field) === "" ? "--" : StrCast(field) : `--${typeof field}--` : `--${typeof field}--`;
+        }
+
 
         let className = "collectionSchemaView-cellWrapper";
         if (this._isEditing) className += " editing";
@@ -302,6 +315,71 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
     render() {
         return this.renderCellWithType("document");
     }
+}
+
+@observer
+export class CollectionSchemaImageCell extends CollectionSchemaCell {
+    render() {
+        return this.renderCellWithType("image");
+    }
+    // render() {
+    //     const props: FieldViewProps = {
+    //         Document: this.props.rowProps.original,
+    //         DataDoc: this.props.rowProps.original,
+    //         LibraryPath: [],
+    //         dropAction: "alias",
+    //         bringToFront: emptyFunction,
+    //         rootSelected: returnFalse,
+    //         fieldKey: this.props.rowProps.column.id as string,
+    //         ContainingCollectionView: this.props.CollectionView,
+    //         ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
+    //         isSelected: returnFalse,
+    //         select: emptyFunction,
+    //         renderDepth: this.props.renderDepth + 1,
+    //         ScreenToLocalTransform: Transform.Identity,
+    //         focus: emptyFunction,
+    //         active: returnFalse,
+    //         whenActiveChanged: emptyFunction,
+    //         PanelHeight: returnZero,
+    //         PanelWidth: returnZero,
+    //         NativeHeight: returnZero,
+    //         NativeWidth: returnZero,
+    //         addDocTab: this.props.addDocTab,
+    //         pinToPres: this.props.pinToPres,
+    //         ContentScaling: returnOne
+    //     };
+
+    //     if (props.fieldKey === "data") {
+    //         const reference = React.createRef<HTMLDivElement>();
+    //         return (
+    //             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+    //                 <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
+    //                     {props.DataDoc?.data}
+    //                 </div >
+    //             </div>
+    //         );
+    //     } else {
+    //         return this.renderCellWithType("image");
+    //     }
+    // }
+}
+
+@observer
+export class CollectionSchemaListCell extends CollectionSchemaCell {
+    render() {
+        return this.renderCellWithType("list");
+    }
+
+    // render() {
+    //     const reference = React.createRef<HTMLDivElement>();
+    //     return (
+    //         <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+    //             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
+    //                 <input type="checkbox" checked={this._isChecked} onChange={this.toggleChecked} />
+    //             </div >
+    //         </div>
+    //     );
+    // }
 }
 
 @observer

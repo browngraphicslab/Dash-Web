@@ -20,7 +20,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
+import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, CollectionSchemaHeader } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
@@ -40,6 +40,8 @@ export enum ColumnType {
     String,
     Boolean,
     Doc,
+    Image,
+    List
 }
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
@@ -349,6 +351,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props} />;
                     if (colType === ColumnType.Boolean) return <CollectionSchemaCheckboxCell {...props} />;
                     if (colType === ColumnType.Doc) return <CollectionSchemaDocCell {...props} />;
+                    if (colType === ColumnType.Image) return <CollectionSchemaImageCell {...props} />;
+                    if (colType === ColumnType.List) return <CollectionSchemaListCell {...props} />;
                     return <CollectionSchemaCell {...props} />;
                 },
                 minWidth: 200,

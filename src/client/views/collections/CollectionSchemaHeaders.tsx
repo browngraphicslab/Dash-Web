@@ -2,7 +2,7 @@ import React = require("react");
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
-import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl } from '@fortawesome/free-solid-svg-icons';
 import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ColumnType } from "./CollectionSchemaView";
@@ -13,7 +13,7 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
+library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl);
 
 export interface HeaderProps {
     keyValue: SchemaHeaderField;
@@ -33,7 +33,8 @@ export interface HeaderProps {
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
+            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" :
+                this.props.keyType === ColumnType.Image ? "image" : this.props.keyType === ColumnType.List ? "list-ul" : "align-justify";
         return (
             <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
                 <CollectionSchemaColumnMenu
@@ -160,9 +161,17 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
                         Checkbox
                     </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.List)}>
+                        <FontAwesomeIcon icon={"list-ul"} size="sm" />
+                        List
+                    </div>
                     <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc)}>
                         <FontAwesomeIcon icon={"file"} size="sm" />
                         Document
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image)}>
+                        <FontAwesomeIcon icon={"image"} size="sm" />
+                        Image
                     </div>
                 </div>
             </div >
