@@ -160,7 +160,7 @@ export class FormattedTextBoxComment {
             let child: any = null;
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             const mark = child && findLinkMark(child.marks);
-            const href = mark?.attrs.href || forceUrl;
+            const href = mark?.attrs.allHrefs.find((item: { href: string }) => item.href)?.href || forceUrl;
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;

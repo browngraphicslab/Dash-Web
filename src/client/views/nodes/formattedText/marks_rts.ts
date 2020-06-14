@@ -9,15 +9,20 @@ const codeDOM: DOMOutputSpecArray = ["code", 0];
 
 // :: Object [Specs](#model.MarkSpec) for the marks in the schema.
 export const marks: { [index: string]: MarkSpec } = {
+    splitter: {
+        attrs: {
+            id: { default: "" }
+        },
+        toDOM(node: any) {
+            return ["div", { className: "dummy" }, 0];
+        }
+    },
     // :: MarkSpec A link. Has `href` and `title` attributes. `title`
     // defaults to the empty string. Rendered and parsed as an `<a>`
     // element.
     link: {
         attrs: {
-            href: {},
-            allHrefs: { default: [] as { href: string, title: string }[] },
-            targetId: { default: "" },
-            linkId: { default: "" },
+            allHrefs: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
             showPreview: { default: true },
             location: { default: null },
             title: { default: null },
@@ -26,20 +31,24 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title"), targetId: dom.getAttribute("id") };
+                return { allHrefs: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.getAttribute("targetids") }], location: dom.getAttribute("location"), };
             }
         }],
         toDOM(node: any) {
+            const targetids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
+            const linkids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
                 node.attrs.allHrefs.length === 1 ?
-                    ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0] :
+                    ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allHrefs[0].href }, 0] :
                     ["div", { class: "prosemirror-anchor" },
                         ["button", { class: "prosemirror-linkBtn" },
-                            ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0],
-                            ["input", { class: "fa fa-caret-down prosemirror-hrefoptions" }],
+                            ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],
+                            ["input", { class: "prosemirror-hrefoptions" }],
                         ],
-                        ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) => ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title])]
+                        ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) =>
+                            ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title]
+                        )]
                     ]
         }
     },
