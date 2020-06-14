@@ -29,6 +29,7 @@ import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
 import { DocumentView } from "../nodes/DocumentView";
+import { SnappingManager } from "../../util/SnappingManager";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -188,7 +189,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        return <div className="collectionSchemaView-container">
+        return <div className="collectionSchemaView-container"
+            style={{ pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined }}  >
             <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.previewWidth()}px)` }} onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>

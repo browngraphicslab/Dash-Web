@@ -198,11 +198,10 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.complete.docDragData) {
-            if (de.complete.docDragData.draggedDocuments[0].type === DocumentType.FONTICON) {
-                const doc = Cast(de.complete.docDragData.draggedDocuments[0].dragFactory, Doc, null);
-                this.layoutDoc.childLayoutTemplate = doc;
-            }
+        const docDragData = de.complete.docDragData;
+        if (docDragData?.draggedDocuments[0].type === DocumentType.FONTICON) {
+            const doc = Cast(docDragData.draggedDocuments[0].dragFactory, Doc, null);
+            this.layoutDoc.childLayoutTemplate = doc;
         }
     }
     protected createDropTarget = (ele: HTMLDivElement) => {
