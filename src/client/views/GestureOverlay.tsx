@@ -809,11 +809,11 @@ export default class GestureOverlay extends Touchable {
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
                 return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape, "none", false)}
                 </svg>;
             }),
             this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape, "none", false)}
             </svg>]
         ];
     }

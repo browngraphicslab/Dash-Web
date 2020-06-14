@@ -162,7 +162,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         if (this.flexGrid) {
             const savedLayouts = this.savedLayoutList;
             this.childLayoutPairs.forEach(({ layout: doc }) => {
-                let gridLayout = savedLayouts.find(gridLayout => gridLayout.i === doc[Id]);
+                const gridLayout = savedLayouts.find(gridLayout => gridLayout.i === doc[Id]);
                 gridLayout && Object.assign(gridLayout, layoutArray.find(layout => layout.i === doc[Id]) || gridLayout);
             });
 

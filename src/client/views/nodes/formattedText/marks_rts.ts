@@ -49,7 +49,7 @@ export const marks: { [index: string]: MarkSpec } = {
                         ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) =>
                             ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title]
                         )]
-                    ]
+                    ];
         }
     },
 

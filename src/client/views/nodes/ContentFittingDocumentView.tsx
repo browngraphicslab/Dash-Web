@@ -1,18 +1,18 @@
 import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
+import { Transform } from "nodemailer/lib/xoauth2";
 import "react-table/react-table.css";
-import { Doc, Opt, WidthSym, HeightSym } from "../../../fields/Doc";
-import { NumCast, StrCast, Cast } from "../../../fields/Types";
+import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction } from "../../../Utils";
+import { dropActionType } from "../../util/DragManager";
+import { CollectionView } from "../collections/CollectionView";
 import '../DocumentDecorations.scss';
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
-import { dropActionType } from "../../util/DragManager";
-import { CollectionView } from "../collections/CollectionView";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Transform } from "nodemailer/lib/xoauth2";
 
 interface ContentFittingDocumentViewProps {
     Document: Doc;

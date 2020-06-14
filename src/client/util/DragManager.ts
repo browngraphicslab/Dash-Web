@@ -319,7 +319,7 @@ export namespace DragManager {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
             dragDiv.style.pointerEvents = "none";
-            dragLabel = document.createElement("div") as HTMLDivElement;
+            dragLabel = document.createElement("div");
             dragLabel.className = "dragManager-dragLabel";
             dragLabel.style.zIndex = "100001";
             dragLabel.style.fontSize = "10";
@@ -412,21 +412,20 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
-            if (e)
-                if (e.shiftKey && dragData.droppedDocuments.length === 1) {
-                    !dragData.dropAction && (dragData.dropAction = alias);
-                    if (dragData.dropAction === "move") {
-                        dragData.removeDocument?.(dragData.draggedDocuments[0]);
-                    }
-                    AbortDrag();
-                    finishDrag?.(new DragCompleteEvent(true, dragData));
-                    DragManager.StartWindowDrag?.({
-                        pageX: e.pageX,
-                        pageY: e.pageY,
-                        preventDefault: emptyFunction,
-                        button: 0
-                    }, dragData.droppedDocuments);
+            if (e?.shiftKey && dragData.droppedDocuments.length === 1) {
+                !dragData.dropAction && (dragData.dropAction = alias);
+                if (dragData.dropAction === "move") {
+                    dragData.removeDocument?.(dragData.draggedDocuments[0]);
                 }
+                AbortDrag();
+                finishDrag?.(new DragCompleteEvent(true, dragData));
+                DragManager.StartWindowDrag?.({
+                    pageX: e.pageX,
+                    pageY: e.pageY,
+                    preventDefault: emptyFunction,
+                    button: 0
+                }, dragData.droppedDocuments);
+            }
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
 

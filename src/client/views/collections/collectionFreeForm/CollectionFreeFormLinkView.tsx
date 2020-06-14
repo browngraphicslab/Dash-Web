@@ -52,7 +52,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const linkId = this.props.LinkDocs[0][Id]; // this link's Id
                 const AanchorId = (this.props.LinkDocs[0][afield] as Doc)[Id]; // anchor a's id
                 const BanchorId = (this.props.LinkDocs[0][bfield] as Doc)[Id]; // anchor b's id
-                const linkEles = Array.from(window.document.getElementsByClassName(linkId))
+                const linkEles = Array.from(window.document.getElementsByClassName(linkId));
                 const targetAhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(AanchorId));
                 const targetBhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(BanchorId));
                 if (!targetBhyperlink) {

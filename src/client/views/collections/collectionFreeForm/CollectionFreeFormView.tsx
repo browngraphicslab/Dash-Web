@@ -116,7 +116,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private zoomScaling = () => (this.fitToContentScaling / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y),
             this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
-        NumCast(this.Document[this.scaleFieldKey], 1));
+        NumCast(this.Document[this.scaleFieldKey], 1))
 
     @computed get cachedCenteringShiftX(): number {
         const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
