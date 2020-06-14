@@ -15,6 +15,7 @@ export const marks: { [index: string]: MarkSpec } = {
     link: {
         attrs: {
             href: {},
+            allHrefs: { default: [] as { href: string, title: string }[] },
             targetId: { default: "" },
             linkId: { default: "" },
             showPreview: { default: true },
@@ -31,7 +32,15 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM(node: any) {
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0];
+                node.attrs.allHrefs.length === 1 ?
+                    ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0] :
+                    ["div", { class: "prosemirror-anchor" },
+                        ["button", { class: "prosemirror-linkBtn" },
+                            ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0],
+                            ["input", { class: "fa fa-caret-down prosemirror-hrefoptions" }],
+                        ],
+                        ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) => ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title])]
+                    ]
         }
     },
 

@@ -585,9 +585,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     makeLinkToSelection(linkDocId: string, title: string, location: string, targetDocId: string) {
         if (this._editorView) {
-            const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, linkId: linkDocId, targetId: targetDocId });
-            this._editorView.dispatch(this._editorView.state.tr.removeMark(this._editorView.state.selection.from, this._editorView.state.selection.to, this._editorView.state.schema.marks.link).
-                addMark(this._editorView.state.selection.from, this._editorView.state.selection.to, link));
+            const newRef = Utils.prepend("/doc/" + linkDocId);
+            const allHrefs = [{ href: newRef, title }];
+            let child: any = null;
+            const sel = this._editorView.state.selection;
+            this._editorView.state.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
+            if (child) {
+                allHrefs.push(...(child.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
+            }
+            const link = this._editorView.state.schema.marks.link.create({ href: newRef, allHrefs, title, location, linkId: linkDocId, targetId: targetDocId });
+            this._editorView.dispatch(this._editorView.state.tr.addMark(this._editorView.state.selection.from, this._editorView.state.selection.to, link));
         }
     }
     componentDidMount() {
@@ -987,7 +994,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBox._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
             FormattedTextBoxComment.textBox = this;
-            FormattedTextBoxComment.update(this._editorView!);
+            FormattedTextBoxComment.update(this._editorView!, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1205,7 +1212,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
-    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()), 0);
+    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
@@ -1273,6 +1280,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                                 PanelWidth={this.sidebarWidth}
                                 NativeHeight={returnZero}
                                 NativeWidth={returnZero}
+                                scaleField={this.annotationKey + "-scale"}
                                 annotationsKey={this.annotationKey}
                                 isAnnotationOverlay={false}
                                 focus={this.props.focus}

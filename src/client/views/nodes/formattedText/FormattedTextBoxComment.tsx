@@ -115,7 +115,7 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "");
     }
 
-    static update(view: EditorView, lastState?: EditorState) {
+    static update(view: EditorView, lastState?: EditorState, forceUrl: string = "") {
         const state = view.state;
         // Don't do anything if the document/selection didn't change
         if (lastState && lastState.doc.eq(state.doc) &&
@@ -160,25 +160,26 @@ export class FormattedTextBoxComment {
             let child: any = null;
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             const mark = child && findLinkMark(child.marks);
-            if (mark && child && nbef && naft && mark.attrs.showPreview) {
-                FormattedTextBoxComment.tooltipText.textContent = "external => " + mark.attrs.href;
-                (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
-                if (mark.attrs.href.startsWith("https://en.wikipedia.org/wiki/")) {
-                    wiki().page(mark.attrs.href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
+            const href = mark?.attrs.href || forceUrl;
+            if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
+                FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
+                (FormattedTextBoxComment.tooltipText as any).href = href;
+                if (href.startsWith("https://en.wikipedia.org/wiki/")) {
+                    wiki().page(href.replace("https://en.wikipedia.org/wiki/", "")).then(page => page.summary().then(summary => FormattedTextBoxComment.tooltipText.textContent = summary.substring(0, 500)));
                 } else {
                     FormattedTextBoxComment.tooltipText.style.whiteSpace = "pre";
                     FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
                 }
-                if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     FormattedTextBoxComment.tooltipText.textContent = "target not found...";
                     (FormattedTextBoxComment.tooltipText as any).href = "";
-                    const docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    const docTarget = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     try {
                         ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
                     } catch (e) { }
                     docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
-                            (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
+                            (FormattedTextBoxComment.tooltipText as any).href = href;
                             FormattedTextBoxComment.linkDoc = linkDoc;
                             const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
