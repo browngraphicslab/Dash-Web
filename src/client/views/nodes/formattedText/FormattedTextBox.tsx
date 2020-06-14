@@ -583,18 +583,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
     }
 
-    makeLinkToSelection(linkDocId: string, title: string, location: string, targetDocId: string) {
+    makeLinkToSelection(linkDocId: string, title: string, location: string, targetId: string) {
         if (this._editorView) {
-            const newRef = Utils.prepend("/doc/" + linkDocId);
-            const allHrefs = [{ href: newRef, title }];
-            let child: any = null;
+            const href = Utils.prepend("/doc/" + linkDocId);
             const sel = this._editorView.state.selection;
-            this._editorView.state.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
-            if (child) {
-                allHrefs.push(...(child.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
-            }
-            const link = this._editorView.state.schema.marks.link.create({ href: newRef, allHrefs, title, location, linkId: linkDocId, targetId: targetDocId });
-            this._editorView.dispatch(this._editorView.state.tr.addMark(this._editorView.state.selection.from, this._editorView.state.selection.to, link));
+            let tr = this._editorView!.state.tr;
+            sel.from !== sel.to && this._editorView.state.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => {
+                if (node.firstChild === null) {
+                    const allHrefs = [{ href, title }];
+                    allHrefs.push(...(node.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
+                    const link = this._editorView!.state.schema.marks.link.create({ href, allHrefs, title, location, linkId: linkDocId, targetId });
+                    tr = tr.addMark(pos, pos + node.nodeSize, link);
+                }
+            });
+            this._editorView.dispatch(tr);
         }
     }
     componentDidMount() {
