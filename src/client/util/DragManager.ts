@@ -13,7 +13,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 
-export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
+export type dropActionType = "alias" | "copy" | "move" | "same" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -122,7 +122,7 @@ export namespace DragManager {
     export class DocumentDragData {
         constructor(dragDoc: Doc[]) {
             this.draggedDocuments = dragDoc;
-            this.droppedDocuments = dragDoc;
+            this.droppedDocuments = [];
             this.offset = [0, 0];
         }
         draggedDocuments: Doc[];
@@ -209,15 +209,19 @@ export namespace DragManager {
         };
         const batch = UndoManager.StartBatch("dragging");
         const finishDrag = (e: DragCompleteEvent) => {
-            e.docDragData && (e.docDragData.droppedDocuments =
-                dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
-                    dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
-                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeDelegate(d) : d)
-            );
-            e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
-                (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
-            );
-            batch.end();
+            const docDragData = e.docDragData;
+            if (docDragData && !docDragData.droppedDocuments.length) {
+                docDragData.dropAction = dragData.userDropAction || dragData.dropAction;
+                docDragData.droppedDocuments =
+                    dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
+                        docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
+                            docDragData.dropAction === "copy" ? Doc.MakeDelegate(d) : d);
+                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) =>
+                    (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
+                );
+                batch.end();
+            }
+            return e;
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);
@@ -231,6 +235,7 @@ export namespace DragManager {
             initialize?.(bd);
             Doc.GetProto(bd)["onClick-paramFieldKeys"] = new List<string>(params);
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
+            return e;
         };
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
     }
@@ -406,14 +411,13 @@ export namespace DragManager {
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
-        let alias = "alias";
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
-            if (e?.shiftKey && dragData.droppedDocuments.length === 1) {
-                !dragData.dropAction && (dragData.dropAction = alias);
+            if (e?.shiftKey && dragData.draggedDocuments.length === 1) {
+                dragData.dropAction = dragData.userDropAction || "same";
                 if (dragData.dropAction === "move") {
                     dragData.removeDocument?.(dragData.draggedDocuments[0]);
                 }
@@ -429,7 +433,6 @@ export namespace DragManager {
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
 
-            alias = "move";
             const moveX = thisX - lastX;
             const moveY = thisY - lastY;
             lastX = thisX;

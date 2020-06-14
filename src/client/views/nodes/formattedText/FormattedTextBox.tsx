@@ -283,8 +283,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.complete.docDragData) {
-            const draggedDoc = de.complete.docDragData.draggedDocuments.length && de.complete.docDragData.draggedDocuments[0];
+        const dragData = de.complete.docDragData;
+        if (dragData) {
+            const draggedDoc = dragData.draggedDocuments.length && dragData.draggedDocuments[0];
             // replace text contents whend dragging with Alt
             if (draggedDoc && draggedDoc.type === DocumentType.RTF && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.altKey) {
                 if (draggedDoc.data instanceof RichTextField) {
@@ -292,8 +293,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     e.stopPropagation();
                 }
                 // embed document when dragging with a userDropAction or an embedDoc flag set
-            } else if (de.complete.docDragData.userDropAction || de.complete.docDragData.embedDoc) {
-                const target = de.complete.docDragData.droppedDocuments[0];
+            } else if (dragData.userDropAction || dragData.embedDoc) {
+                const target = dragData.droppedDocuments[0];
                 // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
                 // if (link) {
                 target._fitToBox = true;

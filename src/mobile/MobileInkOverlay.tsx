@@ -114,7 +114,8 @@ export default class MobileInkOverlay extends React.Component {
                                 altKey: false,
                                 metaKey: false,
                                 ctrlKey: false,
-                                shiftKey: false
+                                shiftKey: false,
+                                embedKey: false
                             }
                         }
                     )

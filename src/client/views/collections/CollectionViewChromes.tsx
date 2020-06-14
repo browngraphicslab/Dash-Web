@@ -220,8 +220,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.complete.docDragData && de.complete.docDragData.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData?.draggedDocuments || []));
+        const docDragData = de.complete.docDragData;
+        if (docDragData?.draggedDocuments.length) {
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(docDragData.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;
