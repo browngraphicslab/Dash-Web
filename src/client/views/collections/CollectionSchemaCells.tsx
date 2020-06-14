@@ -319,49 +319,58 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaImageCell extends CollectionSchemaCell {
-    render() {
-        return this.renderCellWithType("image");
-    }
     // render() {
-    //     const props: FieldViewProps = {
-    //         Document: this.props.rowProps.original,
-    //         DataDoc: this.props.rowProps.original,
-    //         LibraryPath: [],
-    //         dropAction: "alias",
-    //         bringToFront: emptyFunction,
-    //         rootSelected: returnFalse,
-    //         fieldKey: this.props.rowProps.column.id as string,
-    //         ContainingCollectionView: this.props.CollectionView,
-    //         ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-    //         isSelected: returnFalse,
-    //         select: emptyFunction,
-    //         renderDepth: this.props.renderDepth + 1,
-    //         ScreenToLocalTransform: Transform.Identity,
-    //         focus: emptyFunction,
-    //         active: returnFalse,
-    //         whenActiveChanged: emptyFunction,
-    //         PanelHeight: returnZero,
-    //         PanelWidth: returnZero,
-    //         NativeHeight: returnZero,
-    //         NativeWidth: returnZero,
-    //         addDocTab: this.props.addDocTab,
-    //         pinToPres: this.props.pinToPres,
-    //         ContentScaling: returnOne
-    //     };
-
-    //     if (props.fieldKey === "data") {
-    //         const reference = React.createRef<HTMLDivElement>();
-    //         return (
-    //             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-    //                 <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
-    //                     {props.DataDoc?.data}
-    //                 </div >
-    //             </div>
-    //         );
-    //     } else {
-    //         return this.renderCellWithType("image");
-    //     }
+    //     return this.renderCellWithType("image");
     // }
+    render() {
+        const props: FieldViewProps = {
+            Document: this.props.rowProps.original,
+            DataDoc: this.props.rowProps.original,
+            LibraryPath: [],
+            dropAction: "alias",
+            bringToFront: emptyFunction,
+            rootSelected: returnFalse,
+            fieldKey: this.props.rowProps.column.id as string,
+            ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
+            isSelected: returnFalse,
+            select: emptyFunction,
+            renderDepth: this.props.renderDepth + 1,
+            ScreenToLocalTransform: Transform.Identity,
+            focus: emptyFunction,
+            active: returnFalse,
+            whenActiveChanged: emptyFunction,
+            PanelHeight: returnZero,
+            PanelWidth: returnZero,
+            NativeHeight: returnZero,
+            NativeWidth: returnZero,
+            addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
+            ContentScaling: returnOne
+        };
+
+        const data = Cast(props.DataDoc?.data, ImageField);
+        const url = data ? data.url.href : undefined;
+        console.log(url);
+
+
+        if (props.fieldKey === "data") {
+            if (url) {
+                const reference = React.createRef<HTMLDivElement>();
+                return (
+                    <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+                        <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
+                            <img src={url} width={"30px"} height={"30px"} style={{ resize: "both" }} />
+                        </div >
+                    </div>
+                );
+            } else {
+                return this.renderCellWithType("image");
+            }
+        } else {
+            return this.renderCellWithType("image");
+        }
+    }
 }
 
 @observer
