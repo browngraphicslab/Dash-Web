@@ -331,7 +331,9 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     renderOptions = (): JSX.Element[] | JSX.Element => {
         if (!this._isOpen) return <></>;
 
-        const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
+
+        const keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
         const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
