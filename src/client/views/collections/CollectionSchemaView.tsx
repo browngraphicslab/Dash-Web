@@ -655,7 +655,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             resized={this.resized}
             onResizedChange={this.onResizedChange}
             SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
-                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} childDocs={undefined} /></div>}
+                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}
 
         />;
     }
