@@ -428,11 +428,9 @@
 
     .collectionStackingView .collectionStackingView-columnDragger,
     .collectionMasonryView .collectionStackingView-columnDragger {
-        width: 30;
-        transform: translate(0, -40px);
-        height: 30;
-        font-size: 40;
-        position: absolute;
-        margin-left: -5;
+        width: 0.1;
+        height: 0.1;
+        opacity: 0;
+        font-size: 0;
     }
 }

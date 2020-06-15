@@ -329,7 +329,8 @@ export class CurrentUserUtils {
             doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
         if (doc.activeMobile === undefined) {
-            doc.activeMobile = CurrentUserUtils.setupMobileMenu();
+            console.log("phone setup");
+            this.setupActiveMobile(doc);
         }
         return [
             { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
@@ -398,16 +399,18 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    // static setupActiveMobile(doc: Doc) {
-    //     if (doc.activeMobile === undefined) {
-    //         doc.activeMobile = CurrentUserUtils.setupMobileMenu();
-    //     }
-    // }
+    static setupActiveMobile(doc: Doc) {
+        if (doc.activeMobile === undefined) {
+            console.log("undefined");
+            doc.activeMobile = this.setupMobileMenu();
+        }
+        return doc.activeMobile as Doc;
+    }
 
     static setupMobileMenu() {
-        const menu = Cast(Docs.Create.StackingDocument(CurrentUserUtils.setupMobileButtons(), {
-            _width: 980, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "home", _yMargin: 100
-        }), Doc) as Doc;
+        const menu = new PrefetchProxy(Docs.Create.StackingDocument(this.setupMobileButtons(), {
+            _width: 980, ignoreClick: true, lockedPosition: false, _chromeStatus: "disabled", title: "home", _yMargin: 100
+        }));
         return menu;
     }
 
@@ -740,7 +743,7 @@ export class CurrentUserUtils {
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
-        // this.setupActiveMobile(doc);
+        this.setupActiveMobile(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered

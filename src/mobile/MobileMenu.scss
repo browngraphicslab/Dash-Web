@@ -96,7 +96,7 @@ body {
 }
 
 .sidebar {
-    position: absolute;
+    position: fixed;
     top: 120px;
     opacity: 0;
     right: -100%;
@@ -212,7 +212,7 @@ body {
 }
 
 .pathbar {
-    position: absolute;
+    position: fixed;
     top: 118px;
     left: 0px;
     background: #1a1a1a;
@@ -373,7 +373,7 @@ body {
 }
 
 .homeSwitch {
-    position: absolute;
+    position: fixed;
     top: 212;
     right: 36px;
     display: inline-flex;

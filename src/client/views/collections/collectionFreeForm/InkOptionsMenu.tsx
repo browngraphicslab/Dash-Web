@@ -101,7 +101,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                 title={`Draw ${btn}`}
                 key={btn}
                 onPointerDown={action(e => GestureOverlay.Instance.InkShape = btn)}
-                style={{ backgroundColor: btn === GestureOverlay.Instance.InkShape ? "121212" : "" }}>
+                style={{ backgroundColor: btn === GestureOverlay.Instance?.InkShape ? "121212" : "" }}>
                 {this._icons[i]}
             </button>)},
         </>;
@@ -113,7 +113,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
             title="Bezier changer"
             key="bezier"
             onPointerDown={e => this.changeBezier(e)}
-            style={ { backgroundColor:ActiveInkBezierApprox() ? "121212":"" } }>
+            style={{ backgroundColor: ActiveInkBezierApprox() ? "121212" : "" }}>
             B
         </button>;
     }

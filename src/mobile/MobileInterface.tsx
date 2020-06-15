@@ -52,10 +52,7 @@ export class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    // @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    // Sets up new mobile menu only if activeMobile already exists
-    // @observable private mainDoc: any = this.userDoc.activeMobile === undefined ? CurrentUserUtils.setupMobileMenu() : this.userDoc.activeMobile;
-    @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu();
+    @observable private mainDoc: any = CurrentUserUtils.setupActiveMobile(this.userDoc);
     @observable private renderView?: () => JSX.Element;
     @observable private audioState: any;
     @observable private activeToolbar: boolean = false;
@@ -86,13 +83,7 @@ export class MobileInterface extends React.Component {
 
     @action
     componentDidMount = () => {
-        library.add(...[faPenNib, faHighlighter, faEraser, faMousePointer, faThumbtack]);
-        if (this.userDoc.activeMobile) {
-            console.log(Doc.UserDoc().activeMobile);
-        }
-        if (this.userDoc && !this.mainContainer) {
-            this.userDoc.activeMobile = this._homeDoc;
-        }
+        Doc.UserDoc().activeMobile = this._homeDoc;
         this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
         Doc.SetSelectedTool(InkTool.None);
         this.switchCurrentView((userDoc: Doc) => this._homeDoc);
@@ -353,26 +344,6 @@ export class MobileInterface extends React.Component {
                 <div className="hidePath" />
             </div>);
         }
-        //     }
-        // } else {
-
-        //     return (
-        //         <div className="pathbar">
-        //             <div className="scrollmenu">
-        //                 <div className="pathbarItem">
-        //                     <div className="pathbarText"
-        //                         style={{ backgroundColor: "rgb(119, 37, 37)" }}
-        //                         key={0}
-        //                         onClick={() => this.returnHome()}>Home
-        //                     </div>
-        //                 </div>
-        //             </div>
-        //             <div className="hidePath" />
-        //         </div>
-        //     );
-        // }
-
-        // }
     }
 
     // Handles when user clicks on document in the pathbar
@@ -393,16 +364,6 @@ export class MobileInterface extends React.Component {
     }
 
     renderDefaultContent = () => {
-        let menuButtons = DocListCast(this._homeDoc.data).map((doc: Doc, index: any) => {
-            if (doc.type !== "ink") {
-                return (
-                    <div
-                        className="item"
-                        key={index}
-                        onClick={() => doc.onClick}>{doc.title}
-                    </div>);
-            }
-        });
 
         if (this._homeMenu === true) {
             return (
@@ -420,7 +381,10 @@ export class MobileInterface extends React.Component {
                     {this.renderPathbar()}
                     <div className="sidebar" id="sidebar">
                         <div className="sidebarButtons">
-                            {menuButtons}
+                            <div
+                                className="item"
+                                onClick={() => ScriptField.MakeScript("createNewWorkspace()")}>Create New Workspace
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -429,7 +393,7 @@ export class MobileInterface extends React.Component {
 
         let workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         if (this._child) {
-            workspaces = this._child
+            workspaces = this._child;
         }
 
         let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
@@ -468,6 +432,10 @@ export class MobileInterface extends React.Component {
                             </> :
                             <>
                                 {buttons}
+                                <div
+                                    className="item"
+                                    onClick={() => ScriptField.MakeScript("createNewWorkspace()")}>Create New Workspace
+                                </div>
                             </>
                         }
                     </div>
@@ -627,99 +595,11 @@ export class MobileInterface extends React.Component {
         // this.recordAudio();
     }
 
-    // renderActiveCollection = (userDoc: Doc) => {
-    //     if (this.activeContainer) {
-    //         const active = Cast(this.activeContainer.data, listSpec(Doc));
-    //         if (active) {
-    //             return (
-    //                 <div className="mobileInterface-background">HELLO!</div>
-    //             );
-    //         }
-    //     }
-    // }
-
-    onBack = (e: React.MouseEvent) => {
-        this.switchCurrentView((userDoc: Doc) => this.mainDoc);
-        Doc.SetSelectedTool(InkTool.None); // TODO: switch to previous tool
-
-        DocServer.Mobile.dispatchOverlayTrigger({
-            enableOverlay: false,
-            width: window.innerWidth,
-            height: window.innerHeight
-        });
-
-        // this.inkDoc = undefined;
-        this.drawingInk = false;
-    }
-
-    shiftLeft = (e: React.MouseEvent) => {
-        DocServer.Mobile.dispatchOverlayPositionUpdate({
-            dx: -10
-        });
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    shiftRight = (e: React.MouseEvent) => {
-        DocServer.Mobile.dispatchOverlayPositionUpdate({
-            dx: 10
-        });
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
     panelHeight = () => window.innerHeight;
     panelWidth = () => window.innerWidth;
     //WAS 3
 
     //WAS 1
-
-    upload = async (e: React.MouseEvent) => {
-        if (this.mainContainer) {
-            const data = Cast(this.mainContainer.data, listSpec(Doc));
-            if (data) {
-                const collectionDoc = await data[1]; //this should be the collection doc since the positions should be locked
-                const children = DocListCast(collectionDoc.data);
-                const uploadDoc = children.length === 1 ? children[0] : Docs.Create.StackingDocument(children, {
-                    title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true, _width: 300, _height: 300
-                });
-                if (uploadDoc) {
-                    DocServer.Mobile.dispatchMobileDocumentUpload({
-                        docId: uploadDoc[Id],
-                    });
-                }
-            }
-        }
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    addWebToCollection = async () => {
-        let url = "https://en.wikipedia.org/wiki/Hedgehog";
-        if (this.mainContainer) {
-            const data = Cast(this.mainContainer.data, listSpec(Doc));
-            if (data) {
-                const webDoc = await data[0];
-                const urlField: FieldResult<WebField> = Cast(webDoc.data, WebField);
-                url = urlField ? urlField.url.toString() : "https://en.wikipedia.org/wiki/Hedgehog";
-
-            }
-        }
-        Docs.Create.WebDocument(url, { _width: 300, _height: 300, title: "Mobile Upload Web Doc" });
-    }
-
-    clearUpload = async () => {
-        if (this.mainContainer) {
-            const data = Cast(this.mainContainer.data, listSpec(Doc));
-            if (data) {
-                const collectionDoc = await data[1];
-                const children = DocListCast(collectionDoc.data);
-                children.forEach(doc => {
-                });
-                // collectionDoc[data] = new List<Doc>();
-            }
-        }
-    }
 
     pinToPresentation = () => {
         // Only making button available if it is an image
@@ -845,7 +725,6 @@ export class MobileInterface extends React.Component {
                     {this.uploadAudioButton()}
                     {/* {this.colorTool()} */}
                     {this.inkMenu()}
-                    <InkOptionsMenu />
                 </div>
                 <GestureOverlay>
                     {this.displayWorkspaces()}
@@ -879,14 +758,6 @@ export class MobileInterface extends React.Component {
         this.imageUploadActive = false;
     }
 
-    // toggleUpload = () => {
-    //     if (this.imageUploadActive === true) {
-    //         this.imageUploadActive = false;
-    //     } else {
-    //         this.imageUploadActive = true;
-    //     }
-    // }
-
     uploadImage = () => {
         if (this.imageUploadActive) {
             console.log("active");
@@ -904,11 +775,6 @@ export class MobileInterface extends React.Component {
         );
     }
 }
-
-
-
-const inputRef = React.createRef<HTMLInputElement>();
-
 
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
 Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); });
