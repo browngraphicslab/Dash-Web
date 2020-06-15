@@ -32,7 +32,7 @@ const inputRef = React.createRef<HTMLInputElement>();
 export class Uploader extends React.Component {
     @observable error: string = "";
     @observable status: string = "";
-    @observable nm: string = "Choose an image";
+    @observable nm: string = "Choose files";
     @observable process: string = "";
 
     onClick = async () => {
@@ -96,19 +96,17 @@ export class Uploader extends React.Component {
                                     slab5.style.opacity = "1";
                                 }
                                 this.process = "File " + (index + 1).toString() + " Uploaded";
-                                if (index === files.length) {
-                                    const slab6 = document.getElementById("slab6");
-                                    if (slab6) {
-                                        slab6.style.opacity = "1";
-                                    }
+                                const slab6 = document.getElementById("slab6");
+                                if (slab6) {
+                                    slab6.style.opacity = "1";
                                 }
+                                const slab7 = document.getElementById("slab7");
+                                if (slab7) {
+                                    slab7.style.opacity = "1";
+                                }
+
                             }
                         });
-                        this.process = "All Files Uploaded";
-                        const slab7 = document.getElementById("slab7");
-                        if (slab7) {
-                            slab7.style.opacity = "1";
-                        }
                     }
                 } else {
                     this.process = "No file selected";
@@ -180,7 +178,7 @@ export class Uploader extends React.Component {
                 <input type="file" accept="video/*,image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
                 <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>
-                    <FontAwesomeIcon icon="upload" size="lg" />
+                    <FontAwesomeIcon icon="upload" size="sm" />
                     Upload
                 </div>
                 {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
