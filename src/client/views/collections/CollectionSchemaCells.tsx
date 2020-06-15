@@ -15,7 +15,7 @@ import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
-import { CollectionView } from "./CollectionView";
+import { CollectionView, Flyout } from "./CollectionView";
 import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../fields/Types";
 import { Docs } from "../../documents/Documents";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -26,6 +26,9 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { ComputedField } from "../../../fields/ScriptField";
 import { ImageField } from "../../../fields/URLField";
 import { KeysDropdown } from "./CollectionSchemaHeaders";
+import { listSpec } from "../../../fields/Schema";
+import { ObjectField } from "../../../fields/ObjectField";
+import { List } from "../../../fields/List";
 const path = require('path');
 
 library.add(faExpand);
@@ -416,9 +419,19 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     //     return this.renderCellWithType("list");
     // }
 
-    emptyFunc() {
+    @observable private _opened = false;
+    @observable private _text = "";
 
+    @action
+    toggleOpened(open: boolean) {
+        this._opened = open;
     }
+
+    @action
+    onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        this._text = e.target.value;
+    }
+
     render() {
         const props: FieldViewProps = {
             Document: this.props.rowProps.original,
@@ -448,28 +461,52 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
         let value = "";
         const reference = React.createRef<HTMLDivElement>();
-        const data = props.DataDoc?.fieldKey;
 
-        if (Array.isArray(data)) {
+        const field = props.Document[props.fieldKey];
+
+        if (typeof field === "object") {
+
+            const optionsList = Cast(field, List);
+
+
+
+
+            // if (optionsList){
+            //     const options = optionsList.map(() =>{
+
+            //     })
+            // }
 
 
 
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
                     <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
-                        <KeysDropdown
-                            keyValue={value}
-                            possibleKeys={data}
-                            existingKeys={data}
-                            canAddNew={true}
-                            addNew={false}
-                            onSelect={this.emptyFunc}
-                            setIsEditing={this.props.setIsEditing}
-                        />
+
+                        {/* <Flyout content={options}>
+                            <div className="collectionSchema-toggler" onClick={() => this.toggleOpened(!this._opened)}>☰</div>
+                        </ Flyout > */}
+
+                        <button type="button" className="collectionSchemaView-button" onClick={(e) => { this.toggleOpened(!this._opened); }}
+                            style={{ right: "length", position: "relative" }}>
+                            ☰
+                            </button>
+                        <textarea className="collectionSchemaView-textarea" onChange={this.onChange} value={this._text} placeholder={"select an item"}></textarea>
+
+                        {this._opened ? <div className="collectionSchemaView-dropdown">
+                            <div>
+                                <div>Option 1</div>
+                                <div>Option 2</div>
+                                <div>Option 3</div>
+                                <div>Option 4</div>
+                            </div>
+                        </div> : null}
                     </div >
                 </div>
             );
         } else {
+            console.log("not an array!");
+
             return this.renderCellWithType("list");
         }
     }
