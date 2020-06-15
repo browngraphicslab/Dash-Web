@@ -267,7 +267,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 }
 
 
-interface KeysDropdownProps {
+export interface KeysDropdownProps {
     keyValue: string;
     possibleKeys: string[];
     existingKeys: string[];
@@ -277,7 +277,7 @@ interface KeysDropdownProps {
     setIsEditing: (isEditing: boolean) => void;
 }
 @observer
-class KeysDropdown extends React.Component<KeysDropdownProps> {
+export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable private _key: string = this.props.keyValue;
     @observable private _searchTerm: string = this.props.keyValue;
     @observable private _isOpen: boolean = false;

@@ -3,7 +3,7 @@ import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, Utils } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -25,6 +25,8 @@ import { undoBatch } from "../../util/UndoManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { ComputedField } from "../../../fields/ScriptField";
 import { ImageField } from "../../../fields/URLField";
+import { KeysDropdown } from "./CollectionSchemaHeaders";
+const path = require('path');
 
 library.add(faExpand);
 
@@ -322,6 +324,21 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
     // render() {
     //     return this.renderCellWithType("image");
     // }
+
+    choosePath(url: URL, dataDoc: any) {
+        const lower = url.href.toLowerCase();
+        if (url.protocol === "data") {
+            return url.href;
+        } else if (url.href.indexOf(window.location.origin) === -1) {
+            return Utils.CorsProxy(url.href);
+        } else if (!/\.(png|jpg|jpeg|gif|webp)$/.test(lower)) {
+            return url.href;//Why is this here
+        }
+        const ext = path.extname(url.href);
+        const _curSuffix = "_o";
+        return url.href.replace(ext, _curSuffix + ext);
+    }
+
     render() {
         const props: FieldViewProps = {
             Document: this.props.rowProps.original,
@@ -349,21 +366,40 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
             ContentScaling: returnOne
         };
 
-        const data = Cast(props.DataDoc?.data, ImageField);
-        const url = data ? data.url.href : undefined;
-        console.log(url);
+        let image = true;
+        let url = [];
+        if (props.DataDoc) {
+            const field = Cast(props.DataDoc[props.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
+            const alts = DocListCast(props.DataDoc[props.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
+            const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url).filter(url => url).map(url => this.choosePath(url, props.DataDoc)); // access the primary layout data of the alternate documents
+            const paths = field ? [this.choosePath(field.url, props.DataDoc), ...altpaths] : altpaths;
+            if (paths.length) {
+                url = paths;
+            } else {
+                url = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
+                image = false;
+            }
+            //url = paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
+        } else {
+            url = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
+            image = false;
+        }
 
+        const heightToWidth = NumCast(props.DataDoc?._nativeHeight) / NumCast(props.DataDoc?._nativeWidth);
+        const height = this.props.rowProps.width * heightToWidth;
 
         if (props.fieldKey === "data") {
-            if (url) {
+            if (url !== []) {
                 const reference = React.createRef<HTMLDivElement>();
                 return (
                     <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
                         <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
-                            <img src={url} width={"30px"} height={"30px"} style={{ resize: "both" }} />
+                            <img src={url[0]} width={image ? this.props.rowProps.width : "30px"}
+                                height={image ? height : "30px"} />
                         </div >
                     </div>
                 );
+
             } else {
                 return this.renderCellWithType("image");
             }
@@ -375,20 +411,68 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaListCell extends CollectionSchemaCell {
-    render() {
-        return this.renderCellWithType("list");
-    }
 
     // render() {
-    //     const reference = React.createRef<HTMLDivElement>();
-    //     return (
-    //         <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-    //             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
-    //                 <input type="checkbox" checked={this._isChecked} onChange={this.toggleChecked} />
-    //             </div >
-    //         </div>
-    //     );
+    //     return this.renderCellWithType("list");
     // }
+
+    emptyFunc() {
+
+    }
+    render() {
+        const props: FieldViewProps = {
+            Document: this.props.rowProps.original,
+            DataDoc: this.props.rowProps.original,
+            LibraryPath: [],
+            dropAction: "alias",
+            bringToFront: emptyFunction,
+            rootSelected: returnFalse,
+            fieldKey: this.props.rowProps.column.id as string,
+            ContainingCollectionView: this.props.CollectionView,
+            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
+            isSelected: returnFalse,
+            select: emptyFunction,
+            renderDepth: this.props.renderDepth + 1,
+            ScreenToLocalTransform: Transform.Identity,
+            focus: emptyFunction,
+            active: returnFalse,
+            whenActiveChanged: emptyFunction,
+            PanelHeight: returnZero,
+            PanelWidth: returnZero,
+            NativeHeight: returnZero,
+            NativeWidth: returnZero,
+            addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
+            ContentScaling: returnOne
+        };
+
+        let value = "";
+        const reference = React.createRef<HTMLDivElement>();
+        const data = props.DataDoc?.fieldKey;
+
+        if (Array.isArray(data)) {
+
+
+
+            return (
+                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+                    <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
+                        <KeysDropdown
+                            keyValue={value}
+                            possibleKeys={data}
+                            existingKeys={data}
+                            canAddNew={true}
+                            addNew={false}
+                            onSelect={this.emptyFunc}
+                            setIsEditing={this.props.setIsEditing}
+                        />
+                    </div >
+                </div>
+            );
+        } else {
+            return this.renderCellWithType("list");
+        }
+    }
 }
 
 @observer
