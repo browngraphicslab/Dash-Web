@@ -840,7 +840,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             focus={emptyFunction}
-            backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
+            backgroundColor={CollectionDockingView.Instance?.props.backgroundColor}
             addDocTab={this.addDocTab}
             pinToPres={DockedFrameRenderer.PinDoc}
             ContainingCollectionView={undefined}

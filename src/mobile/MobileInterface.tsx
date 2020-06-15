@@ -39,6 +39,7 @@ import { SelectionManager } from "../client/util/SelectionManager";
 import { SketchPicker } from "react-color";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
+import { RadialMenu } from "../client/views/nodes/RadialMenu";
 
 library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -96,6 +97,14 @@ export class MobileInterface extends React.Component {
         this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
         Doc.SetSelectedTool(InkTool.None);
         this.switchCurrentView((userDoc: Doc) => this._homeDoc);
+
+        document.removeEventListener("dblclick", this.onReactDoubleClick);
+        document.addEventListener("dblclick", this.onReactDoubleClick);
+    }
+
+    onReactDoubleClick = (e: MouseEvent) => {
+        console.log("tapped");
+        e.stopPropagation();
     }
 
     @action
@@ -896,7 +905,6 @@ export class MobileInterface extends React.Component {
         } else if (!this.imageUploadActive) {
 
         }
-        console.log("upload");
         return (
             <div>
                 <div className="closeUpload" onClick={this.toggleUpload}>

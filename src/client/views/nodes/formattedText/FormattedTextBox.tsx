@@ -188,7 +188,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
             const state = this._editorView.state.apply(tx);
-            this._editorView.updateState(state);
+            this?._editorView?.updateState(state);
             (tx.storedMarks && !this._editorView.state.storedMarks) && (this._editorView.state.storedMarks = tx.storedMarks);
 
             const tsel = this._editorView.state.selection.$from;
@@ -1213,7 +1213,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props);
+            this._editorView && RichTextMenu.Instance?.updateFromDash(this._editorView, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }

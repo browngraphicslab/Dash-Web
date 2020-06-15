@@ -174,19 +174,19 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             //     }), icon: "expand-arrows-alt"
             // });
 
-            const existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
+            const existingAnalyze = ContextMenu.Instance?.findByDescription("Analyzers...");
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
             //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
-            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
+            !existingAnalyze && ContextMenu.Instance?.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
-            ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
 
 
-            const existingMore = ContextMenu.Instance.findByDescription("More...");
+            const existingMore = ContextMenu.Instance?.findByDescription("More...");
             const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
+            !existingMore && ContextMenu.Instance?.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
 

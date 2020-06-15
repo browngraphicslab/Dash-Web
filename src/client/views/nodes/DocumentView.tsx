@@ -138,7 +138,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.removeEventListener("pointerup", this.onPointerUp);
         console.log(SelectionManager.SelectedDocuments());
         console.log("START");
-        if (RadialMenu.Instance._display === false) {
+        if (RadialMenu.Instance?._display === false) {
             this.addHoldMoveListeners();
             this.addHoldEndListeners();
             this.onRadialMenu(e, me);

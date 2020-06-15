@@ -104,6 +104,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
+        console.log(detector.is("iPhone"));
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
 
