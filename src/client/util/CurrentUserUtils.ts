@@ -510,8 +510,9 @@ export class CurrentUserUtils {
     }
     static setupCatalog(doc: Doc) {
         if (doc.myCatalog === undefined) {
-            doc.myCatalog = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "CATALOG", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
+            doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
+                title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
+                childDropAction: "alias", targetDropAction: "same", treeViewExpandedView: "layout"
             }));
         }
         return doc.myCatalog as Doc;
@@ -539,10 +540,11 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-library"] === undefined) {
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: 10,
+                _width: 50, _height: 25, title: "Library", _fontSize: 10, targetDropAction: "same",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true
+                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                    lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")

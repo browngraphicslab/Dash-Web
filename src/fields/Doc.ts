@@ -442,7 +442,8 @@ export namespace Doc {
             if (allowDuplicates !== true) {
                 const pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
                 if (pind !== -1) {
-                    list.splice(pind, 1);
+                    return true;
+                    //list.splice(pind, 1);  // bcz: this causes schemaView docs in the Catalog to move to the bottom of the schema view when they are dragged even though they haven't left the collection
                 }
             }
             if (first) {

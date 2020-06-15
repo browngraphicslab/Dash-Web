@@ -37,7 +37,7 @@ export function SetupDrag(
             dragData.treeViewId = treeViewId;
             dragData.dontHideOnDrop = dontHideOnDrop;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
-            dragStarted && dragStarted();
+            dragStarted?.();
         }
     };
     const onRowUp = (): void => {
