@@ -76,12 +76,12 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const clearButton = (which: string) => {
             return <div className={`clear-button ${which}`}
                 onPointerDown={e => e.stopPropagation()} // prevent triggering slider movement in registerSliding 
-                onClick={e => this.clearDoc(e, `${which}Doc`)}>
+                onClick={e => this.clearDoc(e, `compareBox-${which}`)}>
                 <FontAwesomeIcon className={`clear-button ${which}`} icon={"times"} size="sm" />
             </div>;
         };
         const displayDoc = (which: string) => {
-            const whichDoc = Cast(this.dataDoc[`${which}Doc`], Doc, null);
+            const whichDoc = Cast(this.dataDoc[`compareBox-${which}`], Doc, null);
             return whichDoc ? <>
                 <ContentFittingDocumentView {...childProps} Document={whichDoc} />
                 {clearButton(which)}
@@ -93,7 +93,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const displayBox = (which: string, index: number, cover: number) => {
             return <div className={`${which}Box-cont`} key={which} style={{ width: this.props.PanelWidth() }}
                 onPointerDown={e => this.registerSliding(e, cover)}
-                ref={ele => this.createDropTarget(ele, `${which}Doc`, index)} >
+                ref={ele => this.createDropTarget(ele, `compareBox-${which}`, index)} >
                 {displayDoc(which)}
             </div>;
         };

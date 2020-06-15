@@ -205,10 +205,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     @action
     move: DragManager.MoveFunction = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc) => {
         const targetView = targetCollection && DocumentManager.Instance.getDocumentView(targetCollection);
-        if (targetView && targetView.props.ContainingCollectionDoc) {
-            return doc !== targetCollection && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
-        }
-        return doc !== targetCollection && this.props.removeDoc(doc) && addDoc(doc);
+        return doc !== targetCollection && doc !== targetView?.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
     }
 
     render() {

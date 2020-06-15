@@ -671,7 +671,11 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
     protected onInternalPreDrop = (e: Event, de: DragManager.DropEvent, targetAction: dropActionType) => {
         const dragData = de.complete.docDragData;
-        dragData && (dragData.dropAction = this.props.Document[Id] === dragData?.treeViewId ? "same" : dragData.dropAction);
+        if (dragData) {
+            if (targetAction && !dragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+                dragData.dropAction = targetAction;
+            } else dragData.dropAction = this.props.Document[Id] === dragData?.treeViewId ? "same" : dragData.dropAction;
+        }
     }
 
     componentWillUnmount() {
