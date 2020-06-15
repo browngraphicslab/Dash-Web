@@ -334,12 +334,17 @@ body {
     top: -450px;
 }
 
-.toolbar .colorSelector {
+.colorSelector {
+    position: absolute;
+    top: 550px;
+    left: 300px;
+    transform: translate(-50%, 0);
+    z-index: 100;
     display: inline-flex;
     width: max-content;
-    padding: 5px;
     height: max-content;
     pointer-events: all;
+    font-size: 90px;
 }
 
 .widthSelector {

@@ -11,6 +11,8 @@ import { Utils } from "../../../../Utils";
 import GestureOverlay from "../../GestureOverlay";
 import { Doc } from "../../../../fields/Doc";
 
+
+
 @observer
 export default class InkOptionsMenu extends AntimodeMenu {
     static Instance: InkOptionsMenu;
@@ -22,6 +24,8 @@ export default class InkOptionsMenu extends AntimodeMenu {
 
     @observable _colorBtn = false;
     @observable _widthBtn = false;
+
+
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -126,7 +130,15 @@ export default class InkOptionsMenu extends AntimodeMenu {
             this.widthPicker,
             this.colorPicker,
         ];
-        return this.getElement(buttons);
+
+        const mobileButtons = [
+            this.shapeButtons,
+            this.bezierButton,
+            this.widthPicker,
+            this.colorPicker,
+        ];
+
+        return (window.innerWidth < 1000 ? this.getElement(mobileButtons) : this.getElement(buttons));
     }
 }
 Scripting.addGlobal(function activatePen(penBtn: any) {

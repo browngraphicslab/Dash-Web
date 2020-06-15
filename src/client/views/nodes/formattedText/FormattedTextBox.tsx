@@ -188,7 +188,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
             const state = this._editorView.state.apply(tx);
-            this._editorView.updateState(state);
+            this?._editorView?.updateState(state);
             (tx.storedMarks && !this._editorView.state.storedMarks) && (this._editorView.state.storedMarks = tx.storedMarks);
 
             const tsel = this._editorView.state.selection.$from;

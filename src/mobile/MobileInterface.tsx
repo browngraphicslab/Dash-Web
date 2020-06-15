@@ -39,6 +39,7 @@ import { SelectionManager } from "../client/util/SelectionManager";
 import { SketchPicker } from "react-color";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
+import { RadialMenu } from "../client/views/nodes/RadialMenu";
 
 library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -87,6 +88,14 @@ export class MobileInterface extends React.Component {
         this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
         Doc.SetSelectedTool(InkTool.None);
         this.switchCurrentView((userDoc: Doc) => this._homeDoc);
+
+        document.removeEventListener("dblclick", this.onReactDoubleClick);
+        document.addEventListener("dblclick", this.onReactDoubleClick);
+    }
+
+    onReactDoubleClick = (e: MouseEvent) => {
+        console.log("tapped");
+        e.stopPropagation();
     }
 
     @action
@@ -499,20 +508,20 @@ export class MobileInterface extends React.Component {
         const button = document.getElementById("inkButton") as HTMLElement;
         // const color = InkingControl.Instance.selectedColor;
         const color = "lightpink";
-        button.style.backgroundColor = this._ink ? "white" : color;
+        button.style.backgroundColor = this._ink ? "white" : "black";
         button.style.color = this._ink ? "black" : "white";
 
         if (!this._ink) {
             console.log("INK IS ACTIVE");
             // InkingControl.Instance.switchTool(InkTool.Pen);
             Doc.SetSelectedTool(InkTool.Pen);
-            InkOptionsMenu.Instance.jumpTo(300, 300);
+            //InkOptionsMenu.Instance.jumpTo(300, 300);
             this._ink = true;
         } else {
             console.log("INK IS INACTIVE");
             // InkingControl.Instance.switchTool(InkTool.None);
             Doc.SetSelectedTool(InkTool.None);
-            InkOptionsMenu.Instance.fadeOut(true);
+            //InkOptionsMenu.Instance.fadeOut(true);
             this._ink = false;
         }
     }
@@ -520,7 +529,11 @@ export class MobileInterface extends React.Component {
     inkMenu = () => {
         if (this._activeDoc._viewType === "docking") {
             if (this._ink) {
-                return <InkOptionsMenu />
+                console.log("here");
+                return <div className="colorSelector">
+                    <InkOptionsMenu />
+                </div>
+
             }
         }
     }
@@ -724,8 +737,8 @@ export class MobileInterface extends React.Component {
                     {this.drawInk()}
                     {this.uploadAudioButton()}
                     {/* {this.colorTool()} */}
-                    {this.inkMenu()}
                 </div>
+                {this.inkMenu()}
                 <GestureOverlay>
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}
@@ -764,7 +777,6 @@ export class MobileInterface extends React.Component {
         } else if (!this.imageUploadActive) {
 
         }
-        console.log("upload");
         return (
             <div>
                 <div className="closeUpload" onClick={this.toggleUpload}>
