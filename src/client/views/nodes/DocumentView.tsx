@@ -700,9 +700,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.dataDoc.author = this.props.Document.author = "ADMIN";
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
+            if (d.author === Doc.CurrentUserEmail) {
+                d.author = "ADMIN";
+                d.ACL = acl;
+            }
             const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
+            if (data && data.author === Doc.CurrentUserEmail) {
+                data.author = "ADMIN";
+                data.ACL = acl;
+            }
         });
     }
 
@@ -770,6 +776,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         moreItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
