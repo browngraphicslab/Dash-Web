@@ -100,7 +100,7 @@ export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
-function fetchProto(doc: Doc) {
+export function fetchProto(doc: Doc) {
     if (doc.author !== Doc.CurrentUserEmail) {
         const acl = Doc.Get(doc, "ACL", true);
         switch (acl) {
@@ -116,21 +116,9 @@ function fetchProto(doc: Doc) {
         }
     }
 
-    const proto = doc.proto;
-    if (proto instanceof Promise) {
-        proto.then(proto => {
-            if (proto.author !== Doc.CurrentUserEmail) {
-                if (proto.ACL === "ownerOnly") {
-                    proto[AclSym] = doc[AclSym] = AclPrivate;
-                    return undefined;
-                } else if (proto.ACL === "readOnly") {
-                    proto[AclSym] = doc[AclSym] = AclReadonly;
-                } else if (proto.ACL === "addOnly") {
-                    proto[AclSym] = doc[AclSym] = AclAddonly;
-                }
-            }
-        });
-        return proto;
+    if (doc.proto instanceof Promise) {
+        doc.proto.then(proto => fetchProto(proto));
+        return doc.proto;
     }
 }
 
