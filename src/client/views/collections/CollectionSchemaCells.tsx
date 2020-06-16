@@ -29,6 +29,7 @@ import { KeysDropdown } from "./CollectionSchemaHeaders";
 import { listSpec } from "../../../fields/Schema";
 import { ObjectField } from "../../../fields/ObjectField";
 import { List } from "../../../fields/List";
+import { Link } from "@react-pdf/renderer";
 const path = require('path');
 
 library.add(faExpand);
@@ -466,16 +467,21 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
         if (typeof field === "object") {
 
-            const optionsList = Cast(field, List);
+            const optionsList = field as List<any>;
 
 
 
 
-            // if (optionsList){
-            //     const options = optionsList.map(() =>{
-
-            //     })
-            // }
+            const options = optionsList.map((element, index) => {
+                if (element instanceof Doc) {
+                    const title = element.title;
+                    return <div>{title}</div>;
+                } else if (element instanceof Link) {
+                    return <div>link</div>;
+                } else {
+                    return <div>{element}</div>;
+                }
+            });
 
 
 
@@ -495,10 +501,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
                         {this._opened ? <div className="collectionSchemaView-dropdown">
                             <div>
-                                <div>Option 1</div>
-                                <div>Option 2</div>
-                                <div>Option 3</div>
-                                <div>Option 4</div>
+                                {options}
                             </div>
                         </div> : null}
                     </div >
