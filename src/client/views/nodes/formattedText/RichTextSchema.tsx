@@ -1,94 +1,19 @@
-import { IReactionDisposer, observable, reaction, runInAction } from "mobx";
-import { baseKeymap, toggleMark } from "prosemirror-commands";
-import { redo, undo } from "prosemirror-history";
-import { keymap } from "prosemirror-keymap";
-import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
-import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-state";
-import { StepMap } from "prosemirror-transform";
-import { EditorView } from "prosemirror-view";
+import { IReactionDisposer, reaction } from "mobx";
+import { NodeSelection } from "prosemirror-state";
 import * as ReactDOM from 'react-dom';
-import { Doc, DocListCast, Field, HeightSym, WidthSym } from "../../../../fields/Doc";
+import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
 import { Id } from "../../../../fields/FieldSymbols";
-import { List } from "../../../../fields/List";
 import { ObjectField } from "../../../../fields/ObjectField";
-import { listSpec } from "../../../../fields/Schema";
-import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../../fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../../../Utils";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, returnZero, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
-import { CollectionViewType } from "../../collections/CollectionView";
+import { Transform } from "../../../util/Transform";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
-import { DocumentManager } from "../../../util/DocumentManager";
-import { Transform } from "../../../util/Transform";
 import React = require("react");
 
-
-
-// export class DashDocCommentView {
-//     _collapsed: HTMLElement;
-//     _view: any;
-//     constructor(node: any, view: any, getPos: any) {
-
-//         console.log("DashDocCommentView constructor");
-
-//         //moved
-//         this._collapsed = document.createElement("span");
-//         this._collapsed.className = "formattedTextBox-inlineComment";
-//         this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
-//         this._view = view;
-//         //moved
-//         const targetNode = () => {  // search forward in the prosemirror doc for the attached dashDocNode that is the target of the comment anchor
-//             for (let i = getPos() + 1; i < view.state.doc.content.size; i++) {
-//                 const m = view.state.doc.nodeAt(i);
-//                 if (m && m.type === view.state.schema.nodes.dashDoc && m.attrs.docid === node.attrs.docid) {
-//                     return { node: m, pos: i, hidden: m.attrs.hidden } as { node: any, pos: number, hidden: boolean };
-//                 }
-//             }
-//             const dashDoc = view.state.schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: node.attrs.docid, float: "right" });
-//             view.dispatch(view.state.tr.insert(getPos() + 1, dashDoc));
-//             setTimeout(() => { try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + 2))); } catch (e) { } }, 0);
-//             return undefined;
-//         };
-//         //moved
-//         this._collapsed.onpointerdown = (e: any) => {
-//             e.stopPropagation();
-//         };
-//         //moved
-//         this._collapsed.onpointerup = (e: any) => {
-//             const target = targetNode();
-//             if (target) {
-//                 const expand = target.hidden;
-//                 const tr = view.state.tr.setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true });
-//                 view.dispatch(tr.setSelection(TextSelection.create(tr.doc, getPos() + (expand ? 2 : 1)))); // update the attrs
-//                 setTimeout(() => {
-//                     expand && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
-//                     try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + (expand ? 2 : 1)))); } catch (e) { }
-//                 }, 0);
-//             }
-//             e.stopPropagation();
-//         };
-//         //moved
-//         this._collapsed.onpointerenter = (e: any) => {
-//             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc, false));
-//             e.preventDefault();
-//             e.stopPropagation();
-//         };
-//         //moved
-//         this._collapsed.onpointerleave = (e: any) => {
-//             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
-//             e.preventDefault();
-//             e.stopPropagation();
-//         };
-
-//         (this as any).dom = this._collapsed;
-//     }
-//     //moved
-//     selectNode() { }
-// }
 
 export class DashDocView {
     _dashSpan: HTMLDivElement;
@@ -132,10 +57,6 @@ export class DashDocView {
         this._dashSpan.style.whiteSpace = "normal";
 
         this._dashSpan.onpointerleave = () => {
-
-            console.log("DashDocView_dashSpan.onpointerleave");  // SMM
-            console.log("DashDocCommentView-id=", node.attrs.docid);  // SMM
-
             const ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
             if (ele) {
                 (ele as HTMLDivElement).style.backgroundColor = "";
@@ -143,9 +64,6 @@ export class DashDocView {
         };
 
         this._dashSpan.onpointerenter = () => {
-            console.log("DashDocView_dashSpan.onpointerenter"); // SMM
-            console.log("DashDocCommentView-id=", node.attrs.docid);  // SMM
-
             const ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
             if (ele) {
                 (ele as HTMLDivElement).style.backgroundColor = "orange";
@@ -208,7 +126,7 @@ export class DashDocView {
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
                 this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
-            
+
             const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
                 ReactDOM.unmountComponentAtNode(this._dashSpan);
 

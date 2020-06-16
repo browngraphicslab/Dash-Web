@@ -35,8 +35,8 @@ import buildKeymap from "./ProsemirrorExampleTransfer";
 import RichTextMenu from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
 
-import { DashDocView } from "./DashDocView";
-// import { DashDocView } from "./RichTextSchema";
+//import { DashDocView } from "./DashDocView";
+import { DashDocView } from "./RichTextSchema";
 
 import { DashDocCommentView } from "./DashDocCommentView";
 import { DashFieldView } from "./DashFieldView";
@@ -903,9 +903,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    dashComment(node, view, getPos) { console.log("rendering dashComment"); return new DashDocCommentView(node, view, getPos); },
-                    dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
+                    dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
+                    dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }

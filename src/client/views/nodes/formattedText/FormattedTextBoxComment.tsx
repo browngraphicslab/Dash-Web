@@ -50,7 +50,9 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
     return after;
 }
 
-
+// this view appears when clicking on text that has a hyperlink which is configured to show a preview of its target.
+// this will also display metadata information about text when the view is configured to display things like other people who authored text.
+// 
 export class FormattedTextBoxComment {
     static tooltip: HTMLElement;
     static tooltipText: HTMLElement;
@@ -235,9 +237,6 @@ export class FormattedTextBoxComment {
                                 FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
                                 FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
                             }
-                            // let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
-                            // let text = ext && StrCast(ext.text);
-                            // ext && (FormattedTextBoxComment.tooltipText.textContent = (target && target.type === DocumentType.PDFANNO ? "Quoted from " : "") + "=> " + (text || StrCast(ext.title)));
                         }
                     });
                 }

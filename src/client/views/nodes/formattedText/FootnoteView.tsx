@@ -28,15 +28,11 @@ export class FootnoteView {
     }
 
     selectNode() {
-        const attrs = { ...this.node.attrs };
-        attrs.visibility = true;
         this.dom.classList.add("ProseMirror-selectednode");
         if (!this.innerView) this.open();
     }
 
     deselectNode() {
-        const attrs = { ...this.node.attrs };
-        attrs.visibility = false;
         this.dom.classList.remove("ProseMirror-selectednode");
         if (this.innerView) this.close();
     }
@@ -78,7 +74,7 @@ export class FootnoteView {
                 }) as any
             }
         });
-        setTimeout(() => this.innerView && this.innerView.docView.setSelection(0, 0, this.innerView.root, true), 0);
+        setTimeout(() => this.innerView?.docView.setSelection(0, 0, this.innerView.root, true), 0);
     }
 
     ignore = (e: PointerEvent) => {
@@ -88,13 +84,11 @@ export class FootnoteView {
 
     toggle = () => {
         if (this.innerView) this.close();
-        else {
-            this.open();
-        }
+        else this.open();
     }
 
     close() {
-        this.innerView && this.innerView.destroy();
+        this.innerView?.destroy();
         this.innerView = null;
         this.dom.textContent = "";
     }
@@ -106,8 +100,7 @@ export class FootnoteView {
         if (!tr.getMeta("fromOutside")) {
             const outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
             for (const transaction of transactions) {
-                const steps = transaction.steps;
-                for (const step of steps) {
+                for (const step of transaction.steps) {
                     outerTr.step(step.map(offsetMap));
                 }
             }
@@ -139,7 +132,7 @@ export class FootnoteView {
     }
 
     stopEvent(event: any) {
-        return this.innerView && this.innerView.dom.contains(event.target);
+        return this.innerView?.dom.contains(event.target);
     }
 
     ignoreMutation() {

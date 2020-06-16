@@ -14,7 +14,6 @@ import "./DashFieldView.scss";
 import { observer } from "mobx-react";
 import { DocUtils } from "../../../documents/Documents";
 
-
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
 
@@ -40,12 +39,10 @@ export class DashFieldView {
         />, this._fieldWrapper);
         (this as any).dom = this._fieldWrapper;
     }
-    destroy() {
-        ReactDOM.unmountComponentAtNode(this._fieldWrapper);
-    }
+    destroy() { ReactDOM.unmountComponentAtNode(this._fieldWrapper); }
     selectNode() { }
-
 }
+
 interface IDashFieldViewInternal {
     fieldKey: string;
     docid: string;
