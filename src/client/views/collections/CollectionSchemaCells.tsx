@@ -30,6 +30,8 @@ import { listSpec } from "../../../fields/Schema";
 import { ObjectField } from "../../../fields/ObjectField";
 import { List } from "../../../fields/List";
 import { LinkBox } from "../nodes/LinkBox";
+import { OverlayView } from "../OverlayView";
+import { DocumentIconContainer } from "../nodes/DocumentIcon";
 const path = require('path');
 
 library.add(faExpand);
@@ -416,12 +418,38 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
 @observer
 export class CollectionSchemaListCell extends CollectionSchemaCell {
 
-    // render() {
-    //     return this.renderCellWithType("list");
-    // }
+    _overlayDisposer?: () => void;
 
+    private prop: FieldViewProps = {
+        Document: this.props.rowProps.original,
+        DataDoc: this.props.rowProps.original,
+        LibraryPath: [],
+        dropAction: "alias",
+        bringToFront: emptyFunction,
+        rootSelected: returnFalse,
+        fieldKey: this.props.rowProps.column.id as string,
+        ContainingCollectionView: this.props.CollectionView,
+        ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
+        isSelected: returnFalse,
+        select: emptyFunction,
+        renderDepth: this.props.renderDepth + 1,
+        ScreenToLocalTransform: Transform.Identity,
+        focus: emptyFunction,
+        active: returnFalse,
+        whenActiveChanged: emptyFunction,
+        PanelHeight: returnZero,
+        PanelWidth: returnZero,
+        NativeHeight: returnZero,
+        NativeWidth: returnZero,
+        addDocTab: this.props.addDocTab,
+        pinToPres: this.props.pinToPres,
+        ContentScaling: returnOne
+    };
+    @observable private _field = this.prop.Document[this.prop.fieldKey];
+    @observable private _optionsList = this._field as List<any>;
     @observable private _opened = false;
     @observable private _text = "select an item";
+    @observable private _selectedNum = 0;
 
     @action
     toggleOpened(open: boolean) {
@@ -432,59 +460,40 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     @action
     onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this._text = e.target.value;
+
+        // change if its a document
+        this._optionsList[this._selectedNum] = this._text;
     }
 
     @action
-    onSelected = (element: string) => {
+    onSelected = (element: string, index: number) => {
         this._text = element;
+        this._selectedNum = index;
+    }
+
+    onFocus = () => {
+        this._overlayDisposer?.();
+        this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
     render() {
-        const props: FieldViewProps = {
-            Document: this.props.rowProps.original,
-            DataDoc: this.props.rowProps.original,
-            LibraryPath: [],
-            dropAction: "alias",
-            bringToFront: emptyFunction,
-            rootSelected: returnFalse,
-            fieldKey: this.props.rowProps.column.id as string,
-            ContainingCollectionView: this.props.CollectionView,
-            ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-            isSelected: returnFalse,
-            select: emptyFunction,
-            renderDepth: this.props.renderDepth + 1,
-            ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
-            active: returnFalse,
-            whenActiveChanged: emptyFunction,
-            PanelHeight: returnZero,
-            PanelWidth: returnZero,
-            NativeHeight: returnZero,
-            NativeWidth: returnZero,
-            addDocTab: this.props.addDocTab,
-            pinToPres: this.props.pinToPres,
-            ContentScaling: returnOne
-        };
 
-        let value = "";
         let link = false;
+        let doc = false;
         const reference = React.createRef<HTMLDivElement>();
 
-        const field = props.Document[props.fieldKey];
+        if (typeof this._field === "object" && this._optionsList[1]) {
 
-        if (typeof field === "object") {
-
-            const optionsList = field as List<any>;
-
-            const options = optionsList.map((element) => {
+            const options = this._optionsList.map((element, index) => {
                 if (element instanceof Doc) {
-                    if (props.fieldKey.toLowerCase() === "links") {
+                    doc = true;
+                    if (this.prop.fieldKey.toLowerCase() === "links") {
                         link = true;
                     }
                     const title = element.title;
                     return <div
                         className="collectionSchemaView-dropdownOption"
-                        onPointerDown={(e) => { this.onSelected(StrCast(element.title)); }}
+                        onPointerDown={(e) => { this.onSelected(StrCast(element.title), index); }}
                         style={{ padding: "6px" }}>
                         {title}
                     </div>;
@@ -495,7 +504,11 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
 
             const plainText = <div>{this._text}</div>;
-            const textarea = <textarea onChange={this.onChange} value={this._text} placeholder={"select an item"}></textarea>;
+            const textarea = <textarea onChange={this.onChange} value={this._text}
+                onFocus={doc ? this.onFocus : undefined}
+                onBlur={doc ? e => this._overlayDisposer?.() : undefined}
+                style={{ resize: "none" }}
+                placeholder={"select an item"}></textarea>;
             const dropdown = <div>
                 {options}
             </div>;
