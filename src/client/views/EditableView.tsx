@@ -69,16 +69,17 @@ export class EditableView extends React.Component<EditableProps> {
         EditableView.loadId = "";
     }
 
-    @action
-    componentDidUpdate(nextProps: EditableProps) {
-        // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
-        // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
-        // to false. this will no longer do so -syip
-        if (nextProps.editing && nextProps.editing !== this._editing) {
-            this._editing = nextProps.editing;
-            EditableView.loadId = "";
-        }
-    }
+    // @action
+    // componentDidUpdate(nextProps: EditableProps) {
+    //     // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
+    //     // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
+    //     // to false. this will no longer do so -syip
+    //     console.log("props editing = " + nextProps.editing);
+    //     if (nextProps.editing && nextProps.editing !== this._editing) {
+    //         this._editing = nextProps.editing;
+    //         EditableView.loadId = "";
+    //     }
+    // }
 
     @action
     componentDidMount() {
@@ -119,7 +120,7 @@ export class EditableView extends React.Component<EditableProps> {
         if (this._ref.current && this.props.showMenuOnLoad) {
             this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
         } else {
-            if (!this.props.onClick || !this.props.onClick(e)) {
+            if (!this.props.onClick?.(e)) {
                 this._editing = true;
                 this.props.isEditingCallback?.(true);
             }
