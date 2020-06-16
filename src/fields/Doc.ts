@@ -117,7 +117,7 @@ export function fetchProto(doc: Doc) {
     }
 
     if (doc.proto instanceof Promise) {
-        doc.proto.then(proto => fetchProto(proto));
+        doc.proto.then(fetchProto);
         return doc.proto;
     }
 }
