@@ -1,6 +1,5 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { observable, runInAction, action } from "mobx";
 import { observer } from "mobx-react";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
@@ -16,7 +15,6 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { Scripting } from "../util/Scripting";
 import { Doc } from "../../fields/Doc";
-import { Id } from "../../fields/FieldSymbols";
 
 library.add(faPaintBrush);
 
@@ -43,25 +41,22 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     render() {
         TraceMobx();
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
+        const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
-        const left = Math.min(...xs);
-        const top = Math.min(...ys);
-        const right = Math.max(...xs);
-        const bottom = Math.max(...ys);
+        const left = Math.min(...xs) - strokeWidth / 2;
+        const top = Math.min(...ys) - strokeWidth / 2;
+        const right = Math.max(...xs) + strokeWidth / 2;
+        const bottom = Math.max(...ys) + strokeWidth / 2;
         const width = right - left;
         const height = bottom - top;
-        const scaleX = this.props.PanelWidth() / width;
-        const scaleY = this.props.PanelHeight() / height;
-        const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
+        const scaleX = (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
+        const scaleY = (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
         const strokeColor = StrCast(this.layoutDoc.color, ActiveInkColor());
-        const points = InteractionUtils.CreatePolyline(data, left, top,
-            strokeColor,
-            strokeWidth.toString(),
+        const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
             StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
-            this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent",
-            (strokeWidth + 15).toString(),
+            this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);
         return (
             <svg className="inkingStroke"

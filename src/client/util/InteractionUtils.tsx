@@ -89,42 +89,39 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
-        var pts = "";
-        if (shape) {
-            //if any of the shape are true
-            const shapePts = makePolygon(shape, points);
-            pts = shapePts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number, strokeWidth: number, bezier: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
+        let pts: { X: number; Y: number; }[] = [];
+        if (shape) { //if any of the shape are true
+            pts = makePolygon(shape, points);
         }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
-            const newPoints: number[][] = [];
-            const newPts: { X: number; Y: number; }[] = [];
-            //convert to [][] for fitcurve module
-            for (var i = 0; i < points.length - 1; i++) {
-                newPoints.push([points[i].X, points[i].Y]);
-            }
+            points.pop();
+            const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+
             const bezierCurves = fitCurve(newPoints, parseInt(bezier));
             for (var i = 0; i < bezierCurves.length; i++) {
                 for (var t = 0; t < 1; t += 0.01) {
                     const point = beziercurve(t, bezierCurves[i]);
-                    newPts.push({ X: point[0], Y: point[1] });
+                    pts.push({ X: point[0], Y: point[1] });
                 }
             }
-            pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
         } else {
-            //in the middle of drawing
-            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+            pts = points;
         }
+        const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
+            `${(pt.X - left - width / 2) * scalex + width / 2},
+             ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
+
         return (
             <polyline
-                points={pts}
+                points={strpts}
                 style={{
                     filter: drawHalo ? "url(#dangerShine)" : undefined,
                     fill: "none",
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
-                    strokeWidth: parseInt(width),
+                    strokeWidth: strokeWidth,
                     strokeLinejoin: "round",
                     strokeLinecap: "round"
                 }}
