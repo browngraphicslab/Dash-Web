@@ -228,7 +228,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     @computed get content() {
         const field = Cast(this.dataDoc[this.fieldKey], VideoField);
-        const interactive = Doc.GetSelectedTool() || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
             <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}

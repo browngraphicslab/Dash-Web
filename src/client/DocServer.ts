@@ -1,6 +1,6 @@
 import * as io from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
-import { Opt, Doc } from '../fields/Doc';
+import { Opt, Doc, fetchProto } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';
@@ -244,7 +244,10 @@ export namespace DocServer {
             return cached;
         } else {
             // CACHED => great, let's just return the cached field we have
-            return Promise.resolve(cached);
+            return Promise.resolve(cached).then(field => {
+                (field instanceof Doc) && fetchProto(field);
+                return field;
+            });
         }
     };
     const _GetCachedRefFieldImpl = (id: string): Opt<RefField> => {

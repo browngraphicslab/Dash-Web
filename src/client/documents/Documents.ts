@@ -606,13 +606,15 @@ export namespace Docs {
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
             };
-
             const field = text ? new RichTextField(JSON.stringify(rtf), text) : undefined;
             return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
+                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false,
+                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+            }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
@@ -631,7 +633,7 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: string, strokeBezier: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
@@ -696,7 +698,7 @@ export namespace Docs {
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns.length ? schemaColumns : [new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -823,8 +825,9 @@ export namespace DocUtils {
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");

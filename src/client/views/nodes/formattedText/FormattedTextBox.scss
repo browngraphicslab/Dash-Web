@@ -67,6 +67,7 @@
     display: inline-block;
     position: absolute;
     right: 0;
+    overflow: hidden;
 
     .collectionfreeformview-container {
         position: relative;
@@ -231,6 +232,48 @@ footnote::after {
         content: "...";
     }
 }
+
+.prosemirror-anchor {
+    overflow:hidden;
+    display:inline-grid;
+}
+.prosemirror-linkBtn {
+    background:unset;
+    color:unset;
+    padding:0;
+    text-transform: unset;
+    letter-spacing: unset;
+    font-size:unset;
+}
+.prosemirror-links {
+    display: none;
+    position: absolute;
+    background-color: gray;
+    padding-bottom: 10px;
+    margin-top: 1em;
+    z-index: 1;
+  }
+  .prosemirror-hrefoptions{
+      width:0px;
+      border:unset;
+      padding:0px;
+
+  }
+  
+  .prosemirror-links a {
+    float: left;
+    color: white;
+    text-decoration: none;
+  }
+  
+  .prosemirror-links a:hover {
+    background-color: #eee;
+    color: black;
+  }
+  
+  .prosemirror-anchor:hover .prosemirror-links {
+    display: grid;
+  }
 
 .ProseMirror {
     touch-action: none;

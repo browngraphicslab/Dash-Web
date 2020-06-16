@@ -180,7 +180,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.linkOnDeselect.set(key, value);
 
                     const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + id), location: "onRight", title: value });
+                    const allHrefs = [{ href: Utils.prepend("/doc/" + id), title: value, targetId: id }];
+                    const link = this._editorView.state.schema.marks.link.create({ allHrefs, location: "onRight", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
@@ -239,10 +240,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             const alink = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: target }, "automatic")!;
-            const link = this._editorView.state.schema.marks.link.create({
-                href: Utils.prepend("/doc/" + alink[Id]),
-                title: "a link", location: location, linkId: alink[Id], targetId: target[Id]
-            });
+            const allHrefs = [{ href: Utils.prepend("/doc/" + alink[Id]), title: "a link", targetId: target[Id], linkId: alink[Id] }];
+            const link = this._editorView.state.schema.marks.link.create({ allHrefs, title: "a link", location });
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
@@ -283,8 +282,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.complete.docDragData) {
-            const draggedDoc = de.complete.docDragData.draggedDocuments.length && de.complete.docDragData.draggedDocuments[0];
+        const dragData = de.complete.docDragData;
+        if (dragData) {
+            const draggedDoc = dragData.draggedDocuments.length && dragData.draggedDocuments[0];
             // replace text contents whend dragging with Alt
             if (draggedDoc && draggedDoc.type === DocumentType.RTF && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.altKey) {
                 if (draggedDoc.data instanceof RichTextField) {
@@ -292,8 +292,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     e.stopPropagation();
                 }
                 // embed document when dragging with a userDropAction or an embedDoc flag set
-            } else if (de.complete.docDragData.userDropAction || de.complete.docDragData.embedDoc) {
-                const target = de.complete.docDragData.droppedDocuments[0];
+            } else if (dragData.userDropAction || dragData.embedDoc) {
+                const target = dragData.droppedDocuments[0];
                 // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
                 // if (link) {
                 target._fitToBox = true;
@@ -583,11 +583,22 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
     }
 
-    makeLinkToSelection(linkDocId: string, title: string, location: string, targetDocId: string) {
-        if (this._editorView) {
-            const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, linkId: linkDocId, targetId: targetDocId });
-            this._editorView.dispatch(this._editorView.state.tr.removeMark(this._editorView.state.selection.from, this._editorView.state.selection.to, this._editorView.state.schema.marks.link).
-                addMark(this._editorView.state.selection.from, this._editorView.state.selection.to, link));
+    makeLinkToSelection(linkId: string, title: string, location: string, targetId: string) {
+        const state = this._editorView?.state;
+        if (state) {
+            const href = Utils.prepend("/doc/" + linkId);
+            const sel = state.selection;
+            const splitter = state.schema.marks.splitter.create({ id: Utils.GenerateGuid() });
+            let tr = state.tr.addMark(sel.from, sel.to, splitter);
+            sel.from !== sel.to && tr.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => {
+                if (node.firstChild === null && node.marks.find((m: Mark) => m.type.name === schema.marks.splitter.name)) {
+                    const allHrefs = [{ href, title, targetId, linkId }];
+                    allHrefs.push(...(node.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
+                    const link = state.schema.marks.link.create({ href, allHrefs, title, location, linkId, targetId });
+                    tr = tr.addMark(pos, pos + node.nodeSize, link);
+                }
+            });
+            this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
         }
     }
     componentDidMount() {
@@ -695,7 +706,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                     const marks = [...node.marks];
                     const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
-                    return linkIndex !== -1 && scrollToLinkID === marks[linkIndex].attrs.href.replace(/.*\/doc\//, "") ? node : undefined;
+                    return linkIndex !== -1 && marks[linkIndex].attrs.allRefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
                 let start = 0;
@@ -978,7 +989,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         FormattedTextBox._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
             FormattedTextBoxComment.textBox = this;
-            FormattedTextBoxComment.update(this._editorView!);
+            FormattedTextBoxComment.update(this._editorView!, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
 
@@ -1155,7 +1166,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         const mark = e.key !== " " && this._lastTimedMark ? this._lastTimedMark : schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
         this._lastTimedMark = mark;
-        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+        // this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
@@ -1196,17 +1207,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @computed get sidebarWidthPercent() { return StrCast(this.layoutDoc._sidebarWidthPercent, "0%"); }
     sidebarWidth = () => Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth();
-    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()), 0);
+    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()) / this.props.ContentScaling(), 0);
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
-        const interactive = Doc.GetSelectedTool() || this.layoutDoc.isBackground;
+        const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props);
+            setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), 0);
         } else if (FormattedTextBoxComment.textBox === this) {
-            FormattedTextBoxComment.Hide();
+            setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
         return (
             <div className={"formattedTextBox-cont"} style={{
@@ -1223,7 +1234,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         background: Doc.UserDoc().renderStyle === "comic" ? "transparent" : this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
                         opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
-                        pointerEvents: interactive ? "none" : undefined,
+                        pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit")
                     }}
@@ -1264,6 +1275,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                                 PanelWidth={this.sidebarWidth}
                                 NativeHeight={returnZero}
                                 NativeWidth={returnZero}
+                                scaleField={this.annotationKey + "-scale"}
                                 annotationsKey={this.annotationKey}
                                 isAnnotationOverlay={false}
                                 focus={this.props.focus}

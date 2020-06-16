@@ -58,6 +58,7 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
     fontSize: "string",
+    isInkMask: "boolean",       // is the document a mask (ie, sits on top of other documents, has an unbounded width/height that is dark, and content uses 'hard-light' mix-blend-mode to let other documents pop through)
     layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
     letterSpacing: "string",
@@ -83,6 +84,7 @@ export const documentSchema = createSchema({
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 
     // drag drop properties
+    stayInCollection: "boolean",// whether document can be dropped into a different collection
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")
     targetDropAction: "string", // allows the target of a drop event to specify the dropAction ("alias", "copy", "move") NOTE: if the document is dropped within the same collection, the dropAction is coerced to 'move'

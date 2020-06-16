@@ -100,7 +100,7 @@ export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
-function fetchProto(doc: Doc) {
+export function fetchProto(doc: Doc) {
     if (doc.author !== Doc.CurrentUserEmail) {
         const acl = Doc.Get(doc, "ACL", true);
         switch (acl) {
@@ -116,21 +116,9 @@ function fetchProto(doc: Doc) {
         }
     }
 
-    const proto = doc.proto;
-    if (proto instanceof Promise) {
-        proto.then(proto => {
-            if (proto.author !== Doc.CurrentUserEmail) {
-                if (proto.ACL === "ownerOnly") {
-                    proto[AclSym] = doc[AclSym] = AclPrivate;
-                    return undefined;
-                } else if (proto.ACL === "readOnly") {
-                    proto[AclSym] = doc[AclSym] = AclReadonly;
-                } else if (proto.ACL === "addOnly") {
-                    proto[AclSym] = doc[AclSym] = AclAddonly;
-                }
-            }
-        });
-        return proto;
+    if (doc.proto instanceof Promise) {
+        doc.proto.then(fetchProto);
+        return doc.proto;
     }
 }
 
@@ -442,7 +430,8 @@ export namespace Doc {
             if (allowDuplicates !== true) {
                 const pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
                 if (pind !== -1) {
-                    list.splice(pind, 1);
+                    return true;
+                    //list.splice(pind, 1);  // bcz: this causes schemaView docs in the Catalog to move to the bottom of the schema view when they are dragged even though they haven't left the collection
                 }
             }
             if (first) {
@@ -690,7 +679,7 @@ export namespace Doc {
                 }
             }
         });
-        copy["author"] = Doc.CurrentUserEmail;
+        copy.author = Doc.CurrentUserEmail;
         return copy;
     }
 
@@ -822,7 +811,7 @@ export namespace Doc {
     export function UserDoc(): Doc { return manager._user_doc; }
 
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
-    export function GetSelectedTool(): InkTool { return (FieldValue(StrCast(Doc.UserDoc().activeInkTool)) ?? InkTool.None) as InkTool; }
+    export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {

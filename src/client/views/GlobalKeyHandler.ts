@@ -72,6 +72,8 @@ export default class KeyManager {
 
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
+            case "a": DragManager.CanEmbed = true;
+                break;
             case " ":
                 MarqueeView.DragMarquee = !MarqueeView.DragMarquee;
                 break;

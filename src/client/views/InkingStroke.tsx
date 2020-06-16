@@ -1,6 +1,5 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { observable, runInAction, action } from "mobx";
 import { observer } from "mobx-react";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
@@ -31,36 +30,66 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);
     }
 
+    private makeMask = () => {
+        this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
+        this.props.Document.mixBlendMode = "hard-light";
+        this.props.Document.color = "#9b9b9bff";
+        this.props.Document.stayInCollection = true;
+        this.props.Document.isInkMask = true;
+    }
+
     render() {
         TraceMobx();
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
+        const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
-        const left = Math.min(...xs);
-        const top = Math.min(...ys);
-        const right = Math.max(...xs);
-        const bottom = Math.max(...ys);
+        const left = Math.min(...xs) - strokeWidth / 2;
+        const top = Math.min(...ys) - strokeWidth / 2;
+        const right = Math.max(...xs) + strokeWidth / 2;
+        const bottom = Math.max(...ys) + strokeWidth / 2;
         const width = right - left;
         const height = bottom - top;
-        const scaleX = this.props.PanelWidth() / width;
-        const scaleY = this.props.PanelHeight() / height;
-        const points = InteractionUtils.CreatePolyline(data, left, top,
-            StrCast(this.layoutDoc.color, ActiveInkColor()),
-            StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()),
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "");
+        const scaleX = (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
+        const scaleY = (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
+        const strokeColor = StrCast(this.layoutDoc.color, ActiveInkColor());
+        const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
+        const hpoints = InteractionUtils.CreatePolyline(data, left, top,
+            this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);
         return (
             <svg className="inkingStroke"
                 width={width}
                 height={height}
-                style={{ mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset" }}
-                onContextMenu={() => {
-                    ContextMenu.Instance.addItem({
-                        description: "Analyze Stroke",
-                        event: this.analyzeStrokes,
-                        icon: "paint-brush"
-                    });
+                style={{
+                    pointerEvents: this.props.Document.isInkMask ? "all" : "none",
+                    transform: this.props.Document.isInkMask ? "translate(2500px, 2500px)" : undefined,
+                    mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset"
                 }}
-            >
+                onContextMenu={() => {
+                    ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
+                    ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                }}
+            ><defs>
+                    <filter id="dangerShine">
+                        <feColorMatrix type="matrix"
+                            result="color"
+                            values="1 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 0 0
+                        0 0 0 1 0">
+                        </feColorMatrix>
+                        <feGaussianBlur in="color" stdDeviation="4" result="blur"></feGaussianBlur>
+                        <feOffset in="blur" dx="0" dy="0" result="offset"></feOffset>
+                        <feMerge>
+                            <feMergeNode in="bg"></feMergeNode>
+                            <feMergeNode in="offset"></feMergeNode>
+                            <feMergeNode in="SourceGraphic"></feMergeNode>
+                        </feMerge>
+                    </filter>
+                </defs>
+                {hpoints}
                 {points}
             </svg>
         );
@@ -83,5 +112,5 @@ Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) {
 Scripting.addGlobal(function activateEraser(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Eraser : InkTool.None); });
 Scripting.addGlobal(function activateStamp(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Stamp : InkTool.None); });
 Scripting.addGlobal(function deactivateInk() { return Doc.SetSelectedTool(InkTool.None); });
-Scripting.addGlobal(function setInkWidth(width: any) { return Doc.SetSelectedTool(width); });
-Scripting.addGlobal(function setInkColor(color: any) { return Doc.SetSelectedTool(color); });
+Scripting.addGlobal(function setInkWidth(width: any) { return SetActiveInkWidth(width); });
+Scripting.addGlobal(function setInkColor(color: any) { return SetActiveInkColor(color); });

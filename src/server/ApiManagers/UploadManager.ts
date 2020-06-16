@@ -301,8 +301,7 @@ async function captureYoutubeScreenshot(targetUrl: string): Promise<Opt<Buffer>>
     await videoPlayer?.click();
     await delay(1000);
     // hide youtube player controls.
-    await page.evaluate(() =>
-        (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
+    await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as HTMLElement).style.display = 'none');
 
     const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
     await browser.close();

@@ -123,7 +123,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer?.();
-        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this)), this.props.document);
+        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this), undefined, this.preTreeDrop.bind(this)), this.props.document);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -187,33 +187,36 @@ class TreeView extends React.Component<TreeViewProps> {
         })}
     />)
 
+    preTreeDrop = (e: Event, de: DragManager.DropEvent, targetAction: dropActionType) => {
+        const dragData = de.complete.docDragData;
+        dragData && (dragData.dropAction = this.props.treeViewId[Id] === dragData.treeViewId ? "same" : dragData.dropAction);
+    }
+
     @undoBatch
     treeDrop = (e: Event, de: DragManager.DropEvent) => {
         const pt = [de.x, de.y];
         const rect = this._header!.current!.getBoundingClientRect();
         const before = pt[1] < rect.top + rect.height / 2;
         const inside = pt[0] > Math.min(rect.left + 75, rect.left + rect.width * .75) || (!before && this.treeViewOpen && DocListCast(this.dataDoc[this.fieldKey]).length);
-        if (de.complete.linkDragData) {
-            const sourceDoc = de.complete.linkDragData.linkSourceDocument;
+        const complete = de.complete;
+        if (complete.linkDragData) {
+            const sourceDoc = complete.linkDragData.linkSourceDocument;
             const destDoc = this.props.document;
             DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link");
             e.stopPropagation();
         }
-        if (de.complete.docDragData) {
+        const docDragData = complete.docDragData;
+        if (docDragData) {
             e.stopPropagation();
-            if (de.complete.docDragData.draggedDocuments[0] === this.props.document) return true;
-            let addDoc = (doc: Doc | Doc[]) => this.props.addDocument(doc, undefined, before);
+            if (docDragData.draggedDocuments[0] === this.props.document) return true;
+            const parentAddDoc = (doc: Doc | Doc[]) => this.props.addDocument(doc, undefined, before);
+            let addDoc = parentAddDoc;
             if (inside) {
                 addDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce(
-                    ((flg: boolean, doc) => flg && Doc.AddDocToList(this.dataDoc, this.fieldKey, doc)), true) || addDoc(doc);
+                    (flg: boolean, doc) => flg && Doc.AddDocToList(this.dataDoc, this.fieldKey, doc), true) || parentAddDoc(doc);
             }
-            const movedDocs = (de.complete.docDragData.treeViewId === this.props.treeViewId[Id] ? de.complete.docDragData.draggedDocuments : de.complete.docDragData.droppedDocuments);
-            const move = de.complete.docDragData.dropAction === "move" || de.complete.docDragData.dropAction;
-            return ((!move && (de.complete.docDragData.treeViewId !== this.props.treeViewId[Id])) || de.complete.docDragData.userDropAction) ?
-                de.complete.docDragData.droppedDocuments.reduce((added, d) => addDoc(d) || added, false)
-                : de.complete.docDragData.moveDocument ?
-                    movedDocs.reduce((added, d) => de.complete.docDragData?.moveDocument?.(d, undefined, addDoc) || added, false)
-                    : de.complete.docDragData.droppedDocuments.reduce((added, d) => addDoc(d), false);
+            const move = (!docDragData.dropAction || docDragData.dropAction === "move" || docDragData.dropAction === "same") && docDragData.moveDocument;
+            return docDragData.droppedDocuments.reduce((added, d) => (move ? docDragData.moveDocument?.(d, undefined, addDoc) : addDoc(d)) || added, false);
         }
         return false;
     }
@@ -662,7 +665,16 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer?.();
         if (this._mainEle = ele) {
-            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.props.Document);
+            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.props.Document, this.onInternalPreDrop.bind(this));
+        }
+    }
+
+    protected onInternalPreDrop = (e: Event, de: DragManager.DropEvent, targetAction: dropActionType) => {
+        const dragData = de.complete.docDragData;
+        if (dragData) {
+            if (targetAction && !dragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+                dragData.dropAction = targetAction;
+            } else dragData.dropAction = this.props.Document[Id] === dragData?.treeViewId ? "same" : dragData.dropAction;
         }
     }
 
@@ -788,7 +800,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                     background: this.props.backgroundColor?.(this.props.Document),
                     paddingLeft: `${NumCast(this.props.Document._xPadding, 10)}px`,
                     paddingRight: `${NumCast(this.props.Document._xPadding, 10)}px`,
-                    paddingTop: `${NumCast(this.props.Document._yPadding, 20)}px`
+                    paddingTop: `${NumCast(this.props.Document._yPadding, 20)}px`,
+                    pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 onKeyPress={this.onKeyPress}
                 onContextMenu={this.onContextMenu}

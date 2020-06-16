@@ -3,7 +3,7 @@ import { docs_v1 } from "googleapis";
 import { Fragment, Mark, Node } from "prosemirror-model";
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils } from "../Utils";
-import { Docs } from "../client/documents/Documents";
+import { Docs, DocUtils } from "../client/documents/Documents";
 import { schema } from "../client/views/nodes/formattedText/schema_rts";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../client/DocServer";
@@ -272,7 +272,7 @@ export namespace RichTextUtils {
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
                 const backingDoc = Docs.Create.ImageDocument(agnostic, { _width: 300, _height: 300 });
-                Doc.makeCustomViewClicked(backingDoc, Docs.Create.FreeformDocument);
+                DocUtils.makeCustomViewClicked(backingDoc, Docs.Create.FreeformDocument);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;
             } else {
@@ -392,7 +392,7 @@ export namespace RichTextUtils {
                     const { attrs } = mark;
                     switch (converted) {
                         case "link":
-                            let url = attrs.href;
+                            let url = attrs.allHrefs.length ? attrs.allHrefs[0].href : "";
                             const delimiter = "/doc/";
                             const alreadyShared = "?sharing=true";
                             if (new RegExp(window.location.origin + delimiter).test(url) && !url.endsWith(alreadyShared)) {
@@ -401,7 +401,7 @@ export namespace RichTextUtils {
                                     let exported = (await Cast(linkDoc.anchor2, Doc))!;
                                     if (!exported.customLayout) {
                                         exported = Doc.MakeAlias(exported);
-                                        Doc.makeCustomViewClicked(exported, Docs.Create.FreeformDocument);
+                                        DocUtils.makeCustomViewClicked(exported, Docs.Create.FreeformDocument);
                                         linkDoc.anchor2 = exported;
                                     }
                                     url = Utils.shareUrl(exported[Id]);

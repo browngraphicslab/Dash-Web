@@ -98,6 +98,7 @@ export interface DocumentViewProps {
     dontRegisterView?: boolean;
     layoutKey?: string;
     radialMenu?: String[];
+    display?: string;
 }
 
 @observer
@@ -336,7 +337,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.addDocTab(alias, "onRight");
                 // UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
                 //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
-            } else if (this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
+            } else if (this.props.Document.links && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
                 if ((this.props.Document.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
@@ -518,6 +519,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
+                if (SelectionManager.IsSelected(this, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
                 // TODO: check here for panning/inking
             }
             return;
@@ -531,8 +533,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !this.Document.inOverlay) {
-                e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
-
+                e.stopPropagation();
+                if (SelectionManager.IsSelected(this, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -687,11 +689,28 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
-        this.layoutDoc.ACL = this.dataDoc.ACL = acl;
+        this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
             if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
             const data = d[DataSym];
             if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
+        });
+    }
+    @undoBatch
+    @action
+    testAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
+        this.dataDoc.author = this.props.Document.author = "ADMIN";
+        this.dataDoc.ACL = this.props.Document.ACL = acl;
+        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
+            if (d.author === Doc.CurrentUserEmail) {
+                d.author = "ADMIN";
+                d.ACL = acl;
+            }
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail) {
+                data.author = "ADMIN";
+                data.ACL = acl;
+            }
         });
     }
 
@@ -758,6 +777,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         moreItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
@@ -1169,7 +1190,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
-        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
+        let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
             id={this.props.Document[Id]}

@@ -32,7 +32,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionLinearView } from './CollectionLinearView';
-import { CollectionMapView } from './CollectionMapView';
+import CollectionMapView from './CollectionMapView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 import { CollectionPileView } from './CollectionPileView';
@@ -42,6 +42,7 @@ import { CollectionStaffView } from './CollectionStaffView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
+import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 const higflyout = require("@hig/flyout");
@@ -67,6 +68,7 @@ export enum CollectionViewType {
     Linear = "linear",
     Staff = "staff",
     Map = "map",
+    Grid = "grid",
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
@@ -91,7 +93,7 @@ export interface CollectionRenderProps {
 export class CollectionView extends Touchable<FieldViewProps & CollectionViewCustomProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
-    private _isChildActive = false;   //TODO should this be observable?
+    _isChildActive = false;   //TODO should this be observable?
     get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); }
     set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; }
     @observable private _curLightboxImg = 0;
@@ -163,7 +165,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
-        return this.removeDocument(doc) ? addDocument(doc) : false;
+        const first = doc instanceof Doc ? doc : doc[0];
+        return !first?.stayInCollection && addDocument !== returnFalse && this.removeDocument(doc) ? addDocument(doc) : false;
     }
 
     showIsTagged = () => {
@@ -193,6 +196,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
             case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
+            case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
             case CollectionViewType.Freeform:
             default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -230,6 +234,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Carousel", event: () => func(CollectionViewType.Carousel), icon: "columns" });
         subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
+        subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
         if (addExtras && this.props.Document._viewType === CollectionViewType.Freeform) {
             subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
         }
@@ -239,7 +244,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-
             this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;

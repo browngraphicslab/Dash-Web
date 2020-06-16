@@ -7,7 +7,7 @@ import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { observer } from "mobx-react";
 import ImportMetadataEntry, { keyPlaceholder, valuePlaceholder } from "./ImportMetadataEntry";
 import { Utils } from "../../../Utils";
@@ -123,7 +123,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             }
             const { accessPaths, exifData } = result;
             const path = Utils.prepend(accessPaths.agnostic.client);
-            const document = await Doc.Get.DocumentFromType(type, path, { _width: 300, title: name });
+            const document = await DocUtils.DocumentFromType(type, path, { _width: 300, title: name });
             const { data, error } = exifData;
             if (document) {
                 Doc.GetProto(document).exif = error || Doc.Get.FromJson({ data });

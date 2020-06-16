@@ -6,7 +6,6 @@ import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "../../../util/SelectionManager";
-import { Docs } from "../../../documents/Documents";
 import { NumCast, BoolCast, Cast, StrCast } from "../../../../fields/Types";
 import { Doc } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";

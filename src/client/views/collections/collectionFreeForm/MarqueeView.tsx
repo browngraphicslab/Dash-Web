@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Opt } from "../../../../fields/Doc";
-import { InkData, InkField } from "../../../../fields/InkField";
+import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
@@ -62,7 +62,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
         this._pointsX = [];
         this._pointsY = [];
-        this._freeHand = false;
     }
 
     @undoBatch
@@ -123,7 +122,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
                 const tbox = Docs.Create.TextDocument("", {
                     _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
-                    _fontFamily: StrCast(Doc.UserDoc().fontFamily), _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
+                    _fontFamily: StrCast(Doc.UserDoc().fontFamily),
                     title: "-typed text-"
                 });
                 const template = FormattedTextBox.DefaultLayout;
@@ -271,10 +270,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     onClick = (e: React.MouseEvent): void => {
-        if (
-            Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+            if (Doc.GetSelectedTool() === InkTool.None) {
+                !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+            }
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
@@ -352,7 +352,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
         selected.forEach(d => this.props.removeDocument(d));
-        const newCollection = Doc.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
+        const newCollection = DocUtils.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
         this.props.addDocument(newCollection!);
         this.props.selectDocuments([newCollection!], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -527,7 +527,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             this.cleanupInteractions(false);
         }
-        if (e.key === "r") {
+        if (e.key === "r" || e.key === " ") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -537,7 +537,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     changeFreeHand = (x: boolean) => {
-        this._freeHand = x;
+        this._freeHand = !this._freeHand;
     }
     // @action
     // marqueeInkSelect(ink: Map<any, any>) {
@@ -697,7 +697,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 width: `${Math.abs(v[0])}`,
                 height: `${Math.abs(v[1])}`, zIndex: 2000
             }} >
-                {/* <span className="marquee-legend" /> */}
+                <span className="marquee-legend"></span>
             </div>;
 
         } else {
