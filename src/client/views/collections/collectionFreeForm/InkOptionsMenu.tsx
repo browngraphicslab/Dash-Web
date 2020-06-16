@@ -107,7 +107,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                 onPointerDown={action(e => GestureOverlay.Instance.InkShape = btn)}
                 style={{ backgroundColor: btn === GestureOverlay.Instance?.InkShape ? "121212" : "" }}>
                 {this._icons[i]}
-            </button>)},
+            </button>)}
         </>;
     }
 

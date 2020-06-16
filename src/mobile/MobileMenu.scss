@@ -20,6 +20,7 @@ body {
     height: $navbar-height;
     background-color: whitesmoke;
     border-bottom: 5px solid black;
+    z-index: 150;
 }
 
 .navbar .cover {
@@ -192,8 +193,10 @@ body {
 
 
 .sidebar.active {
+    position: absolute;
     right: 0%;
     opacity: 1;
+    z-index: 101;
 }
 
 .back {

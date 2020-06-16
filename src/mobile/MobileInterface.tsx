@@ -78,6 +78,11 @@ export class MobileInterface extends React.Component {
         document.addEventListener("dblclick", this.onReactDoubleClick);
     }
 
+    @action
+    componentWillUnmount = () => {
+        document.removeEventListener('dblclick', this.onReactDoubleClick);
+    }
+
     // Prevent zooming in when double tapping the screen
     onReactDoubleClick = (e: MouseEvent) => {
         e.stopPropagation();
@@ -92,31 +97,6 @@ export class MobileInterface extends React.Component {
         onSwitch && onSwitch();
 
         this.renderView = renderView;
-    }
-
-    onSwitchUpload = async () => {
-        let width = 300;
-        let height = 300;
-        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
-
-        // get width and height of the collection doc
-        if (this.mainContainer) {
-            const data = Cast(this.mainContainer.data, listSpec(Doc));
-            if (data) {
-                const collectionDoc = await data[1]; // this should be the collection doc since the positions should be locked
-                const docView = DocumentManager.Instance.getDocumentView(collectionDoc);
-                if (docView) {
-                    width = docView.nativeWidth ? docView.nativeWidth : 300;
-                    height = docView.nativeHeight ? docView.nativeHeight : 300;
-                }
-            }
-        }
-        DocServer.Mobile.dispatchOverlayTrigger({
-            enableOverlay: true,
-            width: width,
-            height: height,
-            text: "Documents uploaded from mobile will show here",
-        });
     }
 
     // For toggling the hamburger menu
