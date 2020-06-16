@@ -10,6 +10,7 @@ import { NumCast, BoolCast, Cast, StrCast } from "../../../../fields/Types";
 import { Doc } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Id } from "../../../../fields/FieldSymbols";
+import { Docs } from "../../../documents/Documents";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -101,8 +102,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     });
 
     //Command to create a new Tab with a PDF of all the command shortcuts
-    bind("Mod-m", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        const newDoc = Docs.Create.PdfDocument("http://134.122.94.184:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 });
+    bind("Mod-/", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        const newDoc = Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 });
         props.addDocTab(newDoc, "onRight");
     });
 

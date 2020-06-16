@@ -156,35 +156,50 @@ export class RichTextRules {
 
             // center justify text
             new InputRule(
-                new RegExp(/%\^$/),
+                new RegExp(/%\^/),
                 (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || undefined;
-                    const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    const resolved = state.doc.resolve(start) as any;
+                    if (resolved?.parent.type.name === "paragraph") {
+                        return state.tr.deleteRange(start, end).setNodeMarkup(resolved.path[resolved.path.length - 4], schema.nodes.paragraph, { ...resolved.parent.attrs, align: "center" }, resolved.parent.marks);
+                    } else {
+                        const node = resolved.nodeAfter;
+                        const sm = state.storedMarks || undefined;
+                        const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                            state.tr;
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
                 }),
 
             // left justify text
             new InputRule(
-                new RegExp(/%\[$/),
+                new RegExp(/%\[/),
                 (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || undefined;
-                    const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    const resolved = state.doc.resolve(start) as any;
+                    if (resolved?.parent.type.name === "paragraph") {
+                        return state.tr.deleteRange(start, end).setNodeMarkup(resolved.path[resolved.path.length - 4], schema.nodes.paragraph, { ...resolved.parent.attrs, align: "left" }, resolved.parent.marks);
+                    } else {
+                        const node = resolved.nodeAfter;
+                        const sm = state.storedMarks || undefined;
+                        const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                            state.tr;
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
                 }),
 
             // right justify text
             new InputRule(
-                new RegExp(/%\]$/),
+                new RegExp(/%\]/),
                 (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || undefined;
-                    const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    const resolved = state.doc.resolve(start) as any;
+                    if (resolved?.parent.type.name === "paragraph") {
+                        return state.tr.deleteRange(start, end).setNodeMarkup(resolved.path[resolved.path.length - 4], schema.nodes.paragraph, { ...resolved.parent.attrs, align: "right" }, resolved.parent.marks);
+                    } else {
+                        const node = resolved.nodeAfter;
+                        const sm = state.storedMarks || undefined;
+                        const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                            state.tr;
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
                 }),
 
 
