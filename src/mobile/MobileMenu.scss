@@ -259,7 +259,7 @@ body {
 }
 
 .docButtonContainer {
-    top: 90%;
+    top: 80%;
     position: absolute;
     display: flex;
     transform: translate(-50%, 0);
@@ -309,7 +309,7 @@ body {
     width: 200px;
     left: 0px;
     top: 0px;
-    background-image: linear-gradient(to right, #1a1a1a, rgba(255, 0, 0, 0));
+    background-image: linear-gradient(to right, #1a1a1a, rgba(0, 0, 0, 0));
     text-align: center;
     user-select: none;
     z-index: 99;
