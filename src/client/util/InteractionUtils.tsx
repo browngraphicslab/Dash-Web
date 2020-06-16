@@ -119,6 +119,7 @@ export namespace InteractionUtils {
                 style={{
                     filter: drawHalo ? "url(#dangerShine)" : undefined,
                     fill: "none",
+                    opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
                     strokeWidth: strokeWidth,
