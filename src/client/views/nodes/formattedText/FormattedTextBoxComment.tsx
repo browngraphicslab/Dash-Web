@@ -84,11 +84,13 @@ export class FormattedTextBoxComment {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
-                    if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                        textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
-                    } else {
-                        DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
-                            (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+                    if (FormattedTextBoxComment.linkDoc.author) {
+                        if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
+                            textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+                        } else {
+                            DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
+                                (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+                        }
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
                     textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "onRight");
@@ -113,6 +115,23 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.end = end;
         FormattedTextBoxComment.mark = mark;
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "");
+    }
+
+    static showCommentbox(set: string, view: EditorView, nbef: number) {
+        const state = view.state;
+        if (set !== "none") {
+            // These are in screen coordinates
+            // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
+            const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
+            // The box in which the tooltip is positioned, to use as base
+            const box = (document.getElementsByClassName("mainView-container") as any)[0].getBoundingClientRect();
+            // Find a center-ish x position from the selection endpoints (when
+            // crossing lines, end may be more to the left)
+            const left = Math.max((start.left + end.left) / 2, start.left + 3);
+            FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
+            FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
+        }
+        FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = set);
     }
 
     static update(view: EditorView, lastState?: EditorState, forceUrl: string = "") {
@@ -186,7 +205,8 @@ export class FormattedTextBoxComment {
                             if (anchor !== target && anchor && target) {
                                 target._scrollY = NumCast(anchor?.y);
                             }
-                            if (target) {
+                            if (target?.author) {
+                                FormattedTextBoxComment.showCommentbox("", view, nbef);
                                 ReactDOM.render(<ContentFittingDocumentView
                                     Document={target}
                                     LibraryPath={emptyPath}
@@ -224,19 +244,7 @@ export class FormattedTextBoxComment {
                 set = "";
             }
         }
-        if (set !== "none") {
-            // These are in screen coordinates
-            // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
-            const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
-            // The box in which the tooltip is positioned, to use as base
-            const box = (document.getElementsByClassName("mainView-container") as any)[0].getBoundingClientRect();
-            // Find a center-ish x position from the selection endpoints (when
-            // crossing lines, end may be more to the left)
-            const left = Math.max((start.left + end.left) / 2, start.left + 3);
-            FormattedTextBoxComment.tooltip.style.left = (left - box.left) + "px";
-            FormattedTextBoxComment.tooltip.style.bottom = (box.bottom - start.top) + "px";
-        }
-        FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = set);
+        FormattedTextBoxComment.showCommentbox(set, view, nbef);
     }
 
     destroy() { }

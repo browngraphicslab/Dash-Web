@@ -42,7 +42,7 @@ export const marks: { [index: string]: MarkSpec } = {
                 node.attrs.allHrefs.length === 1 ?
                     ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allHrefs[0].href }, 0] :
                     ["div", { class: "prosemirror-anchor" },
-                        ["button", { class: "prosemirror-linkBtn" },
+                        ["span", { class: "prosemirror-linkBtn" },
                             ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],
                             ["input", { class: "prosemirror-hrefoptions" }],
                         ],

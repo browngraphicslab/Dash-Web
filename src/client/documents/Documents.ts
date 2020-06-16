@@ -611,7 +611,10 @@ export namespace Docs {
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
+                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false,
+                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+            }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
@@ -824,7 +827,7 @@ export namespace DocUtils {
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
