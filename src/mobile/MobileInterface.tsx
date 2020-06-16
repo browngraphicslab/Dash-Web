@@ -35,6 +35,7 @@ import { nullAudio } from '../fields/URLField';
 import GestureOverlay from "../client/views/GestureOverlay";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
+import { RadialMenu } from "../client/views/nodes/RadialMenu";
 
 library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -48,7 +49,7 @@ export class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    @observable private mainDoc: any = CurrentUserUtils.setupActiveMobile(this.userDoc);
+    @observable private mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
     @observable private sidebarActive: boolean = false;
     @observable private imageUploadActive: boolean = false;
@@ -94,31 +95,6 @@ export class MobileInterface extends React.Component {
         this.renderView = renderView;
     }
 
-    onSwitchUpload = async () => {
-        let width = 300;
-        let height = 300;
-        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
-
-        // get width and height of the collection doc
-        if (this.mainContainer) {
-            const data = Cast(this.mainContainer.data, listSpec(Doc));
-            if (data) {
-                const collectionDoc = await data[1]; // this should be the collection doc since the positions should be locked
-                const docView = DocumentManager.Instance.getDocumentView(collectionDoc);
-                if (docView) {
-                    width = docView.nativeWidth ? docView.nativeWidth : 300;
-                    height = docView.nativeHeight ? docView.nativeHeight : 300;
-                }
-            }
-        }
-        DocServer.Mobile.dispatchOverlayTrigger({
-            enableOverlay: true,
-            width: width,
-            height: height,
-            text: "Documents uploaded from mobile will show here",
-        });
-    }
-
     // For toggling the hamburger menu
     @action
     toggleSidebar = () => this.sidebarActive = !this.sidebarActive
@@ -138,8 +114,8 @@ export class MobileInterface extends React.Component {
      * Back method for navigating
      */
     back = () => {
-        let header = document.getElementById("header") as HTMLElement;
-        let doc = Cast(this._parents.pop(), Doc) as Doc;
+        const header = document.getElementById("header") as HTMLElement;
+        const doc = Cast(this._parents.pop(), Doc) as Doc;
 
         if (doc === Cast(this._library, Doc) as Doc) {
             this._child = null;
@@ -198,7 +174,7 @@ export class MobileInterface extends React.Component {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
             return (
-                <div style={{ position: "relative", top: '200px', height: `calc(100% - 200px)`, width: "100%", overflow: "hidden", left: "0%" }}>
+                <div style={{ position: "relative", top: '200px', height: `calc(100% - 350px)`, width: "100%", left: "0%" }}>
                     <DocumentView
                         Document={this.mainContainer}
                         DataDoc={undefined}
@@ -238,16 +214,15 @@ export class MobileInterface extends React.Component {
      * @param doc: doc for which the method is called
      */
     handleClick = async (doc: Doc) => {
-        let children = DocListCast(doc.data);
+        const children = DocListCast(doc.data);
         if (doc.type !== "collection") {
             this._parents.push(this._activeDoc);
             this._activeDoc = doc;
             this.switchCurrentView((userDoc: Doc) => doc);
             this._homeMenu = false;
             this.toggleSidebar();
-        } else if (doc.type === "collection" && children.length === 0) {
-            console.log("This collection has no children");
-        } else {
+        } else if (doc.type === "collection" && children.length === 0) console.log("This collection has no children");
+        else {
             this._parents.push(this._activeDoc);
             this._activeDoc = doc;
             this.switchCurrentView((userDoc: Doc) => doc);
@@ -260,7 +235,7 @@ export class MobileInterface extends React.Component {
      * Handles creation of array which is then rendered in renderPathbar()
      */
     createPathname = () => {
-        let docArray = [];
+        const docArray = [];
         this._parents.map((doc: Doc, index: any) => {
             docArray.push(doc);
         });
@@ -270,8 +245,8 @@ export class MobileInterface extends React.Component {
 
     // Renders the graphical pathbar
     renderPathbar = () => {
-        let docArray = this.createPathname();
-        let items = docArray.map((doc: Doc, index: any) => {
+        const docArray = this.createPathname();
+        const items = docArray.map((doc: Doc, index: any) => {
             if (index === 0) {
                 return (
                     <>
@@ -341,9 +316,8 @@ export class MobileInterface extends React.Component {
             this._child = null;
             this.switchCurrentView((userDoc: Doc) => doc);
             this._parents.length = index;
-        } else if (doc === this._homeDoc) {
-            this.returnHome();
-        } else {
+        } else if (doc === this._homeDoc) this.returnHome();
+        else {
             this._activeDoc = doc;
             this._child = doc;
             this.switchCurrentView((userDoc: Doc) => doc);
@@ -384,7 +358,7 @@ export class MobileInterface extends React.Component {
             workspaces = this._child;
         }
 
-        let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
+        const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
             if (doc.type !== "ink") {
                 return (
                     <div
@@ -473,7 +447,7 @@ export class MobileInterface extends React.Component {
                 console.log("here");
                 return <div className="colorSelector">
                     <InkOptionsMenu />
-                </div>
+                </div>;
 
             }
         }
@@ -677,17 +651,18 @@ export class MobileInterface extends React.Component {
                     {this.uploadImage()}
                 </div>
                 {this.switchMenuView()}
-                <div className="docButtonContainer">
-                    {this.pinToPresentation()}
-                    {this.downloadDocument()}
-                    {this.drawInk()}
-                    {this.uploadAudioButton()}
-                </div>
                 {this.inkMenu()}
                 <GestureOverlay>
+                    <div className="docButtonContainer">
+                        {this.pinToPresentation()}
+                        {this.downloadDocument()}
+                        {this.drawInk()}
+                        {this.uploadAudioButton()}
+                    </div>
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}
                 </GestureOverlay>
+                <RadialMenu />
             </div>
         );
     }

@@ -55,6 +55,15 @@ export class CurrentUserUtils {
             });
         }
 
+        if (doc["template-mobile-button"] === undefined) {
+            const queryTemplate = this.mobileButton({ title: "NEW MOBILE BUTTON", onClick: undefined, _backgroundColor: "lightgrey" }, [this.ficon({ ignoreClick: true, icon: "mobile", backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
+            doc["template-mobile-button"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "mobile button", icon: "mobile"
+            });
+        }
+
         if (doc["template-button-slides"] === undefined) {
             const slideTemplate = Docs.Create.MultirowDocument(
                 [
@@ -165,16 +174,6 @@ export class CurrentUserUtils {
             });
         }
 
-        // if (doc["mobile-button"] === undefined) {
-        //     const mobileTemplate = this.mobileButton({ title: "mobile button", _backgroundColor: "lightgrey" }, [this.ficon({ ignoreClick: true, icon: "mobile", backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, "text"), this.mobileButtonInfo({}, "This is a default mobile button for use in the mobile menu")])]);
-        //     mobileTemplate.isTemplateDoc = makeTemplate(mobileTemplate);
-        //     doc["mobile-button"] = CurrentUserUtils.ficon({
-        //         onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-        //         dragFactory: new PrefetchProxy(mobileTemplate) as any as Doc,
-        //         removeDropProperties: new List<string>(["dropAction"]), title: "mobile button view", icon: "mobile"
-        //     });
-        // }
-
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
 
@@ -229,6 +228,7 @@ export class CurrentUserUtils {
             doc["template-button-slides"] as Doc,
             doc["template-button-description"] as Doc,
             doc["template-button-query"] as Doc,
+            doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-link"] as Doc,
             doc["template-button-switch"] as Doc];
@@ -378,9 +378,8 @@ export class CurrentUserUtils {
         if (doc.emptyWebpage === undefined) {
             doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
-        if (doc.activeMobile === undefined) {
-            console.log("phone setup");
-            this.setupActiveMobile(doc);
+        if (doc.activeMobileMenu === undefined) {
+            this.setupActiveMobileMenu(doc);
         }
         return [
             { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
@@ -395,7 +394,7 @@ export class CurrentUserUtils {
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
-            { title: "Drag a mobile view", label: "Phone", icon: "mobile", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.activeMobile as Doc },
+            { title: "Drag a mobile view", label: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             { title: "Drag an instance of the device collection", label: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
             // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
             // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
@@ -449,12 +448,12 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    static setupActiveMobile(doc: Doc) {
-        if (doc.activeMobile === undefined) {
+    static setupActiveMobileMenu(doc: Doc) {
+        if (doc.activeMobileMenu === undefined) {
             console.log("undefined");
-            doc.activeMobile = this.setupMobileMenu();
+            doc.activeMobileMenu = this.setupMobileMenu();
         }
-        return doc.activeMobile as Doc;
+        return doc.activeMobileMenu as Doc;
     }
 
     static setupMobileMenu() {
@@ -466,37 +465,45 @@ export class CurrentUserUtils {
 
     static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections" },
-            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your mobile to record audio and access it on Dash Web." },
-            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload an image from your mobile device so it can be accessed on Dash Web" },
+            { title: "LIBRARY", icon: "bars", click: 'switchToLibrary()', backgroundColor: "#ffd6d6", info: "Navigate and access all of your documents within their respective collections." },
+            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your phone to record and upload audio onto Dash Web." },
+            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload images or videos from your mobile device so they can be accessed on Dash Web." },
             { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
-            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security" }
+            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security." }
         ];
-        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => this.mobileButton({ title: data.title, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined, _backgroundColor: data.backgroundColor }, [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])]));
+        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data =>
+            this.mobileButton({
+                title: data.title,
+                lockedPosition: true,
+                onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
+                _backgroundColor: data.backgroundColor
+            },
+                [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])])
+        );
     }
 
-    static mobileButton = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MulticolumnDocument(docs, {
+    static mobileButton = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MulticolumnDocument(docs, {
         ...opts,
         dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
-        borderRounding: "5px", boxShadow: "0 0", _chromeStatus: "disabled",
-    })) as any as Doc
+        borderRounding: "5px", boxShadow: "0 0", _chromeStatus: "disabled"
+    }) as any as Doc
 
-    static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.MultirowDocument(docs, {
+    static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MultirowDocument(docs, {
         ...opts,
         dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
         backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled", ignoreClick: true
-    })) as any as Doc
+    }) as any as Doc
 
 
-    static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonTitle, {
+    static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
         ...opts,
         dropAction: undefined, title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
-    })) as any as Doc
+    }) as any as Doc
 
-    static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => new PrefetchProxy(Docs.Create.TextDocument(buttonInfo, {
+    static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
         ...opts,
         dropAction: undefined, title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
-    })) as any as Doc
+    }) as any as Doc
 
 
     static setupThumbButtons(doc: Doc) {
@@ -795,7 +802,7 @@ export class CurrentUserUtils {
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
-        this.setupActiveMobile(doc);
+        this.setupActiveMobileMenu(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
