@@ -29,7 +29,7 @@ import { KeysDropdown } from "./CollectionSchemaHeaders";
 import { listSpec } from "../../../fields/Schema";
 import { ObjectField } from "../../../fields/ObjectField";
 import { List } from "../../../fields/List";
-import { Link } from "@react-pdf/renderer";
+import { LinkBox } from "../nodes/LinkBox";
 const path = require('path');
 
 library.add(faExpand);
@@ -421,16 +421,22 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     // }
 
     @observable private _opened = false;
-    @observable private _text = "";
+    @observable private _text = "select an item";
 
     @action
     toggleOpened(open: boolean) {
+        console.log("open: " + open);
         this._opened = open;
     }
 
     @action
     onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this._text = e.target.value;
+    }
+
+    @action
+    onSelected = (element: string) => {
+        this._text = element;
     }
 
     render() {
@@ -461,6 +467,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         };
 
         let value = "";
+        let link = false;
         const reference = React.createRef<HTMLDivElement>();
 
         const field = props.Document[props.fieldKey];
@@ -469,41 +476,42 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
             const optionsList = field as List<any>;
 
-
-
-
-            const options = optionsList.map((element, index) => {
+            const options = optionsList.map((element) => {
                 if (element instanceof Doc) {
+                    if (props.fieldKey.toLowerCase() === "links") {
+                        link = true;
+                    }
                     const title = element.title;
-                    return <div>{title}</div>;
-                } else if (element instanceof Link) {
-                    return <div>link</div>;
+                    return <div
+                        className="collectionSchemaView-dropdownOption"
+                        onPointerDown={(e) => { this.onSelected(StrCast(element.title)); }}
+                        style={{ padding: "6px" }}>
+                        {title}
+                    </div>;
                 } else {
                     return <div>{element}</div>;
                 }
             });
 
 
+            const plainText = <div>{this._text}</div>;
+            const textarea = <textarea onChange={this.onChange} value={this._text} placeholder={"select an item"}></textarea>;
+            const dropdown = <div>
+                {options}
+            </div>;
 
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
                     <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
-
-                        {/* <Flyout content={options}>
-                            <div className="collectionSchema-toggler" onClick={() => this.toggleOpened(!this._opened)}>☰</div>
-                        </ Flyout > */}
-
-                        <button type="button" className="collectionSchemaView-button" onClick={(e) => { this.toggleOpened(!this._opened); }}
-                            style={{ right: "length", position: "relative" }}>
-                            ☰
+                        <div className="collectionSchemaView-dropDownWrapper">
+                            <button type="button" className="collectionSchemaView-dropdownButton" onClick={(e) => { this.toggleOpened(!this._opened); }}
+                                style={{ right: "length", position: "relative" }}>
+                                ☰
                             </button>
-                        <textarea className="collectionSchemaView-textarea" onChange={this.onChange} value={this._text} placeholder={"select an item"}></textarea>
+                            <div className="collectionSchemaView-dropdownText"> {link ? plainText : textarea} </div>
+                        </div>
 
-                        {this._opened ? <div className="collectionSchemaView-dropdown">
-                            <div>
-                                {options}
-                            </div>
-                        </div> : null}
+                        {this._opened ? dropdown : null}
                     </div >
                 </div>
             );
