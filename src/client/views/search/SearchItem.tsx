@@ -180,8 +180,10 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         let parent: Doc |undefined = undefined;
         let height = 0;
         if (this.rootDoc.parent){
-            parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
+            parent = Cast(this.rootDoc.parent, Doc, null);
+            if (parent!== undefined){
             height=(NumCast(parent._height));
+            }
         }
 
         this._reactionDisposer = reaction(
@@ -208,7 +210,14 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         this._reactionDisposer3 = reaction(
             () => this._displayLines,
             el=> { 
-            setTimeout(() =>(this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null), 1);
+                if (this.rootDoc.parent){
+                    parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
+                    height=(NumCast(parent._height));
+                };
+            setTimeout(() =>{this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null;
+                parent!==undefined? this._mainRef.current?.getBoundingClientRect()? parent._height= -this._oldHeight + height +this._mainRef.current?.getBoundingClientRect().height : null: null;
+                this._mainRef.current?.getBoundingClientRect()?  this._oldHeight= this._mainRef.current?.getBoundingClientRect().height : null;
+            }, 1);
         }
         );
 
@@ -298,6 +307,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     @action
     nextHighlight = (e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         //e.button === 0 && SearchBox.Instance.openSearch(e);
 
         this.rootDoc!.searchMatch = false;
@@ -311,6 +321,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     @action
     nextHighlight2 = (e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
+
         //e.button === 0 && SearchBox.Instance.openSearch(e);
 
         this.rootDoc!.searchMatch2 = false;
@@ -447,20 +459,21 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     returnButtons(){
         return <div>
-        <div> 
-        {this.rootDoc!.type === DocumentType.PDF? <button style={{padding:2}} onClick={action(() => { this._displayLines = false; 
-        })} >
-            <FontAwesomeIcon icon="arrow-up" size="sm" />
-        </button>: null}
-            {`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`}
-             <button onClick={this.nextHighlight} style={{padding:2}}>
+        <div onClick={action(() => { this.rootDoc!.type === DocumentType.PDF? this._displayLines = !this._displayLines : null; 
+        })}> 
+        {this.rootDoc!.type === DocumentType.PDF?"Expand Lines": null}
+        {NumCast(this.rootDoc!.length)>1?`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`: null}
+             <button onClick={this.nextHighlight} style={{padding:2, position:"absolute", left:77}}>
                         <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
                         </button>
-                        <button onClick={this.nextHighlight2} style={{padding:2}}>                    
+                        <button onClick={this.nextHighlight2} style={{padding:2, position:"absolute", left:87}}>                    
                         <FontAwesomeIcon icon="arrow-down" size="sm"  />
-                        </button></div>
-                        <div style={{background: "lightgrey"}}>
+                        </button>
+        </div>
+        <div>
+        <div style={{background: "lightgrey"}}>
             {this.returnLines()}
+        </div>
         </div>
         </div>
     }
@@ -512,7 +525,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                         <div className="searchItem-highlighting">
                         {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
                         <div className={`icon-${this._displayLines ? "q" : "a"}`}>
-                        {NumCast(this.rootDoc.length) > 1 ?this.returnButtons(): null} 
+                        {NumCast(this.rootDoc.length) > 1 || this.rootDoc!.type === DocumentType.PDF?this.returnButtons(): null} 
                         </div>
                         </div>
                 </div>
