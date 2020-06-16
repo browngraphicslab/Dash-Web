@@ -516,7 +516,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             </div>
         }
         else {
-            console.log(this.rootDoc.highlighting); 
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
             <div ref={this._mainRef} className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>

@@ -668,6 +668,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             let lines = new List<string>(result[2]);
+                            result[0]._height=46;
                             result[0].lines=lines;
                             result[0].highlighting=highlights.join(", ");
                             this._visibleDocuments[i] = result[0];
@@ -690,7 +691,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
 
                             let lines = new List<string>(result[2]);
-
+                            result[0]._height=46;
                             result[0].lines= lines;
                             result[0].highlighting=highlights.join(", ");
                             if(i<this._visibleDocuments.length){
@@ -724,6 +725,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     //this.bucketcount[0]+=1;
                     const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                     let lines = new List<string>(result[2]);
+                    result[0]._height=46;
                     result[0].lines= lines;
                     result[0].highlighting=highlights.join(", ");
                     Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
@@ -755,6 +757,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (!this.blockedTypes.includes(StrCast(result[0].type))){
                         const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                         let lines = new List<string>(result[2]);
+                        result[0]._height=46;
                         result[0].lines= lines;
                         result[0].highlighting=highlights.join(", ");
                         Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
