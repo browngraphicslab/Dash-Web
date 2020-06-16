@@ -785,29 +785,48 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     //if true, any keywords can be used. if false, all keywords are required.
     @action.bound
-    handleWordQueryChange = () => {
+    handleWordQueryChange =  async() => {
         this._basicWordStatus = !this._basicWordStatus;
+        if (this._basicWordStatus) {
+            let doc = await Cast(this.props.Document.keywords, Doc)
+            doc!.backgroundColor= "grey";
+
+        }
+        else {
+            let doc = await Cast(this.props.Document.keywords, Doc)
+            doc!.backgroundColor= "black";
+        }
     }
 
     @action.bound
-    handleNodeChange = () => {
+    handleNodeChange = async () => {
         this._nodeStatus = !this._nodeStatus;
+
         if (this._nodeStatus) {
             this.expandSection(`node${this.props.Document[Id]}`);
+            let doc = await Cast(this.props.Document.nodes, Doc)
+            doc!.backgroundColor= "grey";
+
         }
         else {
             this.collapseSection(`node${this.props.Document[Id]}`);
+            let doc = await Cast(this.props.Document.nodes, Doc)
+            doc!.backgroundColor= "black";
         }
     }
 
     @action.bound
-    handleKeyChange = () => {
+    handleKeyChange = async () => {
         this._keyStatus = !this._keyStatus;
         if (this._keyStatus) {
             this.expandSection(`key${this.props.Document[Id]}`);
+            let doc = await Cast(this.props.Document.keys, Doc)
+            doc!.backgroundColor= "grey";
         }
         else {
             this.collapseSection(`key${this.props.Document[Id]}`);
+            let doc = await Cast(this.props.Document.keys, Doc)
+            doc!.backgroundColor= "black";
         }
     }
 
@@ -895,13 +914,40 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     @action.bound
-    updateTitleStatus() { this._titleFieldStatus = !this._titleFieldStatus; }
+    updateTitleStatus= async () =>{ this._titleFieldStatus = !this._titleFieldStatus; 
+        if (this._titleFieldStatus){
+            let doc = await Cast(this.props.Document.title, Doc)
+            doc!.backgroundColor= "grey";
+        }
+        else{
+            let doc = await Cast(this.props.Document.title, Doc)
+            doc!.backgroundColor= "black";
+        }
+    }
 
     @action.bound
-    updateAuthorStatus() { this._authorFieldStatus = !this._authorFieldStatus; }
+    updateAuthorStatus=async () => { this._authorFieldStatus = !this._authorFieldStatus; 
+    if (this._authorFieldStatus){
+        let doc = await Cast(this.props.Document.author, Doc)
+        doc!.backgroundColor= "grey";
+    }
+    else{
+        let doc = await Cast(this.props.Document.author, Doc)
+        doc!.backgroundColor= "black";
+    }
+    }
 
     @action.bound
-    updateDeletedStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
+    updateDeletedStatus=async() =>{ this._deletedDocsStatus = !this._deletedDocsStatus; 
+        if (this._deletedDocsStatus){
+            let doc = await Cast(this.props.Document.deleted, Doc)
+            doc!.backgroundColor= "grey";
+        }
+        else{
+            let doc = await Cast(this.props.Document.deleted, Doc)
+            doc!.backgroundColor= "black";
+        }
+    }
 
     addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
     remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
@@ -1087,10 +1133,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
             _fontSize: 7,
         }))as any as Doc;
-        doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("updateTitleStatus(self)")});
+        doc.title=button({ backgroundColor:"grey", title: "Title", onClick:ScriptField.MakeScript("updateTitleStatus(self)")});
         doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript("updateDeletedStatus(self)")});
-        doc.author = button({ title: "Author", onClick:ScriptField.MakeScript("updateAuthorStatus(self)")});
-        
+        doc.author = button({ backgroundColor:"grey", title: "Author", onClick:ScriptField.MakeScript("updateAuthorStatus(self)")});
         let buttons = [doc.title as Doc, doc.deleted as Doc, doc.author as Doc];
 
         const dragCreators = Docs.Create.MasonryDocument(buttons, {
@@ -1156,7 +1201,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-filter" style={{transform:"none"}} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
-
                 <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults >0 ? {overflow:"visible"} : {overflow:"hidden"}}>
                     <div id={`filterhead2${this.props.Document[Id]}`} className="filter-header"  >
                         {this.defaultButtons}

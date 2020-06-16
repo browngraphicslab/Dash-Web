@@ -57,8 +57,6 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     constructor(props: SearchItemProps) {
         super(props);
         this.fetchDocuments();
-        
-        
     }
 
     async fetchDocuments() {
@@ -152,6 +150,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         super(props);
         this.rootDoc._viewType= CollectionViewType.Stacking;
         this.rootDoc._viewType = CollectionViewType.Stacking;
+        this.props.Document._height=46;
         if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
