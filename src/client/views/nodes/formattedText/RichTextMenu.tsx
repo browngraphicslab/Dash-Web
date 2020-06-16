@@ -631,7 +631,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            const href = link.attrs.href;
+            const href = link.attrs.allHrefs.length > 0 ? link.attrs.allHrefs[0].href : undefined;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -677,7 +677,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
-        const href = link!.attrs.href;
+        const href = link!.attrs.allHrefs.length > 0 ? link!.attrs.allHrefs[0].href : undefined;
         if (href) {
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -705,8 +705,8 @@ export default class RichTextMenu extends AntimodeMenu {
         let startIndex = $start.index();
         let endIndex = $start.indexAfter();
 
-        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.href === href).length) startIndex--;
-        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.href === href).length) endIndex++;
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) endIndex++;
 
         let startPos = $start.start();
         let endPos = startPos;

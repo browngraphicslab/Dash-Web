@@ -392,7 +392,7 @@ export namespace RichTextUtils {
                     const { attrs } = mark;
                     switch (converted) {
                         case "link":
-                            let url = attrs.href;
+                            let url = attrs.allHrefs.length ? attrs.allHrefs[0].href : "";
                             const delimiter = "/doc/";
                             const alreadyShared = "?sharing=true";
                             if (new RegExp(window.location.origin + delimiter).test(url) && !url.endsWith(alreadyShared)) {

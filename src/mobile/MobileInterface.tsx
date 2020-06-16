@@ -12,9 +12,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as rp from 'request-promise';
-import { Doc, DocListCast, FieldResult } from '../fields/Doc';
-import { Id } from '../fields/FieldSymbols';
-import { FieldValue, Cast, StrCast } from '../fields/Types';
+import { Doc, DocListCast } from '../fields/Doc';
+import { FieldValue, Cast } from '../fields/Types';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { emptyPath, emptyFunction, returnFalse, returnOne, returnTrue, returnZero, Utils } from '../Utils';
 import { DocServer } from '../client/DocServer';
@@ -22,7 +21,6 @@ import { Docs } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { Transform } from '../client/util/Transform';
-// import { InkingControl } from '../client/views/InkingControl';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
 import "./MobileHome.scss";
@@ -33,13 +31,10 @@ import { Uploader } from "./ImageUpload";
 import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
 import { InkTool } from '../fields/InkField';
 import { listSpec } from '../fields/Schema';
-import { nullAudio, WebField } from '../fields/URLField';
+import { nullAudio } from '../fields/URLField';
 import GestureOverlay from "../client/views/GestureOverlay";
-import { SelectionManager } from "../client/util/SelectionManager";
-import { SketchPicker } from "react-color";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
-import { RadialMenu } from "../client/views/nodes/RadialMenu";
 
 library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -55,27 +50,17 @@ export class MobileInterface extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     @observable private mainDoc: any = CurrentUserUtils.setupActiveMobile(this.userDoc);
     @observable private renderView?: () => JSX.Element;
-    @observable private audioState: any;
-    @observable private activeToolbar: boolean = false;
     @observable private sidebarActive: boolean = false;
     @observable private imageUploadActive: boolean = false;
     @observable private menuListView: boolean = false;
+    @observable private _ink: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc;
     public _homeDoc: Doc = this.mainDoc;
     private _homeMenu: boolean = true;
-
-    // private inkDoc?: Doc;
-    public drawingInk: boolean = false;
-
-    // private _uploadDoc: Doc = this.userDoc;
     private _child: Doc | null = null;
     private _parents: Array<Doc> = [];
     private _library: Doc = CurrentUserUtils.setupLibrary(this.userDoc);
-    private _open: boolean = false;
-
-    // private _library: Doc = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-    @observable private _ink: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -93,11 +78,12 @@ export class MobileInterface extends React.Component {
         document.addEventListener("dblclick", this.onReactDoubleClick);
     }
 
+    // Prevent zooming in when double tapping the screen
     onReactDoubleClick = (e: MouseEvent) => {
-        console.log("tapped");
         e.stopPropagation();
     }
 
+    // Switch the mobile view to the given doc
     @action
     switchCurrentView = (doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) => {
         if (!this.userDoc) return;
@@ -133,11 +119,12 @@ export class MobileInterface extends React.Component {
         });
     }
 
+    // For toggling the hamburger menu
     @action
     toggleSidebar = () => this.sidebarActive = !this.sidebarActive
 
     /**
-     * Method called when 'Library' button is pressed
+     * Method called when 'Library' button is pressed on the home screen
      */
     switchToLibrary = () => {
         this._parents.push(this._activeDoc);
@@ -148,11 +135,12 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Back method for navigating within library
+     * Back method for navigating
      */
     back = () => {
         let header = document.getElementById("header") as HTMLElement;
         let doc = Cast(this._parents.pop(), Doc) as Doc;
+
         if (doc === Cast(this._library, Doc) as Doc) {
             this._child = null;
             this.userDoc.activeMobile = this._library;
@@ -196,16 +184,12 @@ export class MobileInterface extends React.Component {
      * Return to primary Workspace in library (Workspaces Doc)
      */
     returnMain = () => {
-        console.log("home");
         this._parents = [this._homeDoc];
-        // this.toggleSidebar();
         this._activeDoc = this._library;
         this.switchCurrentView((userDoc: Doc) => this._library);
         this._homeMenu = false;
         this._child = null;
     }
-
-    // @computed get onChildClickHandler() { return ScriptCast(Doc.UserDoc.onClick); }
 
     /**
      * DocumentView for graphic display of all documents
@@ -249,7 +233,8 @@ export class MobileInterface extends React.Component {
     returnHeight = () => (window.innerHeight - 300); //Calculating the windows height (-300 to account for topbar)
 
     /**
-     * Handles the click functionality in the library panel
+     * Handles the click functionality in the library panel.
+     * Navigates to the given doc and updates the sidebar.
      * @param doc: doc for which the method is called
      */
     handleClick = async (doc: Doc) => {
@@ -269,17 +254,12 @@ export class MobileInterface extends React.Component {
             this._homeMenu = false;
             this._child = doc;
         }
-
-        // let sidebar = document.getElementById("sidebar") as HTMLElement;
-        // sidebar.classList.toggle('active');
     }
 
     /**
      * Handles creation of array which is then rendered in renderPathbar()
      */
     createPathname = () => {
-        // let pathname = 'workspaces';
-        // let titleArray = [];
         let docArray = [];
         this._parents.map((doc: Doc, index: any) => {
             docArray.push(doc);
@@ -290,7 +270,6 @@ export class MobileInterface extends React.Component {
 
     // Renders the graphical pathbar
     renderPathbar = () => {
-        // if (this._homeMenu == false) {
         let docArray = this.createPathname();
         let items = docArray.map((doc: Doc, index: any) => {
             if (index === 0) {
@@ -355,7 +334,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Handles when user clicks on document in the pathbar
+    // Handles when user clicks on a document in the pathbar
     handlePathClick = (doc: Doc, index: number) => {
         if (doc === this._library) {
             this._activeDoc = doc;
@@ -372,8 +351,8 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // Renders the contents of the menu and sidebar
     renderDefaultContent = () => {
-
         if (this._homeMenu === true) {
             return (
                 <div>
@@ -457,6 +436,7 @@ export class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
+    // Button for uploading mobile audio
     uploadAudioButton = () => {
         if (this._activeDoc.type === "audio") {
             return <div className="docButton"
@@ -470,62 +450,23 @@ export class MobileInterface extends React.Component {
         }
     }
 
-
-    @action
-    toggleSelector = () => this.activeToolbar = !this.activeToolbar
-
-
-    colorTool = () => {
-        if (this._activeDoc._viewType === "docking") {
-            // const color = InkingControl.Instance.selectedColor;
-            const color = "lightpink";
-            const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
-            return (
-                <div
-                    className="docButton"
-                    style={{ backgroundColor: color }}
-                    onClick={this.toggleSelector}
-                >
-                    <div className={`toolbar ${this.activeToolbar ? "active" : ""}`}>
-                        <div className="colorSelector">
-                            {/* <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
-                                color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
-                                StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} /> */}
-                            <InkOptionsMenu />
-                        </div>
-
-                        <div className="widthSelector">
-                            {/* <input type="range" min="1" max="100" defaultValue="2" id="myRange" onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} /> */}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-    }
-
+    // Button for switching between pan and ink mode
     @action
     onSwitchInking = () => {
         const button = document.getElementById("inkButton") as HTMLElement;
-        // const color = InkingControl.Instance.selectedColor;
-        const color = "lightpink";
         button.style.backgroundColor = this._ink ? "white" : "black";
         button.style.color = this._ink ? "black" : "white";
 
         if (!this._ink) {
-            console.log("INK IS ACTIVE");
-            // InkingControl.Instance.switchTool(InkTool.Pen);
             Doc.SetSelectedTool(InkTool.Pen);
-            //InkOptionsMenu.Instance.jumpTo(300, 300);
             this._ink = true;
         } else {
-            console.log("INK IS INACTIVE");
-            // InkingControl.Instance.switchTool(InkTool.None);
             Doc.SetSelectedTool(InkTool.None);
-            //InkOptionsMenu.Instance.fadeOut(true);
             this._ink = false;
         }
     }
 
+    // The static ink menu that appears at the top
     inkMenu = () => {
         if (this._activeDoc._viewType === "docking") {
             if (this._ink) {
@@ -538,9 +479,9 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // Button for switching into ink mode
     drawInk = () => {
         if (this._activeDoc._viewType === "docking") {
-            const inkIsOn = this._ink;
             return (
                 <>
                     <div className="docButton"
@@ -550,15 +491,11 @@ export class MobileInterface extends React.Component {
                         <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
                         />
                     </div>
-                    {/* <div className={`colorMenu ${this._ink ? "active" : ""}`}>
-                        <InkOptionsMenu />
-                    </div> */}
-                    :
-
                 </>);
         }
     }
 
+    // Button to download images on the mobile
     downloadDocument = () => {
         if (this._activeDoc.type === "image") {
             const url = this._activeDoc["data-path"]?.toString();
@@ -575,6 +512,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // Mobile audio doc
     recordAudio = async () => {
         // upload to server with known URL
         if (this._activeDoc.title !== "mobile audio") {
@@ -585,35 +523,24 @@ export class MobileInterface extends React.Component {
             this._activeDoc = audioDoc;
             this.switchCurrentView((userDoc: Doc) => audioDoc);
             this._homeMenu = false;
-            // this.toggleSidebar();
         }
-        // const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-        // this.audioState = await audioDoc.getProto;
-        // if (this.audioState) {
-        //     console.log(this.audioState);
-        //     const data = Cast(audioRightSidebar.data, listSpec(Doc));
-        //     if (data) {
-        //         data.push(audioDoc);
-        //     }
-        // }
     }
 
+    // Pushing the audio doc onto Dash Web through the right side bar
     uploadAudio = () => {
         const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
         const audioDoc = this._activeDoc;
         const data = Cast(audioRightSidebar.data, listSpec(Doc));
+
         if (data) {
             data.push(audioDoc);
         }
-        // this.recordAudio();
     }
 
     panelHeight = () => window.innerHeight;
     panelWidth = () => window.innerWidth;
-    //WAS 3
 
-    //WAS 1
-
+    // Button for pinning images to presentation
     pinToPresentation = () => {
         // Only making button available if it is an image
         if (this._activeDoc.type === "image") {
@@ -635,6 +562,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // Buttons for switching the menu between large and small icons
     switchMenuView = () => {
         if (this._activeDoc.title === this._homeDoc.title) {
             return (
@@ -650,6 +578,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // Logics for switching the menu into the icons
     @action
     changeToIconView = () => {
         if (this._homeDoc._viewType = "stacking") {
@@ -673,6 +602,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // Logics for switching the menu into the stacking view
     @action
     changeToListView = () => {
         if (this._homeDoc._viewType = "masonry") {
@@ -692,6 +622,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // For setting up the presentation document for the home menu
     setupDefaultPresentation = () => {
         if (this._activeDoc.title !== "Presentation") {
             this._parents.push(this._activeDoc);
@@ -700,77 +631,23 @@ export class MobileInterface extends React.Component {
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {
-            console.log("presentation clicked: " + presentation.title);
             this._activeDoc = presentation;
             this.switchCurrentView((userDoc: Doc) => presentation);
             this._homeMenu = false;
-            // this.toggleSidebar();
         }
     }
 
-    onDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    render() {
-        // const content = this.currentView === "main" ? this.mainContent :
-        //     this.currentView === "ink" ? this.inkContent :
-        //         this.currentView === "upload" ? this.uploadContent : <></>;onDragOver={this.onDragOver}
-        return (
-            <div className="mobileInterface-container" onDragOver={this.onDragOver}>
-                {/* <DocumentDecorations />
-                <GestureOverlay>
-                    {this.renderView ? this.renderView() : this.renderDefaultContent()}
-                </GestureOverlay> */}
-                {/* <GestureOverlay> */}
-                <SettingsManager />
-                {/* {this.menuOptions()} */}
-                {/* {this.displayHome()} */}
-                <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
-                    {this.uploadImage()}
-                </div>
-                {this.switchMenuView()}
-                <div className="docButtonContainer">
-                    {this.pinToPresentation()}
-                    {this.downloadDocument()}
-                    {this.drawInk()}
-                    {this.uploadAudioButton()}
-                    {/* {this.colorTool()} */}
-                </div>
-                {this.inkMenu()}
-                <GestureOverlay>
-                    {this.displayWorkspaces()}
-                    {this.renderDefaultContent()}
-                </GestureOverlay>
-                {/* </GestureOverlay> */}
-                {/* <DictationOverlay />
-                <SharingManager />
-                <GoogleAuthenticationManager /> */}
-                {/* <DocumentDecorations /> */}
-                {/* <div>
-                    {this.renderDefaultContent()}
-                </div> */}
-                {/* <PreviewCursor /> */}
-                {/* <ContextMenu /> */}
-                {/* <RadialMenu />
-                <RichTextMenu /> */}
-                {/* <PDFMenu />
-                <MarqueeOptionsMenu />
-                <OverlayView /> */}
-            </div>
-        );
-    }
-
+    // For toggling image upload pop up
     @action
     toggleUpload = () => this.imageUploadActive = !this.imageUploadActive
 
-
+    // For closing the image upload pop up
     @action
     closeUpload = () => {
         this.imageUploadActive = false;
     }
 
+    // Returns the image upload pop up
     uploadImage = () => {
         if (this.imageUploadActive) {
             console.log("active");
@@ -786,6 +663,34 @@ export class MobileInterface extends React.Component {
             </div>
         );
     }
+
+    onDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    render() {
+        return (
+            <div className="mobileInterface-container" onDragOver={this.onDragOver}>
+                <SettingsManager />
+                <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
+                    {this.uploadImage()}
+                </div>
+                {this.switchMenuView()}
+                <div className="docButtonContainer">
+                    {this.pinToPresentation()}
+                    {this.downloadDocument()}
+                    {this.drawInk()}
+                    {this.uploadAudioButton()}
+                </div>
+                {this.inkMenu()}
+                <GestureOverlay>
+                    {this.displayWorkspaces()}
+                    {this.renderDefaultContent()}
+                </GestureOverlay>
+            </div>
+        );
+    }
 }
 
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
@@ -795,97 +700,3 @@ Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
 Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });
 Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
-
-
-
-// WAS 2
-
-// 1
-// renderUploadContent() {
-//     if (this.mainContainer) {
-//         return (
-//             <div className="mobileInterface" onDragOver={this.onDragOver}>
-//                 <div className="mobileInterface-inkInterfaceButtons">
-//                     <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
-//                     {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
-//                     {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
-//                     <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
-//                 </div>
-//                 <DocumentView
-//                     Document={this.mainContainer}
-//                     DataDoc={undefined}
-//                     LibraryPath={emptyPath}
-//                     addDocument={returnFalse}
-//                     addDocTab={returnFalse}
-//                     pinToPres={emptyFunction}
-//                     rootSelected={returnFalse}
-//                     removeDocument={undefined}
-//                     onClick={undefined}
-//                     ScreenToLocalTransform={Transform.Identity}
-//                     ContentScaling={returnOne}
-//                     NativeHeight={returnZero}
-//                     NativeWidth={returnZero}
-//                     PanelWidth={() => window.screen.width}
-//                     PanelHeight={() => window.screen.height}
-//                     renderDepth={0}
-//                     focus={emptyFunction}
-//                     backgroundColor={returnEmptyString}
-//                     parentActive={returnTrue}
-//                     whenActiveChanged={emptyFunction}
-//                     bringToFront={emptyFunction}
-//                     ContainingCollectionView={undefined}
-//                     ContainingCollectionDoc={undefined} />
-//             </div>
-//         );
-//     }
-// }
-
-// 3
-    // renderInkingContent = () => {
-        //     console.log("rendering inking content");
-        //     // TODO: support panning and zooming
-        //     // TODO: handle moving of ink strokes
-        //     if (this.mainContainer) {
-        //         return (
-        //             <div className="mobileInterface">
-        //                 <div className="mobileInterface-inkInterfaceButtons">
-        //                     <div className="navButtons">
-        //                         <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing">BACK</button>
-        //                     </div>
-        //                     <div className="inkSettingButtons">
-        //                         <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
-        //                     </div>
-        //                     <div className="navButtons">
-        //                         <button className="mobileInterface-button" onClick={this.shiftLeft} title="Shift left">left</button>
-        //                         <button className="mobileInterface-button" onClick={this.shiftRight} title="Shift right">right</button>
-        //                     </div>
-        //                 </div>
-        //                 <CollectionView
-        //                     Document={this.mainContainer}
-        //                     DataDoc={undefined}
-        //                     LibraryPath={emptyPath}
-        //                     fieldKey={""}
-        //                     dropAction={"alias"}
-        //                     bringToFront={emptyFunction}
-        //                     addDocTab={returnFalse}
-        //                     pinToPres={emptyFunction}
-        //                     PanelWidth={this.panelWidth}
-        //                     PanelHeight={this.panelHeight}
-        //                     NativeHeight={returnZero}
-        //                     NativeWidth={returnZero}
-        //                     focus={emptyFunction}
-        //                     isSelected={returnFalse}
-        //                     select={emptyFunction}
-        //                     active={returnFalse}
-        //                     ContentScaling={returnOne}
-        //                     whenActiveChanged={returnFalse}
-        //                     ScreenToLocalTransform={Transform.Identity}
-        //                     renderDepth={0}
-        //                     ContainingCollectionView={undefined}
-        //                     ContainingCollectionDoc={undefined}
-        //                     rootSelected={returnTrue}>
-        //                 </CollectionView>
-        //             </div>
-        //         );
-        //     }
-        // }

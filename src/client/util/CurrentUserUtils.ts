@@ -87,6 +87,52 @@ export class CurrentUserUtils {
             });
         }
 
+        if (doc["template-button-link"] === undefined) {
+            const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
+            Doc.GetProto(linkTemplate).layout =
+                "<div>" +
+                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightBlue`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
+                "</div>";
+            linkTemplate.isTemplateDoc = makeTemplate(linkTemplate, true, "linkView");
+
+            const rtf2 = {
+                doc: {
+                    type: "doc", content: [
+                        {
+                            type: "paragraph",
+                            content: [{
+                                type: "dashField",
+                                attrs: {
+                                    fieldKey: "src",
+                                    hideKey: false
+                                }
+                            }]
+                        },
+                        { type: "paragraph" },
+                        {
+                            type: "paragraph",
+                            content: [{
+                                type: "dashField",
+                                attrs: {
+                                    fieldKey: "dst",
+                                    hideKey: false
+                                }
+                            }]
+                        }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            linkTemplate.header = new RichTextField(JSON.stringify(rtf2), "");
+
+            doc["template-button-link"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
+                dragFactory: new PrefetchProxy(linkTemplate) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize"
+            });
+        }
+
         if (doc["template-button-switch"] === undefined) {
             const { FreeformDocument, MulticolumnDocument, TextDocument } = Docs.Create;
 
@@ -179,17 +225,21 @@ export class CurrentUserUtils {
             });
         }
 
+        const requiredTypes = [
+            doc["template-button-slides"] as Doc,
+            doc["template-button-description"] as Doc,
+            doc["template-button-query"] as Doc,
+            doc["template-button-detail"] as Doc,
+            doc["template-button-link"] as Doc,
+            doc["template-button-switch"] as Doc];
         if (doc["template-buttons"] === undefined) {
-            doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc], {
+            doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
         } else {
             const curButnTypes = Cast(doc["template-buttons"], Doc, null);
-            const requiredTypes = [doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc];
             DocListCastAsync(curButnTypes.data).then(async curBtns => {
                 await Promise.all(curBtns!);
                 requiredTypes.map(btype => Doc.AddDocToList(curButnTypes, "data", btype));
@@ -554,8 +604,9 @@ export class CurrentUserUtils {
     }
     static setupCatalog(doc: Doc) {
         if (doc.myCatalog === undefined) {
-            doc.myCatalog = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "CATALOG", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
+            doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
+                title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
+                childDropAction: "alias", targetDropAction: "same", treeViewExpandedView: "layout"
             }));
         }
         return doc.myCatalog as Doc;
@@ -583,10 +634,11 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-library"] === undefined) {
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: 10,
+                _width: 50, _height: 25, title: "Library", _fontSize: 10, targetDropAction: "same",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true
+                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                    lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
