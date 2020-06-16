@@ -273,7 +273,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
             let index = this._searchIndex;
-            console.log(index);
 
             Doc.GetProto(this.dataDoc).searchIndex = index;
             Doc.GetProto(this.dataDoc).length=length;
@@ -295,7 +294,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
             let index = this._searchIndex;
-            console.log(index);
 
             Doc.GetProto(this.dataDoc).searchIndex = index;
             Doc.GetProto(this.dataDoc).length=length;
@@ -702,11 +700,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._disposers.search = reaction(() => this.rootDoc.searchMatch,
-            search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
-            { fireImmediately: true });
-        this._disposers.search2 = reaction(() => this.rootDoc.searchMatch2,
+        this._disposers.search = reaction(() => this.rootDoc.searchMatch2,
             search => search ? this.highlightSearchTerms2([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
+            { fireImmediately: true });
+        this._disposers.search2 = reaction(() => this.rootDoc.searchMatch,
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
         this._disposers.record = reaction(() => this._recording,

@@ -107,6 +107,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _scrollTopReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _searchReactionDisposer?: IReactionDisposer;
+    private _searchReactionDisposer2?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
@@ -144,6 +145,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
+            if (search) {
+                this.search(Doc.SearchQuery(), false);
+                this._lastSearch = Doc.SearchQuery();
+            }
+            else {
+                setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
+                this._lastSearch && (this._lastSearch = "mxytzlaf");
+            }
+        }, { fireImmediately: true });
+
+        this._searchReactionDisposer2 = reaction(() => this.Document.searchMatch2, search => {
             if (search) {
                 this.search(Doc.SearchQuery(), true);
                 this._lastSearch = Doc.SearchQuery();
@@ -325,7 +337,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
     @action
     prevAnnotation = () => {
+        console.log(this.Index);
         this.Index = Math.max(this.Index - 1, 0);
+        console.log(this.Index);
+        console.log(this.allAnnotations);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
     }
 
@@ -335,7 +350,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
         this.Document.searchIndex = this.Index;
         this.Document.length=this.allAnnotations.length;
-        console.log(this.Index);
 
     }
 
@@ -403,7 +417,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 phraseSearch: true,
                 query: searchString
             });
-            console.log(this.Index);
             this.Document.searchIndex = this.Index;
             this.Document.length=this.allAnnotations.length;
         }
@@ -419,7 +432,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             };
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
-            console.log(this.Index);
             this.Document.searchIndex = this.Index;
             this.Document.length=this.allAnnotations.length;
         }

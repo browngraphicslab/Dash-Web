@@ -376,7 +376,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (reset){
             this.layoutDoc._searchString="";
         }
-        console.log(this.layoutDoc._searchString);  
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.buckets=[];
         this.new_buckets={};
@@ -430,7 +429,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
 
         let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `default bucket`});
-        bucket.targetDoc = bucket;      
         bucket._viewType === CollectionViewType.Stacking;
         bucket._height=185;
         bucket.bucketfield = "results";
@@ -443,7 +441,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         let firstbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.firststring });
         firstbucket._height=185;
 
-        firstbucket.targetDoc = firstbucket;      
         firstbucket._viewType === CollectionViewType.Stacking;
         firstbucket.bucketfield = this.firststring;
         firstbucket.isBucket=true;
@@ -456,7 +453,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this.secondstring!==""){
         let secondbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.secondstring });
         secondbucket._height=185;
-        secondbucket.targetDoc = secondbucket;      
         secondbucket._viewType === CollectionViewType.Stacking;
         secondbucket.bucketfield = this.secondstring;
         secondbucket.isBucket=true;
@@ -622,7 +618,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._visibleElements = [<div className="no-result">No Search Results</div>];
             //this._visibleDocuments= Docs.Create.
             let noResult= Docs.Create.TextDocument("",{title:"noResult"})
-            noResult.targetDoc=noResult;
             noResult.isBucket =false;
             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, noResult);
             return;
@@ -673,10 +668,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             let lines = new List<string>(result[2]);
-                            result[0].lines=lines
+                            result[0].lines=lines;
                             result[0].highlighting=highlights.join(", ");
                             this._visibleDocuments[i] = result[0];
-                            result[0].targetDoc=result[0];
 
                             this._isSearch[i] = "search";
                         }
@@ -694,11 +688,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
                             }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            result[0].lines=new List<string>(result[2]);
+
+                            let lines = new List<string>(result[2]);
+
+                            result[0].lines= lines;
                             result[0].highlighting=highlights.join(", ");
                             if(i<this._visibleDocuments.length){
                             this._visibleDocuments[i]=result[0];
-                            result[0].targetDoc=result[0];
                             this._isSearch[i] = "search";
                             }
                             }
@@ -713,33 +709,30 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             let result = this._results[i];
             if (!this.blockedTypes.includes(StrCast(result[0].type))){
             if (this._isSearch[i] === "search" && (this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
-                console.log(StrCast(result[0].type));
                 if (StrCast(result[0].type)=== this.firststring && this.bucketcount[1]<3){
+                    result[0].parent= this.buckets![1];
                     Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
                     this.bucketcount[1]+=1;
-                    console.log("1 count")
                 }
                 else if (StrCast(result[0].type)=== this.secondstring && this.bucketcount[2]<3){
+                    result[0].parent= this.buckets![2];
                     Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
                     this.bucketcount[2]+=1;
-                    console.log("2 count")
                 }
                 else if (this.bucketcount[0]<3){
                     //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
                     //this.bucketcount[0]+=1;
                     const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                    result[0].lines=new List<string>(result[2]);
+                    let lines = new List<string>(result[2]);
+                    result[0].lines= lines;
                     result[0].highlighting=highlights.join(", ");
-                    result[0].targetDoc=result[0];
                     Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                 }
                 this._isSorted[i]="sorted"; 
             }
         }
         }
-        console.log(this.bucketcount[0]);
-        console.log(this.bucketcount[1]);
-        console.log(this.bucketcount[2]);
+
         if (this.buckets![0]){
         this.buckets![0]._height = this.bucketcount[0]*55 + 25;
         }
@@ -760,11 +753,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     if ((this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
                         let result = this._results[i];
                         if (!this.blockedTypes.includes(StrCast(result[0].type))){
-
                         const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                        result[0].lines=new List<string>(result[2]);
+                        let lines = new List<string>(result[2]);
+                        result[0].lines= lines;
                         result[0].highlighting=highlights.join(", ");
-                        result[0].targetDoc=result[0];
                         Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                     }
                 }

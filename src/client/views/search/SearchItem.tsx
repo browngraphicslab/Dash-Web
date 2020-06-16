@@ -174,16 +174,40 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     @computed get query() { return StrCast(this.lookupField("query")); }
 
+    private _oldHeight: number = 46;
+
     componentDidMount() {
+        let parent: Doc |undefined = undefined;
+        let height = 0;
+        if (this.rootDoc.parent){
+            parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
+            height=(NumCast(parent._height));
+        }
 
         this._reactionDisposer = reaction(
             () => this.rootDoc.searchIndex,
             search => {console.log(NumCast(search));this.searchPos=NumCast(search) },{ fireImmediately: true }
         );
-
         this._reactionDisposer2 = reaction(
             () => this._useIcons,
-            el=> {console.log("YUH"); 
+            el=> { 
+                if (this.rootDoc.parent){
+                    parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
+                    height=(NumCast(parent._height));
+                };
+                console.log(height);
+                console.log(this._oldHeight);
+            setTimeout(() =>{this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null;
+                parent!==undefined? this._mainRef.current?.getBoundingClientRect()? parent._height= -this._oldHeight + height +this._mainRef.current?.getBoundingClientRect().height : null: null;
+                this._mainRef.current?.getBoundingClientRect()?  this._oldHeight= this._mainRef.current?.getBoundingClientRect().height : null;
+                // this._oldHeight 55? this._oldHeight =55:null;
+            }, 1);
+        }
+        );
+
+        this._reactionDisposer3 = reaction(
+            () => this._displayLines,
+            el=> { 
             setTimeout(() =>(this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null), 1);
         }
         );
@@ -195,6 +219,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         this.rootDoc.searchMatch = undefined;
         this._reactionDisposer && this._reactionDisposer();
         this._reactionDisposer2 && this._reactionDisposer2();
+        this._reactionDisposer3 && this._reactionDisposer3();
 
     }
 
@@ -203,6 +228,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     private _reactionDisposer?: IReactionDisposer;
     private _reactionDisposer2?: IReactionDisposer;
+    private _reactionDisposer3?: IReactionDisposer;
+
 
     
     @computed get highlightPos(){return NumCast(this.rootDoc.searchIndex)}
@@ -371,7 +398,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     }
 
     @computed get searchElementDoc() { return this.rootDoc; }
-    @computed get targetDoc() { return this.searchElementDoc?.targetDoc as Doc; }
+    // @computed get targetDoc() { return this.searchElementDoc?.targetDoc as Doc; }
 
     @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
     childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate: undefined;
@@ -398,23 +425,20 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     
     @action
     returnLines(){
+        if ((Cast(this.rootDoc.lines, listSpec("string")))!.length>1){
         if (!this._displayLines) {
-            return <div style={{height:50, width: 10}}
+            console.log(Cast(this.rootDoc.lines, listSpec("string")));
+            return <div style={{width: 10}}
             onPointerDown={action(() => {
                 this._displayLines = !this._displayLines;
                 //this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             })}
             //onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
              >
-            {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)}
+            {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div style={{overflow:"visible"}}id={i.toString()} className="searchItem-highlighting">{l}</div>)}
             </div>;;
         }
-        else {
-        return <button style={{padding:2}} onClick={action(() => { this._displayLines = false; 
-        })} >
-            <FontAwesomeIcon icon="arrow-up" size="sm" />
-        </button>;
-        }
+    }
     }
     
     //this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); 
@@ -423,14 +447,21 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     returnButtons(){
         return <div>
-            {this.returnLines()}
+        <div> 
+        {this.rootDoc!.type === DocumentType.PDF? <button style={{padding:2}} onClick={action(() => { this._displayLines = false; 
+        })} >
+            <FontAwesomeIcon icon="arrow-up" size="sm" />
+        </button>: null}
             {`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`}
              <button onClick={this.nextHighlight} style={{padding:2}}>
                         <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
                         </button>
                         <button onClick={this.nextHighlight2} style={{padding:2}}>                    
                         <FontAwesomeIcon icon="arrow-down" size="sm"  />
-                        </button>
+                        </button></div>
+                        <div style={{background: "lightgrey"}}>
+            {this.returnLines()}
+        </div>
         </div>
     }
 
@@ -472,6 +503,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             </div>
         }
         else {
+            console.log(this.rootDoc.highlighting); 
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
             <div ref={this._mainRef} className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
@@ -480,7 +512,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                         <div className="searchItem-highlighting">
                         {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
                         <div className={`icon-${this._displayLines ? "q" : "a"}`}>
-                        {NumCast(this.rootDoc.length) > 1? this.returnButtons(): null} 
+                        {NumCast(this.rootDoc.length) > 1 ?this.returnButtons(): null} 
                         </div>
                         </div>
                 </div>
