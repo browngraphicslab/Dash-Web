@@ -6,54 +6,50 @@ import { schema } from "./schema_rts";
 import { redo, undo } from "prosemirror-history";
 import { StepMap } from "prosemirror-transform";
 
-import React = require("react");
-
-interface IFootnoteView {
+export class FootnoteView {
     innerView: any;
     outerView: any;
     node: any;
     dom: any;
     getPos: any;
-}
 
-export class FootnoteView extends React.Component<IFootnoteView>  {
-    _innerView: any;
-    _node: any;
+    constructor(node: any, view: any, getPos: any) {
+        // We'll need these later
+        this.node = node;
+        this.outerView = view;
+        this.getPos = getPos;
 
-    constructor(props: IFootnoteView) {
-        super(props);
-        const node = this.props.node;
-        const outerView = this.props.outerView;
-        const _innerView = this.props.innerView;
-        const getPos = this.props.getPos;
+        // The node's representation in the editor (empty, for now)
+        this.dom = document.createElement("footnote");
+
+        this.dom.addEventListener("pointerup", this.toggle, true);
+        // These are used when the footnote is selected
+        this.innerView = null;
     }
 
     selectNode() {
-        const attrs = { ...this.props.node.attrs };
-        attrs.visibility = true;
         this.dom.classList.add("ProseMirror-selectednode");
-        if (!this.props.innerView) this.open();
+        if (!this.innerView) this.open();
     }
 
     deselectNode() {
-        const attrs = { ...this.props.node.attrs };
-        attrs.visibility = false;
         this.dom.classList.remove("ProseMirror-selectednode");
-        if (this.props.innerView) this.close();
+        if (this.innerView) this.close();
     }
+
     open() {
         // Append a tooltip to the outer node
         const tooltip = this.dom.appendChild(document.createElement("div"));
         tooltip.className = "footnote-tooltip";
         // And put a sub-ProseMirror into that
-        this.props.innerView.defineProperty(new EditorView(tooltip, {
+        this.innerView = new EditorView(tooltip, {
             // You can use any node as an editor document
             state: EditorState.create({
-                doc: this.props.node,
+                doc: this.node,
                 plugins: [keymap(baseKeymap),
                 keymap({
-                    "Mod-z": () => undo(this.props.outerView.state, this.props.outerView.dispatch),
-                    "Mod-y": () => redo(this.props.outerView.state, this.props.outerView.dispatch),
+                    "Mod-z": () => undo(this.outerView.state, this.outerView.dispatch),
+                    "Mod-y": () => redo(this.outerView.state, this.outerView.dispatch),
                     "Mod-b": toggleMark(schema.marks.strong)
                 }),
                     // new Plugin({
@@ -74,11 +70,11 @@ export class FootnoteView extends React.Component<IFootnoteView>  {
                     // the parent editor is focused.
                     e.stopPropagation();
                     document.addEventListener("pointerup", this.ignore, true);
-                    if (this.props.outerView.hasFocus()) this.props.innerView.focus();
+                    if (this.outerView.hasFocus()) this.innerView.focus();
                 }) as any
             }
-        }));
-        setTimeout(() => this.props.innerView && this.props.innerView.docView.setSelection(0, 0, this.props.innerView.root, true), 0);
+        });
+        setTimeout(() => this.innerView?.docView.setSelection(0, 0, this.innerView.root, true), 0);
     }
 
     ignore = (e: PointerEvent) => {
@@ -86,32 +82,43 @@ export class FootnoteView extends React.Component<IFootnoteView>  {
         document.removeEventListener("pointerup", this.ignore, true);
     }
 
+    toggle = () => {
+        if (this.innerView) this.close();
+        else this.open();
+    }
+
+    close() {
+        this.innerView?.destroy();
+        this.innerView = null;
+        this.dom.textContent = "";
+    }
+
     dispatchInner(tr: any) {
-        const { state, transactions } = this.props.innerView.state.applyTransaction(tr);
-        this.props.innerView.updateState(state);
+        const { state, transactions } = this.innerView.state.applyTransaction(tr);
+        this.innerView.updateState(state);
 
         if (!tr.getMeta("fromOutside")) {
-            const outerTr = this.props.outerView.state.tr, offsetMap = StepMap.offset(this.props.getPos() + 1);
+            const outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
             for (const transaction of transactions) {
-                const steps = transaction.steps;
-                for (const step of steps) {
+                for (const step of transaction.steps) {
                     outerTr.step(step.map(offsetMap));
                 }
             }
-            if (outerTr.docChanged) this.props.outerView.dispatch(outerTr);
+            if (outerTr.docChanged) this.outerView.dispatch(outerTr);
         }
     }
+
     update(node: any) {
-        if (!node.sameMarkup(this.props.node)) return false;
-        this._node = node; //not sure
-        if (this.props.innerView) {
-            const state = this.props.innerView.state;
+        if (!node.sameMarkup(this.node)) return false;
+        this.node = node;
+        if (this.innerView) {
+            const state = this.innerView.state;
             const start = node.content.findDiffStart(state.doc.content);
             if (start !== null) {
                 let { a: endA, b: endB } = node.content.findDiffEnd(state.doc.content);
                 const overlap = start - Math.min(endA, endB);
                 if (overlap > 0) { endA += overlap; endB += overlap; }
-                this.props.innerView.dispatch(
+                this.innerView.dispatch(
                     state.tr
                         .replace(start, endB, node.slice(start, endA))
                         .setMeta("fromOutside", true));
@@ -119,44 +126,17 @@ export class FootnoteView extends React.Component<IFootnoteView>  {
         }
         return true;
     }
-    onPointerUp = (e: any) => {
-        this.toggle(e);
-    }
-
-    toggle = (e: any) => {
-        e.preventDefault();
-        if (this.props.innerView) this.close();
-        else {
-            this.open();
-        }
-    }
-
-    close() {
-        this.props.innerView && this.props.innerView.destroy();
-        this._innerView = null;
-        this.dom.textContent = "";
-    }
 
     destroy() {
-        if (this.props.innerView) this.close();
+        if (this.innerView) this.close();
     }
 
     stopEvent(event: any) {
-        return this.props.innerView && this.props.innerView.dom.contains(event.target);
+        return this.innerView?.dom.contains(event.target);
     }
 
-    ignoreMutation() { return true; }
-
-
-    render() {
-        return (
-            <div
-                className="footnote"
-                onPointerUp={this.onPointerUp}>
-                <div className="footnote-tooltip" >
-
-                </div >
-            </div>
-        );
+    ignoreMutation() {
+        return true;
     }
 }
+
