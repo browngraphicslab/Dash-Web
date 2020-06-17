@@ -215,13 +215,14 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
-        console.log("fitWidth ?: " + !(this.props.Document._fitWidth) && (window.innerWidth > 1000));
+        console.log("fitWidth ?: " + !(this.props.Document._fitWidth) && (window.screen.width > 600));
         console.log("_nativeHeight: " + this.Document._nativeHeight);
         console.log("%: " + `${100 / this.contentScaling}%`);
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
             width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,
-            height: !this.props.Document._fitWidth && (window.innerWidth > 1000) ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`, //Adjusted for mobile (!window.innerWidth < 1000)
+            //height adjusted for mobile (window.screen.width > 600)
+            height: !this.props.Document._fitWidth && (window.screen.width > 600) ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
             transform: `scale(${this.contentScaling})`
         }}  >
             <div className="pdfBox-title-outer">
@@ -233,7 +234,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.innerWidth > 1000) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}

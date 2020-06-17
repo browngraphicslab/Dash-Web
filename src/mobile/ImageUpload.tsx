@@ -65,8 +65,11 @@ export class Uploader extends React.Component {
                             }
                             const path = Utils.prepend(result.accessPaths.agnostic.client);
                             let doc = null;
+                            console.log("type: " + file.type);
                             if (file.type === "video/mp4") {
                                 doc = Docs.Create.VideoDocument(path, { _nativeWidth: 200, _width: 200, title: name });
+                            } else if (file.type === "application/pdf") {
+                                doc = Docs.Create.PdfDocument(path, { _width: 200, title: name });
                             } else {
                                 doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
                             }
@@ -175,7 +178,7 @@ export class Uploader extends React.Component {
     private get uploadInterface() {
         return (
             <div className="imgupload_cont">
-                <input type="file" accept="video/*,image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
+                <input type="file" accept="application/pdf, video/*,image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
                 <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>
                     <FontAwesomeIcon icon="upload" size="sm" />
@@ -217,4 +220,3 @@ export class Uploader extends React.Component {
 }
 
 
-// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");

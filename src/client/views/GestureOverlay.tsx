@@ -575,14 +575,6 @@ export default class GestureOverlay extends Touchable {
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
             //push first points to so interactionUtil knows pointer is up
             this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
-            if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
-                DocServer.Mobile.dispatchGesturePoints({
-                    points: this._points,
-                    bounds: B,
-                    color: ActiveInkColor(),
-                    width: ActiveInkWidth()
-                });
-            }
 
             const initialPoint = this._points[0.];
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);

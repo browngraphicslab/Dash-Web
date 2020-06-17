@@ -261,7 +261,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     public unhighlightSearchTerms = () => {
-        if (window.innerWidth < 1000) null;
+        if (window.screen.width < 600) null;
         else if (this._editorView && (this._editorView as any).docView) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });

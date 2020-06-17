@@ -1,7 +1,7 @@
 import * as React from "react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -17,7 +17,7 @@ import { FieldValue, Cast } from '../fields/Types';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { emptyPath, emptyFunction, returnFalse, returnOne, returnTrue, returnZero, Utils } from '../Utils';
 import { DocServer } from '../client/DocServer';
-import { Docs } from '../client/documents/Documents';
+import { Docs, DocumentOptions } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { Transform } from '../client/util/Transform';
@@ -36,8 +36,11 @@ import GestureOverlay from "../client/views/GestureOverlay";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
 import { RadialMenu } from "../client/views/nodes/RadialMenu";
+import { UndoManager } from "../client/util/UndoManager";
+import { MainView } from "../client/views/MainView";
+import { List } from "../fields/List";
 
-library.add(faTasks, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+library.add(faTasks, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -149,7 +152,7 @@ export class MobileInterface extends React.Component {
      * Return 'Home", which implies returning to 'Home' buttons
      */
     returnHome = () => {
-        if (this._homeMenu === false || this.sidebarActive === true) {
+        if (this._homeMenu || this.sidebarActive) {
             this._homeMenu = true;
             this._parents = [];
             this._activeDoc = this._homeDoc;
@@ -220,7 +223,7 @@ export class MobileInterface extends React.Component {
      */
     handleClick = async (doc: Doc) => {
         const children = DocListCast(doc.data);
-        if (doc.type !== "collection") {
+        if (doc.type !== "collection" && this.sidebarActive) {
             this._parents.push(this._activeDoc);
             this._activeDoc = doc;
             this.switchCurrentView((userDoc: Doc) => doc);
@@ -333,7 +336,7 @@ export class MobileInterface extends React.Component {
 
     // Renders the contents of the menu and sidebar
     renderDefaultContent = () => {
-        if (this._homeMenu === true) {
+        if (this._homeMenu) {
             return (
                 <div>
                     <div className="navbar">
@@ -351,7 +354,7 @@ export class MobileInterface extends React.Component {
                         <div className="sidebarButtons">
                             <div
                                 className="item"
-                                onClick={() => ScriptField.MakeScript("createNewWorkspace()")}>Create New Workspace
+                                onClick={() => MainView.Instance?.createNewWorkspace()}>Create New Workspace
                             </div>
                         </div>
                     </div>
@@ -403,7 +406,10 @@ export class MobileInterface extends React.Component {
                                 {buttons}
                                 <div
                                     className="item"
-                                    onClick={() => ScriptField.MakeScript("createNewWorkspace()")}>Create New Workspace
+                                    style={{ opacity: 0.7 }}
+                                    onClick={() => this.createNewWorkspace()}>
+                                    <FontAwesomeIcon className="right" icon="plus" size="lg" />
+                                    <div className="item-type">Create New Workspace</div>
                                 </div>
                             </>
                         }
@@ -411,6 +417,32 @@ export class MobileInterface extends React.Component {
                 </div>
             </div>
         );
+    }
+
+    /**
+     * Handles the Create New Workspace button in the menu
+     */
+    @action
+    createNewWorkspace = async (id?: string) => {
+        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+        const workspaceCount = DocListCast(workspaces.data).length + 1;
+        const freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            title: "Collection " + workspaceCount,
+            _LODdisable: true
+        };
+        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+
+        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
+        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
+        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
+
+        Doc.AddDocToList(workspaces, "data", workspaceDoc);
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
     }
 
     stop = (e: React.MouseEvent) => {
@@ -431,7 +463,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Button for switching between pan and ink mode
+    // Button for switching between pen and ink mode
     @action
     onSwitchInking = () => {
         const button = document.getElementById("inkButton") as HTMLElement;
@@ -465,6 +497,16 @@ export class MobileInterface extends React.Component {
         if (this._activeDoc._viewType === "docking") {
             return (
                 <>
+                    {/* <div className="docButton"
+                        id="undoButton"
+                        title="undo"
+                        onClick={(e: React.MouseEvent) => {
+                            UndoManager.Undo();
+                            e.stopPropagation();
+                        }}>
+                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="undo-alt"
+                        />
+                    </div> */}
                     <div className="docButton"
                         id="inkButton"
                         title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
@@ -472,6 +514,16 @@ export class MobileInterface extends React.Component {
                         <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
                         />
                     </div>
+                    {/* <div className="docButton"
+                        id="redoButton"
+                        title="redo"
+                        onClick={(e: React.MouseEvent) => {
+                            UndoManager.Redo();
+                            e.stopPropagation();
+                        }}>
+                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="redo-alt"
+                        />
+                    </div> */}
                 </>);
         }
     }
@@ -645,6 +697,12 @@ export class MobileInterface extends React.Component {
         );
     }
 
+    displayRadialMenu = () => {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
+            return <RadialMenu />;
+        }
+    }
+
     onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -669,11 +727,13 @@ export class MobileInterface extends React.Component {
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}
                 </GestureOverlay>
-                <RadialMenu />
+                {this.displayRadialMenu()}
             </div>
         );
     }
 }
+
+
 
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
 Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); });

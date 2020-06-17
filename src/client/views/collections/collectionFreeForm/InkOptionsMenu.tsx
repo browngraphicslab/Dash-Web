@@ -130,13 +130,13 @@ export default class InkOptionsMenu extends AntimodeMenu {
         ];
 
         const mobileButtons = [
-            this.shapeButtons,
+            ...this.shapeButtons,
             this.bezierButton,
             this.widthPicker,
             this.colorPicker,
         ];
 
-        return (window.innerWidth < 1000 ? this.getElement(mobileButtons) : this.getElement(buttons));
+        return (window.screen.width < 600 ? this.getElement(mobileButtons) : this.getElement(buttons));
     }
 }
 Scripting.addGlobal(function activatePen(penBtn: any) {

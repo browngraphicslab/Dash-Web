@@ -55,7 +55,8 @@ async function CreateThumbnail(coreFilename: string, pageNum: number, res: expre
     const documentProxy = await Pdfjs.getDocument(sourcePath).promise;
     const factory = new NodeCanvasFactory();
     const page = await documentProxy.getPage(pageNum);
-    const viewport = page.getViewport(1 as any);
+    const scale = 1;
+    const viewport = page.getViewport(scale as any);
     const { canvas, context } = factory.create(viewport.width, viewport.height);
     const renderContext = {
         canvasContext: context,
