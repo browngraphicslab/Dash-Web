@@ -56,7 +56,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
         }
         const returnXDimension = () => 150;
         const returnYDimension = () => 150;
-        const scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
+        const scale = () => returnXDimension() / NumCast(renderDoc._nativeWidth, returnXDimension());
         //let scale = () => 1;
         const newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
         newRenderDoc.height = NumCast(this.props.Document.documentIconHeight);
