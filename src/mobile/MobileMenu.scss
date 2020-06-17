@@ -56,6 +56,11 @@ body {
     user-select: none;
     text-transform: uppercase;
     font-family: Arial, Helvetica, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: ltr;
+    width: 600px;
 }
 
 .navbar .toggle-btn span {

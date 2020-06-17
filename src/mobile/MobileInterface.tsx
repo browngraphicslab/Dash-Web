@@ -321,8 +321,9 @@ export class MobileInterface extends React.Component {
             this._child = null;
             this.switchCurrentView((userDoc: Doc) => doc);
             this._parents.length = index;
-        } else if (doc === this._homeDoc) this.returnHome();
-        else {
+        } else if (doc === this._homeDoc) {
+            this.returnHome();
+        } else {
             this._activeDoc = doc;
             this._child = doc;
             this.switchCurrentView((userDoc: Doc) => doc);
