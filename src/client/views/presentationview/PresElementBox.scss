@@ -115,6 +115,7 @@
 
     .presElementBox-item {
         display: inline-flex;
+        overflow: hidden;
     }
 
     .presElementBox-buttons .presElementBox-interaction {
@@ -148,6 +149,7 @@
         position: absolute;
         top: 0;
         right: 0;
+        z-index: 3;
         width: 50%;
     }
 
@@ -156,6 +158,7 @@
         position: absolute;
         display: inline-block;
         top: 10px;
+        z-index: 3;
         width: 50%;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -181,5 +184,14 @@
         transition: all .1s;
         padding: 0px;
         padding-bottom: 3px;
+    }
+
+    .presElementBox-embedded {
+        position: relative;
+        display: flex;
+        transform: translate(0, 90px) scale(1.5);
+        width: auto;
+        justify-content: center;
+        margin: auto;
     }
 }

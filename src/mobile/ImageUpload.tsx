@@ -179,7 +179,7 @@ export class Uploader extends React.Component {
                 <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>
                     <FontAwesomeIcon icon="upload" size="sm" />
-                    Upload
+                    &nbsp; &nbsp; Upload
                 </div>
                 {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>
