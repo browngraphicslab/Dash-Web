@@ -144,7 +144,7 @@ export namespace DictationManager {
             recognizer.start();
 
             return new Promise<string>((resolve, reject) => {
-                recognizer.onerror = (e: SpeechRecognitionError) => {
+                recognizer.onerror = (e: any) => { // e is SpeechRecognitionError but where is that defined? 
                     if (!(indefinite && e.error === "no-speech")) {
                         recognizer.stop();
                         reject(e);

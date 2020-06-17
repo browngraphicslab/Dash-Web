@@ -158,8 +158,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         if (retVal) {
             const newBoxes = (newBox instanceof Doc) ? [newBox] : newBox;
-            for (let i = 0; i < newBoxes.length; i++) {
-                const newBox = newBoxes[i];
+            for (const newBox of newBoxes) {
                 if (newBox.activeFrame !== undefined) {
                     const x = newBox.x;
                     const y = newBox.y;

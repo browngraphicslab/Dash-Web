@@ -191,8 +191,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props: SubCollectionViewProps = { ...this.props, ...renderProps, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ScreenToLocalTransform: this.screenToLocalTransform, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
@@ -442,7 +443,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     @computed get filterView() {
         const facetCollection = this.props.Document;
         const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => fmovede.stopPropagation()}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey + "-filter"]).some(d => d.title === facet)} />
                     <span className="checkmark" />
