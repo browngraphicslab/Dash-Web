@@ -182,11 +182,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-
-            const existingMore = ContextMenu.Instance.findByDescription("More...");
-            const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
 

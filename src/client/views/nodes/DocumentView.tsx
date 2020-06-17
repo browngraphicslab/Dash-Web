@@ -759,30 +759,32 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const more = cm.findByDescription("More...");
-        const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-        moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+        const moreItems = more && "subitems" in more ? more.subitems : [];
+        if (!Doc.UserDoc().noviceMode) {
+            moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
+            moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+
+            if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+                moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+                moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+                moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+            }
+            moreItems.push({
+                description: "Download document", icon: "download", event: async () => {
+                    const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+                        qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
+                    });
+                    console.log(response ? JSON.parse(response) : undefined);
+                }
+                // const a = document.createElement("a");
+                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                // a.href = url;
+                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                // a.click();
+            });
+        }
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-
-        if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-            moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
-            moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
-            moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
-        }
-        moreItems.push({
-            description: "Download document", icon: "download", event: async () => {
-                const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
-                    qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                });
-                console.log(response ? JSON.parse(response) : undefined);
-            }
-            // const a = document.createElement("a");
-            // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-            // a.href = url;
-            // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-            // a.click();
-        });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });

@@ -481,7 +481,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }), icon: "eye"
             });
         });
-        changeItems.push({ description: "FreeForm", event: undoBatch(() => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
+        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
     }
 
