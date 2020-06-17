@@ -8,7 +8,7 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { List } from "../../../fields/List";
 import { createSchema, listSpec, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
+import { Cast, NumCast, ScriptCast, StrCast, BoolCast } from "../../../fields/Types";
 import { returnEmptyString } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { InteractionUtils } from "../../util/InteractionUtils";
@@ -21,6 +21,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
 import "./ScriptingBox.scss";
+import { TraceMobx } from "../../../fields/util";
 const _global = (window /* browser */ || global /* node */) as any;
 
 const ScriptingSchema = createSchema({});
@@ -34,15 +35,14 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
     private _overlayDisposer?: () => void;
+    private _caretPos = 0;
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
     @observable private _function: boolean = false;
-    @observable private _hovered: boolean = false;
     @observable private _spaced: boolean = false;
 
     @observable private _scriptKeys: any = Scripting.getGlobals();
-    @observable private _scriptGlobals: any = Scripting.getGlobalObj();
     @observable private _scriptingDescriptions: any = Scripting.getDescriptions();
     @observable private _scriptingParams: any = Scripting.getParameters();
 
@@ -57,7 +57,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _scriptTextRef: any = React.createRef();
 
     @observable private _selection: any = 0;
-    @observable private _selectionEnd: any = 0;
 
     @observable private _paramSuggestion: boolean = false;
     @observable private _scriptSuggestedParams: any = "";
@@ -78,23 +77,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = new List<string>(value); }
 
     getValue(result: any, descrip: boolean) {
-        let value = "";
         if (typeof result === "object") {
-            let text = "";
-            if (descrip) {
-                text = result[1];
-            } else {
-                text = result[2];
-            }
-            if (text !== undefined) {
-                value = text;
-            } else {
-                value = "";
-            }
+            const text = descrip ? result[1] : result[2];
+            return text !== undefined ? text : "";
         } else {
-            value = "";
+            return "";
         }
-        return value;
     }
 
     @action
@@ -118,21 +106,18 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     resetSuggestionPos(caret: any) {
         if (!this._suggestionRef.current || !this._scriptTextRef.current) return;
         console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
-        let top = caret.top;
-        let left = caret.left;
-
-        const x = this.dataDoc.x;
         const suggestionWidth = this._suggestionRef.current.offsetWidth;
         const scriptWidth = this._scriptTextRef.current.offsetWidth;
+        const top = caret.top;
+        const x = this.dataDoc.x;
+        let left = caret.left;
         if ((left + suggestionWidth) > (x + scriptWidth)) {
             const diff = (left + suggestionWidth) - (x + scriptWidth);
             left = left - diff;
         }
 
-        runInAction(() => {
-            this._suggestionBoxX = left;
-            this._suggestionBoxY = top;
-        });
+        this._suggestionBoxX = left;
+        this._suggestionBoxY = top;
     }
 
     componentWillUnmount() {
@@ -176,11 +161,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.dataDoc.documentText = this.rawScript;
         this.dataDoc.data = result.compiled ? new ScriptField(result) : undefined;
         this.onError(result.compiled ? undefined : result.errors);
-        if (result.compiled) {
-            return true;
-        } else {
-            return false;
-        }
+        return result.compiled;
     }
 
     // checks if the script compiles and then runs the script
@@ -220,7 +201,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     onCreate = () => {
-
         this._errorMessage = "";
 
         if (this.functionName.length === 0) {
@@ -246,7 +226,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         ScriptManager.Instance.addScript(this.dataDoc);
 
         this._scriptKeys = Scripting.getGlobals();
-        this._scriptGlobals = Scripting.getGlobalObj();
         this._scriptingDescriptions = Scripting.getDescriptions();
         this._scriptingParams = Scripting.getParameters();
     }
@@ -276,7 +255,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     viewChanged = (e: React.ChangeEvent, name: string) => {
         //@ts-ignore
-        this.dataDoc[name] = e.target.selectedOptions[0].value;
+        const val = e.target.selectedOptions[0].value;
+        this.dataDoc[name] = val[0] === "S" ? val.substring(1) : val[0] === "N" ? parseInt(val.substring(1)) : val.substring(1) === "true";
     }
 
     // creates a copy of the script document
@@ -297,19 +277,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     renderFunctionInputs() {
         const descriptionInput =
             <textarea
-                className="scriptingBox-textarea"
+                className="scriptingBox-textarea-inputs"
                 onChange={e => this.functionDescription = e.target.value}
                 placeholder="enter description here"
                 value={this.functionDescription}
-                style={{ maxWidth: "100%", height: "40%", width: "100%", resize: "none" }}
             />;
         const nameInput =
             <textarea
-                className="scriptingBox-textarea"
+                className="scriptingBox-textarea-inputs"
                 onChange={e => this.functionName = e.target.value}
                 placeholder="enter name here"
                 value={this.functionName}
-                style={{ maxWidth: "100%", height: "40%", width: "100%", resize: "none" }}
             />;
 
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected() && e.stopPropagation()} >
@@ -324,8 +302,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             {this.renderErrorMessage()}
         </div>;
     }
-
-
 
     renderErrorMessage() {
         return !this._errorMessage ? (null) : <div className="scriptingBox-errorMessage"> {this._errorMessage} </div>;
@@ -358,38 +334,20 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     // rendering when a string's value can be set in applied UI
-    renderString(parameter: string) {
+    renderBasicType(parameter: string, isNum: boolean) {
+        const strVal = (isNum ? NumCast(this.dataDoc[parameter]).toString() : StrCast(this.dataDoc[parameter]));
         return <div className="scriptingBox-paramInputs" style={{ overflowY: "hidden" }}>
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
-                contents={this.dataDoc[parameter] ?? "undefined"}
-                GetValue={() => StrCast(this.dataDoc[parameter]) ?? "undefined"}
+                contents={strVal ?? "undefined"}
+                GetValue={() => strVal ?? "undefined"}
                 SetValue={action((value: string) => {
-                    if (value && value !== " ") {
+                    const setValue = isNum ? parseInt(value) : value;
+                    if (setValue !== undefined && setValue !== " ") {
                         this._errorMessage = "";
-                        this.dataDoc[parameter] = value;
+                        this.dataDoc[parameter] = setValue;
                         return true;
                     }
-                    return false;
-                })}
-            />
-        </div>;
-    }
-
-    // rendering when a number's value can be set in applied UI
-    renderNumber(parameter: string) {
-        return <div className="scriptingBox-paramInputs">
-            <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
-                contents={this.dataDoc[parameter] ?? "undefined"}
-                GetValue={() => StrCast(this.dataDoc[parameter]) ?? "undefined"}
-                SetValue={action((value: string) => {
-                    if (value && value !== " ") {
-                        if (parseInt(value)) {
-                            this._errorMessage = "";
-                            this.dataDoc[parameter] = parseInt(value);
-                            return true;
-                        }
-                        this._errorMessage = "not a number";
-                    }
+                    this._errorMessage = "invalid input";
                     return false;
                 })}
             />
@@ -397,35 +355,19 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     // rendering when an enum's value can be set in applied UI (drop down box)
-    renderEnum(parameter: string, types: string[]) {
+    renderEnum(parameter: string, types: (string | boolean | number)[]) {
         return <div className="scriptingBox-paramInputs">
             <div className="scriptingBox-viewBase">
                 <div className="commandEntry-outerDiv">
                     <select className="scriptingBox-viewPicker"
                         onPointerDown={e => e.stopPropagation()}
                         onChange={e => this.viewChanged(e, parameter)}
-                        value={this.dataDoc[parameter]}>
-
+                        value={typeof (this.dataDoc[parameter]) === "string" ? "S" + StrCast(this.dataDoc[parameter]) :
+                            typeof (this.dataDoc[parameter]) === "number" ? "N" + NumCast(this.dataDoc[parameter]) :
+                                "B" + BoolCast(this.dataDoc[parameter])}>
                         {types.map(type =>
-                            <option className="scriptingBox-viewOption" value={type.trim()}> {type.trim()} </option>
+                            <option className="scriptingBox-viewOption" value={(typeof (type) === "string" ? "S" : typeof (type) === "number" ? "N" : "B") + type}> {type.toString()} </option>
                         )}
-                    </select>
-                </div>
-            </div>
-        </div>;
-    }
-
-    // rendering when a boolean's value can be set in applied UI (drop down box)
-    renderBoolean(parameter: string) {
-        return <div className="scriptingBox-paramInputs">
-            <div className="scriptingBox-viewBase">
-                <div className="commandEntry-outerDiv">
-                    <select className="scriptingBox-viewPicker"
-                        onPointerDown={e => e.stopPropagation()}
-                        onChange={e => this.viewChanged(e, parameter)}
-                        value={this.dataDoc[parameter]}>
-                        <option className="scriptingBox-viewOption" value={"true"}>true </option>
-                        <option className="scriptingBox-viewOption" value={"false"}>false</option>
                     </select>
                 </div>
             </div>
@@ -473,37 +415,19 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     handleFunc(pos: number) {
         const scriptString = this.rawScript.slice(0, pos - 2);
         this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
-        this._suggestions = [];
-        const params = StrCast(this._scriptingParams[this._currWord]);
-        this._suggestions.push(params);
+        this._suggestions = [StrCast(this._scriptingParams[this._currWord])];
         return (this._suggestions);
     }
 
 
     getDescription(value: string) {
         const descrip = this._scriptingDescriptions[value];
-        let display = "";
-        if (descrip !== undefined) {
-            if (descrip.length > 0) {
-                display = descrip;
-            }
-        }
-        return display;
+        return descrip?.length > 0 ? descrip : "";
     }
 
     getParams(value: string) {
         const params = this._scriptingParams[value];
-        let display = "";
-        if (params !== undefined) {
-            if (params.length > 0) {
-                display = params;
-            }
-        }
-        return display;
-    }
-
-    setHovered(bool: boolean) {
-        this._hovered = bool;
+        return params?.length > 0 ? params : "";
     }
 
     returnParam(item: string) {
@@ -525,31 +449,19 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         const firstScript = this.rawScript.slice(0, pos);
         const indexP = firstScript.lastIndexOf(".");
         const indexS = firstScript.lastIndexOf(" ");
-        let func = "";
-        if (indexP > indexS) {
-            func = firstScript.slice(indexP + 1, firstScript.length + 1);
-        } else {
-            func = firstScript.slice(indexS + 1, firstScript.length + 1);
-        }
-        if (this._scriptingParams[func]) {
-            return this._scriptingParams[func];
-        } else {
-            return "";
-        }
+        const func = firstScript.slice((indexP > indexS ? indexP : indexS) + 1, firstScript.length + 1);
+        return this._scriptingParams[func];
     }
 
     @action
     suggestionPos = () => {
         const getCaretCoordinates = require('textarea-caret');
         const This = this;
-        //if (!This._applied && !This._function) {
         document.querySelector('textarea')?.addEventListener("input", function () {
             const caret = getCaretCoordinates(this, this.selectionEnd);
             This._selection = this;
-            This._selectionEnd = this.selectionEnd;
             This.resetSuggestionPos(caret);
         });
-        //}
     }
 
     @action
@@ -557,7 +469,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         if (this._lastChar === "Enter") {
             this.rawScript = this.rawScript + " ";
         }
-        console.log(e.key);
         if (e.key === "(") {
             this.suggestionPos();
 
@@ -582,18 +493,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                         }
                     }
                 }
-            } else {
-                if (this.rawScript.split("(").length - 1 <= this.rawScript.split(")").length - 1) {
-                    this._paramSuggestion = false;
-                }
+            } else if (this.rawScript.split("(").length - 1 <= this.rawScript.split(")").length - 1) {
+                this._paramSuggestion = false;
             }
         }
-        if (e.key === "Backspace") {
-            this._lastChar = this.rawScript[this.rawScript.length - 2];
-            console.log("last char: " + this._lastChar);
-        } else {
-            this._lastChar = e.key;
-        }
+        this._lastChar = e.key === "Backspace" ? this.rawScript[this.rawScript.length - 2] : e.key;
 
         if (this._paramSuggestion) {
             const parameters = this._scriptParamsText.split(",");
@@ -607,8 +511,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     parameters[i] = element + ",";
                 }
             });
-
-            console.log("numEntered: " + numEntered);
 
             let first = "";
             let last = "";
@@ -627,25 +529,22 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     handlePosChange(number: any) {
-        this.caretPos = number;
-        if (this.caretPos === 0) {
+        this._caretPos = number;
+        if (this._caretPos === 0) {
             this.rawScript = " " + this.rawScript;
         } else if (this._spaced) {
             this._spaced = false;
-            if (this.rawScript[this.caretPos - 1] === " ") {
-                this.rawScript = this.rawScript.slice(0, this.caretPos - 1) +
-                    this.rawScript.slice(this.caretPos, this.rawScript.length);
+            if (this.rawScript[this._caretPos - 1] === " ") {
+                this.rawScript = this.rawScript.slice(0, this._caretPos - 1) +
+                    this.rawScript.slice(this._caretPos, this.rawScript.length);
             }
         }
     }
 
-    caretPos = 0;
-    textarea: any;
     @computed({ keepAlive: true }) get renderScriptingBox() {
-
-        trace();
+        TraceMobx();
         return <div style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }} ref={this._scriptTextRef}>
-            <ReactTextareaAutocomplete className="ScriptingBox-textarea" style={{ resize: "none", height: "100%" }}
+            <ReactTextareaAutocomplete className="ScriptingBox-textarea-script"
                 minChar={1}
                 placeholder="write your script here"
                 onFocus={this.onFocus}
@@ -673,7 +572,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                         },
                     }
                 }}
-                onKeyDown={(e) => this.keyHandler(e, this.caretPos)}
+                onKeyDown={(e) => this.keyHandler(e, this._caretPos)}
                 onCaretPositionChange={(number: any) => this.handlePosChange(number)}
             />
         </div>;
@@ -681,9 +580,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     renderFuncListElement(value: string) {
         return <div>
-            <div style={{ fontSize: "14px" }}
-                onMouseEnter={() => this.setHovered(true)}
-                onMouseLeave={() => this.setHovered(false)}>
+            <div style={{ fontSize: "14px" }}>
                 {value}
             </div>
             <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
@@ -746,16 +643,16 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     renderParamsInputs() {
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
             {!this.compileParams.length || !this.paramsNames ? (null) :
-                <div className="scriptingBox-plist" style={{ overflowY: "scroll" }}>
+                <div className="scriptingBox-plist">
                     {this.paramsNames.map((parameter: string, i: number) =>
                         <div className="scriptingBox-pborder" onKeyPress={e => e.key === "Enter" && this._overlayDisposer?.()}  >
                             <div className="scriptingBox-wrapper" style={{ maxHeight: "40px" }}>
                                 <div className="scriptingBox-paramNames" > {`${parameter}:${this.paramsTypes[i]} = `} </div>
-                                {this.paramsTypes[i] === "boolean" ? this.renderBoolean(parameter) : (null)}
-                                {this.paramsTypes[i] === "string" ? this.renderString(parameter) : (null)}
-                                {this.paramsTypes[i] === "number" ? this.renderNumber(parameter) : (null)}
+                                {this.paramsTypes[i] === "boolean" ? this.renderEnum(parameter, [true, false]) : (null)}
+                                {this.paramsTypes[i] === "string" ? this.renderBasicType(parameter, false) : (null)}
+                                {this.paramsTypes[i] === "number" ? this.renderBasicType(parameter, true) : (null)}
                                 {this.paramsTypes[i] === "Doc" ? this.renderDoc(parameter) : (null)}
-                                {this.paramsTypes[i]?.split("|")[1] ? this.renderEnum(parameter, this.paramsTypes[i].split("|")) : (null)}
+                                {this.paramsTypes[i]?.split("|")[1] ? this.renderEnum(parameter, this.paramsTypes[i].split("|").map(s => !isNaN(parseInt(s.trim())) ? parseInt(s.trim()) : s.trim())) : (null)}
                             </div>
                         </div>)}
                 </div>}
@@ -764,22 +661,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     // toolbar (with edit and run buttons and error message) for params UI
-    renderParamsTools() {
+    renderTools(toolSet: string, func: () => void) {
         const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
         return <div className="scriptingBox-toolbar">
             <button className={buttonStyle} onPointerDown={e => { this.onEdit(); e.stopPropagation(); }}>Edit</button>
-            <button className={buttonStyle} onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
-            {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
-                <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
-        </div>;
-    }
-
-    // toolbar (with edit and run buttons and error message) for params UI
-    renderFunctionTools() {
-        const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
-        return <div className="scriptingBox-toolbar">
-            <button className={buttonStyle} onPointerDown={e => { this.onEdit(); e.stopPropagation(); }}>Edit</button>
-            <button className={buttonStyle} onPointerDown={e => { this.onCreate(); e.stopPropagation(); }}>Create Function</button>
+            <button className={buttonStyle} onPointerDown={e => { func(); e.stopPropagation(); }}>{toolSet}</button>
             {this.rootDoc.layoutKey !== "layout_onClick" ? (null) :
                 <button className={buttonStyle} onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button>}
         </div>;
@@ -798,8 +684,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     {!this._applied && this._function ? this.renderFunctionInputs() : null}
 
                     {!this._applied && !this._function ? this.renderScriptingTools() : null}
-                    {this._applied && !this._function ? this.renderParamsTools() : null}
-                    {!this._applied && this._function ? this.renderFunctionTools() : null}
+                    {this._applied && !this._function ? this.renderTools("Run", () => this.onRun()) : null}
+                    {!this._applied && this._function ? this.renderTools("Create Function", () => this.onCreate()) : null}
                 </div>
             </div>
         );
