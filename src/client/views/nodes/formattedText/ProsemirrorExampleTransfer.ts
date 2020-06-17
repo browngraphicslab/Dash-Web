@@ -7,7 +7,7 @@ import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { NumCast, BoolCast, Cast, StrCast } from "../../../../fields/Types";
-import { Doc } from "../../../../fields/Doc";
+import { Doc, DataSym } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Docs } from "../../../documents/Documents";
@@ -142,6 +142,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         if (force || props.Document._singleLine) {
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
+            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
             newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
@@ -166,6 +167,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         if (originalDoc instanceof Doc) {
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
+            newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
             newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];

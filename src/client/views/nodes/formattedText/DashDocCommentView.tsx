@@ -43,24 +43,24 @@ interface IDashDocCommentViewInternal {
 export class DashDocCommentViewInternal extends React.Component<IDashDocCommentViewInternal>{
 
     constructor(props: IDashDocCommentViewInternal) {
-        super(props)
-        this.onPointerLeaveCollapsed = this.onPointerLeaveCollapsed.bind(this)
-        this.onPointerEnterCollapsed = this.onPointerEnterCollapsed.bind(this)
-        this.onPointerUpCollapsed = this.onPointerUpCollapsed.bind(this)
-        this.onPointerDownCollapsed = this.onPointerDownCollapsed.bind(this)
+        super(props);
+        this.onPointerLeaveCollapsed = this.onPointerLeaveCollapsed.bind(this);
+        this.onPointerEnterCollapsed = this.onPointerEnterCollapsed.bind(this);
+        this.onPointerUpCollapsed = this.onPointerUpCollapsed.bind(this);
+        this.onPointerDownCollapsed = this.onPointerDownCollapsed.bind(this);
     }
 
     onPointerLeaveCollapsed(e: any) {
         DocServer.GetRefField(this.props.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
         e.preventDefault();
         e.stopPropagation();
-    };
+    }
 
     onPointerEnterCollapsed(e: any) {
         DocServer.GetRefField(this.props.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc, false));
         e.preventDefault();
         e.stopPropagation();
-    };
+    }
 
     onPointerUpCollapsed(e: any) {
         const target = this.targetNode();
@@ -75,11 +75,11 @@ export class DashDocCommentViewInternal extends React.Component<IDashDocCommentV
             }, 0);
         }
         e.stopPropagation();
-    };
+    }
 
     onPointerDownCollapsed(e: any) {
         e.stopPropagation();
-    };
+    }
 
     targetNode = () => {  // search forward in the prosemirror doc for the attached dashDocNode that is the target of the comment anchor
         const state = this.props.view.state;
@@ -94,7 +94,7 @@ export class DashDocCommentViewInternal extends React.Component<IDashDocCommentV
         this.props.view.dispatch(state.tr.insert(this.props.getPos() + 1, dashDoc));
         setTimeout(() => { try { this.props.view.dispatch(state.tr.setSelection(TextSelection.create(state.tr.doc, this.props.getPos() + 2))); } catch (e) { } }, 0);
         return undefined;
-    };
+    }
 
     render() {
         return (
@@ -107,6 +107,6 @@ export class DashDocCommentViewInternal extends React.Component<IDashDocCommentV
                 onPointerDown={this.onPointerDownCollapsed}
             >
             </span>
-        )
+        );
     }
 }

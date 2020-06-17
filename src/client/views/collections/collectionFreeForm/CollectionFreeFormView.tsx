@@ -258,8 +258,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
         } else if (de.complete.docDragData?.droppedDocuments.length && this.internalDocDrop(e, de, de.complete.docDragData, xp, yp)) {
             return true;
-        } else {
-            UndoManager.Undo();
         }
         return false;
     }

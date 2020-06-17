@@ -45,6 +45,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { UndoManager } from '../../util/UndoManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -166,7 +167,17 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return true;
         }
         const first = doc instanceof Doc ? doc : doc[0];
-        return !first?.stayInCollection && addDocument !== returnFalse && this.removeDocument(doc) ? addDocument(doc) : false;
+        if (!first?.stayInCollection && addDocument !== returnFalse) {
+            if (UndoManager.RunInTempBatch(() => this.removeDocument(doc))) {
+                const added = addDocument(doc);
+                if (!added) UndoManager.UndoTempBatch();
+                else UndoManager.ClearTempBatch();
+
+                return added;
+            }
+            UndoManager.ClearTempBatch();
+        }
+        return false;
     }
 
     showIsTagged = () => {
@@ -282,10 +293,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 }));
             !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
-            const more = ContextMenu.Instance.findByDescription("More...");
-            const moreItems = more && "subitems" in more ? more.subitems : [];
-            moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
-            !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+            if (!Doc.UserDoc().noviceMode) {
+                const more = ContextMenu.Instance.findByDescription("More...");
+                const moreItems = more && "subitems" in more ? more.subitems : [];
+                moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
+                !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+            }
         }
     }
 
@@ -429,7 +442,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     @computed get filterView() {
         const facetCollection = this.props.Document;
         const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => fmovede.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey + "-filter"]).some(d => d.title === facet)} />
                     <span className="checkmark" />

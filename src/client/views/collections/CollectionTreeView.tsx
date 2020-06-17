@@ -83,8 +83,9 @@ class TreeView extends React.Component<TreeViewProps> {
     private _tref = React.createRef<HTMLDivElement>();
     private _docRef = React.createRef<DocumentView>();
 
+    get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
-    get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.props.document.defaultExpandedView, "fields"); }
+    get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.props.document.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = this._overrideTreeViewOpen = c; }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.props.document.treeViewPreventOpen && BoolCast(this.props.document.treeViewOpen)) || this._overrideTreeViewOpen; }
@@ -249,7 +250,7 @@ class TreeView extends React.Component<TreeViewProps> {
             const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return layoutDoc._fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection._height) :
+            return layoutDoc._fitWidth ? (!this.props.document._nativeHeight ? NumCast(this.props.containingCollection._height) :
                 Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
                     NumCast(this.props.containingCollection._height)))) :
                 NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
@@ -420,10 +421,10 @@ class TreeView extends React.Component<TreeViewProps> {
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                     onPointerDown={action(() => {
                         if (this.treeViewOpen) {
-                            this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
+                            this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode ? "layout" : "fields") :
                                 this.treeViewExpandedView === "fields" && Doc.Layout(this.props.document) ? "layout" :
                                     this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
-                                        this.childDocs ? this.fieldKey : "fields";
+                                        this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
                         }
                         this.treeViewOpen = true;
                     })}>

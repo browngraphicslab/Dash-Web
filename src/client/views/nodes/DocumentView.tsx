@@ -17,10 +17,8 @@ import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ClientRecommender } from '../../ClientRecommender';
-import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
-import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { SnappingManager } from '../../util/SnappingManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -137,7 +135,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.removeEndListeners();
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        console.log(SelectionManager.SelectedDocuments());
         if (RadialMenu.Instance._display === false) {
             this.addHoldMoveListeners();
             this.addHoldEndListeners();
@@ -732,7 +729,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
-        optionItems.push({ description: "Open Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         if (!options) {
             options = { description: "Options...", subitems: optionItems, icon: "compass" };
@@ -759,30 +755,32 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const more = cm.findByDescription("More...");
-        const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-        moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+        const moreItems = more && "subitems" in more ? more.subitems : [];
+        if (!Doc.UserDoc().noviceMode) {
+            moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
+            moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+
+            if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+                moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+                moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+                moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
+            }
+            moreItems.push({
+                description: "Download document", icon: "download", event: async () => {
+                    const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+                        qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
+                    });
+                    console.log(response ? JSON.parse(response) : undefined);
+                }
+                // const a = document.createElement("a");
+                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                // a.href = url;
+                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                // a.click();
+            });
+        }
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-
-        if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-            moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
-            moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
-            moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
-        }
-        moreItems.push({
-            description: "Download document", icon: "download", event: async () => {
-                const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
-                    qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                });
-                console.log(response ? JSON.parse(response) : undefined);
-            }
-            // const a = document.createElement("a");
-            // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-            // a.href = url;
-            // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-            // a.click();
-        });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
@@ -790,11 +788,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const help = cm.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        helpItems.push({
-            description: "Keyboard Shortcuts       Ctrl+/",
-            event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
-            icon: "keyboard"
-        });
+        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
+        helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
 
         const existingAcls = cm.findByDescription("Privacy...");

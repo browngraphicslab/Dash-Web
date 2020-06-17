@@ -755,6 +755,7 @@ export class CurrentUserUtils {
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
+        doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
         doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
@@ -787,6 +788,9 @@ export class CurrentUserUtils {
     }
 }
 
-Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); });
-Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); });
-Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); });
+Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); },
+    "initializes the Mobile inking document", "(userDoc: Doc)");
+Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); },
+    "initializes the Mobile upload document", "(userDoc: Doc)");
+Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
+    "creates a new workspace when called");

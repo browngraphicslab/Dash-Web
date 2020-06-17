@@ -670,7 +670,7 @@ export namespace Doc {
                     copy[key] = cfield[Copy]();// ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = doc[key] instanceof Doc ?
-                        key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                        key.includes("layout[") ? undefined : doc[key] : // reference documents except remove documents that are expanded teplate fields 
                         ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
