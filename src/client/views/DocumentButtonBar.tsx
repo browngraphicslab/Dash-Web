@@ -281,7 +281,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             const dragDocView = this.view0!;
             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            dragData.embedDoc = true;
             dragData.dropAction = "alias";
             DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
                 offsetX: dragData.offset[0],

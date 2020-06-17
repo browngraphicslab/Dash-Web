@@ -44,7 +44,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             props: {
                 documentId: document[Id],
                 libraryPath: libraryPath?.map(d => d[Id])
-                //collectionDockingView: CollectionDockingView.Instance
             }
         };
     }
@@ -465,7 +464,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         if (docids) {
             const docs = (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
-            Doc.GetProto(this.props.Document)[this.props.fieldKey] = new List<Doc>(docs);
+            docs.map(doc => Doc.AddDocToList(Doc.GetProto(this.props.Document), this.props.fieldKey, doc));
+            // Doc.GetProto(this.props.Document)[this.props.fieldKey] = new List<Doc>(docs);
         }
     }
 
