@@ -152,7 +152,7 @@ export class MobileInterface extends React.Component {
      * Return 'Home", which implies returning to 'Home' buttons
      */
     returnHome = () => {
-        if (this._homeMenu || this.sidebarActive) {
+        if (!this._homeMenu || this.sidebarActive) {
             this._homeMenu = true;
             this._parents = [];
             this._activeDoc = this._homeDoc;
