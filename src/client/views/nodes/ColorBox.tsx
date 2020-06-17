@@ -60,12 +60,12 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
             <div style={{ display: "grid", gridTemplateColumns: "20% 80%", paddingTop: "10px" }}>
                 <div> {ActiveInkWidth() ?? 2}</div>
-                <input type="range" value={ActiveInkWidth() ?? 2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => SetActiveInkWidth(e.target.value)} />
+                <input type="range" defaultValue={ActiveInkWidth() ?? 2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => SetActiveInkWidth(e.target.value)} />
                 <div> {ActiveInkBezierApprox() ?? 2}</div>
-                <input type="range" value={ActiveInkBezierApprox() ?? 2} min={0} max={300} onChange={(e: React.ChangeEvent<HTMLInputElement>) => SetActiveBezierApprox(e.target.value)} />
+                <input type="range" defaultValue={ActiveInkBezierApprox() ?? 2} min={0} max={300} onChange={(e: React.ChangeEvent<HTMLInputElement>) => SetActiveBezierApprox(e.target.value)} />
                 <br />
                 <br />
             </div>
         </div>;
     }
-} 
+}

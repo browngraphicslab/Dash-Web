@@ -323,7 +323,7 @@ export default class GestureOverlay extends Touchable {
                 this._thumbY = thumb.clientY;
                 this._menuX = thumb.clientX + 50;
                 this._menuY = thumb.clientY;
-                this._palette = <HorizontalPalette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
+                this._palette = <HorizontalPalette key="palette" x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
             });
         }
 
@@ -803,17 +803,18 @@ export default class GestureOverlay extends Touchable {
 
     @computed get elements() {
         const B = this.svgBounds;
+        const width = Number(ActiveInkWidth());
         return [
             this.props.children,
             this._palette,
-            [this._strokes.map(l => {
+            [this._strokes.map((l, i) => {
                 const b = this.getBounds(l);
-                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape, "none", false)}
+                return <svg key={i} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), 1, 1, this.InkShape, "none", false)}
                 </svg>;
             }),
-            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape, "none", false)}
+            this._points.length <= 1 ? (null) : <svg key="svg" width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), 1, 1, this.InkShape, "none", false)}
             </svg>]
         ];
     }
@@ -914,7 +915,7 @@ Scripting.addGlobal(function resetPen() {
         SetActiveInkColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
         SetActiveInkWidth(GestureOverlay.Instance.SavedWidth ?? "2");
     });
-});
+}, "resets the pen tool");
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {
     GestureOverlay.Instance.dispatchGesture("text", [{ X: x, Y: y }], text);
-});
+}, "creates a text document with inputted text and coordinates", "(text: any, x: any, y: any)");

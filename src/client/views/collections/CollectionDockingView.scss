@@ -2,13 +2,17 @@
 
 .lm_title {
     margin-top: 3px;
-    background: black;
     border-radius: 5px;
     border: solid 1px dimgray;
     border-width: 2px 2px 0px;
     height: 20px;
     transform: translate(0px, -3px);
+    cursor: grab;
 }
+.lm_title.focus-visible {
+    cursor: text;
+}
+
 .lm_title_wrap {
     overflow: hidden;
     height: 19px;

@@ -12,7 +12,6 @@ import './OverlayView.scss';
 import { Scripting } from "../util/Scripting";
 import { ScriptingRepl } from './ScriptingRepl';
 import { DragManager } from "../util/DragManager";
-import { listSpec } from "../../fields/Schema";
 import { List } from "../../fields/List";
 
 export type OverlayDisposer = () => void;

@@ -34,15 +34,15 @@ import { makeTemplate } from '../../../util/DropConverter';
 import buildKeymap from "./ProsemirrorExampleTransfer";
 import RichTextMenu from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
-import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "./RichTextSchema";
-// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "./RichTextSchema";
-// import { OrderedListView } from "./RichTextSchema";
-// import { ImageResizeView } from "./ImageResizeView";
-// import { DashDocCommentView } from "./DashDocCommentView";
-// import { FootnoteView } from "./FootnoteView";
-// import { SummaryView } from "./SummaryView";
-// import { DashDocView } from "./DashDocView";
+
+//import { DashDocView } from "./DashDocView";
+import { DashDocView } from "./RichTextSchema";
+
+import { DashDocCommentView } from "./DashDocCommentView";
 import { DashFieldView } from "./DashFieldView";
+import { SummaryView } from "./SummaryView";
+import { OrderedListView } from "./OrderedListView";
+import { FootnoteView } from "./FootnoteView";
 
 import { schema } from "./schema_rts";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -180,7 +180,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.linkOnDeselect.set(key, value);
 
                     const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + id), location: "onRight", title: value });
+                    const allHrefs = [{ href: Utils.prepend("/doc/" + id), title: value, targetId: id }];
+                    const link = this._editorView.state.schema.marks.link.create({ allHrefs, location: "onRight", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
@@ -239,10 +240,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             const alink = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: target }, "automatic")!;
-            const link = this._editorView.state.schema.marks.link.create({
-                href: Utils.prepend("/doc/" + alink[Id]),
-                title: "a link", location: location, linkId: alink[Id], targetId: target[Id]
-            });
+            const allHrefs = [{ href: Utils.prepend("/doc/" + alink[Id]), title: "a link", targetId: target[Id], linkId: alink[Id] }];
+            const link = this._editorView.state.schema.marks.link.create({ allHrefs, title: "a link", location });
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
@@ -293,8 +292,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data, draggedDoc.data.Text);
                     e.stopPropagation();
                 }
-                // embed document when dragging with a userDropAction or an embedDoc flag set
-            } else if (dragData.userDropAction || dragData.embedDoc) {
+                // embed document when dragg marked as embed
+            } else if (de.embedKey) {
                 const target = dragData.droppedDocuments[0];
                 // const link = DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: target }, "Embedded Doc:" + target.title);
                 // if (link) {
@@ -483,7 +482,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }), icon: "eye"
             });
         });
-        changeItems.push({ description: "FreeForm", event: undoBatch(() => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
+        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
     }
 
@@ -906,17 +905,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
-                    dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
-                    // dashDoc(node, view, getPos) { return new DashDocView({ node, view, getPos, self }); },
-
-                    // image(node, view, getPos) {
-                    //     //const addDocTab = this.props.addDocTab;
-                    //     return new ImageResizeView({ node, view, getPos, addDocTab: this.props.addDocTab });
-                    // },
-                    // // WAS : 
-                    // //image(node, view, getPos) { return new ImageResizeView(node, view, getPos, this.props.addDocTab); },
-
+                    dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
@@ -1112,7 +1102,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         e.stopPropagation();
 
         const view = this._editorView as any;
-        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there 
+        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there
         // are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
         if (view.mouseDown) {
             const originalUpHandler = view.mouseDown.up;
@@ -1177,7 +1167,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         const mark = e.key !== " " && this._lastTimedMark ? this._lastTimedMark : schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
         this._lastTimedMark = mark;
-        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+        // this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
 
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
@@ -1226,9 +1216,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            this._editorView && RichTextMenu.Instance?.updateFromDash(this._editorView, undefined, this.props);
+            setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), 0);
         } else if (FormattedTextBoxComment.textBox === this) {
-            FormattedTextBoxComment.Hide();
+            setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
         return (
             <div className={"formattedTextBox-cont"} style={{

@@ -476,7 +476,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                         transformOrigin: "top left",
                     }}
                     onScroll={action(e => {
-                        if (!this.props.isSelected() && window.innerWidth > 1000) e.currentTarget.scrollTop = this._scroll;
+                        if (!this.props.isSelected() && this.props.renderDepth && window.innerWidth > 1000) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
                     })}
                     onDrop={this.onExternalDrop.bind(this)}

@@ -99,16 +99,14 @@ export default class InkOptionsMenu extends AntimodeMenu {
     }
 
     @computed get shapeButtons() {
-        return <>
-            {this._buttons.map((btn, i) => <button
-                className="antimodeMenu-button"
-                title={`Draw ${btn}`}
-                key={btn}
-                onPointerDown={action(e => GestureOverlay.Instance.InkShape = btn)}
-                style={{ backgroundColor: btn === GestureOverlay.Instance?.InkShape ? "121212" : "" }}>
-                {this._icons[i]}
-            </button>)}
-        </>;
+        return this._buttons.map((btn, i) => <button
+            className="antimodeMenu-button"
+            title={`Draw ${btn}`}
+            key={i}
+            onPointerDown={action(e => GestureOverlay.Instance.InkShape = btn)}
+            style={{ backgroundColor: btn === GestureOverlay.Instance.InkShape ? "121212" : "" }}>
+            {this._icons[i]}
+        </button>);
     }
 
     @computed get bezierButton() {
@@ -125,7 +123,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
     render() {
         const buttons = [
             <button className="antimodeMenu-button" title="Drag" key="drag" onPointerDown={e => this.dragStart(e)}>  ✜  </button>,
-            this.shapeButtons,
+            ...this.shapeButtons,
             this.bezierButton,
             this.widthPicker,
             this.colorPicker,

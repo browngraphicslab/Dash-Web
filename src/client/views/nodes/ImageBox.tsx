@@ -120,7 +120,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 });
                 const files = await res.json();
                 const url = Utils.prepend(files[0].path);
-                // upload to server with known URL 
+                // upload to server with known URL
                 const audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", _width: 200, _height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
                 const audioAnnos = Cast(this.dataDoc[this.fieldKey + "-audioAnnotations"], listSpec(Doc));
@@ -182,11 +182,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             !existingAnalyze && ContextMenu.Instance?.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-
-            const existingMore = ContextMenu.Instance?.findByDescription("More...");
-            const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            !existingMore && ContextMenu.Instance?.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
 

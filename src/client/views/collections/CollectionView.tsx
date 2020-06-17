@@ -159,7 +159,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // this is called with the document that was dragged and the collection to move it into.
     // if the target collection is the same as this collection, then the move will be allowed.
     // otherwise, the document being moved must be able to be removed from its container before
-    // moving it into the target.  
+    // moving it into the target.
     @action.bound
     moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
@@ -171,7 +171,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     showIsTagged = () => {
         return (null);
-        // this section would display an icon in the bototm right of a collection to indicate that all 
+        // this section would display an icon in the bototm right of a collection to indicate that all
         // photos had been processed through Google's content analysis API and Google's tags had been
         // assigned to the documents googlePhotosTags field.
         // const children = DocListCast(this.props.Document[this.props.fieldKey]);
@@ -282,10 +282,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 }));
             !existingOnClick && ContextMenu.Instance?.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
-            const more = ContextMenu.Instance?.findByDescription("More...");
-            const moreItems = more && "subitems" in more ? more.subitems : [];
-            moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
-            !more && ContextMenu.Instance?.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+            if (!Doc.UserDoc().noviceMode) {
+                const more = ContextMenu.Instance.findByDescription("More...");
+                const moreItems = more && "subitems" in more ? more.subitems : [];
+                moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
+                !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+            }
         }
     }
 
@@ -525,5 +527,3 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         </div>);
     }
 }
-
-

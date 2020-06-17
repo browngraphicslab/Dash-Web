@@ -134,7 +134,6 @@ export namespace DragManager {
         dropAction: dropActionType;
         removeDropProperties?: string[];
         userDropAction: dropActionType;
-        embedDoc?: boolean;
         moveDocument?: MoveFunction;
         removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts

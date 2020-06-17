@@ -43,13 +43,13 @@ import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
-import { undo } from 'prosemirror-history';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
-    fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
+    fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard, fa.faQuestion);
 
 export type DocFocusFunc = () => boolean;
+
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
@@ -138,8 +138,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         console.log(SelectionManager.SelectedDocuments());
-        console.log("START");
-        if (RadialMenu.Instance?._display === false) {
+        if (RadialMenu.Instance._display === false) {
             this.addHoldMoveListeners();
             this.addHoldEndListeners();
             this.onRadialMenu(e, me);
@@ -179,8 +178,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onRadialMenu = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
-        // console.log(InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true));
-        // const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
         RadialMenu.Instance.openMenu(pt.pageX - 15, pt.pageY - 15);
 
@@ -189,12 +186,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "folder", selected: -1 });
 
-        // if (SelectionManager.IsSelected(this, true)) {
-        //     SelectionManager.SelectDoc(this, false);
-        // }
         SelectionManager.DeselectAll();
-
-
     }
 
     @action
@@ -361,12 +353,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     followLinkClick = async (altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
-        // open up target if it's not already in view ... 
+        // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
             const targetFocusAfterDocFocus = () => {
                 const where = StrCast(this.Document.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 this.props.addDocTab(doc, where) && this.props.focus(doc, BoolCast(this.Document.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
@@ -511,8 +503,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        // console.log(e.button)
-        // console.log(e.nativeEvent)
         // continue if the event hasn't been canceled AND we are using a moues or this is has an onClick or onDragStart function (meaning it is a button document)
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
@@ -739,7 +729,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.contextMenuItems?.().forEach(item =>
             cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
-
         let options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
@@ -761,7 +750,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
-
         const funcs: ContextMenuProps[] = [];
         if (this.Document.onDragStart) {
             funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
@@ -771,98 +759,109 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const more = cm.findByDescription("More...");
-        const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
-        moreItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
-        moreItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
-        moreItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
-        moreItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
-        moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-        moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+        const moreItems = more && "subitems" in more ? more.subitems : [];
+        if (!Doc.UserDoc().noviceMode) {
+            moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
+            moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
 
-        if (!ClientUtils.RELEASE) {
-            // let copies: ContextMenuProps[] = [];
-            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-            // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
-        }
-        if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
-            moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
-            moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
-            moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
-        }
-        moreItems.push({
-            description: "Download document", icon: "download", event: async () => {
-                const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
-                    qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                });
-                console.log(response ? JSON.parse(response) : undefined);
+            if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
+                moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
+                moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
+                moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
             }
-            // const a = document.createElement("a");
-            // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-            // a.href = url;
-            // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-            // a.click();
-        });
-
-        const recommender_subitems: ContextMenuProps[] = [];
-
-        recommender_subitems.push({
-            description: "Internal recommendations",
-            event: () => this.recommender(),
-            icon: "brain"
-        });
-
-        const ext_recommender_subitems: ContextMenuProps[] = [];
-
-        ext_recommender_subitems.push({
-            description: "arXiv",
-            event: () => this.externalRecommendation("arxiv"),
-            icon: "brain"
-        });
-        ext_recommender_subitems.push({
-            description: "Bing",
-            event: () => this.externalRecommendation("bing"),
-            icon: "brain"
-        });
-
-        recommender_subitems.push({
-            description: "External recommendations",
-            subitems: ext_recommender_subitems,
-            icon: "brain"
-        });
-
+            moreItems.push({
+                description: "Download document", icon: "download", event: async () => {
+                    const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+                        qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
+                    });
+                    console.log(response ? JSON.parse(response) : undefined);
+                }
+                // const a = document.createElement("a");
+                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                // a.href = url;
+                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                // a.click();
+            });
+        }
+        moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+        moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        moreItems.push({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
-        moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
-        moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
+        moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
-
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
 
-        runInAction(() => {
-            const setWriteMode = (mode: DocServer.WriteMode) => {
-                DocServer.AclsMode = mode;
-                const mode1 = mode;
-                const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-                DocServer.setFieldWriteMode("x", mode1);
-                DocServer.setFieldWriteMode("y", mode1);
-                DocServer.setFieldWriteMode("_width", mode1);
-                DocServer.setFieldWriteMode("_height", mode1);
-
-                DocServer.setFieldWriteMode("_panX", mode2);
-                DocServer.setFieldWriteMode("_panY", mode2);
-                DocServer.setFieldWriteMode("scale", mode2);
-                DocServer.setFieldWriteMode("_viewType", mode2);
-            };
-            const aclsMenu: ContextMenuProps[] = [];
-            aclsMenu.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
-            aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
-            aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
-            aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
-            aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
-            cm.addItem({ description: "Collaboration ...", subitems: aclsMenu, icon: "share" });
+        const help = cm.findByDescription("Help...");
+        const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
+        helpItems.push({
+            description: "Keyboard Shortcuts       Ctrl+/",
+            event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
+            icon: "keyboard"
         });
+        cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
+
+        const existingAcls = cm.findByDescription("Privacy...");
+        const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
+        aclItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
+        aclItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
+        aclItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
+        !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
+
+        // const recommender_subitems: ContextMenuProps[] = [];
+
+        // recommender_subitems.push({
+        //     description: "Internal recommendations",
+        //     event: () => this.recommender(),
+        //     icon: "brain"
+        // });
+
+        // const ext_recommender_subitems: ContextMenuProps[] = [];
+
+        // ext_recommender_subitems.push({
+        //     description: "arXiv",
+        //     event: () => this.externalRecommendation("arxiv"),
+        //     icon: "brain"
+        // });
+        // ext_recommender_subitems.push({
+        //     description: "Bing",
+        //     event: () => this.externalRecommendation("bing"),
+        //     icon: "brain"
+        // });
+
+        // recommender_subitems.push({
+        //     description: "External recommendations",
+        //     subitems: ext_recommender_subitems,
+        //     icon: "brain"
+        // });
+
+
+        //moreItems.push({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
+        //moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
+        //moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
+
+        // runInAction(() => {
+        //     const setWriteMode = (mode: DocServer.WriteMode) => {
+        //         DocServer.AclsMode = mode;
+        //         const mode1 = mode;
+        //         const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+        //         DocServer.setFieldWriteMode("x", mode1);
+        //         DocServer.setFieldWriteMode("y", mode1);
+        //         DocServer.setFieldWriteMode("_width", mode1);
+        //         DocServer.setFieldWriteMode("_height", mode1);
+
+        //         DocServer.setFieldWriteMode("_panX", mode2);
+        //         DocServer.setFieldWriteMode("_panY", mode2);
+        //         DocServer.setFieldWriteMode("scale", mode2);
+        //         DocServer.setFieldWriteMode("_viewType", mode2);
+        //     };
+        //     const aclsMenu: ContextMenuProps[] = [];
+        //     aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
+        //     aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
+        //     aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
+        //     aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
+        //     cm.addItem({ description: "Collaboration ...", subitems: aclsMenu, icon: "share" });
+        // });
         runInAction(() => {
             if (!this.topMost && !(e instanceof Touch)) {
                 // DocumentViews should stop propagation of this event
@@ -974,7 +973,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     // does Document set a layout prop
-    // does Document set a layout prop 
+    // does Document set a layout prop
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
     getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
