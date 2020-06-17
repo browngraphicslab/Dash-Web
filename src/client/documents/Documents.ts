@@ -1,54 +1,53 @@
-import { CollectionView } from "../views/collections/CollectionView";
-import { CollectionViewType } from "../views/collections/CollectionView";
+import { runInAction } from "mobx";
+import { extname } from "path";
+import { DateField } from "../../fields/DateField";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
+import { HtmlField } from "../../fields/HtmlField";
+import { InkField } from "../../fields/InkField";
+import { List } from "../../fields/List";
+import { ProxyField } from "../../fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
+import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
+import { MessageStore } from "../../server/Message";
+import { OmitKeys, Utils } from "../../Utils";
+import { DocServer } from "../DocServer";
+import { dropActionType } from "../util/DragManager";
+import { LinkManager } from "../util/LinkManager";
+import { Scripting } from "../util/Scripting";
+import { UndoManager } from "../util/UndoManager";
+import { DocumentType } from "./DocumentTypes";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { ContextMenu } from "../views/ContextMenu";
+import { ContextMenuProps } from "../views/ContextMenuItem";
+import { ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
 import { AudioBox } from "../views/nodes/AudioBox";
+import { ColorBox } from "../views/nodes/ColorBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
+import { DocHolderBox } from "../views/nodes/DocHolderBox";
+import { FontIconBox } from "../views/nodes/FontIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
+import { LabelBox } from "../views/nodes/LabelBox";
+import { LinkBox } from "../views/nodes/LinkBox";
 import { PDFBox } from "../views/nodes/PDFBox";
+import { PresBox } from "../views/nodes/PresBox";
+import { QueryBox } from "../views/nodes/QueryBox";
+import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
+import { SliderBox } from "../views/nodes/SliderBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast, HeightSym, WidthSym } from "../../fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
-import { HtmlField } from "../../fields/HtmlField";
-import { List } from "../../fields/List";
-import { Cast, NumCast, StrCast, FieldValue } from "../../fields/Types";
-import { DocServer } from "../DocServer";
-import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../fields/DateField";
-import { YoutubeBox } from "../apis/youtube/YoutubeBox";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { LinkManager } from "../util/LinkManager";
-import { DocumentManager } from "../util/DocumentManager";
-import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting } from "../util/Scripting";
-import { LabelBox } from "../views/nodes/LabelBox";
-import { SliderBox } from "../views/nodes/SliderBox";
-import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
-import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../fields/ScriptField";
-import { ProxyField } from "../../fields/Proxy";
-import { DocumentType } from "./DocumentTypes";
-import { RecommendationsBox } from "../views/RecommendationsBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { QueryBox } from "../views/nodes/QueryBox";
-import { ColorBox } from "../views/nodes/ColorBox";
-import { DocHolderBox } from "../views/nodes/DocHolderBox";
-import { InkingStroke, ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../views/InkingStroke";
-import { InkField } from "../../fields/InkField";
-import { RichTextField } from "../../fields/RichTextField";
-import { extname } from "path";
-import { MessageStore } from "../../server/Message";
-import { ContextMenuProps } from "../views/ContextMenuItem";
-import { ContextMenu } from "../views/ContextMenu";
-import { LinkBox } from "../views/nodes/LinkBox";
-import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
-import { ComparisonBox } from "../views/nodes/ComparisonBox";
-import { runInAction } from "mobx";
-import { UndoManager } from "../util/UndoManager";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
+import { DocumentManager } from "../util/DocumentManager";
+import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -262,6 +261,11 @@ export namespace Docs {
                 layout: { view: EmptyBox, dataField: defaultDataKey },
                 options: { childDropAction: "alias", title: "Global Link Database" }
             }],
+            [DocumentType.SCRIPTDB, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Script Database" }
+            }],
             [DocumentType.SCRIPTING, {
                 layout: { view: ScriptingBox, dataField: defaultDataKey }
             }],
@@ -358,6 +362,13 @@ export namespace Docs {
          */
         export function MainLinkDocument() {
             return Prototypes.get(DocumentType.LINKDB);
+        }
+
+        /**
+         * A collection of all scripts in the database
+         */
+        export function MainScriptDocument() {
+            return Prototypes.get(DocumentType.SCRIPTDB);
         }
 
         /**
@@ -726,6 +737,11 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
+            // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
+            // btn.layoutKey = "layout_onClick";
+            // btn.height = 250;
+            // btn.width = 200;
+            // btn.layout_onClick = ScriptingBox.LayoutString("onClick");
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
