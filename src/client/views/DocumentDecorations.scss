@@ -222,13 +222,15 @@ $linkGap : 3px;
 }
 
 .link-button-container {
-    margin-top: $linkGap;
+    padding: $linkGap;
+    border-radius: 10px;
     width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;
     z-index: 998;
     position: absolute;
+    background: $alt-accent;
 }
 
 .linkButtonWrapper {

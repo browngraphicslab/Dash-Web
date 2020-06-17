@@ -58,7 +58,7 @@ import { DocumentManager } from '../util/DocumentManager';
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 26;
+    private _buttonBarHeight = 36;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
@@ -389,7 +389,7 @@ export class MainView extends React.Component {
             return (null);
         }
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight - 10/*margin-top*/}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
                     Document={this.sidebarButtonsDoc}
                     DataDoc={undefined}

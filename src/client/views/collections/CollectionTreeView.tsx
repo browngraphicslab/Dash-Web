@@ -345,6 +345,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}
+                    treeViewId={this.props.treeViewId[Id]}
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
@@ -484,12 +485,13 @@ class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const sorting = this.props.document[`${this.fieldKey}-sortAscending`];
         //setTimeout(() => runInAction(() => untracked(() => this._overrideTreeViewOpen = this.treeViewOpen)), 0);
-        return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
+        return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active() && SelectionManager.DeselectAll()}>
             <li className="collection-child">
                 <div className="treeViewItem-header" ref={this._header} onClick={e => {
                     if (this.props.active(true)) {
                         e.stopPropagation();
-                        e.preventDefault();
+                        e.preventDefault()
+                        SelectionManager.DeselectAll();
                     }
                 }}
                     onPointerDown={e => {
