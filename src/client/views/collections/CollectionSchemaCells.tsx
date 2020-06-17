@@ -25,9 +25,6 @@ import { undoBatch } from "../../util/UndoManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { ComputedField } from "../../../fields/ScriptField";
 import { ImageField } from "../../../fields/URLField";
-import { KeysDropdown } from "./CollectionSchemaHeaders";
-import { listSpec } from "../../../fields/Schema";
-import { ObjectField } from "../../../fields/ObjectField";
 import { List } from "../../../fields/List";
 import { LinkBox } from "../nodes/LinkBox";
 import { OverlayView } from "../OverlayView";
@@ -63,7 +60,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     @observable protected _isEditing: boolean = false;
     protected _focusRef = React.createRef<HTMLDivElement>();
     protected _document = this.props.rowProps.original;
-    private _dropDisposer?: DragManager.DragDropDisposer;
+    protected _dropDisposer?: DragManager.DragDropDisposer;
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyDown);
@@ -138,7 +135,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         }
     }
 
-    private dropRef = (ele: HTMLElement | null) => {
+    protected dropRef = (ele: HTMLElement | null) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
             this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
@@ -215,14 +212,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
         }
         if (type === "image") {
-            // fix this
-
             const image = FieldValue(Cast(field, ImageField));
             const doc = FieldValue(Cast(field, Doc));
             contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
         }
         if (type === "list") {
-            // fix this
             contents = typeof field === "object" ? doc ? StrCast(field) === "" ? "--" : StrCast(field) : `--${typeof field}--` : `--${typeof field}--`;
         }
 
@@ -415,6 +409,10 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
     }
 }
 
+
+
+
+
 @observer
 export class CollectionSchemaListCell extends CollectionSchemaCell {
 
@@ -457,9 +455,17 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         this._opened = open;
     }
 
+    // @action
+    // onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    //     this._text = e.target.value;
+
+    //     // change if its a document
+    //     this._optionsList[this._selectedNum] = this._text;
+    // }
+
     @action
-    onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this._text = e.target.value;
+    onSetValue = (value: string) => {
+        this._text = value;
 
         // change if its a document
         this._optionsList[this._selectedNum] = this._text;
@@ -476,7 +482,29 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
+
     render() {
+
+        const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+        let type = "list";
+
+        // const fieldIsDoc = (type === "document" && typeof this._field === "object") || (typeof this._field === "object" && document);
+
+        // const onItemDown = (e: React.PointerEvent) => {
+        //     fieldIsDoc && SetupDrag(this._focusRef,
+        //         () => this._document[this.prop.fieldKey] instanceof Doc ? this._document[this.prop.fieldKey] : this._document,
+        //         this._document[this.prop.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
+        //         this._document[this.prop.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+        // };
+        // const onPointerEnter = (e: React.PointerEvent): void => {
+        //     if (e.buttons === 1 && SnappingManager.GetIsDragging() && (type === "document" || type === undefined)) {
+        //         dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
+        //     }
+        // };
+        // const onPointerLeave = (e: React.PointerEvent): void => {
+        //     dragRef.current!.className = "collectionSchemaView-cellContainer";
+        // };
 
         let link = false;
         let doc = false;
@@ -485,11 +513,15 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         if (typeof this._field === "object" && this._optionsList[1]) {
 
             const options = this._optionsList.map((element, index) => {
+
                 if (element instanceof Doc) {
                     doc = true;
+                    type = "document";
                     if (this.prop.fieldKey.toLowerCase() === "links") {
                         link = true;
+                        type = "link";
                     }
+                    const document = FieldValue(Cast(element, Doc));
                     const title = element.title;
                     return <div
                         className="collectionSchemaView-dropdownOption"
@@ -497,18 +529,45 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                         style={{ padding: "6px" }}>
                         {title}
                     </div>;
+
                 } else {
-                    return <div>{element}</div>;
+                    return <div
+                        className="collectionSchemaView-dropdownOption"
+                        onPointerDown={(e) => { this.onSelected(StrCast(element), index); }}
+                        style={{ padding: "6px" }}>{element}</div>;
                 }
             });
 
-
             const plainText = <div>{this._text}</div>;
-            const textarea = <textarea onChange={this.onChange} value={this._text}
-                onFocus={doc ? this.onFocus : undefined}
-                onBlur={doc ? e => this._overlayDisposer?.() : undefined}
-                style={{ resize: "none" }}
-                placeholder={"select an item"}></textarea>;
+            // const textarea = <textarea onChange={this.onChange} value={this._text}
+            //     onFocus={doc ? this.onFocus : undefined}
+            //     onBlur={doc ? e => this._overlayDisposer?.() : undefined}
+            //     style={{ resize: "none" }}
+            //     placeholder={"select an item"}></textarea>;
+
+            const textarea = <div className="collectionSchemaView-cellContents"
+                style={{ padding: "5.7px" }}
+                ref={type === undefined || type === "document" ? this.dropRef : null} key={this.prop.Document[Id]}>
+                <EditableView
+                    editing={this._isEditing}
+                    isEditingCallback={this.isEditingCallback}
+                    display={"inline"}
+                    contents={this._text}
+                    height={"auto"}
+                    maxHeight={Number(MAX_ROW_HEIGHT)}
+                    GetValue={() => {
+                        return this._text;
+                    }}
+                    SetValue={action((value: string) => {
+
+                        // add special for params 
+                        this.onSetValue(value);
+                        return true;
+                    })}
+                />
+            </div >;
+
+
             const dropdown = <div>
                 {options}
             </div>;
@@ -529,12 +588,14 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                 </div>
             );
         } else {
-            console.log("not an array!");
-
             return this.renderCellWithType("list");
         }
     }
 }
+
+
+
+
 
 @observer
 export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
