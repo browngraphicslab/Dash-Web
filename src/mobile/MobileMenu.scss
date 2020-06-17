@@ -20,6 +20,7 @@ body {
     height: $navbar-height;
     background-color: whitesmoke;
     border-bottom: 5px solid black;
+    z-index: 150;
 }
 
 .navbar .cover {
@@ -55,6 +56,11 @@ body {
     user-select: none;
     text-transform: uppercase;
     font-family: Arial, Helvetica, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: ltr;
+    width: 600px;
 }
 
 .navbar .toggle-btn span {
@@ -192,8 +198,10 @@ body {
 
 
 .sidebar.active {
+    position: absolute;
     right: 0%;
     opacity: 1;
+    z-index: 101;
 }
 
 .back {
