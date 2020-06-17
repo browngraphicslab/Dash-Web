@@ -732,7 +732,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
-        optionItems.push({ description: "Open Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         if (!options) {
             options = { description: "Options...", subitems: optionItems, icon: "compass" };
@@ -792,11 +791,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const help = cm.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        helpItems.push({
-            description: "Keyboard Shortcuts       Ctrl+/",
-            event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
-            icon: "keyboard"
-        });
+        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
+        helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
 
         const existingAcls = cm.findByDescription("Privacy...");
