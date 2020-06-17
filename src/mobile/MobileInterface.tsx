@@ -370,8 +370,9 @@ export class MobileInterface extends React.Component {
                     <div
                         className="item"
                         key={index}
-                        onClick={() => this.handleClick(doc)}>{doc.title}
-                        <div className="type">{doc.type}</div>
+                        onClick={() => this.handleClick(doc)}>
+                        <div className="item-title"> {doc.title} </div>
+                        <div className="item-type">{doc.type}</div>
                         <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
                     </div>);
             }
