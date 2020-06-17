@@ -460,6 +460,20 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.buckets!.push(secondbucket);
         this.bucketcount[2]=0;
         }
+
+        let webbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.secondstring });
+        webbucket._height=185;
+        webbucket._viewType === CollectionViewType.Stacking;
+        webbucket.bucketfield = "webs";
+        webbucket.isBucket=true;
+        const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${this.layoutDoc._searchString}`, {
+                    _width: 200,  _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
+                    title: "bing", UseCors: true
+                });
+        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, webbucket);
+        Doc.AddDocToList(webbucket, this.props.fieldKey, textDoc);
+
+
     }
 
     @observable buckets:Doc[]|undefined;
@@ -574,7 +588,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             basicWordStatus: this._basicWordStatus,
             icons: this._icons,
         }
-        return Docs.Create.SearchDocument({ _autoHeight: true, title: StrCast(this.layoutDoc._searchString), filterQuery: filter, searchQuery: StrCast(this.layoutDoc._searchString) });
+        return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Stacking , title: StrCast(this.layoutDoc._searchString), filterQuery: filter, searchQuery: StrCast(this.layoutDoc._searchString) });
     }
 
     @action.bound
@@ -730,6 +744,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     result[0].highlighting=highlights.join(", ");
                     Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                 }
+    
                 this._isSorted[i]="sorted"; 
             }
         }
@@ -744,10 +759,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this.buckets![2]){  
         this.buckets![2]._height = this.bucketcount[2]*55 + 25;
         }
-
-        // if (this.bucketcount[0]===0){
-        //     Doc.RemoveDocFromList(this.dataDoc, this.props.fieldKey, this.buckets![0]);
-        //     }
         }
             
         else {
@@ -836,6 +847,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this._filterOpen) {
             this.expandSection(`filterhead${this.props.Document[Id]}`);
             document.getElementById(`filterhead${this.props.Document[Id]}`)!.style.padding = "5";
+            console.log(this.props.Document[Id])
         }
         else {
             this.collapseSection(`filterhead${this.props.Document[Id]}`);

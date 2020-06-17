@@ -148,8 +148,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     constructor(props:any){
         super(props);
-        this.rootDoc._viewType= CollectionViewType.Stacking;
-        this.rootDoc._viewType = CollectionViewType.Stacking;
+        //this.rootDoc._viewType= CollectionViewType.Stacking;
         this.props.Document._height=46;
         if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
@@ -483,6 +482,24 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     render() {
         const doc1 = Cast(this.rootDoc!.anchor1, Doc);
         const doc2 = Cast(this.rootDoc!.anchor2, Doc);
+        if (StrCast(this.rootDoc.bucketfield)==="webs"){
+            this.props.Document._viewType=CollectionViewType.Stacking;  
+            this.props.Document._chromeStatus='disabled';
+            this.props.Document._height=this.rootDoc._height;
+            return <div>
+            <CollectionView {...this.props}
+            Document={this.props.Document}
+            PanelHeight={this.panelHeight}
+            whenActiveChanged={emptyFunction}
+            onClick={undefined}
+            moveDocument={returnFalse}
+            childLayoutTemplate={undefined}
+            addDocument={undefined}
+            removeDocument={returnFalse}
+            focus={this.selectElement}
+            ScreenToLocalTransform={this.getTransform} />
+            </div>
+        }
         if (this.rootDoc.isBucket === true){
             this.props.Document._viewType=CollectionViewType.Stacking;  
             this.props.Document._chromeStatus='disabled';
@@ -532,10 +549,10 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                         <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
                     </div>
                 </div>
-                <div className="searchItem-context" title="Drag as document">
+                {/* <div className="searchItem-context" title="Drag as document">
                     {(doc1 instanceof Doc && doc2 instanceof Doc) && this.rootDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
                         this.contextButton}
-                </div>
+                </div> */}
             </div>
         </div>;
         }
