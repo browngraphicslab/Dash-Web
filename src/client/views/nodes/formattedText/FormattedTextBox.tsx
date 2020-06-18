@@ -13,7 +13,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { Id } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
@@ -22,7 +22,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast } from "../../../../fields/Types";
-import { TraceMobx } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_ACL } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -199,22 +199,28 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
-            if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
-                this._applyingChange = true;
-                this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                    if (json !== curLayout?.Data) {
-                        !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
-                        !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
-                        this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
-                        this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
+            if (!this.dataDoc[AclSym]) {
+                if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
+                    this._applyingChange = true;
+                    this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
+                        if (json !== curLayout?.Data) {
+                            !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
+                            !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
+                            this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
+                            this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
+                        }
+                    } else { // if we've deleted all the text in a note driven by a template, then restore the template data
+                        this.dataDoc[this.props.fieldKey] = undefined;
+                        this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
+                        this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                     }
-                } else { // if we've deleted all the text in a note driven by a template, then restore the template data
-                    this.dataDoc[this.props.fieldKey] = undefined;
-                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
+                    this._applyingChange = false;
                 }
-                this._applyingChange = false;
+            } else {
+                const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
+                json.selection = state.toJSON().selection;
+                this._editorView.updateState(EditorState.fromJSON(this.config, json));
             }
             this.updateTitle();
             this.tryUpdateHeight();
@@ -598,7 +604,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     tr = tr.addMark(pos, pos + node.nodeSize, link);
                 }
             });
+            OVERRIDE_ACL(true);
             this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
+            OVERRIDE_ACL(false);
         }
     }
     componentDidMount() {
