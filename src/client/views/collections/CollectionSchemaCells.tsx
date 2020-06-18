@@ -3,7 +3,7 @@ import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -345,12 +345,13 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         ContentScaling: returnOne
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
-    @observable private _text = "this._field";
+    @observable private _doc = FieldValue(Cast(this._field, Doc));
+    @observable private _docTitle = this._doc?.title;
 
 
     @action
     onSetValue = (value: string) => {
-        this._text = value;
+        this._docTitle = value;
         //this.prop.Document[this.prop.fieldKey] = this._text;
 
         const script = CompileScript(value, {
@@ -358,10 +359,12 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
             typecheck: false,
             transformer: DocumentIconContainer.getTransformer()
         });
+
         const results = script.compiled && script.run();
         if (results && results.success) {
 
-            this._text = results.result;
+            console.log(results.result);
+            // this._docTitle = results.result;
 
             return true;
         }
@@ -381,7 +384,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
         const reference = React.createRef<HTMLDivElement>();
 
-        if (typeof this._field === "object" && this._text) {
+        if (typeof this._field === "object" && this._docTitle) {
 
 
             return (
@@ -394,12 +397,11 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
-                            contents={this._text}
+                            contents={this._docTitle}
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
-                                const val = this._text ? this._text : "";
-                                return StrCast(val);
+                                return StrCast(this._docTitle);
                             }}
                             SetValue={action((value: string) => {
                                 this.onSetValue(value);
