@@ -364,7 +364,9 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         if (results && results.success) {
 
             console.log(results.result);
-            // this._docTitle = results.result;
+            this._doc = results.result;
+            this.prop.Document[this.prop.fieldKey] = results.result;
+            this._docTitle = this._doc?.title;
 
             return true;
         }
@@ -378,18 +380,26 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
+    onOpenClick = () => {
+        if (this._doc) {
+            this.prop.addDocTab(this._doc, "onRight");
+            return true;
+        }
+        return false;
+    }
+
 
     render() {
 
         const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
         const reference = React.createRef<HTMLDivElement>();
 
-        if (typeof this._field === "object" && this._docTitle) {
+        if (typeof this._field === "object" && this._doc && this._docTitle) {
 
 
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                    <div className="collectionSchemaView-cellContents"
+                    <div className="collectionSchemaView-cellContents-document"
                         style={{ padding: "5.9px" }}
                         onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
                         ref={this.dropRef}>
@@ -409,6 +419,8 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
                             })}
                         />
                     </div >
+                    <button onClick={this.onOpenClick} className="collectionSchemaView-cellContents-docButton">
+                        <FontAwesomeIcon icon="external-link-alt" size="1x" ></FontAwesomeIcon> </button>
                 </div>
             );
         } else {

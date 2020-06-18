@@ -413,6 +413,17 @@ button.add-column {
         display: block;
     }
 
+
+    .collectionSchemaView-cellContents-document {
+        display: inline-block;
+    }
+
+    .collectionSchemaView-cellContents-docButton {
+        float: right;
+        width: "15px";
+        height: "15px";
+    }
+
     .collectionSchemaView-dropdownWrapper {
 
         border: grey;
