@@ -184,10 +184,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             }
         }
 
-        this._reactionDisposer = reaction(
-            () => this.rootDoc.searchIndex,
-            search => {console.log(NumCast(search));this.searchPos=NumCast(search) },{ fireImmediately: true }
-        );
         this._reactionDisposer2 = reaction(
             () => this._useIcons,
             el=> { 
@@ -224,16 +220,13 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     }
     componentWillUnmount() {
         this.rootDoc.searchMatch = undefined;
-        this._reactionDisposer && this._reactionDisposer();
         this._reactionDisposer2 && this._reactionDisposer2();
         this._reactionDisposer3 && this._reactionDisposer3();
 
     }
 
     
-    @observable searchPos: number|undefined =0;
 
-    private _reactionDisposer?: IReactionDisposer;
     private _reactionDisposer2?: IReactionDisposer;
     private _reactionDisposer3?: IReactionDisposer;
 
@@ -311,8 +304,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         this.rootDoc!.searchMatch = false;
         setTimeout(() => this.rootDoc!.searchMatch = true, 0);
         this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
-
-        this.searchPos=NumCast(this.rootDoc!.searchIndex);
         this.length=NumCast(this.rootDoc!.length);
     }
 
@@ -327,7 +318,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         setTimeout(() => this.rootDoc!.searchMatch2 = true, 0);
         this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
 
-        this.searchPos=NumCast(this.rootDoc!.searchIndex);
         this.length=NumCast(this.rootDoc!.length);
     }
 
@@ -427,6 +417,9 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         if (StrCast(this.rootDoc.bucketfield)!=="results"){
         SearchBox.Instance._icons=[StrCast(this.rootDoc.bucketfield)];
         SearchBox.Instance._icons=SearchBox.Instance._icons;
+        }
+        else{
+            SearchBox.Instance._icons=SearchBox.Instance._allIcons;
         }
         SearchBox.Instance.expandedBucket= true;
         SearchBox.Instance.submitSearch();

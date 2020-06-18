@@ -268,15 +268,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     filterDocsByType(docs: Doc[]) {
-        if (this._icons.length === this._allIcons.length) {
-            return docs;
-        }
         const finalDocs: Doc[] = [];
+        const blockedTypes:string[]= ["preselement","docholder","collection","search","searchitem", "script", "fonticonbox", "button", "label"];
         docs.forEach(doc => {
             const layoutresult = Cast(doc.type, "string");
+            if (layoutresult && !blockedTypes.includes(layoutresult)){
             if (layoutresult && this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }
+        }
         });
         return finalDocs;
     }
@@ -408,6 +408,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable bucketcount:number[]=[];
 
     @action private makenewbuckets(){
+        console.log("new");
         let highcount=0;
         let secondcount=0;
         this.firststring="";
@@ -499,6 +500,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private NumResults = 25;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
+        console.log("Get");
         if (this.lockPromise) {
             await this.lockPromise;
         }
@@ -517,12 +519,25 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
                     const filteredDocs = this.filterDocsByType(docs);
+                    
                     runInAction(() => {
-                        filteredDocs.forEach(doc => {
+                        filteredDocs.forEach((doc,i) => {
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
                             const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
+                            if (this.findCommonElements(hlights)){
+                            }
+                            else{
+                                const layoutresult = Cast(doc.type, "string");
+                                if (layoutresult){
+                                if(this.new_buckets[layoutresult]===undefined){
+                                    this.new_buckets[layoutresult]=1;
+                                }
+                                else {
+                                    this.new_buckets[layoutresult]=this.new_buckets[layoutresult]+1;
+                                }
+                            }
                             if (index === undefined) {
                                 this._resultsSet.set(doc, this._results.length);
                                 this._results.push([doc, hlights, line]);
@@ -530,6 +545,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 this._results[index][1].push(...hlights);
                                 this._results[index][2].push(...line);
                             }
+                        }
                         });
                     });
 
@@ -539,8 +555,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
                 await this._curRequest;
             }
+            if (this._numTotalResults>3 && this.expandedBucket===false){
+            this.makenewbuckets();
+            }
             this.resultsScrolled();
-
             res();
         });
         return this.lockPromise;
@@ -652,8 +670,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._isSorted = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
 
         }
-
-
         for (let i = 0; i < this._numTotalResults; i++) {
             //if the index is out of the window then put a placeholder in
             //should ones that have already been found get set to placeholders?
@@ -666,44 +682,50 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
             else {
                 if (this._isSearch[i] !== "search") {
-
                     let result: [Doc, string[], string[]] | undefined = undefined;
                     if (i >= this._results.length) {
                         this.getResults(StrCast(this.layoutDoc._searchString));
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            if (!this.blockedTypes.includes(StrCast(result[0].type))){
-
-                            if(this.new_buckets[StrCast(result[0].type)]===undefined){
-                                this.new_buckets[StrCast(result[0].type)]=1;
-                            }
-                            else { 
-                                this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
-                            }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             let lines = new List<string>(result[2]);
                             result[0]._height=46;
                             result[0].lines=lines;
                             result[0].highlighting=highlights.join(", ");
                             this._visibleDocuments[i] = result[0];
-
-                            this._isSearch[i] = "search";
-                        }
-                        }
-
+                            this._isSearch[i] = "search";           
+                            if (this._numTotalResults>3 && this.expandedBucket===false){
+                                let doctype = StrCast(result[0].type);
+                                console.log(doctype);
+                                if (doctype=== this.firststring){
+                                if (this.bucketcount[1]<3){
+                                result[0].parent= this.buckets![1];
+                                Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
+                                this.bucketcount[1]+=1;
+                                }
+                                }
+                                else if (doctype=== this.secondstring){
+                                if (this.bucketcount[2]<3){
+                                result[0].parent= this.buckets![2];
+                                Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
+                                this.bucketcount[2]+=1;
+                                }
+                                }
+                                else if (this.bucketcount[0]<3){
+                                //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
+                                //this.bucketcount[0]+=1;
+                                Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
+                                }    
+                            }
+                            else {
+                                Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
+                            }
+                    }
                     }
                     else {
                         result = this._results[i];
                         if (result) {
-                            if (!this.blockedTypes.includes(StrCast(result[0].type))){
-                            if(this.new_buckets[StrCast(result[0].type)]===undefined){
-                                this.new_buckets[StrCast(result[0].type)]=1;
-                            }
-                            else { 
-                                this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
-                            }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-
                             let lines = new List<string>(result[2]);
                             result[0]._height=46;
                             result[0].lines= lines;
@@ -711,45 +733,38 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             if(i<this._visibleDocuments.length){
                             this._visibleDocuments[i]=result[0];
                             this._isSearch[i] = "search";
+                            if (this._numTotalResults>3 && this.expandedBucket===false){
+
+                                if (StrCast(result[0].type)=== this.firststring){
+                                if (this.bucketcount[1]<3){
+                                result[0].parent= this.buckets![1];
+                                Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
+                                this.bucketcount[1]+=1;
+                                }
+                                }
+                                else if (StrCast(result[0].type)=== this.secondstring){
+                                if (this.bucketcount[2]<3){
+                                result[0].parent= this.buckets![2];
+                                Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
+                                this.bucketcount[2]+=1;
+                                }
+                                }
+                                else if (this.bucketcount[0]<3){
+                                //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
+                                //this.bucketcount[0]+=1;
+                                Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
+                                }    
                             }
+                            else {
+                                Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                             }
+                        }
                         }
                     }
                 }
             }
         }
         if (this._numTotalResults>3 && this.expandedBucket===false){
-        this.makenewbuckets();
-        for (let i = 0; i < this._numTotalResults; i++) {
-            let result = this._results[i];
-            if (!this.blockedTypes.includes(StrCast(result[0].type))){
-            if (this._isSearch[i] === "search" && (this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
-                if (StrCast(result[0].type)=== this.firststring && this.bucketcount[1]<3){
-                    result[0].parent= this.buckets![1];
-                    Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
-                    this.bucketcount[1]+=1;
-                }
-                else if (StrCast(result[0].type)=== this.secondstring && this.bucketcount[2]<3){
-                    result[0].parent= this.buckets![2];
-                    Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
-                    this.bucketcount[2]+=1;
-                }
-                else if (this.bucketcount[0]<3){
-                    //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
-                    //this.bucketcount[0]+=1;
-                    const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                    let lines = new List<string>(result[2]);
-                    result[0]._height=46;
-                    result[0].lines= lines;
-                    result[0].highlighting=highlights.join(", ");
-                    Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                }
-    
-                this._isSorted[i]="sorted"; 
-            }
-        }
-        }
-
         if (this.buckets![0]){
         this.buckets![0]._height = this.bucketcount[0]*55 + 25;
         }
@@ -759,24 +774,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this.buckets![2]){  
         this.buckets![2]._height = this.bucketcount[2]*55 + 25;
         }
-        }
-            
-        else {
-                for (let i = 0; i < this._numTotalResults; i++) {
-                    if ((this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
-                        let result = this._results[i];
-                        if (!this.blockedTypes.includes(StrCast(result[0].type))){
-                        const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                        let lines = new List<string>(result[2]);
-                        result[0]._height=46;
-                        result[0].lines= lines;
-                        result[0].highlighting=highlights.join(", ");
-                        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                    }
-                }
-                }
-            }
-
+    }
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
             this._visibleDocuments.length = this._results.length;
@@ -784,10 +782,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
+    findCommonElements(arr2:string[]) { 
+        let arr1= ["layout", "data"];
+        return arr1.some(item => arr2.includes(item)) 
+    } 
     
-    blockedTypes:string[]= ["preselement","docholder","collection","search","searchitem", "script", "fonticonbox", "button", "label"];
-    blockedFields: string[]= ["layout"];
-
     @computed
     get resFull() { return this._numTotalResults <= 8; }
 
