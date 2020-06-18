@@ -29,6 +29,7 @@ import { List } from "../../../fields/List";
 import { LinkBox } from "../nodes/LinkBox";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "../nodes/DocumentIcon";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const path = require('path');
 
 library.add(faExpand);
@@ -314,8 +315,102 @@ export class CollectionSchemaStringCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaDocCell extends CollectionSchemaCell {
+
+    _overlayDisposer?: () => void;
+
+    private prop: FieldViewProps = {
+        Document: this.props.rowProps.original,
+        DataDoc: this.props.rowProps.original,
+        LibraryPath: [],
+        dropAction: "alias",
+        bringToFront: emptyFunction,
+        rootSelected: returnFalse,
+        fieldKey: this.props.rowProps.column.id as string,
+        ContainingCollectionView: this.props.CollectionView,
+        ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
+        isSelected: returnFalse,
+        select: emptyFunction,
+        renderDepth: this.props.renderDepth + 1,
+        ScreenToLocalTransform: Transform.Identity,
+        focus: emptyFunction,
+        active: returnFalse,
+        whenActiveChanged: emptyFunction,
+        PanelHeight: returnZero,
+        PanelWidth: returnZero,
+        NativeHeight: returnZero,
+        NativeWidth: returnZero,
+        addDocTab: this.props.addDocTab,
+        pinToPres: this.props.pinToPres,
+        ContentScaling: returnOne
+    };
+    @observable private _field = this.prop.Document[this.prop.fieldKey];
+    @observable private _text = "this._field";
+
+
+    @action
+    onSetValue = (value: string) => {
+        this._text = value;
+        //this.prop.Document[this.prop.fieldKey] = this._text;
+
+        const script = CompileScript(value, {
+            addReturn: true,
+            typecheck: false,
+            transformer: DocumentIconContainer.getTransformer()
+        });
+        const results = script.compiled && script.run();
+        if (results && results.success) {
+
+            this._text = results.result;
+
+            return true;
+        }
+        return false;
+    }
+
+    onFocus = () => {
+
+        console.log(this._field);
+        this._overlayDisposer?.();
+        this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
+    }
+
+
     render() {
-        return this.renderCellWithType("document");
+
+        const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
+        const reference = React.createRef<HTMLDivElement>();
+
+        if (typeof this._field === "object" && this._text) {
+
+
+            return (
+                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+                    <div className="collectionSchemaView-cellContents"
+                        style={{ padding: "5.9px" }}
+                        onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
+                        ref={this.dropRef}>
+                        <EditableView
+                            editing={this._isEditing}
+                            isEditingCallback={this.isEditingCallback}
+                            display={"inline"}
+                            contents={this._text}
+                            height={"auto"}
+                            maxHeight={Number(MAX_ROW_HEIGHT)}
+                            GetValue={() => {
+                                const val = this._text ? this._text : "";
+                                return StrCast(val);
+                            }}
+                            SetValue={action((value: string) => {
+                                this.onSetValue(value);
+                                return true;
+                            })}
+                        />
+                    </div >
+                </div>
+            );
+        } else {
+            return this.renderCellWithType("document");
+        }
     }
 }
 
@@ -489,28 +584,11 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
         let type = "list";
 
-        // const fieldIsDoc = (type === "document" && typeof this._field === "object") || (typeof this._field === "object" && document);
-
-        // const onItemDown = (e: React.PointerEvent) => {
-        //     fieldIsDoc && SetupDrag(this._focusRef,
-        //         () => this._document[this.prop.fieldKey] instanceof Doc ? this._document[this.prop.fieldKey] : this._document,
-        //         this._document[this.prop.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
-        //         this._document[this.prop.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
-        // };
-        // const onPointerEnter = (e: React.PointerEvent): void => {
-        //     if (e.buttons === 1 && SnappingManager.GetIsDragging() && (type === "document" || type === undefined)) {
-        //         dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
-        //     }
-        // };
-        // const onPointerLeave = (e: React.PointerEvent): void => {
-        //     dragRef.current!.className = "collectionSchemaView-cellContainer";
-        // };
-
         let link = false;
         let doc = false;
         const reference = React.createRef<HTMLDivElement>();
 
-        if (typeof this._field === "object" && this._optionsList[1]) {
+        if (typeof this._field === "object" && this._optionsList[0]) {
 
             const options = this._optionsList.map((element, index) => {
 
@@ -538,7 +616,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                 }
             });
 
-            const plainText = <div>{this._text}</div>;
+            const plainText = <div style={{ padding: "5.9px" }}>{this._text}</div>;
             // const textarea = <textarea onChange={this.onChange} value={this._text}
             //     onFocus={doc ? this.onFocus : undefined}
             //     onBlur={doc ? e => this._overlayDisposer?.() : undefined}
@@ -546,7 +624,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
             //     placeholder={"select an item"}></textarea>;
 
             const textarea = <div className="collectionSchemaView-cellContents"
-                style={{ padding: "5.7px" }}
+                style={{ padding: "5.9px" }}
                 ref={type === undefined || type === "document" ? this.dropRef : null} key={this.prop.Document[Id]}>
                 <EditableView
                     editing={this._isEditing}
@@ -567,6 +645,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                 />
             </div >;
 
+            //☰
 
             const dropdown = <div>
                 {options}
@@ -578,7 +657,8 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                         <div className="collectionSchemaView-dropDownWrapper">
                             <button type="button" className="collectionSchemaView-dropdownButton" onClick={(e) => { this.toggleOpened(!this._opened); }}
                                 style={{ right: "length", position: "relative" }}>
-                                ☰
+                                {this._opened ? <FontAwesomeIcon icon="caret-up" size="lg" ></FontAwesomeIcon>
+                                    : <FontAwesomeIcon icon="caret-down" size="lg" ></FontAwesomeIcon>}
                             </button>
                             <div className="collectionSchemaView-dropdownText"> {link ? plainText : textarea} </div>
                         </div>
