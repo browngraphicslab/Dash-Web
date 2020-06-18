@@ -96,9 +96,9 @@ export namespace InteractionUtils {
         }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
-            points.pop();
+            //points.pop();
             const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
-
+            newPoints.pop();
             const bezierCurves = fitCurve(newPoints, parseInt(bezier));
             for (var i = 0; i < bezierCurves.length; i++) {
                 for (var t = 0; t < 1; t += 0.01) {

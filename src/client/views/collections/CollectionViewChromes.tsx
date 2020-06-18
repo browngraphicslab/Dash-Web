@@ -300,7 +300,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     render() {
         const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
-        const scale = Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale);
+        const scale = Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform()?.Scale);
         return (
             <div className="collectionViewChrome-cont" style={{
                 top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined,

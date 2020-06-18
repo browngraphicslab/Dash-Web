@@ -708,40 +708,40 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (!(e instanceof Touch)) {
-            if (e.button === 0 && !e.ctrlKey) {
-                e.preventDefault();
+            if (e?.button === 0 && !e.ctrlKey) {
+                e?.preventDefault();
                 return;
             }
-            e.persist();
+            e?.persist();
             e?.stopPropagation();
 
-            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
-                e.isDefaultPrevented()) {
-                e.preventDefault();
+            if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3 ||
+                e?.isDefaultPrevented()) {
+                e?.preventDefault();
                 return;
             }
-            e.preventDefault();
+            e?.preventDefault();
         }
 
         const cm = ContextMenu.Instance;
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
-            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+            cm?.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
-            cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+            cm?.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
-        let options = cm.findByDescription("Options...");
+        let options = cm?.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         optionItems.push({ description: "Open Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         if (!options) {
             options = { description: "Options...", subitems: optionItems, icon: "compass" };
-            cm.addItem(options);
+            cm?.addItem(options);
         }
 
-        const existingOnClick = cm.findByDescription("OnClick...");
+        const existingOnClick = cm?.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
@@ -750,17 +750,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
-        !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+        !existingOnClick && cm?.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         const funcs: ContextMenuProps[] = [];
         if (this.Document.onDragStart) {
             funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
             funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
             funcs.push({ description: "Drag Document", icon: "edit", event: () => this.Document.onDragStart = undefined });
-            cm.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
+            cm?.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
         }
 
-        const more = cm.findByDescription("More...");
+        const more = cm?.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
         if (!Doc.UserDoc().noviceMode) {
             moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
@@ -789,26 +789,26 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
-        !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
-        cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
+        !more && cm?.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+        cm?.moveAfter(cm?.findByDescription("More...")!, cm?.findByDescription("OnClick...")!);
 
-        const help = cm.findByDescription("Help...");
+        const help = cm?.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
         helpItems.push({
             description: "Keyboard Shortcuts       Ctrl+/",
             event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
             icon: "keyboard"
         });
-        cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
+        cm?.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
 
-        const existingAcls = cm.findByDescription("Privacy...");
+        const existingAcls = cm?.findByDescription("Privacy...");
         const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
         aclItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
-        !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
+        !existingAcls && cm?.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
 
         // const recommender_subitems: ContextMenuProps[] = [];
 
@@ -869,7 +869,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
             }
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            ContextMenu.Instance?.displayMenu(e.pageX - 15, e.pageY - 15);
             !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
         });
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");

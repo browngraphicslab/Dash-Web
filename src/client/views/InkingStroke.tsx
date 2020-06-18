@@ -68,8 +68,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset"
                 }}
                 onContextMenu={() => {
-                    ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
-                    ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                    ContextMenu.Instance?.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
+                    ContextMenu.Instance?.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
                 }}
             ><defs>
                     <filter id="dangerShine">

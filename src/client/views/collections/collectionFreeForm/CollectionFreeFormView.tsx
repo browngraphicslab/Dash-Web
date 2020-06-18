@@ -1199,13 +1199,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.annotationsKey) return;
 
-        ContextMenu.Instance.addItem({
+        ContextMenu.Instance?.addItem({
             description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye
         });
 
-        const options = ContextMenu.Instance.findByDescription("Options...");
+        const options = ContextMenu.Instance?.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
 
         optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
@@ -1246,7 +1246,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }
         });
         optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
+        ContextMenu.Instance?.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
 
     }
     @observable _timelineVisible = false;
