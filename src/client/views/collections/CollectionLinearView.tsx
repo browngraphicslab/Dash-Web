@@ -124,6 +124,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 parentActive={returnTrue}
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
+                                docFilters={this.props.docFilters}
                                 ContainingCollectionView={undefined}
                                 ContainingCollectionDoc={undefined} />
                         </div>;

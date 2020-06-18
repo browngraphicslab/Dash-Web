@@ -217,6 +217,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             ScreenToLocalTransform={dxf}
             opacity={opacity}
             focus={this.focusDocument}
+            docFilters={this.docFilters}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}

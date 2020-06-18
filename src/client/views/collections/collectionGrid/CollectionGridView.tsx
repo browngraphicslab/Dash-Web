@@ -163,7 +163,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             const savedLayouts = this.savedLayoutList;
             this.childLayoutPairs.forEach(({ layout: doc }) => {
                 const gridLayout = savedLayouts.find(gridLayout => gridLayout.i === doc[Id]);
-                gridLayout && Object.assign(gridLayout, layoutArray.find(layout => layout.i === doc[Id]) || gridLayout);
+                if (gridLayout) Object.assign(gridLayout, layoutArray.find(layout => layout.i === doc[Id]) || gridLayout);
             });
 
             if (this.props.Document.gridStartCompaction) {

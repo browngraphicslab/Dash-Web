@@ -20,7 +20,7 @@ import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -58,7 +58,7 @@ import { DocumentManager } from '../util/DocumentManager';
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 26;
+    private _buttonBarHeight = 36;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
@@ -310,6 +310,7 @@ export class MainView extends React.Component {
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
+            docFilters={returnEmptyFilter}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
         />;
@@ -389,7 +390,7 @@ export class MainView extends React.Component {
             return (null);
         }
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight - 10/*margin-top*/}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
                     Document={this.sidebarButtonsDoc}
                     DataDoc={undefined}
@@ -412,6 +413,7 @@ export class MainView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>
@@ -438,6 +440,7 @@ export class MainView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
@@ -529,6 +532,7 @@ export class MainView extends React.Component {
                     renderDepth={0}
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;

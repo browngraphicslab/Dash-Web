@@ -39,10 +39,12 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     @undoBatch
     private dropHandler = (event: Event, dropEvent: DragManager.DropEvent, fieldKey: string) => {
-        event.stopPropagation(); // prevent parent Doc from registering new position so that it snaps back into place
-        const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
-        if (droppedDocs?.length) {
-            this.dataDoc[fieldKey] = droppedDocs[0];
+        if (dropEvent.complete.docDragData) {
+            event.stopPropagation(); // prevent parent Doc from registering new position so that it snaps back into place
+            const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
+            if (droppedDocs?.length) {
+                this.dataDoc[fieldKey] = droppedDocs[0];
+            }
         }
     }
 

@@ -17,7 +17,6 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
 import { DocumentDecorations } from "./DocumentDecorations";
-import { InkingStroke } from "./InkingStroke";
 import { MainView } from "./MainView";
 import { DocumentView } from "./nodes/DocumentView";
 
@@ -262,14 +261,14 @@ export default class KeyManager {
                 }
                 break;
             case "c":
-                if (SelectionManager.SelectedDocuments().length) {
+                if (DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
                     const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
                     stopPropagation = false;
-                    preventDefault = false;
                 }
+                preventDefault = false;
                 break;
         }
 

@@ -152,6 +152,7 @@ export class DashDocView {
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
                     dontRegisterView={false}
+                    docFilters={this._textBox.props.docFilters}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                     ContentScaling={this.contentScaling}

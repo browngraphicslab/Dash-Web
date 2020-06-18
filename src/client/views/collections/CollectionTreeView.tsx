@@ -8,7 +8,7 @@ import { PrefetchProxy } from '../../../fields/Proxy';
 import { Document, listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils, returnEmptyFilter } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -345,6 +345,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}
+                    treeViewId={this.props.treeViewId[Id]}
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
@@ -354,6 +355,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     PanelHeight={panelHeight}
                     focus={returnFalse}
                     ScreenToLocalTransform={this.docTransform}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionDoc={this.props.containingCollection}
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}
@@ -471,6 +473,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildViews)}
+                        docFilters={returnEmptyFilter}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={this.props.containingCollection}
                     />}
@@ -484,12 +487,13 @@ class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const sorting = this.props.document[`${this.fieldKey}-sortAscending`];
         //setTimeout(() => runInAction(() => untracked(() => this._overrideTreeViewOpen = this.treeViewOpen)), 0);
-        return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
+        return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active() && SelectionManager.DeselectAll()}>
             <li className="collection-child">
                 <div className="treeViewItem-header" ref={this._header} onClick={e => {
                     if (this.props.active(true)) {
                         e.stopPropagation();
                         e.preventDefault();
+                        SelectionManager.DeselectAll();
                     }
                 }}
                     onPointerDown={e => {
