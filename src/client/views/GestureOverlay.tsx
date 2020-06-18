@@ -18,7 +18,7 @@ import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { Transform } from "../util/Transform";
 import "./GestureOverlay.scss";
-import { ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke, SetActiveInkColor, SetActiveInkWidth } from "./InkingStroke";
+import { ActiveInkBezierApprox, ActiveArrowStart, ActiveArrowEnd, ActiveFillColor, ActiveInkColor, ActiveInkWidth, InkingStroke, SetActiveInkColor, SetActiveInkWidth, SetActiveFillColor, SetActiveArrowStart, SetActiveArrowEnd, ActiveDash, SetActiveDash } from "./InkingStroke";
 import { DocumentView } from "./nodes/DocumentView";
 import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
@@ -32,6 +32,10 @@ export default class GestureOverlay extends Touchable {
     @observable public InkShape: string = "";
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
+    @observable public SavedFill?: string;
+    @observable public SavedArrowStart: string = "none";
+    @observable public SavedArrowEnd: string = "none";
+    @observable public SavedDash: String = "0";
     @observable public Tool: ToolglassTools = ToolglassTools.None;
 
     @observable private _thumbX?: number;
@@ -802,6 +806,7 @@ export default class GestureOverlay extends Touchable {
     }
 
     @computed get elements() {
+
         const B = this.svgBounds;
         return [
             this.props.children,
@@ -809,11 +814,11 @@ export default class GestureOverlay extends Touchable {
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
                 return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false)}
                 </svg>;
             }),
             this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), 1, 1, this.InkShape)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false)}
             </svg>]
         ];
     }
@@ -901,12 +906,20 @@ Scripting.addGlobal("GestureOverlay", GestureOverlay);
 Scripting.addGlobal(function setToolglass(tool: any) {
     runInAction(() => GestureOverlay.Instance.Tool = tool);
 });
-Scripting.addGlobal(function setPen(width: any, color: any) {
+Scripting.addGlobal(function setPen(width: any, color: any, fill: any, arrowStart: any, arrowEnd: any, dash: any) {
     runInAction(() => {
         GestureOverlay.Instance.SavedColor = ActiveInkColor();
         SetActiveInkColor(color);
         GestureOverlay.Instance.SavedWidth = ActiveInkWidth();
         SetActiveInkWidth(width);
+        GestureOverlay.Instance.SavedFill = ActiveFillColor();
+        SetActiveFillColor(fill);
+        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
+        SetActiveArrowStart(arrowStart);
+        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        SetActiveArrowStart(arrowEnd);
+        GestureOverlay.Instance.SavedDash = ActiveDash();
+        SetActiveDash(dash);
     });
 });
 Scripting.addGlobal(function resetPen() {

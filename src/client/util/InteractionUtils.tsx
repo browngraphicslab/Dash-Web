@@ -1,6 +1,7 @@
 import React = require("react");
 import * as beziercurve from 'bezier-curve';
 import * as fitCurve from 'fit-curve';
+import InkOptionsMenu from "../views/collections/collectionFreeForm/InkOptionsMenu";
 
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
@@ -89,7 +90,8 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
+
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, fill: string, arrowStart: string, arrowEnd: string, dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
         var pts = "";
         if (shape) {
             //if any of the shape are true
@@ -116,21 +118,57 @@ export namespace InteractionUtils {
             //in the middle of drawing
             pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
         }
+        const dashArray = String(Number(width) * Number(dash));
+
         return (
-            <polyline
-                points={pts}
-                style={{
-                    filter: drawHalo ? "url(#dangerShine)" : undefined,
-                    fill: "none",
-                    pointerEvents: pevents as any,
-                    stroke: color ?? "rgb(0, 0, 0)",
-                    strokeWidth: parseInt(width),
-                    strokeLinejoin: "round",
-                    strokeLinecap: "round"
-                }}
-            />
+            <svg>
+                <defs>
+
+                    {/* {makeArrow()} */}
+                    <marker id="dot" orient="auto" overflow="visible">
+                        <circle r={1} fill="red" />
+                    </marker>
+                    <marker id="arrowHead" orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
+                        {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
+                        <polygon points="3 0, 3 2, 0 1" fill="dodgerblue" />
+                    </marker>
+                    <marker id="arrowEnd" orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
+                        {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
+                        <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
+                    </marker>
+                </defs>
+
+                <polyline
+                    points={pts}
+                    style={{
+                        filter: drawHalo ? "url(#dangerShine)" : undefined,
+                        fill: fill,
+                        pointerEvents: pevents as any,
+                        stroke: color ?? "rgb(0, 0, 0)",
+                        strokeWidth: parseInt(width),
+                        strokeLinejoin: "round",
+                        strokeLinecap: "round",
+                        strokeDasharray: dashArray
+                    }}
+                    markerStart={arrowStart}
+                    markerEnd={arrowEnd}
+                />
+            </svg>
+
         );
     }
+
+    // export function makeArrow() {
+    //     return (
+    //         InkOptionsMenu.Instance.getColors().map(color => {
+    //             const id1 = "arrowHeadTest" + color;
+    //             console.log(color);
+    //             <marker id={id1} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
+    //                 <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
+    //             </marker>;
+    //         })
+    //     );
+    // }
 
     export function makePolygon(shape: string, points: { X: number, Y: number }[]) {
         if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y + 1 === points[0].Y) {

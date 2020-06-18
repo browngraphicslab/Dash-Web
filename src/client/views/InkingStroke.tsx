@@ -58,11 +58,13 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const points = InteractionUtils.CreatePolyline(data, left, top,
             strokeColor,
             strokeWidth.toString(),
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()), StrCast(this.layoutDoc.arrowStart, ActiveArrowStart()), StrCast(this.layoutDoc.arrowEnd, ActiveArrowEnd()), StrCast(this.layoutDoc.dash, ActiveDash()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent",
+            // strokeColor,
             (strokeWidth + 15).toString(),
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()), StrCast(this.layoutDoc.arrowStart, ActiveArrowStart()), StrCast(this.layoutDoc.arrowEnd, ActiveArrowEnd()), StrCast(this.layoutDoc.dash, ActiveDash()), scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);
+        console.log("#" + strokeColor);
         return (
             <svg className="inkingStroke"
                 width={width}
@@ -70,7 +72,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 style={{
                     pointerEvents: this.props.Document.isInkMask ? "all" : "none",
                     transform: this.props.Document.isInkMask ? "translate(2500px, 2500px)" : undefined,
-                    mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset"
+                    mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
+                    overflow: "visible",
                 }}
                 onContextMenu={() => {
                     ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
@@ -93,6 +96,18 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                             <feMergeNode in="SourceGraphic"></feMergeNode>
                         </feMerge>
                     </filter>
+                    {/* <marker id="arrow" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="black" />
+                    </marker> */}
+                    {/* <marker id="arrowHead" orient="auto" overflow="visible" refX="10" refY="3.5" markerWidth="10" markerHeight="7">
+                        <polygon points="10 0, 10 7, 0 3.5" fill="dodgerblue" />
+                    </marker>
+                    <marker id="arrowEnd" orient="auto" overflow="visible" refX="0" refY="3.5" markerWidth="10" markerHeight="7">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="dodgerblue" />
+                    </marker> */}
+                    {/* <marker id="dot" orient="auto" overflow="visible">
+                        <circle r={strokeWidth} fill={"#" + strokeColor} />
+                    </marker> */}
                 </defs>
                 {hpoints}
                 {points}
@@ -105,17 +120,33 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 export function SetActiveInkWidth(width: string): void { !isNaN(parseInt(width)) && ActiveInkPen() && (ActiveInkPen().activeInkWidth = width); }
 export function SetActiveBezierApprox(bezier: string): void { ActiveInkPen() && (ActiveInkPen().activeInkBezier = isNaN(parseInt(bezier)) ? "" : bezier); }
 export function SetActiveInkColor(value: string) { ActiveInkPen() && (ActiveInkPen().activeInkColor = value); }
+export function SetActiveFillColor(value: string) { ActiveInkPen() && (ActiveInkPen().activeFillColor = value); }
+export function SetActiveArrowStart(value: string) { ActiveInkPen() && (ActiveInkPen().activeArrowStart = value); }
+export function SetActiveArrowEnd(value: string) { ActiveInkPen() && (ActiveInkPen().activeArrowEnd = value); }
+export function SetActiveDash(dash: string): void { !isNaN(parseInt(dash)) && ActiveInkPen() && (ActiveInkPen().activeDash = dash); }
 export function ActiveInkPen(): Doc { return Cast(Doc.UserDoc().activeInkPen, Doc, null); }
 export function ActiveInkColor(): string { return StrCast(ActiveInkPen()?.activeInkColor, "black"); }
+export function ActiveFillColor(): string { return StrCast(ActiveInkPen()?.activeFillColor, "none"); }
+export function ActiveArrowStart(): string { return StrCast(ActiveInkPen()?.activeArrowStart, "none"); }
+export function ActiveArrowEnd(): string { return StrCast(ActiveInkPen()?.activeArrowEnd, "none"); }
+export function ActiveDash(): string { return StrCast(ActiveInkPen()?.activeDash, "0"); }
 export function ActiveInkWidth(): string { return StrCast(ActiveInkPen()?.activeInkWidth, "1"); }
 export function ActiveInkBezierApprox(): string { return StrCast(ActiveInkPen()?.activeInkBezier); }
-Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) {
+Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any, fill: any, arrowStart: any, arrowEnd: any, dash: any) {
     Doc.SetSelectedTool(pen ? InkTool.Highlighter : InkTool.None);
     SetActiveInkWidth(width);
     SetActiveInkColor(color);
+    SetActiveFillColor(fill);
+    SetActiveArrowStart(arrowStart);
+    SetActiveArrowEnd(arrowEnd);
+    SetActiveDash(dash);
 });
 Scripting.addGlobal(function activateEraser(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Eraser : InkTool.None); });
 Scripting.addGlobal(function activateStamp(pen: any) { return Doc.SetSelectedTool(pen ? InkTool.Stamp : InkTool.None); });
 Scripting.addGlobal(function deactivateInk() { return Doc.SetSelectedTool(InkTool.None); });
 Scripting.addGlobal(function setInkWidth(width: any) { return SetActiveInkWidth(width); });
 Scripting.addGlobal(function setInkColor(color: any) { return SetActiveInkColor(color); });
+Scripting.addGlobal(function setFillColor(fill: any) { return SetActiveFillColor(fill); });
+Scripting.addGlobal(function setActiveArrowStart(arrowStart: any) { return SetActiveArrowStart(arrowStart); });
+Scripting.addGlobal(function setActiveArrowEnd(arrowEnd: any) { return SetActiveArrowStart(arrowEnd); });
+Scripting.addGlobal(function setActiveDash(dash: any) { return SetActiveDash(dash); });

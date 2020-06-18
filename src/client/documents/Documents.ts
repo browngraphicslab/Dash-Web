@@ -37,7 +37,7 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
-import { InkingStroke, ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../views/InkingStroke";
+import { InkingStroke, ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox, ActiveFillColor, ActiveArrowStart, ActiveArrowEnd, ActiveDash } from "../views/InkingStroke";
 import { InkField } from "../../fields/InkField";
 import { RichTextField } from "../../fields/RichTextField";
 import { extname } from "path";
@@ -631,13 +631,17 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, fillColor: string, arrowStart: string, arrowEnd: string, dash: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
             I.strokeWidth = strokeWidth;
             I.strokeBezier = strokeBezier;
+            I.fillColor = fillColor;
+            I.arrowStart = arrowStart;
+            I.arrowEnd = arrowEnd;
+            I.dash = dash;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -852,7 +856,7 @@ export namespace DocUtils {
             created = Docs.Create.AudioDocument((field).url.href, resolved);
             layout = AudioBox.LayoutString;
         } else if (field instanceof InkField) {
-            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), (field).inkData, resolved);
+            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), (field).inkData, resolved);
             layout = InkingStroke.LayoutString;
         } else if (field instanceof List && field[0] instanceof Doc) {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
