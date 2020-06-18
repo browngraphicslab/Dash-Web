@@ -8,7 +8,7 @@ import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import MobileInterface from "../../mobile/MobileInterface";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocServer } from "../DocServer";
 import { DocUtils } from "../documents/Documents";
@@ -845,6 +845,7 @@ export default class GestureOverlay extends Touchable {
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
             />;

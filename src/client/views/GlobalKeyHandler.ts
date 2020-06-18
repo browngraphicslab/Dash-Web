@@ -267,8 +267,8 @@ export default class KeyManager {
                     const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
                     stopPropagation = false;
-                    preventDefault = false;
-                } else preventDefault = false
+                }
+                preventDefault = false;
                 break;
         }
 

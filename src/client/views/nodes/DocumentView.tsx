@@ -51,6 +51,7 @@ export type DocFocusFunc = () => boolean;
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    docFilters: () => string[];
     FreezeDimensions?: boolean;
     NativeWidth: () => number;
     NativeHeight: () => number;
@@ -996,6 +997,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         TraceMobx();
         return (<>
             <DocumentContentsView key={1}
+                docFilters={this.props.docFilters}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 NativeWidth={this.NativeWidth}

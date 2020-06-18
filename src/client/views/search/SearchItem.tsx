@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue, returnOne, returnZero } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue, returnOne, returnZero, returnEmptyString, returnEmptyFilter } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
@@ -164,6 +164,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionDoc={undefined}
                     ContainingCollectionView={undefined}
                     ScreenToLocalTransform={Transform.Identity}

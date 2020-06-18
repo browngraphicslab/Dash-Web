@@ -473,6 +473,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
+                docFilters={this.props.docFilters}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>

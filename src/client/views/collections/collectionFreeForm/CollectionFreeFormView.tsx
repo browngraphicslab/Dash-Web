@@ -958,6 +958,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.Document,
+            docFilters: this.docFilters,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,

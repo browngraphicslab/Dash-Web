@@ -20,7 +20,7 @@ import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -310,6 +310,7 @@ export class MainView extends React.Component {
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
+            docFilters={returnEmptyFilter}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
         />;
@@ -412,6 +413,7 @@ export class MainView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>
@@ -438,6 +440,7 @@ export class MainView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
@@ -529,6 +532,7 @@ export class MainView extends React.Component {
                     renderDepth={0}
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;

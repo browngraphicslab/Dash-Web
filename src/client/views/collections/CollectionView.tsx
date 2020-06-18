@@ -17,7 +17,7 @@ import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyFilter } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -467,6 +467,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         DataDoc={facetCollection}
                         fieldKey={`${this.props.fieldKey}-filter`}
                         CollectionView={this}
+                        docFilters={returnEmptyFilter}
                         ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                         ContainingCollectionView={this.props.ContainingCollectionView}
                         PanelWidth={this.facetWidth}
