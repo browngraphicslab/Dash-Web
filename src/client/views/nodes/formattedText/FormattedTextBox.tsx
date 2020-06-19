@@ -57,7 +57,6 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { InkingStroke } from '../../InkingStroke';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
