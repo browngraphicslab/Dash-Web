@@ -2,6 +2,7 @@ import React = require("react");
 import * as beziercurve from 'bezier-curve';
 import * as fitCurve from 'fit-curve';
 import InkOptionsMenu from "../views/collections/collectionFreeForm/InkOptionsMenu";
+import "./InteractionUtils.scss";
 
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
@@ -103,7 +104,7 @@ export namespace InteractionUtils {
             const newPoints: number[][] = [];
             const newPts: { X: number; Y: number; }[] = [];
             //convert to [][] for fitcurve module
-            for (var i = 0; i < points.length - 1; i++) {
+            for (var i = 0; i < points.length - 2; i++) {
                 newPoints.push([points[i].X, points[i].Y]);
             }
             const bezierCurves = fitCurve(newPoints, parseInt(bezier));
@@ -123,25 +124,38 @@ export namespace InteractionUtils {
         return (
             <svg>
                 <defs>
-
-                    {/* {makeArrow()} */}
                     <marker id="dot" orient="auto" overflow="visible">
-                        <circle r={1} fill="red" />
+                        <circle r={0.5} fill="context-stroke" />
                     </marker>
                     <marker id="arrowHead" orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
                         {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
-                        <polygon points="3 0, 3 2, 0 1" fill="dodgerblue" />
+                        <polygon points="3 0, 3 2, 0 1" fill="black" />
                     </marker>
                     <marker id="arrowEnd" orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
                         {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
-                        <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
+                        <polygon points="0 0, 3 1, 0 2" fill="black" />
                     </marker>
+
                 </defs>
+                {/* <polyline
+                    points={pts}
+                    style={{
+                        fill: fill,
+                        pointerEvents: pevents as any,
+                        stroke: drawHalo ? "grey" : "transparent",
+                        strokeWidth: parseInt(width) * 4,
+                        strokeLinejoin: "round",
+                        strokeLinecap: "round",
+                        strokeDasharray: dashArray
+                    }}
+                    markerStart={arrowStart}
+                    markerEnd={arrowEnd}
+                /> */}
 
                 <polyline
                     points={pts}
                     style={{
-                        filter: drawHalo ? "url(#dangerShine)" : undefined,
+                        // filter: drawHalo ? "url(#dangerShine)" : undefined,
                         fill: fill,
                         pointerEvents: pevents as any,
                         stroke: color ?? "rgb(0, 0, 0)",
@@ -153,6 +167,7 @@ export namespace InteractionUtils {
                     markerStart={arrowStart}
                     markerEnd={arrowEnd}
                 />
+
             </svg>
 
         );
@@ -239,24 +254,24 @@ export namespace InteractionUtils {
                 }
                 points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 return points;
-            case "arrow":
-                const x1 = left;
-                const y1 = top;
-                const x2 = right;
-                const y2 = bottom;
-                const L1 = Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + (Math.pow(Math.abs(y1 - y2), 2)));
-                const L2 = L1 / 5;
-                const angle = 0.785398;
-                const x3 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) + (y1 - y2) * Math.sin(angle));
-                const y3 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) - (x1 - x2) * Math.sin(angle));
-                const x4 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) - (y1 - y2) * Math.sin(angle));
-                const y4 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) + (x1 - x2) * Math.sin(angle));
-                points.push({ X: x1, Y: y1 });
-                points.push({ X: x2, Y: y2 });
-                points.push({ X: x3, Y: y3 });
-                points.push({ X: x4, Y: y4 });
-                points.push({ X: x2, Y: y2 });
-                return points;
+            // case "arrow":
+            //     const x1 = left;
+            //     const y1 = top;
+            //     const x2 = right;
+            //     const y2 = bottom;
+            //     const L1 = Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + (Math.pow(Math.abs(y1 - y2), 2)));
+            //     const L2 = L1 / 5;
+            //     const angle = 0.785398;
+            //     const x3 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) + (y1 - y2) * Math.sin(angle));
+            //     const y3 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) - (x1 - x2) * Math.sin(angle));
+            //     const x4 = x2 + (L2 / L1) * ((x1 - x2) * Math.cos(angle) - (y1 - y2) * Math.sin(angle));
+            //     const y4 = y2 + (L2 / L1) * ((y1 - y2) * Math.cos(angle) + (x1 - x2) * Math.sin(angle));
+            //     points.push({ X: x1, Y: y1 });
+            //     points.push({ X: x2, Y: y2 });
+            //     points.push({ X: x3, Y: y3 });
+            //     points.push({ X: x4, Y: y4 });
+            //     points.push({ X: x2, Y: y2 });
+            //     return points;
             case "line":
                 points.push({ X: left, Y: top });
                 points.push({ X: right, Y: bottom });

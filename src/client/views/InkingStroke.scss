@@ -4,4 +4,8 @@
     stroke-linecap: round;
     overflow: visible !important;
     transform-origin: top left;
+
+    svg:not(:root) {
+        overflow: visible !important;
+    }
 }

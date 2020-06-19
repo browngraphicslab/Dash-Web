@@ -690,7 +690,7 @@ export class CurrentUserUtils {
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
-        doc.activeInkBezier = StrCast(doc.activeInkBezier, "");
+        doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
         doc.activeFillColor = StrCast(doc.activeFillColor, "none");
         doc.activeArrowStart = StrCast(doc.activeArrowStart, "none");
         doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "none");

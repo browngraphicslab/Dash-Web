@@ -681,6 +681,10 @@ export default class GestureOverlay extends Touchable {
         } else {
             this._points = [];
         }
+        SetActiveArrowStart("none");
+        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
+        SetActiveArrowEnd("none");
+        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
@@ -692,7 +696,9 @@ export default class GestureOverlay extends Touchable {
         var left = Math.min(...xs);
         var bottom = Math.max(...ys);
         var top = Math.min(...ys);
-
+        if (shape === "noRec") {
+            return;
+        }
         if (!gesture) {
             //if shape options is activated in inkOptionMenu
             //take second to last point because _point[length-1] is _points[0]
@@ -751,7 +757,7 @@ export default class GestureOverlay extends Touchable {
             case "line":
                 this._points.push({ X: left, Y: top });
                 this._points.push({ X: right, Y: bottom });
-                this._points.push({ X: right, Y: bottom - 1 });
+                // this._points.push({ X: right, Y: bottom - 1 });
                 break;
             case "arrow":
                 const x1 = left;
@@ -770,7 +776,7 @@ export default class GestureOverlay extends Touchable {
                 this._points.push({ X: x3, Y: y3 });
                 this._points.push({ X: x4, Y: y4 });
                 this._points.push({ X: x2, Y: y2 });
-                this._points.push({ X: x1, Y: y1 - 1 });
+            // this._points.push({ X: x1, Y: y1 - 1 });
         }
     }
 
