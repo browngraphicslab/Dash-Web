@@ -75,6 +75,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
+                documentView.props.treeViewId ||
                 Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
@@ -408,7 +409,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onPointerUp = (e: PointerEvent): void => {
         SelectionManager.SelectedDocuments().map(dv => {
             if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
-                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.props.ContentScaling(), dv.panelWidth(), dv.panelHeight());
+                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.props.ContentScaling(), dv.props.PanelWidth(), dv.props.PanelHeight());
                 dv.layoutDoc._autoHeight = true;
             }
             dv.layoutDoc._delayAutoHeight = undefined;

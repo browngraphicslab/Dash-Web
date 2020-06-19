@@ -119,6 +119,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     Document={containedDoc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
+                    docFilters={this.props.docFilters}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -147,6 +148,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     Document={containedDoc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
+                    docFilters={this.props.docFilters}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -198,11 +200,10 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (de.complete.docDragData) {
-            if (de.complete.docDragData.draggedDocuments[0].type === DocumentType.FONTICON) {
-                const doc = Cast(de.complete.docDragData.draggedDocuments[0].dragFactory, Doc, null);
-                this.layoutDoc.childLayoutTemplate = doc;
-            }
+        const docDragData = de.complete.docDragData;
+        if (docDragData?.draggedDocuments[0].type === DocumentType.FONTICON) {
+            const doc = Cast(docDragData.draggedDocuments[0].dragFactory, Doc, null);
+            this.layoutDoc.childLayoutTemplate = doc;
         }
     }
     protected createDropTarget = (ele: HTMLDivElement) => {

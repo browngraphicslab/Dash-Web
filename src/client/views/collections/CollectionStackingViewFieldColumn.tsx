@@ -235,7 +235,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
                 description: ":" + fieldKey, event: () => {
-                    const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(this.props.parent.props.Document));
+                    const created = DocUtils.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(this.props.parent.props.Document));
                     if (created) {
                         if (this.props.parent.Document.isTemplateDoc) {
                             Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);

@@ -27,6 +27,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { DocUtils } from "../../documents/Documents";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -216,6 +217,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             ScreenToLocalTransform={dxf}
             opacity={opacity}
             focus={this.focusDocument}
+            docFilters={this.docFilters}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
@@ -412,7 +414,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (value && this.sectionHeaders) {
             const schemaHdrField = new SchemaHeaderField(value);
             this.sectionHeaders.push(schemaHdrField);
-            Doc.addFieldEnumerations(undefined, this.pivotField, [{ title: value, _backgroundColor: schemaHdrField.color }]);
+            DocUtils.addFieldEnumerations(undefined, this.pivotField, [{ title: value, _backgroundColor: schemaHdrField.color }]);
             return true;
         }
         return false;
@@ -475,7 +477,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                         transformOrigin: "top left",
                     }}
                     onScroll={action(e => {
-                        if (!this.props.isSelected()) e.currentTarget.scrollTop = this._scroll;
+                        if (!this.props.isSelected() && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
                     })}
                     onDrop={this.onExternalDrop.bind(this)}

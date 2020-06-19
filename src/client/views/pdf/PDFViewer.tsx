@@ -25,7 +25,6 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { CollectionView } from "../collections/CollectionView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { InkingControl } from "../InkingControl";
 import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
@@ -52,6 +51,7 @@ interface IViewerProps {
     fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
+    docFilters: () => string[];
     ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -127,16 +127,24 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // file address of the pdf
         const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const { url: relative } = this.props;
-        const pathComponents = relative.split("/pdfs/")[1].split("/");
-        const coreFilename = pathComponents.pop()!.split(".")[0];
-        const params: any = {
-            coreFilename,
-            pageNum: this.Document.curPage || 1,
-        };
-        if (pathComponents.length) {
-            params.subtree = `${pathComponents.join("/")}/`;
+        if (relative.includes("/pdfs/")) {
+            const pathComponents = relative.split("/pdfs/")[1].split("/");
+            const coreFilename = pathComponents.pop()!.split(".")[0];
+            const params: any = {
+                coreFilename,
+                pageNum: this.Document.curPage || 1,
+            };
+            if (pathComponents.length) {
+                params.subtree = `${pathComponents.join("/")}/`;
+            }
+            this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
+        } else {
+            const params: any = {
+                coreFilename: relative.split("/")[relative.split("/").length - 1],
+                pageNum: this.Document.curPage || 1,
+            };
+            this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
-        this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current!.scrollTop = this.layoutDoc._scrollTop || 0;
@@ -579,7 +587,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
         clipDoc.rootDocument = targetDoc;
-        Doc.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
+        DocUtils.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
         targetDoc.layoutKey = "layout";
         // const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
@@ -648,7 +656,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewer-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
             style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}

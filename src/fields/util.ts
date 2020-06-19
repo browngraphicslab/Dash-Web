@@ -101,12 +101,16 @@ export function makeReadOnly() {
 export function makeEditable() {
     _setter = _setterImpl;
 }
+var _overrideAcl = false;
+export function OVERRIDE_ACL(val: boolean) {
+    _overrideAcl = val;
+}
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
     "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    if (target[AclSym]) return true;
+    if (target[AclSym] && !_overrideAcl) return true;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
@@ -125,8 +129,8 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
-    if (in_prop === AclSym) return target[AclSym];
-    if (target[AclSym] === AclPrivate) return undefined;
+    if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
+    if (target[AclSym] === AclPrivate && !_overrideAcl) return undefined;
     if (prop === LayoutSym) {
         return target.__LAYOUT__;
     }

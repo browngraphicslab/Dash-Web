@@ -1,9 +1,7 @@
-import { Doc, Opt, DataSym, DocListCast } from '../../fields/Doc';
+import { Doc, Opt, DataSym, DocListCast, AclSym, AclReadonly, AclAddonly } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
-import { listSpec } from '../../fields/Schema';
-import { InkingControl } from './InkingControl';
 import { InkTool } from '../../fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
@@ -59,7 +57,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
-        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -140,17 +138,23 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
             if (added.length) {
-                added.map(doc => doc.context = this.props.Document);
-                targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                if (this.dataDoc[AclSym] === AclReadonly) {
+                    return false;
+                } else if (this.dataDoc[AclSym] === AclAddonly) {
+                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
+                } else {
+                    added.map(doc => doc.context = this.props.Document);
+                    targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                    targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
             }
             return true;
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-        active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
+        active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.props.Document.isBackground) &&
             (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (InkingControl.Instance.selectedTool !== InkTool.None || (this.props.Document.isBackground && this.props.active()) ||
+        annotationsActive = (outsideReaction?: boolean) => (Doc.GetSelectedTool() !== InkTool.None || (this.props.Document.isBackground && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

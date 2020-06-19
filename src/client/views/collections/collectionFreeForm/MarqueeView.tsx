@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Opt } from "../../../../fields/Doc";
-import { InkData, InkField } from "../../../../fields/InkField";
+import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
@@ -42,6 +42,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     @observable _downY: number = 0;
     @observable _visible: boolean = false;
     _commandExecuted = false;
+    @observable _pointsX: number[] = [];
+    @observable _pointsY: number[] = [];
+    @observable _freeHand: boolean = false;
 
     componentDidMount() {
         this.props.setPreviewCursor?.(this.setPreviewCursor);
@@ -57,6 +60,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (hideMarquee) {
             this._visible = false;
         }
+        this._pointsX = [];
+        this._pointsY = [];
     }
 
     @undoBatch
@@ -117,7 +122,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
                 const tbox = Docs.Create.TextDocument("", {
                     _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
-                    _fontFamily: StrCast(Doc.UserDoc().fontFamily), _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
+                    _fontFamily: StrCast(Doc.UserDoc().fontFamily),
                     title: "-typed text-"
                 });
                 const template = FormattedTextBox.DefaultLayout;
@@ -191,6 +196,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerMove = (e: PointerEvent): void => {
         this._lastX = e.pageX;
         this._lastY = e.pageY;
+        this._pointsX.push(e.clientX);
+        this._pointsY.push(e.clientY);
         if (!e.cancelBubble) {
             if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
                 Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
@@ -263,10 +270,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     onClick = (e: React.MouseEvent): void => {
-        if (
-            Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+            if (Doc.GetSelectedTool() === InkTool.None) {
+                !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+            }
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
@@ -344,7 +352,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
         selected.forEach(d => this.props.removeDocument(d));
-        const newCollection = Doc.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
+        const newCollection = DocUtils.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
         this.props.addDocument(newCollection!);
         this.props.selectDocuments([newCollection!], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -519,6 +527,17 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             this.cleanupInteractions(false);
         }
+        if (e.key === "r" || e.key === " ") {
+            this._commandExecuted = true;
+            e.stopPropagation();
+            e.preventDefault();
+            this.changeFreeHand(true);
+        }
+    }
+
+    @action
+    changeFreeHand = (x: boolean) => {
+        this._freeHand = !this._freeHand;
     }
     // @action
     // marqueeInkSelect(ink: Map<any, any>) {
@@ -559,7 +578,51 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     //         this.ink = new InkField(idata);
     //     }
     // }
+    touchesLine(r1: { left: number, top: number, width: number, height: number }) {
+        for (var i = 0; i < this._pointsX.length; i++) {
+            const topLeft = this.props.getTransform().transformPoint(this._pointsX[i], this._pointsY[i]);
+            if (topLeft[0] > r1.left &&
+                topLeft[0] < r1.left + r1.width &&
+                topLeft[1] > r1.top &&
+                topLeft[1] < r1.top + r1.height) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    boundingShape(r1: { left: number, top: number, width: number, height: number }) {
+        const trueLeft = this.props.getTransform().transformPoint(Math.min(...this._pointsX), Math.min(...this._pointsY))[0];
+        const trueTop = this.props.getTransform().transformPoint(Math.min(...this._pointsX), Math.min(...this._pointsY))[1];
+        const trueRight = this.props.getTransform().transformPoint(Math.max(...this._pointsX), Math.max(...this._pointsY))[0];
+        const trueBottom = this.props.getTransform().transformPoint(Math.max(...this._pointsX), Math.max(...this._pointsY))[1];
+
+        if (r1.left > trueLeft && r1.top > trueTop && r1.left + r1.width < trueRight && r1.top + r1.height < trueBottom) {
+            var hasTop = false;
+            var hasLeft = false;
+            var hasBottom = false;
+            var hasRight = false;
+            for (var i = 0; i < this._pointsX.length; i++) {
+                const truePoint = this.props.getTransform().transformPoint(this._pointsX[i], this._pointsY[i]);
+                if (!hasLeft && (truePoint[0] > trueLeft && truePoint[0] < r1.left) && (truePoint[1] > r1.top && truePoint[1] < r1.top + r1.height)) {
+                    hasLeft = true;
+                }
+                if (!hasTop && (truePoint[1] > trueTop && truePoint[1] < r1.top) && (truePoint[0] > r1.left && truePoint[0] < r1.left + r1.width)) {
+                    hasTop = true;
+                }
+                if (!hasRight && (truePoint[0] < trueRight && truePoint[0] > r1.left + r1.width) && (truePoint[1] > r1.top && truePoint[1] < r1.top + r1.height)) {
+                    hasRight = true;
+                }
+                if (!hasBottom && (truePoint[1] < trueBottom && truePoint[1] > r1.top + r1.height) && (truePoint[0] > r1.left && truePoint[0] < r1.left + r1.width)) {
+                    hasBottom = true;
+                }
+                if (hasTop && hasLeft && hasBottom && hasRight) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
@@ -569,8 +632,15 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const y = NumCast(doc.y);
             const w = NumCast(layoutDoc._width);
             const h = NumCast(layoutDoc._height);
-            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
-                selection.push(doc);
+            if (this._freeHand === false) {
+                if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                    selection.push(doc);
+                }
+            } else {
+                if (this.touchesLine({ left: x, top: y, width: w, height: h }) ||
+                    this.boundingShape({ left: x, top: y, width: w, height: h })) {
+                    selection.push(doc);
+                }
             }
         });
         if (!selection.length && selectBackgrounds) {
@@ -597,8 +667,15 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 const y = NumCast(doc.y);
                 const w = NumCast(layoutDoc._width);
                 const h = NumCast(layoutDoc._height);
-                if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
-                    selection.push(doc);
+                if (this._freeHand === false) {
+                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                        selection.push(doc);
+                    }
+                } else {
+                    if (this.touchesLine({ left: x, top: y, width: w, height: h }) ||
+                        this.boundingShape({ left: x, top: y, width: w, height: h })) {
+                        selection.push(doc);
+                    }
                 }
             });
         }
@@ -614,13 +691,40 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
          * This contains the "C for collection, ..." text on marquees.
          * Commented out by syip2 when the marquee menu was added.
          */
-        return <div className="marquee" style={{
-            transform: `translate(${p[0]}px, ${p[1]}px)`,
-            width: `${Math.abs(v[0])}`,
-            height: `${Math.abs(v[1])}`, zIndex: 2000
-        }} >
-            {/* <span className="marquee-legend" /> */}
-        </div>;
+        if (!this._freeHand) {
+            return <div className="marquee" style={{
+                transform: `translate(${p[0]}px, ${p[1]}px)`,
+                width: `${Math.abs(v[0])}`,
+                height: `${Math.abs(v[1])}`, zIndex: 2000
+            }} >
+                <span className="marquee-legend"></span>
+            </div>;
+
+        } else {
+            //subtracted 250 for offset
+            var str: string = "";
+            for (var i = 0; i < this._pointsX.length; i++) {
+                var x = 0;
+                x = this._pointsX[i] - 250;
+                str += x.toString();
+                str += ",";
+                str += this._pointsY[i].toString();
+                str += (" ");
+            }
+
+            //hardcoded height and width.
+            return <div className="marquee" style={{ zIndex: 2000 }}>
+                <svg height={2000} width={2000}>
+                    <polyline
+                        points={str}
+                        fill="none"
+                        stroke="black"
+                        strokeWidth="1"
+                        strokeDasharray="3"
+                    />
+                </svg>
+            </div>;
+        }
     }
 
     render() {

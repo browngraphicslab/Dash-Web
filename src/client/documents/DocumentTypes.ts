@@ -34,5 +34,6 @@ export enum DocumentType {
     COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
+    SCRIPTDB = "scriptdb",          // database of scripts
     RECOMMENDATION = "recommendation", // view of a recommendation
 }

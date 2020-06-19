@@ -182,17 +182,12 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-
-            const existingMore = ContextMenu.Instance.findByDescription("More...");
-            const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
 
     extractFaces = () => {
         const converter = (results: any) => {
-            return results.map((face: CognitiveServices.Image.Face) => Docs.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
+            return results.map((face: CognitiveServices.Image.Face) => Doc.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
         };
         this.url && CognitiveServices.Image.Appliers.ProcessImage(this.dataDoc, [this.fieldKey + "-faces"], this.url, Service.Face, converter);
     }
@@ -478,6 +473,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
+                docFilters={this.props.docFilters}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>

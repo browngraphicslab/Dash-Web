@@ -15,7 +15,7 @@
         padding-bottom: 1px;
         height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
-        overflow: hidden;
+        overflow: visible;
 
         .collectionViewBaseChrome {
             display: flex;
@@ -168,13 +168,53 @@
             }
         }
 
-
         .collectionStackingViewChrome-cont,
         .collectionTreeViewChrome-cont,
         .collection3DCarouselViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
+
+        .collectionGridViewChrome-cont {
+            display: flex;
+            margin-left: 10;
+
+            .collectionGridViewChrome-viewPicker {
+                font-size: 75%;
+                //text-transform: uppercase;
+                //letter-spacing: 2px;
+                background: rgb(238, 238, 238);
+                color: grey;
+                outline-color: black;
+                border: none;
+                //padding: 12px 10px 11px 10px;
+            }
+
+            .collectionGridViewChrome-viewPicker:active {
+                outline-color: black;
+            }
+
+            .grid-control {
+                align-self: center;
+                display: flex;
+                flex-direction: row;
+                margin-right: 5px;
+
+                .grid-icon {
+                    margin-right: 5px;
+                    align-self: center;
+                }
+
+                .flexLabel {
+                    margin-bottom: 0;
+                }
+            }
+
+            .collectionGridViewChrome-entryBox {
+                width: 50%;
+            }
+        }
+
 
         .collectionStackingViewChrome-sort,
         .collectionTreeViewChrome-sort {
@@ -246,6 +286,7 @@
         .collection3DCarouselViewChrome-scrollSpeed:hover {
             cursor: text;
         }
+
     }
 }
 

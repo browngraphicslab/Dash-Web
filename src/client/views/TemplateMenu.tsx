@@ -7,10 +7,10 @@ import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
 import { Doc, DocListCast } from "../../fields/Doc";
-import { Docs, } from "../documents/Documents";
+import { Docs, DocUtils, } from "../documents/Documents";
 import { StrCast, Cast } from "../../fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
-import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
+import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero, returnEmptyFilter } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ScriptField, ComputedField } from "../../fields/ScriptField";
 import { Scripting } from "../util/Scripting";
@@ -140,6 +140,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 CollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
+                docFilters={returnEmptyFilter}
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField!}
                 onChildClick={this.scriptField!}
@@ -176,5 +177,5 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc | undefined) {
         template = Cast(template.dragFactory, Doc, null);
     }
     const templateTitle = StrCast(template?.title);
-    return templateTitle && Doc.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
+    return templateTitle && DocUtils.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
 });

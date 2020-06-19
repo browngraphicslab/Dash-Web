@@ -5,9 +5,9 @@ import { Id } from "../../../../fields/FieldSymbols";
 import { ObjectField } from "../../../../fields/ObjectField";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero, returnEmptyFilter } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { DocumentView } from "../DocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Transform } from "../../../util/Transform";
@@ -48,7 +48,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && Doc.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && DocUtils.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         this._dashDoc = aliasedDoc;
                         //                        self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
@@ -254,6 +254,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                             whenActiveChanged={returnFalse}
                             bringToFront={emptyFunction}
                             dontRegisterView={false}
+                            docFilters={this.props.tbox?.props.docFilters||returnEmptyFilter}
                             ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                             ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                             ContentScaling={this.contentScaling}

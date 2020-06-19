@@ -15,7 +15,6 @@ import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
@@ -425,7 +424,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const frozen = !this.props.isSelected() || decInteracting;
 
         return (<>
-            <div className={"webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !decInteracting ? "-interactive" : "")}
+            <div className={"webBox-cont" + (this.props.isSelected() && Doc.GetSelectedTool() === InkTool.None && !decInteracting ? "-interactive" : "")}
                 onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {view}
             </div>;
@@ -489,6 +488,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         CollectionView={undefined}
                         ScreenToLocalTransform={this.scrollXf}
                         renderDepth={this.props.renderDepth + 1}
+                        docFilters={this.props.docFilters}
                         ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                     </CollectionFreeFormView>
                 </div>

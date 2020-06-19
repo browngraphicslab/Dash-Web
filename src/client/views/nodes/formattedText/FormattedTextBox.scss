@@ -67,6 +67,7 @@
     display: inline-block;
     position: absolute;
     right: 0;
+    overflow: hidden;
 
     .collectionfreeformview-container {
         position: relative;
@@ -95,6 +96,17 @@
 .formattedTextBox-inner {
     height: 100%;
     white-space: pre-wrap; 
+    hr {
+        display: block;
+        unicode-bidi: isolate;
+        margin-block-start: 0.5em;
+        margin-block-end: 0.5em;
+        margin-inline-start: auto;
+        margin-inline-end: auto;
+        overflow: hidden;
+        border-style: inset;
+        border-width: 1px;
+    }
 }
 
 // .menuicon {
@@ -220,6 +232,48 @@ footnote::after {
         content: "...";
     }
 }
+
+.prosemirror-anchor {
+    overflow:hidden;
+    display:inline-grid;
+}
+.prosemirror-linkBtn {
+    background:unset;
+    color:unset;
+    padding:0;
+    text-transform: unset;
+    letter-spacing: unset;
+    font-size:unset;
+}
+.prosemirror-links {
+    display: none;
+    position: absolute;
+    background-color: gray;
+    padding-bottom: 10px;
+    margin-top: 1em;
+    z-index: 1;
+  }
+  .prosemirror-hrefoptions{
+      width:0px;
+      border:unset;
+      padding:0px;
+
+  }
+  
+  .prosemirror-links a {
+    float: left;
+    color: white;
+    text-decoration: none;
+  }
+  
+  .prosemirror-links a:hover {
+    background-color: #eee;
+    color: black;
+  }
+  
+  .prosemirror-anchor:hover .prosemirror-links {
+    display: grid;
+  }
 
 .ProseMirror {
     touch-action: none;

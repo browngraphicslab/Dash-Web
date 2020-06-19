@@ -1,9 +1,9 @@
 import React = require("react");
-import { action, observable } from "mobx";
+import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -23,6 +23,7 @@ import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 import { SnappingManager } from "../../util/SnappingManager";
+import { ComputedField } from "../../../fields/ScriptField";
 
 library.add(faExpand);
 
@@ -57,7 +58,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyDown);
-
     }
 
     componentWillUnmount() {
@@ -70,7 +70,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             document.removeEventListener("keydown", this.onKeyDown);
             this._isEditing = true;
             this.props.setIsEditing(true);
-
         }
     }
 
@@ -160,6 +159,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             bringToFront: emptyFunction,
             rootSelected: returnFalse,
             fieldKey: this.props.rowProps.column.id as string,
+            docFilters: returnEmptyFilter,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,
@@ -217,7 +217,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //     <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
         //         <FontAwesomeIcon icon="expand" size="sm" />
         //     </div>
-        // );
+        // );   
+        trace();
 
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
@@ -231,23 +232,29 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
-                                const field = props.Document[props.fieldKey];
-                                if (Field.IsField(field)) {
-                                    return Field.toScriptString(field);
-                                }
-                                return "";
-                            }
-                            }
-                            SetValue={(value: string) => {
-                                if (value.startsWith(":=")) {
-                                    return this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
-                                }
-                                const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                if (!script.compiled) {
-                                    return false;
-                                }
-                                return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
+                                const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
+                                const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
+                                const val = cscript !== undefined ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` :
+                                    Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
+                                return val;
                             }}
+                            SetValue={action((value: string) => {
+                                let retVal = false;
+                                if (value.startsWith(":=")) {
+                                    retVal = this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                } else {
+                                    const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                    if (script.compiled) {
+                                        retVal = this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
+                                    }
+                                }
+                                if (retVal) {
+                                    this._isEditing = false; // need to set this here. otherwise, the assignment of the field will invalidate & cause render() to be called with the wrong value for 'editing'
+                                    this.props.setIsEditing(false);
+                                }
+                                return retVal;
+                            })}
                             OnFillDown={async (value: string) => {
                                 const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (script.compiled) {

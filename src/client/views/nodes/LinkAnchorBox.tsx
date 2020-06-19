@@ -117,7 +117,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const y = this.props.PanelWidth() > 1 ? NumCast(this.layoutDoc[this.fieldKey + "_y"], 100) : 0;
         const c = StrCast(this.layoutDoc.backgroundColor, "lightblue");
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
-        const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .15;
+        const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
         const timecode = this.dataDoc[anchor + "_timecode"];
         const targetTitle = StrCast((this.dataDoc[anchor] as Doc)?.title) + (timecode !== undefined ? ":" + timecode : "");

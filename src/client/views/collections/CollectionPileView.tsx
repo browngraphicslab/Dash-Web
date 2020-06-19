@@ -12,6 +12,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { UndoManager, undoBatch } from "../../util/UndoManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { DragManager } from "../../util/DragManager";
+import { DocUtils } from "../../documents/Documents";
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
@@ -45,12 +46,12 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         if (this.layoutEngine() === 'starburst') {
             const defaultSize = 110;
             this.layoutDoc._overflow = undefined;
-            this.childDocs.forEach(d => Doc.iconify(d));
+            this.childDocs.forEach(d => DocUtils.iconify(d));
             this.rootDoc.x = NumCast(this.rootDoc.x) + this.layoutDoc[WidthSym]() / 2 - NumCast(this.layoutDoc._starburstPileWidth, defaultSize) / 2;
             this.rootDoc.y = NumCast(this.rootDoc.y) + this.layoutDoc[HeightSym]() / 2 - NumCast(this.layoutDoc._starburstPileHeight, defaultSize) / 2;
             this.layoutDoc._width = NumCast(this.layoutDoc._starburstPileWidth, defaultSize);
             this.layoutDoc._height = NumCast(this.layoutDoc._starburstPileHeight, defaultSize);
-            Doc.pileup(this.childDocs);
+            DocUtils.pileup(this.childDocs);
             this.layoutDoc._panX = 0;
             this.layoutDoc._panY = -10;
             this.props.Document._pileLayoutEngine = 'pass';
@@ -76,7 +77,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         if (super.onInternalDrop(e, de)) {
             if (de.complete.docDragData) {
-                Doc.pileup(this.childDocs);
+                DocUtils.pileup(this.childDocs);
             }
         }
         return true;
