@@ -28,14 +28,14 @@ export interface User {
 export enum SharingPermissions {
     None = "Not Shared",
     View = "Can View",
-    Comment = "Can Comment",
+    Add = "Can Add and Comment",
     Edit = "Can Edit"
 }
 
 const ColorMapping = new Map<string, string>([
     [SharingPermissions.None, "red"],
     [SharingPermissions.View, "maroon"],
-    [SharingPermissions.Comment, "blue"],
+    [SharingPermissions.Add, "blue"],
     [SharingPermissions.Edit, "green"]
 ]);
 

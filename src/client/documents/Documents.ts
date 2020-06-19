@@ -310,6 +310,11 @@ export namespace Docs {
             [DocumentType.COMPARISON, {
                 layout: { view: ComparisonBox, dataField: defaultDataKey },
             }],
+            [DocumentType.GROUPDB, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Group Database" }
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -370,6 +375,13 @@ export namespace Docs {
          */
         export function MainScriptDocument() {
             return Prototypes.get(DocumentType.SCRIPTDB);
+        }
+
+        /**
+         * A collection of all groups in the database
+         */
+        export function MainGroupDocument() {
+            return Prototypes.get(DocumentType.GROUPDB);
         }
 
         /**

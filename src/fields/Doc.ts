@@ -96,6 +96,7 @@ export const AclSym = Symbol("Acl");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
+export const AclReadWrite = Symbol("AclReadWrite");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
@@ -113,6 +114,8 @@ export function fetchProto(doc: Doc) {
             case "addOnly":
                 doc[AclSym] = AclAddonly;
                 break;
+            case "write":
+                doc[AclSym] = AclReadWrite;
         }
     }
 

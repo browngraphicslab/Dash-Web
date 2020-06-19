@@ -29,6 +29,7 @@ import { HistoryUtil } from '../util/History';
 import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { Scripting } from '../util/Scripting';
 import SettingsManager from '../util/SettingsManager';
+import GroupManager from '../util/GroupManager';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -446,6 +447,9 @@ export class MainView extends React.Component {
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                     <FontAwesomeIcon icon="cog" size="lg" />
                 </button>
+                {/* <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
+                    <FontAwesomeIcon icon="columns" size="lg" />
+                </button> */}
             </div>
             {this.docButtons}
         </div>;
@@ -562,6 +566,7 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
             <GestureOverlay>
