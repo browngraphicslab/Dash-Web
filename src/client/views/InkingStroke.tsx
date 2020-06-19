@@ -15,6 +15,7 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { Scripting } from "../util/Scripting";
 import { Doc } from "../../fields/Doc";
+import { NodeFlags } from "typescript";
 
 library.add(faPaintBrush);
 
@@ -56,11 +57,11 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
             StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()),
             StrCast(this.layoutDoc.arrowStart, ActiveArrowStart()), StrCast(this.layoutDoc.arrowEnd, ActiveArrowEnd()),
-            StrCast(this.layoutDoc.dash, ActiveDash()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
+            StrCast(this.layoutDoc.dash, ActiveDash()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()),
-            "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);
+            "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false, true);
         return (
             <svg className="inkingStroke"
                 width={width}

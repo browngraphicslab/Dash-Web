@@ -24,6 +24,7 @@ import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
+import HeightLabel from "./collections/collectionMulticolumn/MultirowHeightLabel";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -812,20 +813,28 @@ export default class GestureOverlay extends Touchable {
     }
 
     @computed get elements() {
-
-        const B = this.svgBounds;
         const width = Number(ActiveInkWidth());
+        const B = this.svgBounds;
+        B.left = B.left - width / 2;
+        B.right = B.right + width / 2;
+        B.top = B.top - width / 2;
+        B.bottom = B.bottom + width / 2;
+        B.width += width;
+        B.height += width;
         return [
             this.props.children,
             this._palette,
             [this._strokes.map((l, i) => {
                 const b = this.getBounds(l);
                 return <svg key={i} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, ActiveInkColor(), width, width,
+                        ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(),
+                        ActiveDash(), 1, 1, this.InkShape, "none", false, false)}
                 </svg>;
             }),
-            this._points.length <= 1 ? (null) : <svg key="svg" width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false)}
+            this._points.length <= 1 ? (null) : <svg key="svg" width={B.width} height={B.height}
+                style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false, false)}
             </svg>]
         ];
     }

@@ -3,6 +3,7 @@ import * as beziercurve from 'bezier-curve';
 import * as fitCurve from 'fit-curve';
 import InkOptionsMenu from "../views/collections/collectionFreeForm/InkOptionsMenu";
 import "./InteractionUtils.scss";
+import { Utils } from "../../Utils";
 
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
@@ -93,15 +94,15 @@ export namespace InteractionUtils {
 
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
-        dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
+        dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
         }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
-            points.pop();
             const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+            newPoints.pop();
 
             const bezierCurves = fitCurve(newPoints, parseInt(bezier));
             for (const curve of bezierCurves) {
@@ -117,28 +118,26 @@ export namespace InteractionUtils {
             `${(pt.X - left - width / 2) * scalex + width / 2},
          ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
         const dashArray = String(Number(width) * Number(dash));
-
-        return (<svg>
-            <defs>
-                <marker id="dot" orient="auto" overflow="visible">
+        const defGuid = Utils.GenerateGuid();
+        return (<svg fill={fill === "none" ? color : fill}> {/* setting the svg fill sets the arrowhead fill */}
+            {nodefs ? (null) : <defs>
+                <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
                     <circle r={0.5} fill="context-stroke" />
                 </marker>
-                <marker id="arrowHead" orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
-                    {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
-                    <polygon points="3 0, 3 2, 0 1" fill={fill} />
+                <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="3" refY="0" markerWidth="10" markerHeight="7">
+                    <polygon points="10 -5, 10 5, 0 0" />
                 </marker>
-                <marker id="arrowEnd" orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
-                    {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
-                    <polygon points="0 0, 3 1, 0 2" fill={fill} />
+                <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
+                    <polygon points="0 0, 3 1, 0 2" />
                 </marker>
 
-            </defs>
+            </defs>}
 
             <polyline
                 points={strpts}
                 style={{
                     filter: drawHalo ? "url(#dangerShine)" : undefined,
-                    fill: "none",
+                    fill,
                     opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
@@ -146,8 +145,8 @@ export namespace InteractionUtils {
                     strokeLinejoin: "round",
                     strokeLinecap: "round"
                 }}
-                markerStart={arrowStart}
-                markerEnd={arrowEnd}
+                markerStart={`url(#${arrowStart + defGuid})`}
+                markerEnd={`url(#${arrowEnd + defGuid})`}
             />
 
         </svg>);

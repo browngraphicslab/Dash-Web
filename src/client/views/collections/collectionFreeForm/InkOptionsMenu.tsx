@@ -24,15 +24,15 @@ library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSup
 export default class InkOptionsMenu extends AntimodeMenu {
     static Instance: InkOptionsMenu;
 
-    private _palette = ["D0021B", "F5A623", "F8E71C", "8B572A", "7ED321", "417505", "9013FE", "4A90E2", "50E3C2", "B8E986", "000000", "4A4A4A", "9B9B9B", "FFFFFF", "none"];
+    private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", "none"];
     private _width = ["1", "5", "10", "100"];
     // private _buttons = ["circle", "triangle", "rectangle", "arrow", "line"];
     // private _icons = ["O", "∆", "ロ", "➜", "-"];
     private _buttons = ["circle", "triangle", "rectangle", "line", "", "noRec"];
     private _icons = ["O", "∆", "ロ", "––", " ", "✖︎"];
     //arrowStart and arrowEnd must match and defs must exist in Inking Stroke
-    private _arrowStart = ["url(#arrowHead)", "url(#arrowHead)", "url(#dot)", "url(#dot)", "none"];
-    private _arrowEnd = ["none", "url(#arrowEnd)", "none", "url(#dot)", "none"];
+    private _arrowStart = ["arrowHead", "arrowHead", "dot", "dot", "none"];
+    private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
     private _arrowIcons = ["→", "↔︎", "・", "・・", " "];
 
     @observable _colorBtn = false;
