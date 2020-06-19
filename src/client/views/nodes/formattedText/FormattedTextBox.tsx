@@ -1227,6 +1227,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         } else if (FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
+        const selPad = this.props.isSelected() ? -10 : 0;
+        const selclass = this.props.isSelected() ? "-selected" : ""
         return (
             <div className={"formattedTextBox-cont"} style={{
                 transform: `scale(${scale})`,
@@ -1268,11 +1270,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     })}
                 >
                     <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
-                        <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
+                        <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
-                                padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
+                                padding: `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
                                 pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
-                            }} />
+                            }}
+                        />
                     </div>
                     {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :

@@ -1197,7 +1197,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.annotationsKey) return;
 
-        ContextMenu.Instance.addItem({
+        !this.props.isAnnotationOverlay && ContextMenu.Instance.addItem({
             description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye

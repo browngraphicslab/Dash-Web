@@ -236,7 +236,7 @@ export class ContextMenu extends React.Component {
                     <span className="icon-background">
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
-                    <input className="contextMenu-item contextMenu-description search" type="text" placeholder="Search . . ." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
+                    <input className="contextMenu-item contextMenu-description search" type="text" placeholder="Search Menu..." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
                 </span>
                 {this.menuItems}
             </>
