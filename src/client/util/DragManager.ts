@@ -328,7 +328,7 @@ export namespace DragManager {
             dragLabel.style.zIndex = "100001";
             dragLabel.style.fontSize = "10";
             dragLabel.style.position = "absolute";
-            dragLabel.innerText = "press 'a' to embed on drop";
+            // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
             dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
