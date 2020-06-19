@@ -1,6 +1,6 @@
 @import "../client/views/globalCssVariables.scss";
 
-.imgupload_cont {
+.audioUpload_cont {
     display: flex;
     justify-content: center;
     flex-direction: column;
@@ -55,7 +55,6 @@
         background-color: black;
         display: inline-block;
         margin: 10px;
-        margin-top: 30px;
         width: 100%;
         border-radius: 10px;
     }
@@ -81,12 +80,12 @@
     opacity: 0.4;
 }
 
-.image-upload {
+.audio-upload {
     top: 100%;
     opacity: 0;
 }
 
-.image-upload.active {
+.audio-upload.active {
     top: 0;
     position: absolute;
     z-index: 999;
@@ -104,20 +103,6 @@
     opacity: 1;
 }
 
-.closeUpload {
-    position: absolute;
-    border-radius: 10px;
-    top: 3;
-    color: black;
-    font-size: 30;
-    right: 3;
-    z-index: 1002;
-    padding: 0px 3px;
-    background: rgba(0, 0, 0, 0);
-    transition: 0.5s ease all;
-    border: 0px solid;
-}
-
 .loadingImage {
     display: inline-flex;
     width: max-content;
@@ -131,5 +116,4 @@
     border-radius: 20px;
     opacity: 0.3;
     background-color: black;
-    transition: all 2s, opacity 1.5s;
 }
