@@ -96,6 +96,9 @@
 .formattedTextBox-inner, .formattedTextBox-inner-selected {
     height: 100%;
     white-space: pre-wrap; 
+    .ProseMirror:hover {
+        background: rgba(200,200,200,0.8);
+    }
     hr {
         display: block;
         unicode-bidi: isolate;
@@ -323,5 +326,8 @@ footnote::after {
 .formattedTextBox-inner-selected {
     .ProseMirror {
         padding:10px;
+    }
+    .ProseMirror:hover {
+        background: unset;
     }
 }
