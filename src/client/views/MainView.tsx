@@ -444,12 +444,14 @@ export class MainView extends React.Component {
                     docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
-                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                    <FontAwesomeIcon icon="cog" size="lg" />
-                </button>
-                {/* <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
-                    <FontAwesomeIcon icon="columns" size="lg" />
-                </button> */}
+                <div className="buttonContainer" >
+                    <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                        <FontAwesomeIcon icon="cog" size="lg" />
+                    </button>
+                    <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
+                        <FontAwesomeIcon icon="columns" size="lg" />
+                    </button>
+                </div>
             </div>
             {this.docButtons}
         </div>;
