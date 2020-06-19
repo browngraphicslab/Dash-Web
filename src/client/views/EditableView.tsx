@@ -5,6 +5,7 @@ import * as Autosuggest from 'react-autosuggest';
 import { ObjectField } from '../../fields/ObjectField';
 import { SchemaHeaderField } from '../../fields/SchemaHeaderField';
 import "./EditableView.scss";
+import { DragManager } from '../util/DragManager';
 
 export interface EditableProps {
     /**
@@ -48,6 +49,8 @@ export interface EditableProps {
     HeadingObject?: SchemaHeaderField | undefined;
     toggle?: () => void;
     color?: string | undefined;
+    onDrop?: any;
+    placeholder?: string;
 }
 
 /**
@@ -66,14 +69,22 @@ export class EditableView extends React.Component<EditableProps> {
         EditableView.loadId = "";
     }
 
+    // @action
+    // componentDidUpdate(nextProps: EditableProps) {
+    //     // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
+    //     // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
+    //     // to false. this will no longer do so -syip
+    //     console.log("props editing = " + nextProps.editing);
+    //     if (nextProps.editing && nextProps.editing !== this._editing) {
+    //         this._editing = nextProps.editing;
+    //         EditableView.loadId = "";
+    //     }
+    // }
+
     @action
-    componentDidUpdate(nextProps: EditableProps) {
-        // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
-        // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
-        // to false. this will no longer do so -syip
-        if (nextProps.editing && nextProps.editing !== this._editing) {
-            this._editing = nextProps.editing;
-            EditableView.loadId = "";
+    componentDidMount() {
+        if (this._ref.current && this.props.onDrop) {
+            DragManager.MakeDropTarget(this._ref.current, this.props.onDrop.bind(this));
         }
     }
 
@@ -109,7 +120,7 @@ export class EditableView extends React.Component<EditableProps> {
         if (this._ref.current && this.props.showMenuOnLoad) {
             this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
         } else {
-            if (!this.props.onClick || !this.props.onClick(e)) {
+            if (!this.props.onClick?.(e)) {
                 this._editing = true;
                 this.props.isEditingCallback?.(true);
             }
@@ -168,6 +179,7 @@ export class EditableView extends React.Component<EditableProps> {
                     onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
                     onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                     style={{ display: this.props.display, fontSize: this.props.fontSize }}
+                    placeholder={this.props.placeholder}
                 />;
         } else {
             this.props.autosuggestProps?.resetValue();
@@ -175,8 +187,9 @@ export class EditableView extends React.Component<EditableProps> {
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     ref={this._ref}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
-                    onClick={this.onClick}>
-                    <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{this.props.contents}</span>
+                    onClick={this.onClick} placeholder={this.props.placeholder}>
+
+                    <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
                 </div>
             );
         }

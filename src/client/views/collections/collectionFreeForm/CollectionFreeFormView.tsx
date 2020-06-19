@@ -52,7 +52,6 @@ library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressAr
 export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
-    scale: "number",
     currentTimecode: "number",
     displayTimecode: "number",
     currentFrame: "number",
@@ -76,6 +75,7 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
+    scaleField?: string;
 };
 
 @observer
@@ -108,6 +108,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get nativeWidth() { return this.fitToContent ? 0 : NumCast(this.Document._nativeWidth, this.props.NativeWidth()); }
     @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight, this.props.NativeHeight()); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
+    private get scaleFieldKey() { return this.props.scaleField || "scale"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private easing = () => this.props.Document.panTransformType === "Ease";
     private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document._panX || 0;
@@ -115,14 +116,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private zoomScaling = () => (this.fitToContentScaling / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y),
             this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
-        this.Document.scale || 1)
+        NumCast(this.Document[this.scaleFieldKey], 1))
 
     @computed get cachedCenteringShiftX(): number {
-        const scaling = this.fitToContent ? 1 : this.contentScaling;
+        const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
         return !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / scaling : 0;  // shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedCenteringShiftY(): number {
-        const scaling = this.fitToContent ? 1 : this.contentScaling;
+        const scaling = this.fitToContent || !this.contentScaling ? 1 : this.contentScaling;
         return !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / scaling : 0;// shift so pan position is at center of window for non-overlay collections
     }
     @computed get cachedGetLocalTransform(): Transform {
@@ -157,8 +158,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         if (retVal) {
             const newBoxes = (newBox instanceof Doc) ? [newBox] : newBox;
-            for (let i = 0; i < newBoxes.length; i++) {
-                const newBox = newBoxes[i];
+            for (const newBox of newBoxes) {
                 if (newBox.activeFrame !== undefined) {
                     const x = newBox.x;
                     const y = newBox.y;
@@ -239,7 +239,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
-        if (linkDragData.linkSourceDocument === this.props.Document) return false;
+        if (linkDragData.linkSourceDocument === this.props.Document || this.props.Document.annotationOn) return false;
         const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
         this.props.addDocument(source);
         linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
@@ -257,8 +257,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
         } else if (de.complete.docDragData?.droppedDocuments.length && this.internalDocDrop(e, de, de.complete.docDragData, xp, yp)) {
             return true;
-        } else {
-            UndoManager.Undo();
         }
         return false;
     }
@@ -456,7 +454,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             case GestureUtils.Gestures.Stroke:
                 const points = ge.points;
                 const B = this.getTransform().transformBounds(ge.bounds.left, ge.bounds.top, ge.bounds.width, ge.bounds.height);
-                const inkDoc = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), points, { title: "ink stroke", x: B.x, y: B.y, _width: B.width, _height: B.height });
+                const inkDoc = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), points,
+                    { title: "ink stroke", x: B.x - Number(ActiveInkWidth()) / 2, y: B.y - Number(ActiveInkWidth()) / 2, _width: B.width + Number(ActiveInkWidth()), _height: B.height + Number(ActiveInkWidth()) });
                 this.addDocument(inkDoc);
                 e.stopPropagation();
                 break;
@@ -779,7 +778,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
             const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
-            this.props.Document.scale = Math.abs(safeScale);
+            this.props.Document[this.scaleFieldKey] = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
         }
     }
@@ -795,7 +794,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
             else this.zoom(e.clientX, e.clientY, e.deltaY);
         }
-        this.props.Document.targetScale = NumCast(this.props.Document.scale);
+        this.props.Document.targetScale = NumCast(this.props.Document[this.scaleFieldKey]);
     }
 
     @action
@@ -852,7 +851,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     scaleAtPt(docpt: number[], scale: number) {
         const screenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);
         this.Document.panTransformType = "Ease";
-        this.layoutDoc.scale = scale;
+        this.layoutDoc[this.scaleFieldKey] = scale;
         const newScreenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);
         const scrDelta = { x: screenXY[0] - newScreenXY[0], y: screenXY[1] - newScreenXY[1] };
         const newpan = this.getTransform().transformDirection(scrDelta.x, scrDelta.y);
@@ -896,7 +895,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             newState.initializers![this.Document[Id]] = { panX: newPanX, panY: newPanY };
             HistoryUtil.pushState(newState);
 
-            const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document.scale, pt: this.Document.panTransformType };
+            const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document[this.scaleFieldKey], pt: this.Document.panTransformType };
 
             // if (!willZoom && DocumentView._focusHack.length) {
             //     Doc.BrushDoc(this.props.Document);
@@ -915,7 +914,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 if (afterFocus?.()) {
                     this.Document._panX = savedState.px;
                     this.Document._panY = savedState.py;
-                    this.Document.scale = savedState.s;
+                    this.Document[this.scaleFieldKey] = savedState.s;
                     this.Document.panTransformType = savedState.pt;
                 }
             }, 500);
@@ -924,7 +923,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
-        this.Document.scale = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
+        this.Document[this.scaleFieldKey] = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
@@ -959,6 +958,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.Document,
+            docFilters: this.docFilters,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,
@@ -1125,7 +1125,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }));
 
         if (this.props.isAnnotationOverlay) {
-            this.props.Document.scale = Math.max(1, NumCast(this.props.Document.scale));
+            this.props.Document[this.scaleFieldKey] = Math.max(1, NumCast(this.props.Document[this.scaleFieldKey]));
         }
 
         return elements;
@@ -1197,7 +1197,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.annotationsKey) return;
 
-        ContextMenu.Instance.addItem({
+        !this.props.isAnnotationOverlay && ContextMenu.Instance.addItem({
             description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye
@@ -1206,7 +1206,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
 
-        optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
         optionItems.push({ description: "toggle snap line display", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
         optionItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });

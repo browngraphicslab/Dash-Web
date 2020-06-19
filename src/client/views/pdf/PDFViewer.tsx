@@ -51,6 +51,7 @@ interface IViewerProps {
     fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
+    docFilters: () => string[];
     ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -126,16 +127,24 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // file address of the pdf
         const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const { url: relative } = this.props;
-        const pathComponents = relative.split("/pdfs/")[1].split("/");
-        const coreFilename = pathComponents.pop()!.split(".")[0];
-        const params: any = {
-            coreFilename,
-            pageNum: this.Document.curPage || 1,
-        };
-        if (pathComponents.length) {
-            params.subtree = `${pathComponents.join("/")}/`;
+        if (relative.includes("/pdfs/")) {
+            const pathComponents = relative.split("/pdfs/")[1].split("/");
+            const coreFilename = pathComponents.pop()!.split(".")[0];
+            const params: any = {
+                coreFilename,
+                pageNum: this.Document.curPage || 1,
+            };
+            if (pathComponents.length) {
+                params.subtree = `${pathComponents.join("/")}/`;
+            }
+            this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
+        } else {
+            const params: any = {
+                coreFilename: relative.split("/")[relative.split("/").length - 1],
+                pageNum: this.Document.curPage || 1,
+            };
+            this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
-        this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current!.scrollTop = this.layoutDoc._scrollTop || 0;

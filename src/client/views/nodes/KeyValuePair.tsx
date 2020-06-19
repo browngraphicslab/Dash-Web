@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, Field, Opt } from '../../../fields/Doc';
-import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
+import { emptyFunction, returnFalse, returnOne, returnZero, returnEmptyFilter } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
@@ -56,6 +56,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             Document: this.props.doc,
             DataDoc: this.props.doc,
             LibraryPath: [],
+            docFilters:returnEmptyFilter,
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
             fieldKey: this.props.keyName,

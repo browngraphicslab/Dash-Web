@@ -190,6 +190,20 @@ $linkGap : 3px;
 }
 
 
+.documentDecorations-iconifyButton {
+    opacity: 1;
+    grid-column-start: 4;
+    grid-column-end: 6;
+    pointer-events: all;
+    text-align: center;
+    left: -20px;
+    top: -2px;
+    cursor: pointer;
+    position: absolute;
+    background: transparent;
+    width: 20px;
+}
+
 .documentDecorations-closeButton {
     opacity: 1;
     grid-column-start: 4;
@@ -241,13 +255,15 @@ $linkGap : 3px;
 }
 
 .link-button-container {
-    margin-top: $linkGap;
+    padding: $linkGap;
+    border-radius: 10px;
     width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;
     z-index: 998;
     position: absolute;
+    background: $alt-accent;
 }
 
 .linkButtonWrapper {

@@ -488,6 +488,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         CollectionView={undefined}
                         ScreenToLocalTransform={this.scrollXf}
                         renderDepth={this.props.renderDepth + 1}
+                        docFilters={this.props.docFilters}
                         ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                     </CollectionFreeFormView>
                 </div>

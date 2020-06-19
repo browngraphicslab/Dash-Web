@@ -22,7 +22,7 @@ import { listSpec } from '../fields/Schema';
 import { Cast, FieldValue } from '../fields/Types';
 import { WebField } from "../fields/URLField";
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from '../Utils';
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
 import "./MobileInterface.scss";
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { InkingStroke } from '../client/views/InkingStroke';
@@ -126,6 +126,7 @@ export default class MobileInterface extends React.Component {
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />;
         }
@@ -205,6 +206,7 @@ export default class MobileInterface extends React.Component {
                         whenActiveChanged={returnFalse}
                         ScreenToLocalTransform={Transform.Identity}
                         renderDepth={0}
+                        docFilters={returnEmptyFilter}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
                         rootSelected={returnTrue}>
@@ -293,6 +295,7 @@ export default class MobileInterface extends React.Component {
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
+                        docFilters={returnEmptyFilter}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined} />
                 </div>

@@ -67,6 +67,7 @@
     display: inline-block;
     position: absolute;
     right: 0;
+    overflow: hidden;
 
     .collectionfreeformview-container {
         position: relative;
@@ -91,10 +92,13 @@
     left: 10%;
 }
 
-.formattedTextBox-inner-rounded,
-.formattedTextBox-inner {
+.formattedTextBox-inner-rounded, .formattedTextBox-inner-rounded-selected,
+.formattedTextBox-inner, .formattedTextBox-inner-selected {
     height: 100%;
     white-space: pre-wrap; 
+    .ProseMirror:hover {
+        background: rgba(200,200,200,0.8);
+    }
     hr {
         display: block;
         unicode-bidi: isolate;
@@ -232,7 +236,51 @@ footnote::after {
     }
 }
 
+.prosemirror-anchor {
+    overflow:hidden;
+    display:inline-grid;
+}
+.prosemirror-linkBtn {
+    background:unset;
+    color:unset;
+    padding:0;
+    text-transform: unset;
+    letter-spacing: unset;
+    font-size:unset;
+}
+.prosemirror-links {
+    display: none;
+    position: absolute;
+    background-color: gray;
+    padding-bottom: 10px;
+    margin-top: 1em;
+    z-index: 1;
+  }
+  .prosemirror-hrefoptions{
+      width:0px;
+      border:unset;
+      padding:0px;
+
+  }
+  
+  .prosemirror-links a {
+    float: left;
+    color: white;
+    text-decoration: none;
+  }
+  
+  .prosemirror-links a:hover {
+    background-color: #eee;
+    color: black;
+  }
+  
+  .prosemirror-anchor:hover .prosemirror-links {
+    display: grid;
+  }
+
 .ProseMirror {
+    padding: 0px;
+    height: max-content;
     touch-action: none;
     span {
         font-family: inherit;
@@ -273,4 +321,14 @@ footnote::after {
     .multi2:before { transition: 0.5s;counter-increment: multi2; display: inline-block; margin-left: -2em;    width:   2em;  content: counter(multi1, upper-alpha) "."counter(multi2, decimal) ". "; }
     .multi3:before { transition: 0.5s;counter-increment: multi3; display: inline-block; margin-left: -2.85em; width:2.85em;  content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) ". "; }
     .multi4:before { transition: 0.5s;counter-increment: multi4; display: inline-block; margin-left:   -4.2em;  width: 4.2em;    content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) "."counter(multi4, lower-roman) ". "; }
+}
+
+.formattedTextBox-inner-rounded-selected,
+.formattedTextBox-inner-selected {
+    .ProseMirror {
+        padding:10px;
+    }
+    .ProseMirror:hover {
+        background: unset;
+    }
 }

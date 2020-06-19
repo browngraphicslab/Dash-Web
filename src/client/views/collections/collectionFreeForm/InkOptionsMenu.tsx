@@ -232,21 +232,6 @@ export default class InkOptionsMenu extends AntimodeMenu {
         return fillPicker;
     }
 
-
-
-    @computed get shapeButtons() {
-        return <>
-            {this._buttons.map((btn, i) => <button
-                className="antimodeMenu-button"
-                title={`Draw ${btn}`}
-                key={btn}
-                onPointerDown={action(e => GestureOverlay.Instance.InkShape = btn)}
-                style={{ backgroundColor: btn === GestureOverlay.Instance.InkShape ? "121212" : "" }}>
-                {this._icons[i]}
-            </button>)}
-        </>;
-    }
-
     @computed get shapePicker() {
         var currIcon;
         if (GestureOverlay.Instance.InkShape === "") {
@@ -313,7 +298,6 @@ export default class InkOptionsMenu extends AntimodeMenu {
                 <FontAwesomeIcon icon="arrows-alt" size="lg" />
             </button>,
             this.shapePicker,
-            // this.shapeButtons,
             this.bezierButton,
             this.widthPicker,
             this.colorPicker,

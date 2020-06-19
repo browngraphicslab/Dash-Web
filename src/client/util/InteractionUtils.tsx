@@ -91,86 +91,66 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string, fill: string, arrowStart: string, arrowEnd: string, dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
-        var pts = "";
-        if (shape) {
-            //if any of the shape are true
-            const shapePts = makePolygon(shape, points);
-            pts = shapePts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
+        color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
+        dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean) {
+        let pts: { X: number; Y: number; }[] = [];
+        if (shape) { //if any of the shape are true
+            pts = makePolygon(shape, points);
         }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
-            const newPoints: number[][] = [];
-            const newPts: { X: number; Y: number; }[] = [];
-            //convert to [][] for fitcurve module
-            for (var i = 0; i < points.length - 2; i++) {
-                newPoints.push([points[i].X, points[i].Y]);
-            }
+            points.pop();
+            const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+
             const bezierCurves = fitCurve(newPoints, parseInt(bezier));
-            for (var i = 0; i < bezierCurves.length; i++) {
+            for (const curve of bezierCurves) {
                 for (var t = 0; t < 1; t += 0.01) {
-                    const point = beziercurve(t, bezierCurves[i]);
-                    newPts.push({ X: point[0], Y: point[1] });
+                    const point = beziercurve(t, curve);
+                    pts.push({ X: point[0], Y: point[1] });
                 }
             }
-            pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
         } else {
-            //in the middle of drawing
-            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X * scalex - left * scalex},${pt.Y * scaley - top * scaley} `, "");
+            pts = points;
         }
+        const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
+            `${(pt.X - left - width / 2) * scalex + width / 2},
+         ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
         const dashArray = String(Number(width) * Number(dash));
 
-        return (
-            <svg>
-                <defs>
-                    <marker id="dot" orient="auto" overflow="visible">
-                        <circle r={0.5} fill="context-stroke" />
-                    </marker>
-                    <marker id="arrowHead" orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
-                        {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
-                        <polygon points="3 0, 3 2, 0 1" fill="black" />
-                    </marker>
-                    <marker id="arrowEnd" orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
-                        {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
-                        <polygon points="0 0, 3 1, 0 2" fill="black" />
-                    </marker>
+        return (<svg>
+            <defs>
+                <marker id="dot" orient="auto" overflow="visible">
+                    <circle r={0.5} fill="context-stroke" />
+                </marker>
+                <marker id="arrowHead" orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
+                    {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
+                    <polygon points="3 0, 3 2, 0 1" fill={fill} />
+                </marker>
+                <marker id="arrowEnd" orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
+                    {/* <rect width={strokeWidth} height={strokeWidth} transform='rotate(45)' fill="dodgerblue" /> */}
+                    <polygon points="0 0, 3 1, 0 2" fill={fill} />
+                </marker>
 
-                </defs>
-                {/* <polyline
-                    points={pts}
-                    style={{
-                        fill: fill,
-                        pointerEvents: pevents as any,
-                        stroke: drawHalo ? "grey" : "transparent",
-                        strokeWidth: parseInt(width) * 4,
-                        strokeLinejoin: "round",
-                        strokeLinecap: "round",
-                        strokeDasharray: dashArray
-                    }}
-                    markerStart={arrowStart}
-                    markerEnd={arrowEnd}
-                /> */}
+            </defs>
 
-                <polyline
-                    points={pts}
-                    style={{
-                        // filter: drawHalo ? "url(#dangerShine)" : undefined,
-                        fill: fill,
-                        pointerEvents: pevents as any,
-                        stroke: color ?? "rgb(0, 0, 0)",
-                        strokeWidth: parseInt(width),
-                        strokeLinejoin: "round",
-                        strokeLinecap: "round",
-                        strokeDasharray: dashArray
-                    }}
-                    markerStart={arrowStart}
-                    markerEnd={arrowEnd}
-                />
+            <polyline
+                points={strpts}
+                style={{
+                    filter: drawHalo ? "url(#dangerShine)" : undefined,
+                    fill: "none",
+                    opacity: strokeWidth !== width ? 0.5 : undefined,
+                    pointerEvents: pevents as any,
+                    stroke: color ?? "rgb(0, 0, 0)",
+                    strokeWidth: strokeWidth,
+                    strokeLinejoin: "round",
+                    strokeLinecap: "round"
+                }}
+                markerStart={arrowStart}
+                markerEnd={arrowEnd}
+            />
 
-            </svg>
-
-        );
+        </svg>);
     }
 
     // export function makeArrow() {

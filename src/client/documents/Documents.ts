@@ -1,41 +1,32 @@
-import { CollectionView } from "../views/collections/CollectionView";
-import { CollectionViewType } from "../views/collections/CollectionView";
-import { AudioBox } from "../views/nodes/AudioBox";
-import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
-import { ImageBox } from "../views/nodes/ImageBox";
-import { KeyValueBox } from "../views/nodes/KeyValueBox";
-import { PDFBox } from "../views/nodes/PDFBox";
-import { ScriptingBox } from "../views/nodes/ScriptingBox";
-import { VideoBox } from "../views/nodes/VideoBox";
-import { WebBox } from "../views/nodes/WebBox";
-import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast, HeightSym, WidthSym } from "../../fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
+import { runInAction } from "mobx";
+import { extname } from "path";
+import { DateField } from "../../fields/DateField";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
 import { HtmlField } from "../../fields/HtmlField";
+import { InkField } from "../../fields/InkField";
 import { List } from "../../fields/List";
-import { Cast, NumCast, StrCast, FieldValue } from "../../fields/Types";
+import { ProxyField } from "../../fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
+import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
+import { MessageStore } from "../../server/Message";
+import { OmitKeys, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../fields/DateField";
-import { YoutubeBox } from "../apis/youtube/YoutubeBox";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
-import { DocumentManager } from "../util/DocumentManager";
-import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
-import { LabelBox } from "../views/nodes/LabelBox";
-import { SliderBox } from "../views/nodes/SliderBox";
-import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
-import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../fields/ScriptField";
-import { ProxyField } from "../../fields/Proxy";
+import { UndoManager } from "../util/UndoManager";
 import { DocumentType } from "./DocumentTypes";
-import { RecommendationsBox } from "../views/RecommendationsBox";
-import { PresElementBox } from "../views/presentationview/PresElementBox";
-import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { QueryBox } from "../views/nodes/QueryBox";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { ContextMenu } from "../views/ContextMenu";
+import { ContextMenuProps } from "../views/ContextMenuItem";
+import { ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
+import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { InkingStroke, ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox, ActiveFillColor, ActiveArrowStart, ActiveArrowEnd, ActiveDash } from "../views/InkingStroke";
 import { InkField } from "../../fields/InkField";
@@ -44,11 +35,26 @@ import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
+import { FontIconBox } from "../views/nodes/FontIconBox";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
+import { ImageBox } from "../views/nodes/ImageBox";
+import { KeyValueBox } from "../views/nodes/KeyValueBox";
+import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkBox } from "../views/nodes/LinkBox";
+import { PDFBox } from "../views/nodes/PDFBox";
+import { PresBox } from "../views/nodes/PresBox";
+import { QueryBox } from "../views/nodes/QueryBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
-import { ComparisonBox } from "../views/nodes/ComparisonBox";
-import { runInAction } from "mobx";
-import { UndoManager } from "../util/UndoManager";
+import { ScriptingBox } from "../views/nodes/ScriptingBox";
+import { SliderBox } from "../views/nodes/SliderBox";
+import { VideoBox } from "../views/nodes/VideoBox";
+import { WebBox } from "../views/nodes/WebBox";
+import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { RecommendationsBox } from "../views/RecommendationsBox";
+import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
+import { DocumentManager } from "../util/DocumentManager";
+import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -162,6 +168,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
+    stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -262,6 +269,11 @@ export namespace Docs {
                 layout: { view: EmptyBox, dataField: defaultDataKey },
                 options: { childDropAction: "alias", title: "Global Link Database" }
             }],
+            [DocumentType.SCRIPTDB, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Script Database" }
+            }],
             [DocumentType.SCRIPTING, {
                 layout: { view: ScriptingBox, dataField: defaultDataKey }
             }],
@@ -358,6 +370,13 @@ export namespace Docs {
          */
         export function MainLinkDocument() {
             return Prototypes.get(DocumentType.LINKDB);
+        }
+
+        /**
+         * A collection of all scripts in the database
+         */
+        export function MainScriptDocument() {
+            return Prototypes.get(DocumentType.SCRIPTDB);
         }
 
         /**
@@ -478,7 +497,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -606,13 +625,15 @@ export namespace Docs {
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
             };
-
             const field = text ? new RichTextField(JSON.stringify(rtf), text) : undefined;
             return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
+                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false,
+                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+            }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
@@ -649,6 +670,7 @@ export namespace Docs {
             I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
+            I.author = Doc.CurrentUserEmail;
             I.data = new InkField(points);
             return I;
             // return I;
@@ -700,7 +722,7 @@ export namespace Docs {
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns.length ? schemaColumns : [new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -728,6 +750,11 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
+            // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
+            // btn.layoutKey = "layout_onClick";
+            // btn.height = 250;
+            // btn.width = 200;
+            // btn.layout_onClick = ScriptingBox.LayoutString("onClick");
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
@@ -827,8 +854,9 @@ export namespace DocUtils {
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");

@@ -78,10 +78,12 @@ export namespace UndoManager {
     let currentBatch: UndoBatch | undefined;
     let batchCounter = 0;
     let undoing = false;
+    let tempEvents: UndoEvent[] | undefined = undefined;
 
     export function AddEvent(event: UndoEvent): void {
         if (currentBatch && batchCounter && !undoing) {
             currentBatch.push(event);
+            tempEvents?.push(event);
         }
     }
 
@@ -135,7 +137,7 @@ export namespace UndoManager {
 
     const EndBatch = action((cancel: boolean = false) => {
         batchCounter--;
-        if (batchCounter === 0 && currentBatch && currentBatch.length) {
+        if (batchCounter === 0 && currentBatch?.length) {
             if (!cancel) {
                 undoStack.push(currentBatch);
             }
@@ -144,6 +146,13 @@ export namespace UndoManager {
         }
     });
 
+    export function ClearTempBatch() {
+        tempEvents = undefined;
+    }
+    export function RunInTempBatch<T>(fn: () => T) {
+        tempEvents = [];
+        return runInAction(fn);
+    }
     //TODO Make this return the return value
     export function RunInBatch<T>(fn: () => T, batchName: string) {
         const batch = StartBatch(batchName);
@@ -153,7 +162,16 @@ export namespace UndoManager {
             batch.end();
         }
     }
-
+    export const UndoTempBatch = action(() => {
+        if (tempEvents) {
+            undoing = true;
+            for (let i = tempEvents.length - 1; i >= 0; i--) {
+                tempEvents[i].undo();
+            }
+            undoing = false;
+        }
+        tempEvents = undefined;
+    });
     export const Undo = action(() => {
         if (undoStack.length === 0) {
             return;

@@ -100,7 +100,7 @@ export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
-function fetchProto(doc: Doc) {
+export function fetchProto(doc: Doc) {
     if (doc.author !== Doc.CurrentUserEmail) {
         const acl = Doc.Get(doc, "ACL", true);
         switch (acl) {
@@ -116,21 +116,9 @@ function fetchProto(doc: Doc) {
         }
     }
 
-    const proto = doc.proto;
-    if (proto instanceof Promise) {
-        proto.then(proto => {
-            if (proto.author !== Doc.CurrentUserEmail) {
-                if (proto.ACL === "ownerOnly") {
-                    proto[AclSym] = doc[AclSym] = AclPrivate;
-                    return undefined;
-                } else if (proto.ACL === "readOnly") {
-                    proto[AclSym] = doc[AclSym] = AclReadonly;
-                } else if (proto.ACL === "addOnly") {
-                    proto[AclSym] = doc[AclSym] = AclAddonly;
-                }
-            }
-        });
-        return proto;
+    if (doc.proto instanceof Promise) {
+        doc.proto.then(fetchProto);
+        return doc.proto;
     }
 }
 
@@ -146,7 +134,7 @@ export class Doc extends RefField {
             has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                (target[AclSym] !== AclPrivate) && Object.assign(obj, target.___fields);
+                if (target[AclSym] !== AclPrivate) Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -442,7 +430,8 @@ export namespace Doc {
             if (allowDuplicates !== true) {
                 const pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
                 if (pind !== -1) {
-                    list.splice(pind, 1);
+                    return true;
+                    //list.splice(pind, 1);  // bcz: this causes schemaView docs in the Catalog to move to the bottom of the schema view when they are dragged even though they haven't left the collection
                 }
             }
             if (first) {
@@ -681,7 +670,7 @@ export namespace Doc {
                     copy[key] = cfield[Copy]();// ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = doc[key] instanceof Doc ?
-                        key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                        key.includes("layout[") ? undefined : doc[key] : // reference documents except remove documents that are expanded teplate fields 
                         ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...

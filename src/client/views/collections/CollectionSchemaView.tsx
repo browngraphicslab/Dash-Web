@@ -28,7 +28,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
-import { DocumentView } from "../nodes/DocumentView";
+import { SnappingManager } from "../../util/SnappingManager";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -133,6 +133,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     PanelWidth={this.previewWidth}
                     PanelHeight={this.previewHeight}
                     ScreenToLocalTransform={this.getPreviewTransform}
+                    docFilters={this.docFilters}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
@@ -186,7 +187,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        return <div className="collectionSchemaView-container">
+        return <div className="collectionSchemaView-container"
+            style={{
+                pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%"
+            }}  >
             <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.previewWidth()}px)` }} onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>
@@ -651,7 +656,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             resized={this.resized}
             onResizedChange={this.onResizedChange}
             SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
-                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} childDocs={undefined} /></div>}
+                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}
 
         />;
     }

@@ -6,7 +6,7 @@ import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../fields/Doc";
 import { DocumentIcon } from "./nodes/DocumentIcon";
 import { StrCast, NumCast } from "../../fields/Types";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath, returnZero } from "../../Utils";
+import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath, returnZero, returnEmptyFilter } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../fields/ObjectField";
 import { DocumentView } from "./nodes/DocumentView";
@@ -56,7 +56,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
         }
         const returnXDimension = () => 150;
         const returnYDimension = () => 150;
-        const scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
+        const scale = () => returnXDimension() / NumCast(renderDoc._nativeWidth, returnXDimension());
         //let scale = () => 1;
         const newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
         newRenderDoc.height = NumCast(this.props.Document.documentIconHeight);
@@ -82,6 +82,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 parentActive={returnFalse}
                 whenActiveChanged={returnFalse}
                 bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 ContentScaling={scale}
