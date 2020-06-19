@@ -3,7 +3,7 @@ import { action, observable, trace, computed } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils, emptyPath } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -31,6 +31,7 @@ import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "../nodes/DocumentIcon";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import ReactDOM from "react-dom";
 const path = require('path');
 
 library.add(faExpand);
@@ -344,7 +345,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         addDocTab: this.props.addDocTab,
         pinToPres: this.props.pinToPres,
         ContentScaling: returnOne,
-        docFilters: []
+        docFilters: returnEmptyFilter
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
     @observable private _doc = FieldValue(Cast(this._field, Doc));
@@ -388,6 +389,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
     @action
     onOpenClick = () => {
+        this._preview = false;
         if (this._doc) {
             this.prop.addDocTab(this._doc, "onRight");
             return true;
@@ -415,42 +417,45 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
 
             return (
-                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                    {this._preview ? <ContentFittingDocumentView
-                        Document={this._doc}
-                        DataDoc={this.prop.DataDoc}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        fitToBox={true}
-                        FreezeDimensions={true}
-                        focus={emptyFunction}
-                        LibraryPath={this.prop.LibraryPath}
-                        renderDepth={this.props.renderDepth}
-                        rootSelected={() => { return false; }}
-                        PanelWidth={() => { return 200 }}
-                        PanelHeight={() => { return 200 }}
-                        ScreenToLocalTransform={this.getPreviewTransform}
-                        docFilters={this.docFilters}
-                        ContainingCollectionDoc={this.props.CollectionView?.props.Document}
-                        ContainingCollectionView={this.props.CollectionView}
-                        moveDocument={this.props.moveDocument}
-                        //addDocument={this.props.addDocument}
-                        //removeDocument={this.props.removeDocument}
-                        parentActive={this.prop.active}
-                        whenActiveChanged={this.prop.whenActiveChanged}
-                        addDocTab={this.props.addDocTab}
-                        pinToPres={this.props.pinToPres}
-                        bringToFront={returnFalse}
-                        ContentScaling={returnOne}
+                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}
+                    onPointerEnter={() => { this.showPreview(true); }}
+                    onPointerLeave={() => { this.showPreview(false); }}>
 
-                    >
-                    </ContentFittingDocumentView> : null}
+                    {this._preview ? <div onClick={this.onOpenClick} style={{
+                        display: 'block', position: 'absolute',
+                        top: '0', bottom: '0', left: '0', right: '0', zIndex: "auto"
+                    }}
+                        ref="overlay"><ContentFittingDocumentView
+                            Document={this._doc}
+                            DataDoc={this.prop.DataDoc}
+                            NativeHeight={returnZero}
+                            NativeWidth={returnZero}
+                            fitToBox={true}
+                            FreezeDimensions={true}
+                            focus={emptyFunction}
+                            LibraryPath={this.prop.LibraryPath}
+                            renderDepth={this.props.renderDepth}
+                            rootSelected={() => false}
+                            PanelWidth={() => 150}
+                            PanelHeight={() => 150}
+                            ScreenToLocalTransform={this.getPreviewTransform}
+                            docFilters={returnEmptyFilter}
+                            ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+                            ContainingCollectionView={this.props.CollectionView}
+                            moveDocument={this.props.moveDocument}
+                            parentActive={this.prop.active}
+                            whenActiveChanged={this.prop.whenActiveChanged}
+                            addDocTab={this.props.addDocTab}
+                            pinToPres={this.props.pinToPres}
+                            bringToFront={returnFalse}
+                            ContentScaling={returnOne}>
+                        </ContentFittingDocumentView></div> : null}
 
                     <div className="collectionSchemaView-cellContents-document"
                         style={{ padding: "5.9px" }}
                         onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
                         ref={this.dropRef}
-                        onClick={() => { this.showPreview(!this._preview) }}>
+                    >
 
                         <EditableView
                             editing={this._isEditing}
@@ -468,8 +473,8 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
                             })}
                         />
                     </div >
-                    <button onClick={this.onOpenClick} className="collectionSchemaView-cellContents-docButton">
-                        <FontAwesomeIcon icon="external-link-alt" size="1x" ></FontAwesomeIcon> </button>
+                    <div onClick={this.onOpenClick} className="collectionSchemaView-cellContents-docButton">
+                        <FontAwesomeIcon icon="external-link-alt" size="lg" ></FontAwesomeIcon> </div>
                 </div>
             );
         } else {
@@ -522,7 +527,8 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
             NativeWidth: returnZero,
             addDocTab: this.props.addDocTab,
             pinToPres: this.props.pinToPres,
-            ContentScaling: returnOne
+            ContentScaling: returnOne,
+            docFilters: returnEmptyFilter
         };
 
         let image = true;
@@ -600,7 +606,8 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         NativeWidth: returnZero,
         addDocTab: this.props.addDocTab,
         pinToPres: this.props.pinToPres,
-        ContentScaling: returnOne
+        ContentScaling: returnOne,
+        docFilters: returnEmptyFilter
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
     @observable private _optionsList = this._field as List<any>;
