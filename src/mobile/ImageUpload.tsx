@@ -29,7 +29,7 @@ export interface ImageUploadProps {
 const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
-export class Uploader extends React.Component {
+export class Uploader extends React.Component<ImageUploadProps> {
     @observable error: string = "";
     @observable status: string = "";
     @observable nm: string = "Choose files";
@@ -37,6 +37,7 @@ export class Uploader extends React.Component {
 
     onClick = async () => {
         try {
+            const col = this.props.Document;
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
             const slab1 = document.getElementById("slab1");
@@ -84,7 +85,11 @@ export class Uploader extends React.Component {
                             const field = await DocServer.GetRefField(res);
                             let pending: Opt<Doc>;
                             if (field instanceof Doc) {
-                                pending = await Cast(field.rightSidebarCollection, Doc);
+                                // if (col === Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc) {
+                                //     pending = await Cast(field.rightSidebarCollection, Doc);
+                                // }
+                                pending = col;
+                                //pending = await Cast(field.col, Doc);
                             }
                             if (pending) {
                                 const data = await Cast(pending.data, listSpec(Doc));

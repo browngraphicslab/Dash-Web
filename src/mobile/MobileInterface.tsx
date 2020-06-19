@@ -674,6 +674,15 @@ export class MobileInterface extends React.Component {
     @action
     toggleUpload = () => this.imageUploadActive = !this.imageUploadActive
 
+    @action
+    toggleUploadInCollection = () => {
+        const button = document.getElementById("imageButton") as HTMLElement;
+        button.style.backgroundColor = this.imageUploadActive ? "white" : "black";
+        button.style.color = this.imageUploadActive ? "black" : "white";
+
+        this.imageUploadActive = !this.imageUploadActive;
+    }
+
     // For closing the image upload pop up
     @action
     closeUpload = () => {
@@ -687,12 +696,22 @@ export class MobileInterface extends React.Component {
         } else if (!this.imageUploadActive) {
 
         }
+
+        let doc;
+        let toggle;
+        if (this._homeMenu === false) {
+            doc = this._activeDoc;
+            toggle = this.toggleUploadInCollection;
+        } else {
+            doc = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc
+            toggle = this.toggleUpload;
+        }
         return (
             <div>
-                <div className="closeUpload" onClick={this.toggleUpload}>
+                <div className="closeUpload" onClick={toggle}>
                     <FontAwesomeIcon icon="window-close" size={"lg"} />
                 </div>
-                <Uploader />
+                <Uploader Document={doc} />
             </div>
         );
     }
@@ -708,8 +727,27 @@ export class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
-    uploadToCurrentCollection = (doc: Doc) => {
+    uploadImageButton = () => {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
+            return <div className="docButton"
+                id="imageButton"
+                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
+                onClick={this.toggleUpload}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
+                />
+            </div>
+        }
+    }
 
+    switchToMobileUploads = () => {
+        if (this._activeDoc.title !== "Presentation") {
+            this._parents.push(this._activeDoc);
+        }
+        const mobileUpload = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        console.log(mobileUpload.title);
+        this._activeDoc = mobileUpload;
+        this.switchCurrentView((userDoc: Doc) => mobileUpload);
+        this._homeMenu = false;
     }
 
     render() {
@@ -718,14 +756,17 @@ export class MobileInterface extends React.Component {
                 <SettingsManager />
                 <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
                     {this.uploadImage()}
+
                 </div>
                 {this.switchMenuView()}
                 {this.inkMenu()}
                 <div className="docButtonContainer">
+                    {this.uploadImageButton()}
                     {this.pinToPresentation()}
                     {this.downloadDocument()}
                     {this.drawInk()}
                     {this.uploadAudioButton()}
+
                 </div>
                 <GestureOverlay>
                     {this.displayWorkspaces()}
@@ -746,3 +787,4 @@ Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
 Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });
 Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
+Scripting.addGlobal(function switchToMobileUploads() { return MobileInterface.Instance.switchToMobileUploads(); });

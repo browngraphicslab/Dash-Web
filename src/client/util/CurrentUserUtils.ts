@@ -469,6 +469,7 @@ export class CurrentUserUtils {
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your phone to record and upload audio onto Dash Web." },
             { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload images or videos from your mobile device so they can be accessed on Dash Web." },
             { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
+            { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploads()', backgroundColor: "#ff7373", info: "Access the collection of your mobile uploads." },
             { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security." }
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data =>
