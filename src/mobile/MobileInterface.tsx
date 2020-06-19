@@ -121,6 +121,13 @@ export class MobileInterface extends React.Component {
         this.sidebarActive = true;
     }
 
+    openWorkspaces = () => {
+        this._parents.push(this._activeDoc);
+        this.switchCurrentView((userDoc: Doc) => this._library);
+        this._activeDoc = this._library;
+        this._homeMenu = false;
+    }
+
     /**
      * Back method for navigating through items
      */
@@ -217,9 +224,9 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Note: window.innerWidth and window.screen.width compute different values. 
+     * Note: window.innerWidth and window.screen.width compute different values.
      * window.screen.width is the display size, however window.innerWidth is the
-     * display resolution which computes differently. 
+     * display resolution which computes differently.
      */
     returnWidth = () => window.innerWidth; //The windows width
     returnHeight = () => (window.innerHeight - 300); //Calculating the windows height (-300 to account for topbar)
@@ -231,9 +238,8 @@ export class MobileInterface extends React.Component {
      */
     handleClick = async (doc: Doc) => {
         const children = DocListCast(doc.data);
-        if (doc.type !== "collection" && this.sidebarActive) {
-            this.openFromSidebar(doc);
-        } else if (doc.type === "collection" && children.length === 0) console.log("This collection has no children");
+        if (doc.type !== "collection" && this.sidebarActive) this.openFromSidebar(doc);
+        else if (doc.type === "collection" && children.length === 0) this.openFromSidebar(doc);
         else {
             this._parents.push(this._activeDoc);
             this._activeDoc = doc;
@@ -248,6 +254,7 @@ export class MobileInterface extends React.Component {
         this._activeDoc = doc;
         this.switchCurrentView((userDoc: Doc) => doc);
         this._homeMenu = false;
+        this._child = doc; //?
         this.toggleSidebar();
     }
 
@@ -551,7 +558,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Mobile doc button for uploading 
+    // Mobile doc button for uploading
     upload = () => {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
             return (
@@ -714,10 +721,46 @@ export class MobileInterface extends React.Component {
     @action
     toggleAudio = () => this.audioUploadActive = !this.audioUploadActive
 
+    @action
+    toggleUploadInCollection = () => {
+        const button = document.getElementById("imageButton") as HTMLElement;
+        button.style.backgroundColor = this.imageUploadActive ? "white" : "black";
+        button.style.color = this.imageUploadActive ? "black" : "white";
+
+        this.imageUploadActive = !this.imageUploadActive;
+    }
+
     // For closing the image upload pop up
     @action
     closeUpload = () => {
         this.imageUploadActive = false;
+    }
+
+    // Returns the image upload pop up
+    uploadImage = () => {
+        if (this.imageUploadActive) {
+            console.log("active");
+        } else if (!this.imageUploadActive) {
+
+        }
+
+        let doc;
+        let toggle;
+        if (this._homeMenu === false) {
+            doc = this._activeDoc;
+            toggle = this.toggleUploadInCollection;
+        } else {
+            doc = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+            toggle = this.toggleUpload;
+        }
+        return (
+            <div>
+                <div className="closeUpload" onClick={toggle}>
+                    <FontAwesomeIcon icon="window-close" size={"lg"} />
+                </div>
+                <Uploader Document={doc} />
+            </div>
+        );
     }
 
     displayRadialMenu = () => {
@@ -731,12 +774,35 @@ export class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
+    uploadImageButton = () => {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
+            return <div className="docButton"
+                id="imageButton"
+                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
+                onClick={this.toggleUpload}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
+                />
+            </div>;
+        }
+    }
+
+    switchToMobileUploads = () => {
+        if (this._activeDoc.title !== "Presentation") {
+            this._parents.push(this._activeDoc);
+        }
+        const mobileUpload = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        console.log(mobileUpload.title);
+        this._activeDoc = mobileUpload;
+        this.switchCurrentView((userDoc: Doc) => mobileUpload);
+        this._homeMenu = false;
+    }
+
     render() {
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
                 <SettingsManager />
                 <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
-                    <Uploader Document={this._homeMenu ? this._library : this._activeDoc} />
+                    {this.uploadImage()}
                 </div>
                 <div className={`audio-upload ${this.audioUploadActive ? "active" : ""}`}>
                     <AudioUpload />
@@ -750,6 +816,7 @@ export class MobileInterface extends React.Component {
                         {this.undo()}
                         {this.redo()}
                         {this.upload()}
+                        {this.uploadImageButton()}
                         {/* {this.drawInk()} */}
                         {/* {this.uploadAudioButton()} */}
                     </div>
@@ -769,5 +836,6 @@ Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.I
 Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Instance.toggleSidebar(); });
 Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.toggleAudio(); });
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
-Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });
+Scripting.addGlobal(function openWorkspaces() { return MobileInterface.Instance.openWorkspaces(); });
 Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
+Scripting.addGlobal(function switchToMobileUploads() { return MobileInterface.Instance.switchToMobileUploads(); });

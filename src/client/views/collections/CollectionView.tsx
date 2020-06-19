@@ -286,7 +286,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 const more = ContextMenu.Instance?.findByDescription("More...");
                 const moreItems = more && "subitems" in more ? more.subitems : [];
                 moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
-                !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+                !more && ContextMenu.Instance?.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
             }
         }
     }
