@@ -996,8 +996,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (!FormattedTextBox._downEvent) return;
         FormattedTextBox._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
+            const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
-            FormattedTextBoxComment.update(this._editorView!, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
+            const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
+            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
+                new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(0))));
+            FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
 
