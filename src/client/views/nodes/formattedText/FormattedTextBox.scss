@@ -280,6 +280,7 @@ footnote::after {
 
 .ProseMirror {
     padding: 0px;
+    height: max-content;
     touch-action: none;
     span {
         font-family: inherit;
