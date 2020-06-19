@@ -225,7 +225,7 @@ export class FormattedTextBoxComment {
                                     docFilters={returnEmptyFilter}
                                     ContainingCollectionDoc={undefined}
                                     ContainingCollectionView={undefined}
-                                    renderDepth={1}
+                                    renderDepth={0}
                                     PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
                                     PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
                                     focus={emptyFunction}

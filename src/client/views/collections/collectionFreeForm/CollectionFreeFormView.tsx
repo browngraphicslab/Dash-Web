@@ -239,7 +239,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
-        if (linkDragData.linkSourceDocument === this.props.Document) return false;
+        if (linkDragData.linkSourceDocument === this.props.Document || this.props.Document.annotationOn) return false;
         const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
         this.props.addDocument(source);
         linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
