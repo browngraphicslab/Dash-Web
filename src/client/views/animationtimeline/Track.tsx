@@ -38,7 +38,10 @@ export class Track extends React.Component<IProps> {
         "_width",
         "_height",
         "opacity",
-        "_scrollTop"
+        "_scrollTop",
+        "_panX",
+        "_panY",
+        "scale"
     ];
     private objectWhitelist = [
         "data"
