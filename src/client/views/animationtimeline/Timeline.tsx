@@ -501,6 +501,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                                 <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
                             </div>
                             <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} style={{ width: `${this._totalLength}px` }}>
+                                <Track ref={ref => this.mapOfTracks.push(ref)} node={this.props.Document} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={true} />
                                 {this.children.map(doc =>
                                     <Track ref={ref => this.mapOfTracks.push(ref)} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={true} />
                                 )}
@@ -508,6 +509,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                         </div>
                         <div className="currentTime">Current: {this.getCurrentTime()}</div>
                         <div key="timeline_title" className="title-container" ref={this._titleContainer}>
+                            <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(this.props.Document); }} onPointerOut={() => { Doc.UnBrushDoc(this.props.Document); }}><p>{this.props.Document.title}</p></div>
                             {this.children.map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
                         </div>
                         <div key="timeline_resize" onPointerDown={this.onResizeDown}>
