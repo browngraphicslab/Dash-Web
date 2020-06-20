@@ -760,15 +760,15 @@ export class MobileInterface extends React.Component {
                 </div>
                 {this.switchMenuView()}
                 {this.inkMenu()}
-                <div className="docButtonContainer">
-                    {this.uploadImageButton()}
-                    {this.pinToPresentation()}
-                    {this.downloadDocument()}
-                    {this.drawInk()}
-                    {this.uploadAudioButton()}
 
-                </div>
                 <GestureOverlay>
+                    <div className="docButtonContainer">
+                        {this.uploadImageButton()}
+                        {this.pinToPresentation()}
+                        {this.downloadDocument()}
+                        {this.drawInk()}
+                        {this.uploadAudioButton()}
+                    </div>
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}
                 </GestureOverlay>
