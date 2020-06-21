@@ -74,7 +74,7 @@ export default class KeyManager {
             case "a": DragManager.CanEmbed = true;
                 break;
             case " ":
-                MarqueeView.DragMarquee = !MarqueeView.DragMarquee;
+                // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
                 const main = MainView.Instance;
@@ -103,6 +103,7 @@ export default class KeyManager {
                 }
                 UndoManager.RunInBatch(() =>
                     SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
+                SelectionManager.DeselectAll();
                 break;
             case "arrowleft":
                 UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left");

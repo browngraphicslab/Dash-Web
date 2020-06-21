@@ -21,6 +21,7 @@ import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { LabelBox } from "../views/nodes/LabelBox";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -312,9 +313,17 @@ export class CurrentUserUtils {
             iconView.isTemplateDoc = makeTemplate(iconView);
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
+        if (doc["template-icon-view-pdf"] === undefined) {
+            const iconPdfView = Docs.Create.LabelDocument({
+                title: "icon_" + DocumentType.PDF, textTransform: "unset", letterSpacing: "unset", layout: LabelBox.LayoutString("title"), _backgroundColor: "dimGray",
+                _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
+            });
+            iconPdfView.isTemplateDoc = makeTemplate(iconPdfView, true, "icon_" + DocumentType.PDF);
+            doc["template-icon-view-pdf"] = new PrefetchProxy(iconPdfView);
+        }
         if (doc["template-icon-view-rtf"] === undefined) {
             const iconRtfView = Docs.Create.LabelDocument({
-                title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset",
+                title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", layout: LabelBox.LayoutString("text"),
                 _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
             });
             iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
@@ -334,11 +343,11 @@ export class CurrentUserUtils {
         }
         if (doc["template-icons"] === undefined) {
             doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
                 await Promise.all(curIcons!);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
@@ -748,6 +757,7 @@ export class CurrentUserUtils {
     }
 
     static async updateUserDocument(doc: Doc) {
+        doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");

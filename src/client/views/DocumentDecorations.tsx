@@ -175,7 +175,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseClick = async (e: PointerEvent | undefined) => {
+    onCloseClick = async (e: React.MouseEvent) => {
         if (!e?.button) {
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
@@ -460,7 +460,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                 <FontAwesomeIcon size="lg" icon="cog" />
             </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onIconifyDown}>
+                <div className="documentDecorations-minimizeButton" title="Iconify" onClick={this.onCloseClick}>
                     {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>);
@@ -469,16 +469,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <>
                 <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
-                {minimal ? (null) : <div className="publishBox" title="make document referenceable by its title"
-                    onPointerDown={action(e => {
-                        if (!seldoc.props.Document.customTitle) {
-                            seldoc.props.Document.customTitle = true;
-                            StrCast(Doc.GetProto(seldoc.props.Document).title).startsWith("-") && (Doc.GetProto(seldoc.props.Document).title = StrCast(seldoc.props.Document.title).substring(1));
-                            this._accumulatedTitle = StrCast(seldoc.props.Document.title);
-                        }
-                        DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument);
-                    })}>
-                    <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
+                {minimal ? (null) : <div className="publishBox" // title="make document referenceable by its title"
+                // onPointerDown={action(e => {
+                //     if (!seldoc.props.Document.customTitle) {
+                //         seldoc.props.Document.customTitle = true;
+                //         StrCast(Doc.GetProto(seldoc.props.Document).title).startsWith("-") && (Doc.GetProto(seldoc.props.Document).title = StrCast(seldoc.props.Document.title).substring(1));
+                //         this._accumulatedTitle = StrCast(seldoc.props.Document.title);
+                //     }
+                //     DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument);
+                // })}
+                >
+                    {/* <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon> */}
                 </div>}
             </> :
             <>
@@ -519,6 +520,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 {maximizeIcon}
                 {titleArea}
+                <div className="documentDecorations-iconifyButton" title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} onPointerDown={this.onIconifyDown}>
+                    {"_"}
+                </div>
                 <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
                     {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                 </div>
