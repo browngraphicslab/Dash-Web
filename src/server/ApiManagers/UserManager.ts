@@ -27,6 +27,17 @@ export default class UserManager extends ApiManager {
 
         register({
             method: Method.GET,
+            subscription: "/getGroups",
+            secureHandler: async ({ res }) => {
+                console.log(Database.Instance.getCollectionNames());
+                const cursor = await Database.Instance.query({}, { name: 1, owner: 1, members: 1 }, "groups");
+                const results = await cursor.toArray();
+                res.send(results.map(group => ({ name: group.name, owner: group.owner, members: group.members })));
+            }
+        });
+
+        register({
+            method: Method.GET,
             subscription: "/getUserDocumentId",
             secureHandler: ({ res, user }) => res.send(user.userDocumentId)
         });

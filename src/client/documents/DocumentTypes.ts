@@ -32,6 +32,7 @@ export enum DocumentType {
     YOUTUBE = "youtube",        // youtube directory (view of you tube search results)
     DOCHOLDER = "docholder",    // nested document (view of a document)
     COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
+    GROUP = "group",            // group of users
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
     SCRIPTDB = "scriptdb",          // database of scripts

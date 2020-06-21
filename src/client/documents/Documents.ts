@@ -315,6 +315,9 @@ export namespace Docs {
                 layout: { view: EmptyBox, dataField: defaultDataKey },
                 options: { childDropAction: "alias", title: "Global Group Database" }
             }],
+            [DocumentType.GROUP, {
+                layout: { view: EmptyBox, dataField: defaultDataKey }
+            }]
         ]);
 
         // All document prototypes are initialized with at least these values
