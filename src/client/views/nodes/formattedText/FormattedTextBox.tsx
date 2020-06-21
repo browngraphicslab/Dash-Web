@@ -15,6 +15,7 @@ import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
 import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
+import applyDevTools = require("prosemirror-dev-tools");
 import { Id } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
@@ -57,6 +58,7 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
+import requestPromise = require('request-promise');
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -488,6 +490,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
+        this._downX = this._downY = Number.NaN;
     }
 
     recordDictation = () => {
@@ -920,6 +923,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
+            // applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1008,7 +1012,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (e.buttons === 1 && this.props.isSelected(true) && !e.altKey) {
             e.stopPropagation();
         }
-        this._downX = this._downY = Number.NaN;
     }
 
     @action
@@ -1073,38 +1076,35 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
-    hitBulletTargets(x: number, y: number, select: boolean, highlightOnly: boolean) {
+    hitBulletTargets(x: number, y: number, collapse: boolean, highlightOnly: boolean) {
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
-        const pos = this._editorView!.posAtCoords({ left: x, top: y });
-        if (pos && this.props.isSelected(true)) {
-            // let beforeEle = document.querySelector("." + hit.className) as Element; // const before = hit ? window.getComputedStyle(hit, ':before') : undefined;
-            //const node = this._editorView!.state.doc.nodeAt(pos.pos);
-            const $pos = this._editorView!.state.doc.resolve(pos.pos);
-            let list_node = $pos.node().type === schema.nodes.list_item ? $pos.node() : undefined;
-            if ($pos.node().type === schema.nodes.ordered_list) {
-                for (let off = 1; off < 100; off++) {
-                    const pos = this._editorView!.posAtCoords({ left: x + off, top: y });
-                    const node = pos && this._editorView!.state.doc.nodeAt(pos.pos);
-                    if (node?.type === schema.nodes.list_item) {
-                        list_node = node;
-                        break;
-                    }
+        const clickPos = this._editorView!.posAtCoords({ left: x, top: y });
+        let olistPos = clickPos?.pos;
+        if (clickPos && olistPos && this.props.isSelected(true)) {
+            const clickNode = this._editorView?.state.doc.nodeAt(olistPos);
+            let nodeBef = this._editorView?.state.doc.nodeAt(Math.max(0, olistPos - 1));
+            olistPos = nodeBef?.type === this._editorView?.state.schema.nodes.ordered_list ? olistPos - 1 : olistPos;
+            let $olistPos = this._editorView?.state.doc.resolve(olistPos);
+            let olistNode = (nodeBef !== null || clickNode?.type === this._editorView?.state.schema.nodes.list_item) && olistPos === clickPos?.pos ? clickNode : nodeBef;
+            if (olistNode?.type === this._editorView?.state.schema.nodes.list_item) {
+                if ($olistPos && ($olistPos as any).path.length > 3) {
+                    olistNode = $olistPos.parent;
+                    $olistPos = this._editorView?.state.doc.resolve(($olistPos as any).path[($olistPos as any).path.length - 4]);
                 }
             }
-            if (list_node && pos.inside >= 0 && this._editorView!.state.doc.nodeAt(pos.inside)!.attrs.bulletStyle === list_node.attrs.bulletStyle) {
-                if (select) {
-                    const $olist_pos = this._editorView!.state.doc.resolve($pos.pos - $pos.parentOffset - 1);
+            const listNode = this._editorView?.state.doc.nodeAt(clickPos.pos!);
+            if (olistNode && olistNode.type === this._editorView?.state.schema.nodes.ordered_list) {
+                if (!collapse) {
                     if (!highlightOnly) {
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olist_pos)));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olistPos!)));
                     }
-                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
-                } else if (Math.abs(pos.pos - pos.inside) < 2) {
+                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
+                } else if (listNode && listNode.type === this._editorView.state.schema.nodes.list_item) {
                     if (!highlightOnly) {
-                        const offset = this._editorView!.state.doc.nodeAt(pos.inside)?.type === schema.nodes.ordered_list ? 1 : 0;
-                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside + offset, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside + offset)));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(clickPos.pos!, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility }));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, clickPos.pos!)));
                     }
-                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
+                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
             }
         }

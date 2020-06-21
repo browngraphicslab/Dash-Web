@@ -295,6 +295,8 @@ footnote::after {
         margin-left: 1em;
         font-family: inherit;
     }
+    .bullet {  p {display: inline; font-family: inherit} margin-left: 0; }
+    .bullet1,.bullet2,.bullet3,.bullet4,.bullet5,.bullet6 { p {display: inline; font-family: inherit} font-size: smaller; }
 
     .decimal1-ol { counter-reset: deci1; p {display: inline; font-family: inherit} margin-left: 0; }
     .decimal2-ol { counter-reset: deci2; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 1em;}
