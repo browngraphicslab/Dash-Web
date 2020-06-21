@@ -18,7 +18,7 @@ export type KeyMap = { [key: string]: any };
 
 export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string, from?: number, to?: number) => {
     tx2.doc.descendants((node: any, offset: any, index: any) => {
-        if ((!from || !to || (from <= offset && to >= offset)) && (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item)) {
+        if ((from === undefined || to === undefined || (from <= offset + node.nodeSize && to >= offset)) && (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item)) {
             const path = (tx2.doc.resolve(offset) as any).path;
             let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
             if (node.type === schema.nodes.ordered_list) depth++;

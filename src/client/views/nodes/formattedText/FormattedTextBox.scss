@@ -296,7 +296,8 @@ footnote::after {
         font-family: inherit;
     }
     .bullet {  p {display: inline; font-family: inherit} margin-left: 0; }
-    .bullet1,.bullet2,.bullet3,.bullet4,.bullet5,.bullet6 { p {display: inline; font-family: inherit} font-size: smaller; }
+    .bullet1 { p {display: inline; font-family: inherit} }
+    .bullet2,.bullet3,.bullet4,.bullet5,.bullet6 { p {display: inline; font-family: inherit} font-size: smaller; }
 
     .decimal1-ol { counter-reset: deci1; p {display: inline; font-family: inherit} margin-left: 0; }
     .decimal2-ol { counter-reset: deci2; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 1em;}
@@ -310,6 +311,8 @@ footnote::after {
     .multi2-ol { counter-reset: multi2; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 1.4em;}
     .multi3-ol { counter-reset: multi3; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 2em;}
     .multi4-ol { counter-reset: multi4; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 3.4em;}
+    
+    .bullet:before, .bullet1:before, .bullet2:before, .bullet3:before, .bullet4:before, .bullet5:before { transition: 0.5s; display: inline-block; margin-left: -1em; width: 1em; content:" " }
 
     .decimal1:before { transition: 0.5s;counter-increment: deci1; display: inline-block; margin-left: -1em;   width:  1em;   content: counter(deci1) ". ";  }
     .decimal2:before { transition: 0.5s;counter-increment: deci2; display: inline-block; margin-left: -2.1em; width: 2.1em;  content: counter(deci1) "."counter(deci2) ". ";  }
@@ -322,7 +325,7 @@ footnote::after {
     .multi1:before { transition: 0.5s;counter-increment: multi1; display: inline-block; margin-left: -1em;    width: 1.2em;  content: counter(multi1, upper-alpha) ". ";  }
     .multi2:before { transition: 0.5s;counter-increment: multi2; display: inline-block; margin-left: -2em;    width:   2em;  content: counter(multi1, upper-alpha) "."counter(multi2, decimal) ". "; }
     .multi3:before { transition: 0.5s;counter-increment: multi3; display: inline-block; margin-left: -2.85em; width:2.85em;  content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) ". "; }
-    .multi4:before { transition: 0.5s;counter-increment: multi4; display: inline-block; margin-left:   -4.2em;  width: 4.2em;    content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) "."counter(multi4, lower-roman) ". "; }
+    .multi4:before { transition: 0.5s;counter-increment: multi4; display: inline-block; margin-left: -4.2em;  width: 4.2em;    content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) "."counter(multi4, lower-roman) ". "; }
 }
 
 .formattedTextBox-inner-rounded-selected,

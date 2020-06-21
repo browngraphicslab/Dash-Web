@@ -104,7 +104,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
-            { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
+            //{ node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
         ];
 
         this.fontColors = [
@@ -395,7 +395,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
-                this.view.dispatch(tx3);
+                this.view.dispatch(tx3.setSelection(new NodeSelection(tx3.doc.resolve(this.view.state.selection.$from.pos))));
             }
         }
     }
