@@ -1066,12 +1066,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
 
-        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientX - this._downX) < 4) {
-            this.props.select(e.ctrlKey);
-            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
-        }
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
             e.stopPropagation();
+            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
         }
     }
 
