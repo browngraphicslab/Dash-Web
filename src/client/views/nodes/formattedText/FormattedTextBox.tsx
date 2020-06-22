@@ -58,7 +58,6 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import requestPromise = require('request-promise');
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -456,6 +455,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && uicontrols.push({
+            description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
+                proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
+        });
 
         funcs.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
 
@@ -1198,18 +1201,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
             const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
-            if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
-                if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
-                    // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
-                    console.log("Delayed height adjustment...");
-                    setTimeout(() => {
-                        this.rootDoc._height = newHeight;
-                        this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
-                    }, 10);
-                } else {
+            if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
+                // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+                console.log("Delayed height adjustment...");
+                setTimeout(() => {
                     this.rootDoc._height = newHeight;
                     this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
-                }
+                }, 10);
+            } else {
+                this.rootDoc._height = newHeight;
+                this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
             }
         }
     }
@@ -1231,15 +1232,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const selPad = this.props.isSelected() ? -10 : 0;
         const selclass = this.props.isSelected() ? "-selected" : "";
         return (
-            <div className={"formattedTextBox-cont"} style={{
-                transform: `scale(${scale})`,
-                transformOrigin: "top left",
-                width: `${100 / scale}%`,
-                height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
-                ...this.styleFromLayoutString(scale)
-            }}>
+            <div className={"formattedTextBox-cont"}
+                style={{
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top left",
+                    width: `${100 / scale}%`,
+                    height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
+                    ...this.styleFromLayoutString(scale)
+                }}>
                 <div className={`formattedTextBox-cont`} ref={this._ref}
                     style={{
+                        overflow: this.layoutDoc._autoHeight ? "hidden" : undefined,
                         width: "100%",
                         height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
                         background: Doc.UserDoc().renderStyle === "comic" ? "transparent" : this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
