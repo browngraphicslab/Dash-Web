@@ -796,8 +796,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             {!this._showDoc ? (null) :
                 <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}
                     style={{
-                        position: "absolute", width: 400, height: 300,
-                        transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1]}px)`
+                        position: "absolute", width: 150, height: 150,
+                        background: "dimGray", display: "block", top: 0, left: 0,
+                        transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1] - 180}px)`
                     }}
                     ref="overlay"><ContentFittingDocumentView
                         Document={this._showDoc}
