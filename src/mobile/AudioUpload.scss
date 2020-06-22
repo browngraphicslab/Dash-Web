@@ -7,77 +7,6 @@
     align-items: center;
     max-width: 400px;
     min-width: 400px;
-
-    .upload_label {
-        font-size: 3em;
-        font-weight: 700;
-        color: white;
-        background-color: black;
-        display: inline-block;
-        margin: 10;
-        width: 100%;
-        border-radius: 10px;
-    }
-
-    .file {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        direction: ltr;
-    }
-
-    .upload_label:hover {
-        background-color: darkred;
-    }
-
-    .button_file {
-        text-align: center;
-        height: 50%;
-        width: 50%;
-        background-color: paleturquoise;
-        color: grey;
-        font-size: 3em;
-    }
-
-    .inputfile {
-        width: 0.1px;
-        height: 0.1px;
-        opacity: 0;
-        overflow: hidden;
-        position: absolute;
-        z-index: -1;
-    }
-
-    .inputfile+label {
-        font-size: 3em;
-        font-weight: 700;
-        color: white;
-        background-color: black;
-        display: inline-block;
-        margin: 10px;
-        width: 100%;
-        border-radius: 10px;
-    }
-
-    .inputfile:focus+label,
-    .inputfile+label:hover {
-        background-color: darkred;
-    }
-
-    .status {
-        font-size: 2em;
-    }
-
-}
-
-.backgroundUpload {
-    height: 100vh;
-    top: 0;
-    z-index: 999;
-    width: 100vw;
-    position: absolute;
-    background-color: lightgrey;
-    opacity: 0.4;
 }
 
 .audio-upload {
@@ -92,28 +21,4 @@
     height: 100vh;
     width: 100vw;
     opacity: 1;
-}
-
-.uploadContainer {
-    top: 40;
-    position: absolute;
-    z-index: 1000;
-    height: 20vh;
-    width: 80vw;
-    opacity: 1;
-}
-
-.loadingImage {
-    display: inline-flex;
-    width: max-content;
-}
-
-.loadingSlab {
-    position: relative;
-    width: 30px;
-    height: 30px;
-    margin: 10;
-    border-radius: 20px;
-    opacity: 0.3;
-    background-color: black;
 }

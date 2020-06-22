@@ -106,7 +106,7 @@
     z-index: 2;
 }
 
-@media only screen and (max-width: 1000px) {
+@media only screen and (max-device-width: 480px) {
     .presElementBox-buttons {
         display: inline-flex;
         position: relative;

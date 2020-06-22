@@ -415,7 +415,7 @@ export class MobileInterface extends React.Component {
                                     onClick={this.returnMain}
                                     style={{ opacity: 0.7 }}>
                                     <FontAwesomeIcon className="right" icon="angle-double-left" size="lg" />
-                                    <div className="item-type">Return to library</div>
+                                    <div className="item-type">Return to workspaces</div>
                                 </div>
                             </> :
                             <>
@@ -509,7 +509,7 @@ export class MobileInterface extends React.Component {
     }
 
     undo = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white" }}
@@ -526,7 +526,7 @@ export class MobileInterface extends React.Component {
     }
 
     redo = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white" }}
@@ -814,10 +814,10 @@ export class MobileInterface extends React.Component {
                         {this.pinToPresentation()}
                         {this.downloadDocument()}
                         {this.undo()}
+                        {this.drawInk()}
                         {this.redo()}
-                        {this.upload()}
+                        {/* {this.upload()} */}
                         {this.uploadImageButton()}
-                        {/* {this.drawInk()} */}
                         {/* {this.uploadAudioButton()} */}
                     </div>
                     {this.displayWorkspaces()}
