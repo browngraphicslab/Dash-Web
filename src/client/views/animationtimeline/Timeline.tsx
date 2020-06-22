@@ -44,7 +44,6 @@ export class Timeline extends React.Component<FieldViewProps> {
     private readonly DEFAULT_TICK_INCREMENT: number = 1000;
 
     //height variables
-    private DEFAULT_CONTAINER_HEIGHT: number = 330;
     private MIN_CONTAINER_HEIGHT: number = 205;
 
     //react refs
@@ -63,7 +62,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _totalLength: number = 0;
     @observable private _visibleLength: number = 0;
     @observable private _visibleStart: number = 0;
-    @observable private _containerHeight: number = this.DEFAULT_CONTAINER_HEIGHT;
+    @observable private _containerHeight: number = 0;
     @observable private _tickSpacing = this.DEFAULT_TICK_SPACING;
     @observable private _tickIncrement = this.DEFAULT_TICK_INCREMENT;
     @observable private _time = 100000; //DEFAULT
@@ -86,8 +85,8 @@ export class Timeline extends React.Component<FieldViewProps> {
     componentWillMount() {
         const relativeHeight = window.innerHeight / 20; //sets height to arbitrary size, relative to innerHeight
         this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //check if relHeight is less than Maxheight. Else, just set relheight to max
-        this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; //offset
-        this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; //twice the titleheight + offset
+        this._containerHeight = this._titleHeight * 2 + 110; //twice the titleheight + offset
+        this.MIN_CONTAINER_HEIGHT = this._titleHeight + 110; //offset
     }
 
     componentDidMount() {

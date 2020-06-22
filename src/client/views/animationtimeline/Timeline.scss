@@ -159,7 +159,6 @@ $timelineDark: #77a1aa;
 
 .timeline-container {
     width: 100%;
-    height: 300px;
     position: absolute;
     background-color: $light-color-secondary;
     border-bottom: 2px solid $timelineDark;
@@ -169,7 +168,7 @@ $timelineDark: #77a1aa;
         margin-top: 50px;
         right: 20px;
         position: absolute;
-        height: calc(100% - 100px);
+        height: calc(100% - 80px);
         width: calc(100% - 140px);
         overflow: hidden;
 
@@ -205,9 +204,7 @@ $timelineDark: #77a1aa;
 
         .trackbox {
             top: 30px;
-            height: calc(100% - 30px);
-            // height: 100%;
-            // height: 100%;
+            height: calc(100% - 10px);
             width: 100%;
             border-top: 2px solid black;
             border-bottom: 2px solid black;
@@ -221,7 +218,6 @@ $timelineDark: #77a1aa;
     }
 
     .currentTime {
-        // background: red;
         font-size: 12px;
         display: flex;
         justify-content: center;
@@ -234,11 +230,9 @@ $timelineDark: #77a1aa;
     }
 
     .title-container {
-        // margin-top: 80px;
         margin-top: 40px;
         margin-left: 20px;
-        height: calc(100% - 100px - 30px);
-        // height: 100%;
+        height: calc(100% - 80px - 30px);
         width: 100px;
         background-color: white;
         overflow: hidden;
