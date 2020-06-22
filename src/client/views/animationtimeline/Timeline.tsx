@@ -99,7 +99,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             this._totalLength = this._tickSpacing * (this._time / this._tickIncrement); //the entire length of the timeline div (actual div part itself)
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
             this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
-            this.props.Document.isATOn = !this.props.Document.isATOn; //turns the boolean on, saying AT (animation timeline) is on
+            this.props.Document.isATOn = true; //turns the boolean on, saying AT (animation timeline) is on
             this.toggleHandle();
         });
     }
@@ -409,6 +409,7 @@ export class Timeline extends React.Component<FieldViewProps> {
      * turns on the toggle button (the purple slide button that changes from editing mode and play mode
      */
     private toggleHandle = () => {
+        console.log("author on", this.props.Document.isATOn);
         const roundToggle = this._roundToggleRef.current!;
         const roundToggleContainer = this._roundToggleContainerRef.current!;
         const timelineContainer = this._timelineContainer.current!;
