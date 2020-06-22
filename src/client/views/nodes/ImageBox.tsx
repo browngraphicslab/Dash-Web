@@ -397,15 +397,15 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth) * (1 - 1 / aspect) : 0;
         this.resize(srcpath);
         let transformOrigin = "center center";
-        let transform = `translate(0%, 0%) rotate(${rotation}deg) scale(${aspect})`
+        let transform = `translate(0%, 0%) rotate(${rotation}deg) scale(${aspect})`;
         if (rotation === 90 || rotation === -270) {
             transformOrigin = "top left";
-            transform = `translate(100%, 0%) rotate(${rotation}deg) scale(${aspect})`
+            transform = `translate(100%, 0%) rotate(${rotation}deg) scale(${aspect})`;
         } else if (rotation === 180) {
-            transform = `rotate(${rotation}deg) scale(${aspect})`
+            transform = `rotate(${rotation}deg) scale(${aspect})`;
         } else if (rotation === 270 || rotation === -90) {
             transformOrigin = "right top";
-            transform = `translate(-100%, 0%) rotate(${rotation}deg) scale(${aspect})`
+            transform = `translate(-100%, 0%) rotate(${rotation}deg) scale(${aspect})`;
         }
 
         return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget}>

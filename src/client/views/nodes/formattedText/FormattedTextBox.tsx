@@ -1066,12 +1066,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
         (e.nativeEvent as any).formattedHandled = true;
 
-        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientX - this._downX) < 4) {
-            this.props.select(e.ctrlKey);
-            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
-        }
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
             e.stopPropagation();
+            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
         }
     }
 
@@ -1082,7 +1079,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         let olistPos = clickPos?.pos;
         if (clickPos && olistPos && this.props.isSelected(true)) {
             const clickNode = this._editorView?.state.doc.nodeAt(olistPos);
-            let nodeBef = this._editorView?.state.doc.nodeAt(Math.max(0, olistPos - 1));
+            const nodeBef = this._editorView?.state.doc.nodeAt(Math.max(0, olistPos - 1));
             olistPos = nodeBef?.type === this._editorView?.state.schema.nodes.ordered_list ? olistPos - 1 : olistPos;
             let $olistPos = this._editorView?.state.doc.resolve(olistPos);
             let olistNode = (nodeBef !== null || clickNode?.type === this._editorView?.state.schema.nodes.list_item) && olistPos === clickPos?.pos ? clickNode : nodeBef;
@@ -1092,17 +1089,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     $olistPos = this._editorView?.state.doc.resolve(($olistPos as any).path[($olistPos as any).path.length - 4]);
                 }
             }
-            const listNode = this._editorView?.state.doc.nodeAt(clickPos.pos!);
+            const listNode = this._editorView?.state.doc.nodeAt(clickPos.pos);
             if (olistNode && olistNode.type === this._editorView?.state.schema.nodes.ordered_list) {
                 if (!collapse) {
                     if (!highlightOnly) {
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olistPos!)));
+                        this._editorView.dispatch(this._editorView.state.tr.setSelection(new NodeSelection($olistPos!)));
                     }
                     addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 } else if (listNode && listNode.type === this._editorView.state.schema.nodes.list_item) {
                     if (!highlightOnly) {
-                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(clickPos.pos!, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility }));
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, clickPos.pos!)));
+                        this._editorView.dispatch(this._editorView.state.tr.setNodeMarkup(clickPos.pos, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility }));
+                        this._editorView.dispatch(this._editorView.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, clickPos.pos)));
                     }
                     addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
@@ -1232,7 +1229,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
         const selPad = this.props.isSelected() ? -10 : 0;
-        const selclass = this.props.isSelected() ? "-selected" : ""
+        const selclass = this.props.isSelected() ? "-selected" : "";
         return (
             <div className={"formattedTextBox-cont"} style={{
                 transform: `scale(${scale})`,
