@@ -422,35 +422,21 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
 
-        const funcs: ContextMenuProps[] = [];
-        this.rootDoc.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        !this.layoutDoc.isTemplateDoc && funcs.push({
-            description: "Convert to use as a style", event: () => {
-                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc);
-                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
-            }, icon: "eye"
-        });
-        this.layoutDoc.isTemplateDoc && funcs.push({
-            description: "Make New Template", event: () => {
-                const title = this.rootDoc.title as string;
-                this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
-                this.rootDoc.title = this.layoutDoc.isTemplateForField as string;
-                this.rootDoc.isTemplateDoc = false;
-                this.rootDoc.isTemplateForField = "";
-                this.rootDoc.layoutKey = "layout";
-                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
-                setTimeout(() => {
-                    this.rootDoc._width = this.layoutDoc._width || 300;  // the width and height are stored on the template, since we're getting rid of the old template
-                    this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
-                    this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
-                }, 10);
-                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
-            }, icon: "eye"
-        });
-        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
-        funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
+        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
 
+        const changeItems: ContextMenuProps[] = [];
+        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
+        DocListCast(noteTypesDoc?.data).forEach(note => {
+            changeItems.push({
+                description: StrCast(note.title), event: undoBatch(() => {
+                    Doc.setNativeView(this.rootDoc);
+                    DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                }), icon: "eye"
+            });
+        });
+        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
+        appearanceItems.push({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
         const uicontrols: ContextMenuProps[] = [];
         uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
@@ -460,7 +446,41 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
         });
 
-        funcs.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+        appearanceItems.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+        this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
+        Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
+        appearanceItems.push({
+            description: "Convert to be a template style", event: () => {
+                if (!this.layoutDoc.isTemplateDoc) {
+                    const title = StrCast(this.rootDoc.title)
+                    this.rootDoc.title = "text";
+                    this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
+                } else {
+                    const title = StrCast(this.rootDoc.title);
+                    this.rootDoc.title = "text";
+                    this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
+                    this.rootDoc.title = this.layoutDoc.isTemplateForField as string;
+                    this.rootDoc.isTemplateDoc = false;
+                    this.rootDoc.isTemplateForField = "";
+                    this.rootDoc.layoutKey = "layout";
+                    this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
+                    setTimeout(() => {
+                        this.rootDoc._autoHeight = this.layoutDoc._autoHeight; // autoHeight, width and height
+                        this.rootDoc._width = this.layoutDoc._width || 300;  // are stored on the template, since we're getting rid of the old template
+                        this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
+                        this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                    }, 10);
+                }
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
+            }, icon: "eye"
+        });
+        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+
+        const funcs: ContextMenuProps[] = [];
+
+        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
+        funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
 
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
@@ -478,21 +498,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         funcs.push({ description: "highlighting...", subitems: highlighting, icon: "hand-point-right" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-        const change = cm.findByDescription("Change Perspective...");
-        const changeItems: ContextMenuProps[] = change && "subitems" in change ? change.subitems : [];
-
-        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
-        DocListCast(noteTypesDoc?.data).forEach(note => {
-            changeItems.push({
-                description: StrCast(note.title), event: undoBatch(() => {
-                    Doc.setNativeView(this.rootDoc);
-                    DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
-                }), icon: "eye"
-            });
-        });
-        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
-        !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
         this._downX = this._downY = Number.NaN;
     }
 
