@@ -576,7 +576,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
+    deleteClicked = (): void => {
+        if (Doc.UserDoc().activeWorkspace === this.props.Document) {
+            alert("Can't delete the active workspace");
+        } else {
+            SelectionManager.DeselectAll();
+            this.props.removeDocument?.(this.props.Document);
+        }
+    }
 
 
     @undoBatch
