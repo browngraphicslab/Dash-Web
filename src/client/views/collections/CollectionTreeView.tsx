@@ -732,7 +732,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             layoutItems.push({ description: (this.props.Document.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.props.Document.treeViewHideTitle = !this.props.Document.treeViewHideTitle, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
         }
-        ContextMenu.Instance.addItem({
+        !Doc.UserDoc().noviceMode && ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
                 const { ImageDocument, PdfDocument } = Docs.Create;
                 const { Document } = this.props;
