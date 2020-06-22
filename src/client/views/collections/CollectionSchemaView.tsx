@@ -770,7 +770,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return false;
     }
 
-
+    @action
     showDoc(doc: Doc | undefined, dataDoc?: Doc, screenX?: number, screenY?: number) {
         this._showDoc = doc;
         if (dataDoc && screenX && screenY) {
@@ -778,7 +778,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
     }
 
-    @action
     onOpenClick = () => {
         if (this._showDoc) {
             this.props.addDocTab(this._showDoc, "onRight");
@@ -790,38 +789,36 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     render() {
-
         const preview = "";
-
         return <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
-            {this._showDoc ? <div onClick={() => { this.onOpenClick(); }} style={{
-                position: "absolute", transform: `translate(${this._showDocPos[0]}, ${this._showDocPos[1]})`
-            }}
-                ref="overlay"><ContentFittingDocumentView
-                    Document={this._showDoc}
-                    DataDoc={this._showDataDoc}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    fitToBox={true}
-                    FreezeDimensions={true}
-                    focus={emptyFunction}
-                    LibraryPath={emptyPath}
-                    renderDepth={this.props.renderDepth}
-                    rootSelected={() => false}
-                    PanelWidth={() => 150}
-                    PanelHeight={() => 150}
-                    ScreenToLocalTransform={this.getPreviewTransform}
-                    docFilters={returnEmptyFilter}
-                    ContainingCollectionDoc={this.props.CollectionView?.props.Document}
-                    ContainingCollectionView={this.props.CollectionView}
-                    moveDocument={this.props.moveDocument}
-                    parentActive={this.props.active}
-                    whenActiveChanged={emptyFunction}
-                    addDocTab={this.props.addDocTab}
-                    pinToPres={this.props.pinToPres}
-                    bringToFront={returnFalse}
-                    ContentScaling={returnOne}>
-                </ContentFittingDocumentView></div> : null}
+            {!this._showDoc ? (null) :
+                <div onClick={() => { this.onOpenClick(); }} style={{ position: "absolute", transform: `translate(${this._showDocPos[0]}, ${this._showDocPos[1]})` }}
+                    ref="overlay"><ContentFittingDocumentView
+                        Document={this._showDoc}
+                        DataDoc={this._showDataDoc}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
+                        fitToBox={true}
+                        FreezeDimensions={true}
+                        focus={emptyFunction}
+                        LibraryPath={emptyPath}
+                        renderDepth={this.props.renderDepth}
+                        rootSelected={() => false}
+                        PanelWidth={() => 150}
+                        PanelHeight={() => 150}
+                        ScreenToLocalTransform={this.getPreviewTransform}
+                        docFilters={returnEmptyFilter}
+                        ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+                        ContainingCollectionView={this.props.CollectionView}
+                        moveDocument={this.props.moveDocument}
+                        parentActive={this.props.active}
+                        whenActiveChanged={emptyFunction}
+                        addDocTab={this.props.addDocTab}
+                        pinToPres={this.props.pinToPres}
+                        bringToFront={returnFalse}
+                        ContentScaling={returnOne}>
+                    </ContentFittingDocumentView>
+                </div>}
             {this.reactTable}
             <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
         </div>;
