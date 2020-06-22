@@ -56,6 +56,7 @@ export interface CellProps {
     setPreviewDoc: (doc: Doc) => void;
     setComputed: (script: string, doc: Doc, field: string, row: number, col: number) => boolean;
     getField: (row: number, col?: number) => void;
+    showDoc: (doc: Doc | undefined, dataDoc?: any, screenX?: number, screenY?: number) => void;
 }
 
 @observer
@@ -398,15 +399,17 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
     }
 
     @action
-    showPreview = (bool: boolean) => {
-        console.log("show preview");
-        this._preview = bool;
+    showPreview = (bool: boolean, e: any) => {
+        if (this._isEditing) {
+            this._preview = false;
+        } else {
+            if (bool) {
+                this.props.showDoc(this._doc, this.prop.DataDoc, e.screenX, e.screenY);
+            } else {
+                this.props.showDoc(undefined);
+            }
+        }
     }
-
-    getPreviewTransform = (): Transform => {
-        return this.prop.ScreenToLocalTransform().translate(- this.borderWidth - 4 - this.tableWidth, - this.borderWidth);
-    }
-
 
     render() {
 
@@ -418,38 +421,9 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}
-                    onPointerEnter={() => { this.showPreview(true); }}
-                    onPointerLeave={() => { this.showPreview(false); }}>
-
-                    {this._preview ? <div onClick={this.onOpenClick} style={{
-                        display: 'block', position: 'absolute',
-                        top: '0', bottom: '0', left: '0', right: '0', zIndex: "auto"
-                    }}
-                        ref="overlay"><ContentFittingDocumentView
-                            Document={this._doc}
-                            DataDoc={this.prop.DataDoc}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
-                            fitToBox={true}
-                            FreezeDimensions={true}
-                            focus={emptyFunction}
-                            LibraryPath={this.prop.LibraryPath}
-                            renderDepth={this.props.renderDepth}
-                            rootSelected={() => false}
-                            PanelWidth={() => 150}
-                            PanelHeight={() => 150}
-                            ScreenToLocalTransform={this.getPreviewTransform}
-                            docFilters={returnEmptyFilter}
-                            ContainingCollectionDoc={this.props.CollectionView?.props.Document}
-                            ContainingCollectionView={this.props.CollectionView}
-                            moveDocument={this.props.moveDocument}
-                            parentActive={this.prop.active}
-                            whenActiveChanged={this.prop.whenActiveChanged}
-                            addDocTab={this.props.addDocTab}
-                            pinToPres={this.props.pinToPres}
-                            bringToFront={returnFalse}
-                            ContentScaling={returnOne}>
-                        </ContentFittingDocumentView></div> : null}
+                    onPointerEnter={(e) => { this.showPreview(true, e); }}
+                    onPointerLeave={(e) => { this.showPreview(false, e); }}
+                >
 
                     <div className="collectionSchemaView-cellContents-document"
                         style={{ padding: "5.9px" }}
