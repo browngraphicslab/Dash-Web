@@ -1203,20 +1203,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }), icon: this._timelineVisible ? faEyeSlash : faEye
         });
 
-        const options = ContextMenu.Instance.findByDescription("Options...");
-        const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
+        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
+        appearanceItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
+        appearanceItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
+        appearanceItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+        appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)!._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
+        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
-        optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
+        const options = ContextMenu.Instance.findByDescription("Options...");
+        const optionItems = options && "subitems" in options ? options.subitems : [];
         optionItems.push({ description: "toggle snap line display", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
-        optionItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-        optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
-        optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
-        optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+        !Doc.UserDoc().noviceMode && optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
         this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
-        // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        optionItems.push({
+        !Doc.UserDoc().noviceMode && optionItems.push({
             description: "Import document", icon: "upload", event: ({ x, y }) => {
                 const input = document.createElement("input");
                 input.type = "file";
@@ -1243,8 +1245,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 input.click();
             }
         });
-        optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
+        !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
+        !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
 
     }
     @observable _timelineVisible = false;
