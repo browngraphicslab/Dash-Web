@@ -404,11 +404,35 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
             this._preview = false;
         } else {
             if (bool) {
-                this.props.showDoc(this._doc, this.prop.DataDoc, e.screenX, e.screenY);
+                console.log("show doc");
+                this.props.showDoc(this._doc, this.prop.DataDoc, e.screenX - 230, e.screenY - 570);
             } else {
+                console.log("no doc");
                 this.props.showDoc(undefined);
             }
         }
+    }
+
+    onDown = (e: any) => {
+        this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
+        this.props.setPreviewDoc(this.props.rowProps.original);
+
+        let url: string;
+        if (url = StrCast(this.props.rowProps.row.href)) {
+            try {
+                new URL(url);
+                const temp = window.open(url)!;
+                temp.blur();
+                window.focus();
+            } catch { }
+        }
+
+        const field = this.props.rowProps.original[this.props.rowProps.column.id!];
+        const doc = FieldValue(Cast(field, Doc));
+        if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
+
+        this.showPreview(true, e);
+
     }
 
     render() {
@@ -420,9 +444,12 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
 
             return (
-                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}
-                    onPointerEnter={(e) => { this.showPreview(true, e); }}
-                    onPointerLeave={(e) => { this.showPreview(false, e); }}
+                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
+                    //    onPointerDown={(e) => { this.onDown(e); }}
+                    // onFocus={(e) => this.showPreview(true, e)}
+                    onMouseEnter={(e) => { this.showPreview(true, e); }}
+                    // onBlur={(e) => { console.log("Blur"); this.showPreview(false, e) }}
+                    onMouseLeave={(e) => { this.showPreview(false, e); }}
                 >
 
                     <div className="collectionSchemaView-cellContents-document"

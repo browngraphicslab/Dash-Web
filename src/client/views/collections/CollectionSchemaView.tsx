@@ -791,9 +791,14 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     render() {
         const preview = "";
         return <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
+            {this.reactTable}
+            <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
             {!this._showDoc ? (null) :
-                <div onClick={() => { this.onOpenClick(); }}
-                    style={{ position: "absolute", width: 400, height: 300, transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1]}px)` }}
+                <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}
+                    style={{
+                        position: "absolute", width: 400, height: 300,
+                        transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1]}px)`
+                    }}
                     ref="overlay"><ContentFittingDocumentView
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
@@ -820,8 +825,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         ContentScaling={returnOne}>
                     </ContentFittingDocumentView>
                 </div>}
-            {this.reactTable}
-            <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
         </div>;
     }
 }

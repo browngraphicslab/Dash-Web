@@ -480,6 +480,10 @@ button.add-column {
 }
 
 .collectionSchemaView-toolbar {
+    z-index: 1000;
+}
+
+.collectionSchemaView-toolbar {
     height: 30px;
     display: flex;
     justify-content: flex-end;
