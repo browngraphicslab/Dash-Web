@@ -1,59 +1,58 @@
-import { CollectionView } from "../views/collections/CollectionView";
-import { CollectionViewType } from "../views/collections/CollectionView";
+import { runInAction } from "mobx";
+import { extname } from "path";
+import { DateField } from "../../fields/DateField";
+import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
+import { HtmlField } from "../../fields/HtmlField";
+import { InkField } from "../../fields/InkField";
+import { List } from "../../fields/List";
+import { ProxyField } from "../../fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
+import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
+import { MessageStore } from "../../server/Message";
+import { OmitKeys, Utils } from "../../Utils";
+import { DocServer } from "../DocServer";
+import { dropActionType } from "../util/DragManager";
+import { LinkManager } from "../util/LinkManager";
+import { Scripting } from "../util/Scripting";
+import { UndoManager } from "../util/UndoManager";
+import { DocumentType } from "./DocumentTypes";
+import { filterData} from "../views/search/SearchBox";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
+import { SearchItem } from "../views/search/SearchItem";
+import { SearchBox } from "../views/search/SearchBox";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { ContextMenu } from "../views/ContextMenu";
+import { ContextMenuProps } from "../views/ContextMenuItem";
+import { ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
 import { AudioBox } from "../views/nodes/AudioBox";
+import { ColorBox } from "../views/nodes/ColorBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
+import { DocHolderBox } from "../views/nodes/DocHolderBox";
+import { FontIconBox } from "../views/nodes/FontIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
+import { LabelBox } from "../views/nodes/LabelBox";
+import { LinkBox } from "../views/nodes/LinkBox";
 import { PDFBox } from "../views/nodes/PDFBox";
+import { PresBox } from "../views/nodes/PresBox";
+import { QueryBox } from "../views/nodes/QueryBox";
+import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
+import { SliderBox } from "../views/nodes/SliderBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
-import { HtmlField } from "../../fields/HtmlField";
-import { List } from "../../fields/List";
-import { Cast, NumCast, StrCast } from "../../fields/Types";
-import { DocServer } from "../DocServer";
-import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../fields/DateField";
-import { YoutubeBox } from "../apis/youtube/YoutubeBox";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { LinkManager } from "../util/LinkManager";
-import { DocumentManager } from "../util/DocumentManager";
-import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting } from "../util/Scripting";
-import { LabelBox } from "../views/nodes/LabelBox";
-import { SliderBox } from "../views/nodes/SliderBox";
-import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
-import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../fields/ScriptField";
-import { ProxyField } from "../../fields/Proxy";
-import { DocumentType } from "./DocumentTypes";
-import { RecommendationsBox } from "../views/RecommendationsBox";
-import { filterData} from "../views/search/SearchBox";
-
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
-import { SearchItem } from "../views/search/SearchItem";
+import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { SearchBox } from "../views/search/SearchBox";
-import { ColorBox } from "../views/nodes/ColorBox";
-import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
-import { DocHolderBox } from "../views/nodes/DocHolderBox";
-import { InkingStroke } from "../views/InkingStroke";
-import { InkField } from "../../fields/InkField";
-import { InkingControl } from "../views/InkingControl";
-import { RichTextField } from "../../fields/RichTextField";
-import { extname } from "path";
-import { MessageStore } from "../../server/Message";
-import { ContextMenuProps } from "../views/ContextMenuItem";
-import { ContextMenu } from "../views/ContextMenu";
-import { LinkBox } from "../views/nodes/LinkBox";
-import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
-import { ComparisonBox } from "../views/nodes/ComparisonBox";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
+import { DocumentManager } from "../util/DocumentManager";
+import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -150,7 +149,7 @@ export interface DocumentOptions {
     dbDoc?: Doc;
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
-    activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
+    activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
     onDoubleClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
@@ -167,6 +166,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
+    stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -268,6 +268,11 @@ export namespace Docs {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox, dataField: defaultDataKey },
                 options: { childDropAction: "alias", title: "Global Link Database" }
+            }],
+            [DocumentType.SCRIPTDB, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Script Database" }
             }],
             [DocumentType.SCRIPTING, {
                 layout: { view: ScriptingBox, dataField: defaultDataKey }
@@ -371,6 +376,13 @@ export namespace Docs {
         }
 
         /**
+         * A collection of all scripts in the database
+         */
+        export function MainScriptDocument() {
+            return Prototypes.get(DocumentType.SCRIPTDB);
+        }
+
+        /**
          * This is a convenience method that is used to initialize
          * prototype documents for the first time.
          * 
@@ -465,7 +477,7 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
                     doc.nameAliases = new List<string>([title.toLowerCase()]);
                     // add the parsed attributes to this main document
-                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
+                    Doc.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -488,7 +500,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -616,13 +628,15 @@ export namespace Docs {
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
             };
-
             const field = text ? new RichTextField(JSON.stringify(rtf), text) : undefined;
             return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
+                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false,
+                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+            }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
@@ -641,12 +655,13 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
             I.strokeWidth = strokeWidth;
+            I.strokeBezier = strokeBezier;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -654,6 +669,7 @@ export namespace Docs {
             I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
+            I.author = Doc.CurrentUserEmail;
             I.data = new InkField(points);
             return I;
             // return I;
@@ -705,7 +721,7 @@ export namespace Docs {
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns.length ? schemaColumns : [new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -733,6 +749,11 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
+            // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
+            // btn.layoutKey = "layout_onClick";
+            // btn.height = 250;
+            // btn.width = 200;
+            // btn.layout_onClick = ScriptingBox.LayoutString("onClick");
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
@@ -791,225 +812,6 @@ export namespace Docs {
             return InstanceFromProto(proto, undefined, options);
         }
     }
-
-    export namespace Get {
-
-        const primitives = ["string", "number", "boolean"];
-
-        export interface JsonConversionOpts {
-            data: any;
-            title?: string;
-            appendToExisting?: { targetDoc: Doc, fieldKey?: string };
-            excludeEmptyObjects?: boolean;
-        }
-
-        const defaultKey = "json";
-
-        /**
-         * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
-         * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
-         * 
-         * After building a hierarchy within / below a top-level document, it then returns that top-level parent.
-         * 
-         * If we've received a string, treat it like valid JSON and try to parse it into an object. If this fails, the
-         * string is invalid JSON, so we should assume that the input is the result of a JSON.parse()
-         * call that returned a regular string value to be stored as a Field.
-         * 
-         * If we've received something other than a string, since the caller might also pass in the results of a
-         * JSON.parse() call, valid input might be an object, an array (still typeof object), a boolean or a number.
-         * Anything else (like a function, etc. passed in naively as any) is meaningless for this operation.
-         * 
-         * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
-         * lacking the key value structure, gets stored as a field in a wrapper document.
-         * 
-         * @param data for convenience and flexibility, either a valid JSON string to be parsed,
-         * or the result of any JSON.parse() call.
-         * @param title an optional title to give to the highest parent document in the hierarchy.
-         * If whether this function creates a new document or appendToExisting is specified and that document already has a title,
-         * because this title field can be left undefined for the opposite behavior, including a title will overwrite the existing title.
-         * @param appendToExisting **if specified**, there are two cases, both of which return the target document:
-         * 
-         * 1) the json to be converted can be represented as a document, in which case the target document will act as the root
-         * of the tree and receive all the conversion results as new fields on itself
-         * 2) the json can't be represented as a document, in which case the function will assign the field-level conversion
-         * results to either the specified key on the target document, or to its "json" key by default.
-         * 
-         * If not specified, the function creates and returns a new entirely generic document (different from the Doc.Create calls)
-         * to act as the root of the tree.
-         * 
-         * One might choose to specify this field if you want to write to a document returned from a Document.Create function call,
-         * say a TreeView document that will be rendered, not just an untyped, identityless doc that would otherwise be created
-         * from a default call to new Doc.
-         * 
-         * @param excludeEmptyObjects whether non-primitive objects (TypeScript objects and arrays) should be converted even
-         * if they contain no data. By default, empty objects and arrays are ignored.
-         */
-        export function FromJson({ data, title, appendToExisting, excludeEmptyObjects }: JsonConversionOpts): Opt<Doc> {
-            if (excludeEmptyObjects === undefined) {
-                excludeEmptyObjects = true;
-            }
-            if (data === undefined || data === null || ![...primitives, "object"].includes(typeof data)) {
-                return undefined;
-            }
-            let resolved: any;
-            try {
-                resolved = JSON.parse(typeof data === "string" ? data : JSON.stringify(data));
-            } catch (e) {
-                return undefined;
-            }
-            let output: Opt<Doc>;
-            if (typeof resolved === "object" && !(resolved instanceof Array)) {
-                output = convertObject(resolved, excludeEmptyObjects, title, appendToExisting?.targetDoc);
-            } else {
-                const result = toField(resolved, excludeEmptyObjects);
-                if (appendToExisting) {
-                    (output = appendToExisting.targetDoc)[appendToExisting.fieldKey || defaultKey] = result;
-                } else {
-                    (output = new Doc).json = result;
-                }
-            }
-            title && output && (output.title = title);
-            return output;
-        }
-
-        /**
-         * For each value of the object, recursively convert it to its appropriate field value
-         * and store the field at the appropriate key in the document if it is not undefined
-         * @param object the object to convert
-         * @returns the object mapped from JSON to field values, where each mapping 
-         * might involve arbitrary recursion (since toField might itself call convertObject)
-         */
-        const convertObject = (object: any, excludeEmptyObjects: boolean, title?: string, target?: Doc): Opt<Doc> => {
-            const hasEntries = Object.keys(object).length;
-            if (hasEntries || !excludeEmptyObjects) {
-                const resolved = target ?? new Doc;
-                if (hasEntries) {
-                    let result: Opt<Field>;
-                    Object.keys(object).map(key => {
-                        // if excludeEmptyObjects is true, any qualifying conversions from toField will
-                        // be undefined, and thus the results that would have
-                        // otherwise been empty (List or Doc)s will just not be written
-                        if (result = toField(object[key], excludeEmptyObjects, key)) {
-                            resolved[key] = result;
-                        }
-                    });
-                }
-                title && (resolved.title = title);
-                return resolved;
-            }
-        };
-
-        /**
-         * For each element in the list, recursively convert it to a document or other field 
-         * and push the field to the list if it is not undefined
-         * @param list the list to convert
-         * @returns the list mapped from JSON to field values, where each mapping 
-         * might involve arbitrary recursion (since toField might itself call convertList)
-         */
-        const convertList = (list: Array<any>, excludeEmptyObjects: boolean): Opt<List<Field>> => {
-            const target = new List();
-            let result: Opt<Field>;
-            // if excludeEmptyObjects is true, any qualifying conversions from toField will
-            // be undefined, and thus the results that would have
-            // otherwise been empty (List or Doc)s will just not be written
-            list.map(item => (result = toField(item, excludeEmptyObjects)) && target.push(result));
-            if (target.length || !excludeEmptyObjects) {
-                return target;
-            }
-        };
-
-        const toField = (data: any, excludeEmptyObjects: boolean, title?: string): Opt<Field> => {
-            if (data === null || data === undefined) {
-                return undefined;
-            }
-            if (primitives.includes(typeof data)) {
-                return data;
-            }
-            if (typeof data === "object") {
-                return data instanceof Array ? convertList(data, excludeEmptyObjects) : convertObject(data, excludeEmptyObjects, title, undefined);
-            }
-            throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
-        };
-
-        export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
-            let created: Doc | undefined;
-            let layout: ((fieldKey: string) => string) | undefined;
-            const field = target[fieldKey];
-            const resolved = options || {};
-            if (field instanceof ImageField) {
-                created = Docs.Create.ImageDocument((field).url.href, resolved);
-                layout = ImageBox.LayoutString;
-            } else if (field instanceof Doc) {
-                created = field;
-            } else if (field instanceof VideoField) {
-                created = Docs.Create.VideoDocument((field).url.href, resolved);
-                layout = VideoBox.LayoutString;
-            } else if (field instanceof PdfField) {
-                created = Docs.Create.PdfDocument((field).url.href, resolved);
-                layout = PDFBox.LayoutString;
-            } else if (field instanceof AudioField) {
-                created = Docs.Create.AudioDocument((field).url.href, resolved);
-                layout = AudioBox.LayoutString;
-            } else if (field instanceof InkField) {
-                const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, (field).inkData, resolved);
-                layout = InkingStroke.LayoutString;
-            } else if (field instanceof List && field[0] instanceof Doc) {
-                created = Docs.Create.StackingDocument(DocListCast(field), resolved);
-                layout = CollectionView.LayoutString;
-            } else {
-                created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
-                layout = FormattedTextBox.LayoutString;
-            }
-            if (created) {
-                created.layout = layout?.(fieldKey);
-                created.title = fieldKey;
-                proto && created.proto && (created.proto = Doc.GetProto(proto));
-            }
-            return created;
-        }
-
-        export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
-            let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
-            if (type.indexOf("image") !== -1) {
-                ctor = Docs.Create.ImageDocument;
-                if (!options._width) options._width = 300;
-            }
-            if (type.indexOf("video") !== -1) {
-                ctor = Docs.Create.VideoDocument;
-                if (!options._width) options._width = 600;
-                if (!options._height) options._height = options._width * 2 / 3;
-            }
-            if (type.indexOf("audio") !== -1) {
-                ctor = Docs.Create.AudioDocument;
-            }
-            if (type.indexOf("pdf") !== -1) {
-                ctor = Docs.Create.PdfDocument;
-                if (!options._width) options._width = 400;
-                if (!options._height) options._height = options._width * 1200 / 927;
-            }
-            if (type.indexOf("html") !== -1) {
-                if (path.includes(window.location.hostname)) {
-                    const s = path.split('/');
-                    const id = s[s.length - 1];
-                    return DocServer.GetRefField(id).then(field => {
-                        if (field instanceof Doc) {
-                            const alias = Doc.MakeAlias(field);
-                            alias.x = options.x || 0;
-                            alias.y = options.y || 0;
-                            alias._width = options._width || 300;
-                            alias._height = options._height || options._width || 300;
-                            return alias;
-                        }
-                        return undefined;
-                    });
-                }
-                ctor = Docs.Create.WebDocument;
-                options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
-            }
-            return ctor ? ctor(path, options) : undefined;
-        }
-    }
 }
 
 export namespace DocUtils {
@@ -1055,12 +857,92 @@ export namespace DocUtils {
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
         return linkDoc;
+    }
+
+
+    export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
+        let created: Doc | undefined;
+        let layout: ((fieldKey: string) => string) | undefined;
+        const field = target[fieldKey];
+        const resolved = options || {};
+        if (field instanceof ImageField) {
+            created = Docs.Create.ImageDocument((field).url.href, resolved);
+            layout = ImageBox.LayoutString;
+        } else if (field instanceof Doc) {
+            created = field;
+        } else if (field instanceof VideoField) {
+            created = Docs.Create.VideoDocument((field).url.href, resolved);
+            layout = VideoBox.LayoutString;
+        } else if (field instanceof PdfField) {
+            created = Docs.Create.PdfDocument((field).url.href, resolved);
+            layout = PDFBox.LayoutString;
+        } else if (field instanceof AudioField) {
+            created = Docs.Create.AudioDocument((field).url.href, resolved);
+            layout = AudioBox.LayoutString;
+        } else if (field instanceof InkField) {
+            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), (field).inkData, resolved);
+            layout = InkingStroke.LayoutString;
+        } else if (field instanceof List && field[0] instanceof Doc) {
+            created = Docs.Create.StackingDocument(DocListCast(field), resolved);
+            layout = CollectionView.LayoutString;
+        } else {
+            created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+            layout = FormattedTextBox.LayoutString;
+        }
+        if (created) {
+            created.layout = layout?.(fieldKey);
+            created.title = fieldKey;
+            proto && created.proto && (created.proto = Doc.GetProto(proto));
+        }
+        return created;
+    }
+
+    export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
+        let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
+        if (type.indexOf("image") !== -1) {
+            ctor = Docs.Create.ImageDocument;
+            if (!options._width) options._width = 300;
+        }
+        if (type.indexOf("video") !== -1) {
+            ctor = Docs.Create.VideoDocument;
+            if (!options._width) options._width = 600;
+            if (!options._height) options._height = options._width * 2 / 3;
+        }
+        if (type.indexOf("audio") !== -1) {
+            ctor = Docs.Create.AudioDocument;
+        }
+        if (type.indexOf("pdf") !== -1) {
+            ctor = Docs.Create.PdfDocument;
+            if (!options._width) options._width = 400;
+            if (!options._height) options._height = options._width * 1200 / 927;
+        }
+        if (type.indexOf("html") !== -1) {
+            if (path.includes(window.location.hostname)) {
+                const s = path.split('/');
+                const id = s[s.length - 1];
+                return DocServer.GetRefField(id).then(field => {
+                    if (field instanceof Doc) {
+                        const alias = Doc.MakeAlias(field);
+                        alias.x = options.x || 0;
+                        alias.y = options.y || 0;
+                        alias._width = options._width || 300;
+                        alias._height = options._height || options._width || 300;
+                        return alias;
+                    }
+                    return undefined;
+                });
+            }
+            ctor = Docs.Create.WebDocument;
+            options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
+        }
+        return ctor ? ctor(path, options) : undefined;
     }
 
     export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {
@@ -1097,6 +979,118 @@ export namespace DocUtils {
             })) as ContextMenuProps[],
             icon: "eye"
         });
+    }// applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
+    export function makeCustomViewClicked(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const batch = UndoManager.StartBatch("makeCustomViewClicked");
+        runInAction(() => {
+            doc.layoutKey = "layout_" + templateSignature;
+            if (doc[doc.layoutKey] === undefined) {
+                createCustomView(doc, creator, templateSignature, docLayoutTemplate);
+            }
+        });
+        batch.end();
+    }
+    export function findTemplate(templateName: string, type: string, signature: string) {
+        let docLayoutTemplate: Opt<Doc>;
+        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
+        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
+        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
+        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName + "_" + type && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+        return docLayoutTemplate;
+    }
+    export function createCustomView(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        docLayoutTemplate = docLayoutTemplate || findTemplate(templateName, StrCast(doc.type), templateSignature);
+
+        const customName = "layout_" + templateSignature;
+        const _width = NumCast(doc._width);
+        const _height = NumCast(doc._height);
+        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
+
+        let fieldTemplate: Opt<Doc>;
+        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
+            fieldTemplate = Docs.Create.TextDocument("", options);
+        } else if (doc.data instanceof PdfField) {
+            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+        } else if (doc.data instanceof VideoField) {
+            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof AudioField) {
+            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof ImageField) {
+            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+        }
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+    }
+    export function makeCustomView(doc: Doc, custom: boolean, layout: string) {
+        Doc.setNativeView(doc);
+        if (custom) {
+            makeCustomViewClicked(doc, Docs.Create.StackingDocument, layout, undefined);
+        }
+    }
+    export function iconify(doc: Doc) {
+        const layoutKey = Cast(doc.layoutKey, "string", null);
+        DocUtils.makeCustomViewClicked(doc, Docs.Create.StackingDocument, "icon", undefined);
+        if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
+    }
+
+    export function pileup(docList: Doc[], x?: number, y?: number) {
+        let w = 0, h = 0;
+        runInAction(() => {
+            docList.forEach(d => {
+                DocUtils.iconify(d);
+                w = Math.max(d[WidthSym](), w);
+                h = Math.max(d[HeightSym](), h);
+            });
+            h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
+            docList.forEach((d, i) => {
+                d.x = Math.cos(Math.PI * 2 * i / docList.length) * 10 - w / 2;
+                d.y = Math.sin(Math.PI * 2 * i / docList.length) * 10 - h / 2;
+                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+            });
+        });
+        if (x !== undefined && y !== undefined) {
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+            newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
+            newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
+            newCollection._width = newCollection._height = 110;
+            //newCollection.borderRounding = "40px";
+            newCollection._jitterRotation = 10;
+            newCollection._backgroundColor = "gray";
+            newCollection._overflow = "visible";
+            return newCollection;
+        }
+    }
+
+    export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
+        let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
+        if (!(optionsCollection instanceof Doc)) {
+            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+            Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
+        }
+        const options = optionsCollection as Doc;
+        const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
+        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
+        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
+        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));
+        enumerations.map(enumeration => {
+            const found = DocListCast(options.data).find(d => d.title === enumeration.title);
+            if (found) {
+                found._backgroundColor = enumeration._backgroundColor || found._backgroundColor;
+                found._color = enumeration.color || found._color;
+            } else {
+                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, enumeration));
+            }
+        });
+        return optionsCollection;
     }
 }
 

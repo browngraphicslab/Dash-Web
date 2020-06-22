@@ -2,7 +2,6 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast, FieldResult, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
@@ -26,7 +25,6 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { CollectionView } from "../collections/CollectionView";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { InkingControl } from "../InkingControl";
 import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
@@ -38,9 +36,7 @@ import { Networking } from "../../Network";
 
 export const pageSchema = createSchema({
     curPage: "number",
-    fitWidth: "boolean",
     rotation: "number",
-    scrollY: "number",
     scrollHeight: "number",
     serachMatch: "boolean"
 });
@@ -55,6 +51,7 @@ interface IViewerProps {
     fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
+    docFilters: () => string[];
     ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -95,7 +92,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _showWaiting = true;
     @observable private _showCover = false;
     @observable private _zoomed = 1;
-    @observable private _scrollTop = 0;
 
     private _pdfViewer: any;
     private _retries = 0; // number of times tried to create the PDF viewer 
@@ -132,18 +128,27 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // file address of the pdf
         const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const { url: relative } = this.props;
-        const pathComponents = relative.split("/pdfs/")[1].split("/");
-        const coreFilename = pathComponents.pop()!.split(".")[0];
-        const params: any = {
-            coreFilename,
-            pageNum: this.Document.curPage || 1,
-        };
-        if (pathComponents.length) {
-            params.subtree = `${pathComponents.join("/")}/`;
+        if (relative.includes("/pdfs/")) {
+            const pathComponents = relative.split("/pdfs/")[1].split("/");
+            const coreFilename = pathComponents.pop()!.split(".")[0];
+            const params: any = {
+                coreFilename,
+                pageNum: this.Document.curPage || 1,
+            };
+            if (pathComponents.length) {
+                params.subtree = `${pathComponents.join("/")}/`;
+            }
+            this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
+        } else {
+            const params: any = {
+                coreFilename: relative.split("/")[relative.split("/").length - 1],
+                pageNum: this.Document.curPage || 1,
+            };
+            this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
-        this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
+        this._mainCont.current!.scrollTop = this.layoutDoc._scrollTop || 0;
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
             if (search) {
                 this.search(Doc.SearchQuery(), false);
@@ -170,14 +175,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             () => (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(),
             { fireImmediately: true });
         this._reactionDisposer = reaction(
-            () => this.Document.scrollY,
+            () => this.Document._scrollY,
             (scrollY) => {
                 if (scrollY !== undefined) {
-                    if (this._showCover || this._showWaiting) {
-                        this.setupPdfJsViewer();
-                    }
-                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document.scrollY || 0));
-                    this.Document.scrollY = undefined;
+                    (this._showCover || this._showWaiting) && this.setupPdfJsViewer();
+                    this._mainCont.current && smoothScroll(1000, this._mainCont.current, (this.Document._scrollY || 0));
+                    setTimeout(() => this.Document._scrollY = undefined, 1000);
                 }
             },
             { fireImmediately: true }
@@ -232,7 +235,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         await this.initialLoad();
 
         this._scrollTopReactionDisposer = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
-            (stop) => (stop !== undefined) && this._mainCont.current && smoothScroll(500, this._mainCont.current, stop), { fireImmediately: true });
+            (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined) && (this._mainCont.current!.scrollTop = stop), { fireImmediately: true });
+
         this._annotationReactionDisposer = reaction(
             () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
             annotations => annotations?.length && (this._annotations = annotations),
@@ -370,7 +374,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
-        this._scrollTop = this._mainCont.current!.scrollTop;
+        this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
         this._pdfViewer && (this.Document.curPage = this._pdfViewer.currentPageNumber);
     }
 
@@ -606,7 +610,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
         clipDoc.rootDocument = targetDoc;
-        Doc.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
+        DocUtils.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
         targetDoc.layoutKey = "layout";
         // const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
@@ -627,7 +631,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     scrollXf = () => {
-        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this._scrollTop) : this.props.ScreenToLocalTransform();
+        return this._mainCont.current ? this.props.ScreenToLocalTransform().translate(0, this.layoutDoc._scrollTop || 0) : this.props.ScreenToLocalTransform();
     }
     onClick = (e: React.MouseEvent) => {
         this._setPreviewCursor &&
@@ -675,7 +679,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewer-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
             style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}

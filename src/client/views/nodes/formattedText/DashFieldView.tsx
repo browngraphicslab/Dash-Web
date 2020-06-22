@@ -12,7 +12,7 @@ import React = require("react");
 import * as ReactDOM from 'react-dom';
 import "./DashFieldView.scss";
 import { observer } from "mobx-react";
-
+import { DocUtils } from "../../../documents/Documents";
 
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
@@ -39,12 +39,10 @@ export class DashFieldView {
         />, this._fieldWrapper);
         (this as any).dom = this._fieldWrapper;
     }
-    destroy() {
-        ReactDOM.unmountComponentAtNode(this._fieldWrapper);
-    }
+    destroy() { ReactDOM.unmountComponentAtNode(this._fieldWrapper); }
     selectNode() { }
-
 }
+
 interface IDashFieldViewInternal {
     fieldKey: string;
     docid: string;
@@ -102,11 +100,14 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 // bcz: this is unfortunate, but since this React component is nested within a non-React text box (prosemirror), we can't
                 // use React events.  Essentially, React events occur after native events have been processed, so corresponding React events
                 // will never fire because Prosemirror has handled the native events.  So we add listeners for native events here.
-                return <span contentEditable={true} suppressContentEditableWarning={true} defaultValue={strVal} ref={r => {
-                    r?.addEventListener("keydown", e => this.fieldSpanKeyDown(e, r));
-                    r?.addEventListener("blur", e => r && this.updateText(r.textContent!, false));
-                    r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
-                }} >
+                return <span className="dashFieldView-fieldSpan" contentEditable={true}
+                    style={{ display: strVal.length < 2 ? "inline-block" : undefined }}
+                    suppressContentEditableWarning={true} defaultValue={strVal}
+                    ref={r => {
+                        r?.addEventListener("keydown", e => this.fieldSpanKeyDown(e, r));
+                        r?.addEventListener("blur", e => r && this.updateText(r.textContent!, false));
+                        r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
+                    }} >
                     {strVal}
                 </span>;
             }
@@ -117,7 +118,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     @action
     fieldSpanKeyDown = (e: KeyboardEvent, span: HTMLSpanElement) => {
         if (e.key === "Enter") {  // handle the enter key by "submitting" the current text to Dash's database. 
-            e.ctrlKey && Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: span.textContent! }]);
+            e.ctrlKey && DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: span.textContent! }]);
             this.updateText(span.textContent!, true);
             e.preventDefault();// prevent default to avoid a newline from being generated and wiping out this field view
         }
@@ -147,7 +148,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
                 if (modText) {
                     //  elementfieldSpan.innerHTML = this._dashDoc![this._fieldKey as string] = modText;
-                    Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, []);
+                    DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, []);
                     this._dashDoc![this._fieldKey] = modText;
                 } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
                 else if (nodeText.startsWith(":=")) {
@@ -167,7 +168,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     // display a collection of all the enumerable values for this field
     onPointerDownEnumerables = async (e: any) => {
         e.stopPropagation();
-        const collview = await Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
+        const collview = await DocUtils.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
         collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "onRight");
     }
 
@@ -204,9 +205,9 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     {this._fieldKey}
                 </span>}
 
-            <div className="dashFieldView-fieldSpan">
-                {this.fieldValueContent}
-            </div>
+            {/* <div className="dashFieldView-fieldSpan"> */}
+            {this.fieldValueContent}
+            {/* </div> */}
 
             {!this._showEnumerables ? (null) : <div className="dashFieldView-enumerables" onPointerDown={this.onPointerDownEnumerables} />}
 

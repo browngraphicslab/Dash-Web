@@ -50,6 +50,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     private dropDisposer?: DragManager.DragDropDisposer;
     private _headerRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+    @observable _paletteOn = false;
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
     @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
     _ele: HTMLElement | null = null;
@@ -235,7 +236,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
                 description: ":" + fieldKey, event: () => {
-                    const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(this.props.parent.props.Document));
+                    const created = DocUtils.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(this.props.parent.props.Document));
                     if (created) {
                         if (this.props.parent.Document.isTemplateDoc) {
                             Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
@@ -326,11 +327,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     <EditableView {...headerEditableViewProps} />
                     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionColor">
-                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
-                                <button className="collectionStackingView-sectionColorButton">
-                                    <FontAwesomeIcon icon="palette" size="lg" />
-                                </button>
-                            </ Flyout >
+                            <button className="collectionStackingView-sectionColorButton" onClick={action(e => this._paletteOn = !this._paletteOn)}>
+                                <FontAwesomeIcon icon="palette" size="lg" />
+                            </button>
+                            {this._paletteOn ? this.renderColorPicker() : (null)}
                         </div>
                     }
                     {evContents === `NO ${key.toUpperCase()} VALUE` ?

@@ -66,8 +66,9 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         const rect = this._header!.current!.getBoundingClientRect();
         const bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left + ((rect.right - rect.left) / 2), rect.top);
         const before = x[0] < bounds[0];
-        if (de.complete.columnDragData) {
-            this.props.reorderColumns(de.complete.columnDragData.colKey, this.props.columnValue, before, this.props.allColumns);
+        const colDragData = de.complete.columnDragData;
+        if (colDragData) {
+            this.props.reorderColumns(colDragData.colKey, this.props.columnValue, before, this.props.allColumns);
             return true;
         }
         return false;
@@ -164,13 +165,14 @@ export class MovableRow extends React.Component<MovableRowProps> {
     }
 
     createRowDropTarget = (ele: HTMLDivElement) => {
-        this._rowDropDisposer && this._rowDropDisposer();
+        this._rowDropDisposer?.();
         if (ele) {
             this._rowDropDisposer = DragManager.MakeDropTarget(ele, this.rowDrop.bind(this));
         }
     }
 
     rowDrop = (e: Event, de: DragManager.DropEvent) => {
+        this.onPointerLeave(e as any);
         const rowDoc = FieldValue(Cast(this.props.rowInfo.original, Doc));
         if (!rowDoc) return false;
 
@@ -203,10 +205,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     @action
     move: DragManager.MoveFunction = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc) => {
         const targetView = targetCollection && DocumentManager.Instance.getDocumentView(targetCollection);
-        if (targetView && targetView.props.ContainingCollectionDoc) {
-            return doc !== targetCollection && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
-        }
-        return doc !== targetCollection && this.props.removeDoc(doc) && addDoc(doc);
+        return doc !== targetCollection && doc !== targetView?.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
     }
 
     render() {

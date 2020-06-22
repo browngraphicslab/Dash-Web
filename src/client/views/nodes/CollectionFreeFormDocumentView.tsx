@@ -14,6 +14,7 @@ import { List } from "../../../fields/List";
 import { numberRange } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -36,7 +37,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return min + rnd * (max - min);
     }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
-    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
+    get maskCentering() { return this.props.Document.isInkMask ? 2500 : 0; }
+    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
     get Opacity() { return this.dataProvider ? this.dataProvider.opacity : Cast(this.layoutDoc.opacity, "number", null); }
@@ -79,8 +81,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static setValues(time: number, d: Doc, x?: number, y?: number, opacity?: number) {
         const timecode = Math.round(time);
-        Cast(d["x-indexed"], listSpec("number"), [])[Math.max(0, timecode - 1)] = x as any as number;
-        Cast(d["y-indexed"], listSpec("number"), [])[Math.max(0, timecode - 1)] = y as any as number;
         Cast(d["x-indexed"], listSpec("number"), [])[timecode] = x as any as number;
         Cast(d["y-indexed"], listSpec("number"), [])[timecode] = y as any as number;
         Cast(d["opacity-indexed"], listSpec("number"), null)[timecode] = opacity as any as number;
@@ -110,12 +110,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
-            xlist[Math.max(curTimecode - 1, 0)] = xlist[curTimecode] = NumCast(doc.x);
-            ylist[Math.max(curTimecode - 1, 0)] = ylist[curTimecode] = NumCast(doc.y);
+            xlist[curTimecode] = NumCast(doc.x);
+            ylist[curTimecode] = NumCast(doc.y);
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
             doc["opacity-indexed"] = olist;
-            doc.activeFrame = ComputedField.MakeFunction("self.context ? (self.context.currentFrame||0) : 0");
+            doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
@@ -151,12 +151,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
-                width: this.width,
-                height: this.height,
+                width: this.props.Document.isInkMask ? 5000 : this.width,
+                height: this.props.Document.isInkMask ? 5000 : this.height,
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
+                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK || this.props.Document.isInkMask ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :
                 <div style={{ width: "100%", height: "100%", position: "absolute" }}>

@@ -22,10 +22,10 @@ export const documentSchema = createSchema({
     y: "number",                // y coordinate when in a freeform view 
     z: "number",                // z "coordinate" - non-zero specifies the overlay layer of a freeformview
     zIndex: "number",           // zIndex of a document in a freeform view
-    scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    scrollX: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
-    scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
+    _scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
+    _scrollX: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
+    _scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
+    _scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
 
     // appearance properties on the layout
     _autoHeight: "boolean",     // whether the height of the document should be computed automatically based on its contents
@@ -58,11 +58,13 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
     fontSize: "string",
+    isInkMask: "boolean",       // is the document a mask (ie, sits on top of other documents, has an unbounded width/height that is dark, and content uses 'hard-light' mix-blend-mode to let other documents pop through)
     layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
     letterSpacing: "string",
     opacity: "number",          // opacity of document
     strokeWidth: "number",
+    strokeBezier: "number",
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
@@ -82,6 +84,7 @@ export const documentSchema = createSchema({
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
 
     // drag drop properties
+    stayInCollection: "boolean",// whether document can be dropped into a different collection
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")
     targetDropAction: "string", // allows the target of a drop event to specify the dropAction ("alias", "copy", "move") NOTE: if the document is dropped within the same collection, the dropAction is coerced to 'move'

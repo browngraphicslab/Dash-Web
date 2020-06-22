@@ -104,7 +104,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
-            { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
+            //{ node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
         ];
 
         this.fontColors = [
@@ -189,9 +189,9 @@ export default class RichTextMenu extends AntimodeMenu {
             const node = (state.selection as NodeSelection).node;
             if (node?.type === schema.nodes.ordered_list) {
                 let attrs = node.attrs;
-                if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, setFontFamily: mark.attrs.family };
-                if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, setFontSize: mark.attrs.fontSize };
-                if (mark.type === schema.marks.pFontColor) attrs = { ...attrs, setFontColor: mark.attrs.color };
+                if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, fontFamily: mark.attrs.family };
+                if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, fontSize: `${mark.attrs.fontSize}px` };
+                if (mark.type === schema.marks.pFontColor) attrs = { ...attrs, fontColor: mark.attrs.color };
                 const tr = updateBullets(state.tr.setNodeMarkup(state.selection.from, node.type, attrs), state.schema);
                 dispatch(tr.setSelection(new NodeSelection(tr.doc.resolve(state.selection.from))));
             } else {
@@ -378,26 +378,24 @@ export default class RichTextMenu extends AntimodeMenu {
 
     // TODO: remove doesn't work
     //remove all node type and apply the passed-in one to the selected text
-    changeListType = (nodeType: NodeType | undefined) => {
+    changeListType = (nodeType: Node | undefined) => {
         if (!this.view) return;
 
-        if (nodeType === schema.nodes.bullet_list) {
-            wrapInList(nodeType)(this.view.state, this.view.dispatch);
-        } else {
-            const marks = this.view.state.storedMarks || (this.view.state.selection.$to.parentOffset && this.view.state.selection.$from.marks());
-            if (!wrapInList(schema.nodes.ordered_list)(this.view.state, (tx2: any) => {
-                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
+        const marks = this.view.state.storedMarks || (this.view.state.selection.$to.parentOffset && this.view.state.selection.$from.marks());
+        if (!wrapInList(schema.nodes.ordered_list)(this.view.state, (tx2: any) => {
+            const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle, this.view!.state.selection.from - 1, this.view!.state.selection.to + 1);
+            marks && tx3.ensureMarks([...marks]);
+            marks && tx3.setStoredMarks([...marks]);
+
+            this.view!.dispatch(tx2);
+        })) {
+            const tx2 = this.view.state.tr;
+            if (nodeType && this.view.state.selection.$from.nodeAfter?.type === schema.nodes.ordered_list) {
+                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle, this.view.state.selection.from, this.view.state.selection.to);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
-                this.view!.dispatch(tx2);
-            })) {
-                const tx2 = this.view.state.tr;
-                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
-                marks && tx3.ensureMarks([...marks]);
-                marks && tx3.setStoredMarks([...marks]);
-
-                this.view.dispatch(tx3);
+                this.view.dispatch(tx3.setSelection(new NodeSelection(tx3.doc.resolve(this.view.state.selection.$from.pos))));
             }
         }
     }
@@ -631,7 +629,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            const href = link.attrs.href;
+            const href = link.attrs.allHrefs.length > 0 ? link.attrs.allHrefs[0].href : undefined;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -677,7 +675,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
-        const href = link!.attrs.href;
+        const href = link!.attrs.allHrefs.length > 0 ? link!.attrs.allHrefs[0].href : undefined;
         if (href) {
             if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                 const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -705,8 +703,8 @@ export default class RichTextMenu extends AntimodeMenu {
         let startIndex = $start.index();
         let endIndex = $start.indexAfter();
 
-        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.href === href).length) startIndex--;
-        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.href === href).length) endIndex++;
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) endIndex++;
 
         let startPos = $start.start();
         let endPos = startPos;

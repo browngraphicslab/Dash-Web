@@ -10,6 +10,8 @@ export { ts };
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d';
 import { Doc, Field } from '../../fields/Doc';
+import { Cast } from "../../fields/Types";
+import { listSpec } from "../../fields/Schema";
 
 export interface ScriptSucccess {
     success: true;
@@ -49,19 +51,34 @@ export function isCompileError(toBeDetermined: CompileResult): toBeDetermined is
 export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
     export function addGlobal(name: string, global: any): void;
-    export function addGlobal(nameOrGlobal: any, global?: any) {
-        let n: string;
+
+    export function addGlobal(global: { name: string }, decription?: string, params?: string): void;
+
+    export function addGlobal(first: any, second?: any, third?: string) {
+        let n: any;
         let obj: any;
-        if (global !== undefined && typeof nameOrGlobal === "string") {
-            n = nameOrGlobal;
-            obj = global;
-        } else if (nameOrGlobal && typeof nameOrGlobal.name === "string") {
-            n = nameOrGlobal.name;
-            obj = nameOrGlobal;
+
+        if (second !== undefined) {
+            if (typeof first === "string") {
+                n = first;
+                obj = second;
+            } else {
+                obj = first;
+                n = first.name;
+                _scriptingDescriptions[n] = second;
+                if (third !== undefined) {
+                    _scriptingParams[n] = third;
+                }
+            }
+        } else if (first && typeof first.name === "string") {
+            n = first.name;
+            obj = first;
         } else {
             throw new Error("Must either register an object with a name, or give a name and an object");
         }
-        if (_scriptingGlobals.hasOwnProperty(n)) {
+        if (n === undefined || n === "undefined") {
+            return false;
+        } else if (_scriptingGlobals.hasOwnProperty(n)) {
             throw new Error(`Global with name ${n} is already registered, choose another name`);
         }
         _scriptingGlobals[n] = obj;
@@ -75,6 +92,20 @@ export namespace Scripting {
         scriptingGlobals = globals;
     }
 
+    export function removeGlobal(name: string) {
+        if (getGlobals().includes(name)) {
+            delete _scriptingGlobals[name];
+            if (_scriptingDescriptions[name]){
+                delete _scriptingDescriptions[name];
+            }
+            if (_scriptingParams[name]){
+                delete _scriptingParams[name];
+            }
+            return true;
+        }
+        return false;
+    }
+
     export function resetScriptingGlobals() {
         scriptingGlobals = _scriptingGlobals;
     }
@@ -85,7 +116,19 @@ export namespace Scripting {
     }
 
     export function getGlobals() {
-        return Object.keys(scriptingGlobals);
+        return Object.keys(_scriptingGlobals);
+    }
+
+    export function getGlobalObj() {
+        return _scriptingGlobals;
+    }
+
+    export function getDescriptions(){
+        return _scriptingDescriptions;
+    }
+
+    export function getParameters(){
+        return _scriptingParams;
     }
 }
 
@@ -95,6 +138,8 @@ export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
 
 export const _scriptingGlobals: { [name: string]: any } = {};
 let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
+const _scriptingDescriptions: { [name: string]: any } = {};
+const _scriptingParams: { [name: string]: any } = {};
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
@@ -133,6 +178,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             }
             return { success: true, result };
         } catch (error) {
+
             if (batch) {
                 batch.end();
             }

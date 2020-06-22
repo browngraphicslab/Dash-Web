@@ -1,8 +1,8 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, Lambda } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -16,7 +16,6 @@ import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
@@ -93,7 +92,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 this.props.collapse?.(true);
                 break;
         }
-    })
+    });
 
     @undoBatch
     viewChanged = (e: React.ChangeEvent) => {
@@ -201,6 +200,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
@@ -220,8 +220,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.complete.docDragData && de.complete.docDragData.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData?.draggedDocuments || []));
+        const docDragData = de.complete.docDragData;
+        if (docDragData?.draggedDocuments.length) {
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(docDragData.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;
@@ -258,10 +259,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     <FontAwesomeIcon icon="bullseye" size="2x" />
                 </div>
                 <select
-                    className="collectionViewBaseChrome-cmdPicker"
-                    onPointerDown={stopPropagation}
-                    onChange={this.commandChanged}
-                    value={this._currentKey}>
+                    className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}
+                    style={{ width: this.props.PanelWidth() < 300 ? 15 : undefined }}>
                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
                     {this._buttonizableCommands.map(cmd =>
                         <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={cmd.title} value={cmd.title}>{cmd.title}</option>
@@ -279,7 +278,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     <FontAwesomeIcon icon="bullseye" size="2x" />
                 </div>
                 <select
-                    className="collectionViewBaseChrome-viewPicker"
+                    className="collectionViewBaseChrome-viewPicker" style={{ width: this.props.PanelWidth() < 300 ? 15 : undefined }}
                     onPointerDown={stopPropagation}
                     onChange={this.viewChanged}
                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
@@ -562,3 +561,181 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
     }
 }
 
+/**
+ * Chrome for grid view.
+ */
+@observer
+export class CollectionGridViewChrome extends React.Component<CollectionViewChromeProps> {
+
+    private clicked: boolean = false;
+    private entered: boolean = false;
+    private decrementLimitReached: boolean = false;
+    @observable private resize = false;
+    private resizeListenerDisposer: Opt<Lambda>;
+
+    componentDidMount() {
+
+        runInAction(() => this.resize = this.props.CollectionView.props.PanelWidth() < 700);
+
+        // listener to reduce text on chrome resize (panel resize)
+        this.resizeListenerDisposer = computed(() => this.props.CollectionView.props.PanelWidth()).observe(({ newValue }) => {
+            runInAction(() => this.resize = newValue < 700);
+        });
+    }
+
+    componentWillUnmount() {
+        this.resizeListenerDisposer?.();
+    }
+
+    get numCols() { return NumCast(this.props.CollectionView.props.Document.gridNumCols, 10); }
+
+    /**
+     * Sets the value of `numCols` on the grid's Document to the value entered.
+     */
+    @undoBatch
+    onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === "Tab") {
+            if (e.currentTarget.valueAsNumber > 0) {
+                this.props.CollectionView.props.Document.gridNumCols = e.currentTarget.valueAsNumber;
+            }
+
+        }
+    }
+
+    /**
+     * Sets the value of `rowHeight` on the grid's Document to the value entered.
+     */
+    // @undoBatch
+    // onRowHeightEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    //     if (e.key === "Enter" || e.key === "Tab") {
+    //         if (e.currentTarget.valueAsNumber > 0 && this.props.CollectionView.props.Document.rowHeight as number !== e.currentTarget.valueAsNumber) {
+    //             this.props.CollectionView.props.Document.rowHeight = e.currentTarget.valueAsNumber;
+    //         }
+    //     }
+    // }
+
+    /**
+     * Sets whether the grid is flexible or not on the grid's Document.
+     */
+    @undoBatch
+    toggleFlex = () => {
+        this.props.CollectionView.props.Document.gridFlex = !BoolCast(this.props.CollectionView.props.Document.gridFlex, true);
+    }
+
+    /**
+     * Increments the value of numCols on button click
+     */
+    onIncrementButtonClick = () => {
+        this.clicked = true;
+        this.entered && (this.props.CollectionView.props.Document.gridNumCols as number)--;
+        undoBatch(() => this.props.CollectionView.props.Document.gridNumCols = this.numCols + 1)();
+        this.entered = false;
+    }
+
+    /**
+     * Decrements the value of numCols on button click
+     */
+    onDecrementButtonClick = () => {
+        this.clicked = true;
+        if (!this.decrementLimitReached) {
+            this.entered && (this.props.CollectionView.props.Document.gridNumCols as number)++;
+            undoBatch(() => this.props.CollectionView.props.Document.gridNumCols = this.numCols - 1)();
+        }
+        this.entered = false;
+    }
+
+    /**
+     * Increments the value of numCols on button hover
+     */
+    incrementValue = () => {
+        this.entered = true;
+        if (!this.clicked && !this.decrementLimitReached) {
+            this.props.CollectionView.props.Document.gridNumCols = this.numCols + 1;
+        }
+        this.decrementLimitReached = false;
+        this.clicked = false;
+    }
+
+    /**
+     * Decrements the value of numCols on button hover
+     */
+    decrementValue = () => {
+        this.entered = true;
+        if (!this.clicked) {
+            if (this.numCols !== 1) {
+                this.props.CollectionView.props.Document.gridNumCols = this.numCols - 1;
+            }
+            else {
+                this.decrementLimitReached = true;
+            }
+        }
+
+        this.clicked = false;
+    }
+
+    /**
+     * Toggles the value of preventCollision
+     */
+    toggleCollisions = () => {
+        this.props.CollectionView.props.Document.gridPreventCollision = !this.props.CollectionView.props.Document.gridPreventCollision;
+    }
+
+    /**
+     * Changes the value of the compactType
+     */
+    changeCompactType = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        // need to change startCompaction so that this operation will be undoable.
+        this.props.CollectionView.props.Document.gridStartCompaction = e.target.selectedOptions[0].value;
+    }
+
+    render() {
+        return (
+            <div className="collectionGridViewChrome-cont" >
+                <span className="grid-control" style={{ width: this.resize ? "25%" : "30%" }}>
+                    <span className="grid-icon">
+                        <FontAwesomeIcon icon="columns" size="1x" />
+                    </span>
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.numCols.toString()} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
+                    <input className="columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
+                    <input className="columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
+                </span>
+                {/* <span className="grid-control">
+                    <span className="grid-icon">
+                        <FontAwesomeIcon icon="text-height" size="1x" />
+                    </span>
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
+                </span> */}
+                <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
+                    <input type="checkbox" style={{ marginRight: 5 }} onChange={this.toggleCollisions} checked={!this.props.CollectionView.props.Document.gridPreventCollision} />
+                    <label className="flexLabel">{this.resize ? "Coll" : "Collisions"}</label>
+                </span>
+
+                <select className="collectionGridViewChrome-viewPicker"
+                    style={{ marginRight: 5, width: this.props.PanelWidth() < 300 ? 25 : undefined }}
+                    onPointerDown={stopPropagation}
+                    onChange={this.changeCompactType}
+                    value={StrCast(this.props.CollectionView.props.Document.gridStartCompaction, StrCast(this.props.CollectionView.props.Document.gridCompaction))}>
+                    {["vertical", "horizontal", "none"].map(type =>
+                        <option className="collectionGridViewChrome-viewOption"
+                            onPointerDown={stopPropagation}
+                            value={type}>
+                            {this.resize ? type[0].toUpperCase() + type.substring(1) : "Compact: " + type}
+                        </option>
+                    )}
+                </select>
+
+                <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
+                    <input style={{ marginRight: 5 }} type="checkbox" onChange={this.toggleFlex}
+                        checked={BoolCast(this.props.CollectionView.props.Document.gridFlex, true)} />
+                    <label className="flexLabel">{this.resize ? "Flex" : "Flexible"}</label>
+                </span>
+
+                <button onClick={() => this.props.CollectionView.props.Document.gridResetLayout = true}>
+                    {!this.resize ? "Reset" :
+                        <FontAwesomeIcon icon="redo-alt" size="1x" />}
+                </button>
+
+            </div>
+        );
+    }
+}

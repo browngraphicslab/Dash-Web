@@ -5,21 +5,20 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
+import { Doc } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
-import { makeInterface, listSpec } from "../../../fields/Schema";
+import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
-import { emptyFunction, returnFalse, returnOne, Utils, returnZero } from "../../../Utils";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { emptyFunction, returnFalse, returnOne, returnZero, Utils } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
-import { Doc, WidthSym, HeightSym } from "../../../fields/Doc";
-import { OverlayView } from "../OverlayView";
+import { InkTool } from "../../../fields/InkField";
 const path = require('path');
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
@@ -134,7 +133,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
     }
 
     @computed get content() {
-        const interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
+        const interactive = Doc.GetSelectedTool() !== InkTool.None || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + interactive;
         return <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
             style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}

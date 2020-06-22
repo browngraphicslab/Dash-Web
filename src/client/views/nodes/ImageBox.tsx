@@ -182,17 +182,12 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-
-            const existingMore = ContextMenu.Instance.findByDescription("More...");
-            const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
 
     extractFaces = () => {
         const converter = (results: any) => {
-            return results.map((face: CognitiveServices.Image.Face) => Docs.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
+            return results.map((face: CognitiveServices.Image.Face) => Doc.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
         };
         this.url && CognitiveServices.Image.Appliers.ProcessImage(this.dataDoc, [this.fieldKey + "-faces"], this.url, Service.Face, converter);
     }
@@ -401,12 +396,23 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth) * (1 - 1 / aspect) : 0;
         this.resize(srcpath);
+        let transformOrigin = "center center";
+        let transform = `translate(0%, 0%) rotate(${rotation}deg) scale(${aspect})`;
+        if (rotation === 90 || rotation === -270) {
+            transformOrigin = "top left";
+            transform = `translate(100%, 0%) rotate(${rotation}deg) scale(${aspect})`;
+        } else if (rotation === 180) {
+            transform = `rotate(${rotation}deg) scale(${aspect})`;
+        } else if (rotation === 270 || rotation === -90) {
+            transformOrigin = "right top";
+            transform = `translate(-100%, 0%) rotate(${rotation}deg) scale(${aspect})`;
+        }
 
         return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
-                    style={{ transform: `scale(${aspect}) translate(0px, ${shift}px) rotate(${rotation}deg)` }}
+                    style={{ transform, transformOrigin }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
@@ -414,7 +420,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                     <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
-                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})`, }}
+                        style={{ transform, transformOrigin }}
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
@@ -452,7 +458,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         TraceMobx();
         return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? `translate(0px, ${this.ycenter}px)` : `scale(${this.props.ContentScaling()})`,
+                transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined,
@@ -478,6 +484,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
+                docFilters={this.props.docFilters}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>

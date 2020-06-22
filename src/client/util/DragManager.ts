@@ -13,7 +13,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
 import { SnappingManager } from "./SnappingManager";
 
-export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
+export type dropActionType = "alias" | "copy" | "move" | "same" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -37,7 +37,7 @@ export function SetupDrag(
             dragData.treeViewId = treeViewId;
             dragData.dontHideOnDrop = dontHideOnDrop;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
-            dragStarted && dragStarted();
+            dragStarted?.();
         }
     };
     const onRowUp = (): void => {
@@ -67,6 +67,7 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
+    let dragLabel: HTMLDivElement;
     export let StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
 
     export function Root() {
@@ -97,7 +98,8 @@ export namespace DragManager {
             readonly shiftKey: boolean,
             readonly altKey: boolean,
             readonly metaKey: boolean,
-            readonly ctrlKey: boolean
+            readonly ctrlKey: boolean,
+            readonly embedKey: boolean,
         ) { }
     }
 
@@ -120,7 +122,7 @@ export namespace DragManager {
     export class DocumentDragData {
         constructor(dragDoc: Doc[]) {
             this.draggedDocuments = dragDoc;
-            this.droppedDocuments = dragDoc;
+            this.droppedDocuments = [];
             this.offset = [0, 0];
         }
         draggedDocuments: Doc[];
@@ -132,7 +134,6 @@ export namespace DragManager {
         dropAction: dropActionType;
         removeDropProperties?: string[];
         userDropAction: dropActionType;
-        embedDoc?: boolean;
         moveDocument?: MoveFunction;
         removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
@@ -207,15 +208,19 @@ export namespace DragManager {
         };
         const batch = UndoManager.StartBatch("dragging");
         const finishDrag = (e: DragCompleteEvent) => {
-            e.docDragData && (e.docDragData.droppedDocuments =
-                dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
-                    dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
-                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeClone(d) : d)
-            );
-            e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
-                (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
-            );
-            batch.end();
+            const docDragData = e.docDragData;
+            if (docDragData && !docDragData.droppedDocuments.length) {
+                docDragData.dropAction = dragData.userDropAction || dragData.dropAction;
+                docDragData.droppedDocuments =
+                    dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
+                        docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
+                            docDragData.dropAction === "copy" ? Doc.MakeDelegate(d) : d);
+                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) =>
+                    (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
+                );
+                batch.end();
+            }
+            return e;
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);
@@ -229,6 +234,7 @@ export namespace DragManager {
             initialize?.(bd);
             Doc.GetProto(bd)["onClick-paramFieldKeys"] = new List<string>(params);
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
+            return e;
         };
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
     }
@@ -309,14 +315,24 @@ export namespace DragManager {
         };
     }
     export let docsBeingDragged: Doc[] = [];
+    export let CanEmbed = false;
     export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
         eles = eles.filter(e => e);
+        CanEmbed = false;
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
             dragDiv.style.pointerEvents = "none";
+            dragLabel = document.createElement("div");
+            dragLabel.className = "dragManager-dragLabel";
+            dragLabel.style.zIndex = "100001";
+            dragLabel.style.fontSize = "10";
+            dragLabel.style.position = "absolute";
+            // dragLabel.innerText = "press 'a' to embed on drop"; // bcz: need to move this to a status bar
+            dragDiv.appendChild(dragLabel);
             DragManager.Root().appendChild(dragDiv);
         }
+        dragLabel.style.display = "";
         SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
@@ -358,6 +374,7 @@ export namespace DragManager {
             dragElement.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
+            dragLabel.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0) - 20}px)`;
 
             if (docsBeingDragged.length) {
                 const pdfBox = dragElement.getElementsByTagName("canvas");
@@ -393,14 +410,13 @@ export namespace DragManager {
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
-        let alias = "alias";
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
-            if (e.shiftKey && dragData.droppedDocuments.length === 1) {
-                !dragData.dropAction && (dragData.dropAction = alias);
+            if (e?.shiftKey && dragData.draggedDocuments.length === 1) {
+                dragData.dropAction = dragData.userDropAction || "same";
                 if (dragData.dropAction === "move") {
                     dragData.removeDocument?.(dragData.draggedDocuments[0]);
                 }
@@ -416,17 +432,18 @@ export namespace DragManager {
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
 
-            alias = "move";
             const moveX = thisX - lastX;
             const moveY = thisY - lastY;
             lastX = thisX;
             lastY = thisY;
+            dragLabel.style.transform = `translate(${xs[0] + moveX + (options?.offsetX || 0)}px, ${ys[0] + moveY + (options?.offsetY || 0) - 20}px)`;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
                 `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
         const hideDragShowOriginalElements = () => {
+            dragLabel.style.display = "none";
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
         };
@@ -481,7 +498,8 @@ export namespace DragManager {
                         shiftKey: e.shiftKey,
                         altKey: e.altKey,
                         metaKey: e.metaKey,
-                        ctrlKey: e.ctrlKey
+                        ctrlKey: e.ctrlKey,
+                        embedKey: CanEmbed
                     }
                 })
             );
@@ -496,7 +514,8 @@ export namespace DragManager {
                         shiftKey: e.shiftKey,
                         altKey: e.altKey,
                         metaKey: e.metaKey,
-                        ctrlKey: e.ctrlKey
+                        ctrlKey: e.ctrlKey,
+                        embedKey: CanEmbed
                     }
                 })
             );

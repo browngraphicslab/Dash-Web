@@ -288,9 +288,9 @@ function delay(ms: number) {
 async function captureYoutubeScreenshot(targetUrl: string){
     // const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     // const page = await browser.newPage();
-    // await page.setViewport({ width: 1920, height: 1080 });
+    // // await page.setViewport({ width: 1920, height: 1080 });
 
-    // await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
+    // // await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
 
     // const videoPlayer = await page.$('.html5-video-player');
     // videoPlayer && await page.focus("video");
@@ -300,8 +300,7 @@ async function captureYoutubeScreenshot(targetUrl: string){
     // await videoPlayer?.click();
     // await delay(1000);
     // // hide youtube player controls.
-    // await page.evaluate(() =>
-    //     (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
+    // await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as HTMLElement).style.display = 'none');
 
     // const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
     // await browser.close();

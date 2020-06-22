@@ -2,9 +2,7 @@ import { Doc, DocListCast } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
-import { Docs } from "../documents/Documents";
 import { Scripting } from "./Scripting";
-
 
 /* 
  * link doc: 
@@ -34,16 +32,12 @@ export class LinkManager {
     // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
     // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
     public get LinkManagerDoc(): Doc | undefined {
-        return Docs.Prototypes.MainLinkDocument();
+        return Doc.UserDoc().globalLinkDatabase as Doc;
     }
 
     public getAllLinks(): Doc[] {
         const ldoc = LinkManager.Instance.LinkManagerDoc;
-        if (ldoc) {
-            const docs = DocListCast(ldoc.data);
-            return docs;
-        }
-        return [];
+        return ldoc ? DocListCast(ldoc.data) : [];
     }
 
     public addLink(linkDoc: Doc): boolean {
@@ -211,4 +205,5 @@ export class LinkManager {
     }
 }
 
-Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); });
+Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
+    "creates a link to inputted document", "(doc: any)");

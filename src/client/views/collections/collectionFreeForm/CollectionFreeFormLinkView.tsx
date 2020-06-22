@@ -46,32 +46,37 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
                 // really hacky stuff to make the LinkAnchorBox display where we want it to:
-                //   if there's an element in the DOM with the id of the opposite anchor, then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
+                //   if there's an element in the DOM with a classname containing the link's id and a targetids attribute containing the other end of the link, 
+                //   then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
                 //   otherwise, we just use the computed nearest point on the document boundary to the target Document
-                const targetAhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][afield] as Doc)[Id]);
-                const targetBhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][bfield] as Doc)[Id]);
+                const linkId = this.props.LinkDocs[0][Id]; // this link's Id
+                const AanchorId = (this.props.LinkDocs[0][afield] as Doc)[Id]; // anchor a's id
+                const BanchorId = (this.props.LinkDocs[0][bfield] as Doc)[Id]; // anchor b's id
+                const linkEles = Array.from(window.document.getElementsByClassName(linkId));
+                const targetAhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(AanchorId));
+                const targetBhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(BanchorId));
                 if (!targetBhyperlink) {
-                    this.props.A.props.Document[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
-                    this.props.A.props.Document[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
+                    this.props.A.rootDoc[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
+                    this.props.A.rootDoc[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
                 } else {
                     setTimeout(() => {
-                        (this.props.A.props.Document[(this.props.A.props as any).fieldKey] as Doc);
+                        (this.props.A.rootDoc[(this.props.A.props as any).fieldKey] as Doc);
                         const m = targetBhyperlink.getBoundingClientRect();
                         const mp = this.props.A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.A.props.Document[afield + "_x"] = mp[0] / this.props.A.props.PanelWidth() * 100;
-                        this.props.A.props.Document[afield + "_y"] = mp[1] / this.props.A.props.PanelHeight() * 100;
+                        this.props.A.rootDoc[afield + "_x"] = Math.min(1, mp[0] / this.props.A.props.PanelWidth()) * 100;
+                        this.props.A.rootDoc[afield + "_y"] = Math.min(1, mp[1] / this.props.A.props.PanelHeight()) * 100;
                     }, 0);
                 }
                 if (!targetAhyperlink) {
-                    this.props.A.props.Document[bfield + "_x"] = (bpt.point.x - bbounds.left) / bbounds.width * 100;
-                    this.props.A.props.Document[bfield + "_y"] = (bpt.point.y - bbounds.top) / bbounds.height * 100;
+                    this.props.A.rootDoc[bfield + "_x"] = (bpt.point.x - bbounds.left) / bbounds.width * 100;
+                    this.props.A.rootDoc[bfield + "_y"] = (bpt.point.y - bbounds.top) / bbounds.height * 100;
                 } else {
                     setTimeout(() => {
-                        (this.props.B.props.Document[(this.props.B.props as any).fieldKey] as Doc);
+                        (this.props.B.rootDoc[(this.props.B.props as any).fieldKey] as Doc);
                         const m = targetAhyperlink.getBoundingClientRect();
                         const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.props.Document[bfield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
-                        this.props.B.props.Document[bfield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
+                        this.props.B.rootDoc[bfield + "_x"] = Math.min(1, mp[0] / this.props.B.props.PanelWidth()) * 100;
+                        this.props.B.rootDoc[bfield + "_y"] = Math.min(1, mp[1] / this.props.B.props.PanelHeight()) * 100;
                     }, 0);
                 }
             })

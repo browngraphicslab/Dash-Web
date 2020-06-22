@@ -9,14 +9,20 @@ const codeDOM: DOMOutputSpecArray = ["code", 0];
 
 // :: Object [Specs](#model.MarkSpec) for the marks in the schema.
 export const marks: { [index: string]: MarkSpec } = {
+    splitter: {
+        attrs: {
+            id: { default: "" }
+        },
+        toDOM(node: any) {
+            return ["div", { className: "dummy" }, 0];
+        }
+    },
     // :: MarkSpec A link. Has `href` and `title` attributes. `title`
     // defaults to the empty string. Rendered and parsed as an `<a>`
     // element.
     link: {
         attrs: {
-            href: {},
-            targetId: { default: "" },
-            linkId: { default: "" },
+            allHrefs: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
             showPreview: { default: true },
             location: { default: null },
             title: { default: null },
@@ -25,31 +31,67 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title"), targetId: dom.getAttribute("id") };
+                return { allHrefs: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.getAttribute("targetids") }], location: dom.getAttribute("location"), };
             }
         }],
         toDOM(node: any) {
+            const targetids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
+            const linkids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0];
+                node.attrs.allHrefs.length === 1 ?
+                    ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allHrefs[0].href }, 0] :
+                    ["div", { class: "prosemirror-anchor" },
+                        ["span", { class: "prosemirror-linkBtn" },
+                            ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],
+                            ["input", { class: "prosemirror-hrefoptions" }],
+                        ],
+                        ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) =>
+                            ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title]
+                        )]
+                    ];
         }
     },
 
+    /** FONT SIZES */
+    pFontSize: {
+        attrs: { fontSize: { default: 10 } },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { fontSize: dom.style.fontSize ? Number(dom.style.fontSize.replace("px", "")) : "" };
+            }
+        }],
+        toDOM: (node) => node.attrs.fontSize ? ['span', { style: `font-size: ${node.attrs.fontSize}px;` }] : ['span', 0]
+    },
 
+    /* FONTS */
+    pFontFamily: {
+        attrs: { family: { default: "" } },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                const cstyle = getComputedStyle(dom);
+                if (cstyle.font) {
+                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
+                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
+                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
+                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
+                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
+                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
+                }
+            }
+        }],
+        toDOM: (node) => node.attrs.family ? ['span', { style: `font-family: "${node.attrs.family}";` }] : ['span', 0]
+    },
     // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
     pFontColor: {
-        attrs: {
-            color: { default: "#000" }
-        },
+        attrs: { color: { default: "" } },
         inclusive: true,
         parseDOM: [{
             tag: "span", getAttrs(dom: any) {
                 return { color: dom.getAttribute("color") };
             }
         }],
-        toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
-        }
+        toDOM: (node) => node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0]
     },
 
     marker: {
@@ -258,39 +300,5 @@ export const marks: { [index: string]: MarkSpec } = {
     code: {
         parseDOM: [{ tag: "code" }],
         toDOM() { return codeDOM; }
-    },
-
-    /* FONTS */
-    pFontFamily: {
-        attrs: {
-            family: { default: "Crimson Text" },
-        },
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                const cstyle = getComputedStyle(dom);
-                if (cstyle.font) {
-                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
-                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
-                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
-                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
-                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
-                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
-                }
-            }
-        }],
-        toDOM: (node) => ['span', {
-            style: `font-family: "${node.attrs.family}";`
-        }]
-    },
-
-    /** FONT SIZES */
-    pFontSize: {
-        attrs: {
-            fontSize: { default: 10 }
-        },
-        parseDOM: [{ style: 'font-size: 10px;' }],
-        toDOM: (node) => ['span', {
-            style: `font-size: ${node.attrs.fontSize}px;`
-        }]
     },
 };

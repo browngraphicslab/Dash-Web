@@ -8,7 +8,7 @@ import * as rp from 'request-promise';
 import { Doc } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne, returnEmptyString } from '../../../Utils';
+import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne, returnEmptyString, returnEmptyFilter } from '../../../Utils';
 import { Docs, DocumentOptions } from '../../documents/Documents';
 import { SetupDrag, DragManager } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
@@ -974,6 +974,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (nodeBtns instanceof Doc) {
             return <div id="hi" style={{height:"100px",}}>
                 <DocumentView
+                docFilters={returnEmptyFilter}
                 Document={nodeBtns}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
@@ -1012,6 +1013,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (nodeBtns instanceof Doc) {
             return <div id="hi" style={{height:"35px",}}>
                 <DocumentView
+                docFilters={returnEmptyFilter}
                 Document={nodeBtns}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
@@ -1050,6 +1052,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (defBtns instanceof Doc) {
             return <div id="hi" style={{height:"35px",}}>
                 <DocumentView
+                docFilters={returnEmptyFilter}
+
                 Document={defBtns}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}

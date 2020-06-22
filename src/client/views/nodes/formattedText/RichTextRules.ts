@@ -30,7 +30,7 @@ export class RichTextRules {
             // > blockquote
             wrappingInputRule(/^\s*>\s$/, schema.nodes.blockquote),
 
-            // 1. ordered list
+            // 1. create numerical ordered list
             wrappingInputRule(
                 /^1\.\s$/,
                 schema.nodes.ordered_list,
@@ -42,49 +42,29 @@ export class RichTextRules {
                 },
                 (type: any) => ({ type: type, attrs: { mapStyle: "decimal", bulletStyle: 1 } })
             ),
-            // a. alphabbetical list
+
+            // A. create alphabetical ordered list
             wrappingInputRule(
-                /^a\.\s$/,
+                /^A\.\s$/,
                 schema.nodes.ordered_list,
                 // match => {
                 () => {
-                    return ({ mapStyle: "alpha", bulletStyle: 1 });
+                    return ({ mapStyle: "multi", bulletStyle: 1 });
                     // return ({ order: +match[1] })
                 },
                 (match: any, node: any) => {
                     return node.childCount + node.attrs.order === +match[1];
                 },
-                (type: any) => ({ type: type, attrs: { mapStyle: "alpha", bulletStyle: 1 } })
+                (type: any) => ({ type: type, attrs: { mapStyle: "multi", bulletStyle: 1 } })
             ),
 
-            // * bullet list
-            wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.bullet_list),
+            // * + - create bullet list
+            wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.ordered_list),
 
-            // ``` code block
+            // ``` create code block
             textblockTypeInputRule(/^```$/, schema.nodes.code_block),
 
-            // create an inline view of a tag stored under the '#' field
-            new InputRule(
-                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
-                (state, match, start, end) => {
-                    const tag = match[1];
-                    if (!tag) return state.tr;
-                    const multiple = tag.split(";");
-                    this.Document[DataSym]["#"] = multiple.length > 1 ? new List(multiple) : tag;
-                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
-                    return state.tr.deleteRange(start, end).insert(start, fieldView);
-                }),
-
-            // # heading
-            textblockTypeInputRule(
-                new RegExp(/^(#{1,6})\s$/),
-                schema.nodes.heading,
-                match => {
-                    return ({ level: match[1].length });
-                }
-            ),
-
-            // set the font size using #<font-size> 
+            // %<font-size> set the font size  
             new InputRule(
                 new RegExp(/%([0-9]+)\s$/),
                 (state, match, start, end) => {
@@ -92,51 +72,7 @@ export class RichTextRules {
                     return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
                 }),
 
-            // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
-            new InputRule(
-                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
-                (state, match, start, end) => {
-                    const fieldKey = match[1];
-                    const docid = match[3]?.substring(1);
-                    const value = match[2]?.substring(1);
-                    if (!fieldKey) {
-                        if (docid) {
-                            DocServer.GetRefField(docid).then(docx => {
-                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
-                                DocUtils.Publish(target, docid, returnFalse, returnFalse);
-                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
-                            });
-                            const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
-                            return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
-                        }
-                        return state.tr;
-                    }
-                    if (value !== "" && value !== undefined) {
-                        const num = value.match(/^[0-9.]$/);
-                        this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : (num ? Number(value) : value);
-                    }
-                    const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
-                    return state.tr.deleteRange(start, end).insert(start, fieldView);
-                }),
-            // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
-            new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._/\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
-                (state, match, start, end) => {
-                    const fieldKey = match[1] || "";
-                    const fieldParam = match[2]?.replace("…", "...") || "";
-                    const docid = match[3]?.substring(1);
-                    if (!fieldKey && !docid) return state.tr;
-                    docid && DocServer.GetRefField(docid).then(docx => {
-                        if (!(docx instanceof Doc && docx)) {
-                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
-                            DocUtils.Publish(docx, docid, returnFalse, returnFalse);
-                        }
-                    });
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey: fieldKey + fieldParam, float: "unset", alias: Utils.GenerateGuid() });
-                    const sm = state.storedMarks || undefined;
-                    return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }),
+            //Create annotation to a field on the text document
             new InputRule(
                 new RegExp(/>>$/),
                 (state, match, start, end) => {
@@ -161,25 +97,7 @@ export class RichTextRules {
                         state.tr;
                     return replaced;
                 }),
-            // stop using active style
-            new InputRule(
-                new RegExp(/%%$/),
-                (state, match, start, end) => {
-                    const tr = state.tr.deleteRange(start, end);
-                    const marks = state.tr.selection.$anchor.nodeBefore?.marks;
-                    return marks ? Array.from(marks).filter(m => m !== state.schema.marks.user_mark).reduce((tr, m) => tr.removeStoredMark(m), tr) : tr;
-                }),
 
-            // set the Todo user-tag on the current selection (assumes % was used to initiate an EnteringStyle mode)
-            new InputRule(
-                new RegExp(/[ti!x]$/),
-                (state, match, start, end) => {
-                    if (state.selection.to === state.selection.from || !this.EnteringStyle) return null;
-                    const tag = match[0] === "t" ? "todo" : match[0] === "i" ? "ignore" : match[0] === "x" ? "disagree" : match[0] === "!" ? "important" : "??";
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
-                    return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: tag, modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
-                }),
 
             // set the First-line indent node type for the selection's paragraph (assumes % was used to initiate an EnteringStyle mode)
             new InputRule(
@@ -214,6 +132,7 @@ export class RichTextRules {
                     }
                     return null;
                 }),
+
             // set the Quoted indent node type for the current selection's paragraph (assumes % was used to initiate an EnteringStyle mode)
             new InputRule(
                 new RegExp(/(%q|q)$/),
@@ -235,56 +154,56 @@ export class RichTextRules {
                     return null;
                 }),
 
-
             // center justify text
             new InputRule(
-                new RegExp(/%\^$/),
+                new RegExp(/%\^/),
                 (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || undefined;
-                    const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    const resolved = state.doc.resolve(start) as any;
+                    if (resolved?.parent.type.name === "paragraph") {
+                        return state.tr.deleteRange(start, end).setNodeMarkup(resolved.path[resolved.path.length - 4], schema.nodes.paragraph, { ...resolved.parent.attrs, align: "center" }, resolved.parent.marks);
+                    } else {
+                        const node = resolved.nodeAfter;
+                        const sm = state.storedMarks || undefined;
+                        const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                            state.tr;
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
                 }),
+
             // left justify text
             new InputRule(
-                new RegExp(/%\[$/),
+                new RegExp(/%\[/),
                 (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || undefined;
-                    const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    const resolved = state.doc.resolve(start) as any;
+                    if (resolved?.parent.type.name === "paragraph") {
+                        return state.tr.deleteRange(start, end).setNodeMarkup(resolved.path[resolved.path.length - 4], schema.nodes.paragraph, { ...resolved.parent.attrs, align: "left" }, resolved.parent.marks);
+                    } else {
+                        const node = resolved.nodeAfter;
+                        const sm = state.storedMarks || undefined;
+                        const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                            state.tr;
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
                 }),
+
             // right justify text
             new InputRule(
-                new RegExp(/%\]$/),
+                new RegExp(/%\]/),
                 (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || undefined;
-                    const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    const resolved = state.doc.resolve(start) as any;
+                    if (resolved?.parent.type.name === "paragraph") {
+                        return state.tr.deleteRange(start, end).setNodeMarkup(resolved.path[resolved.path.length - 4], schema.nodes.paragraph, { ...resolved.parent.attrs, align: "right" }, resolved.parent.marks);
+                    } else {
+                        const node = resolved.nodeAfter;
+                        const sm = state.storedMarks || undefined;
+                        const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                            state.tr;
+                        return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
+                    }
                 }),
-            new InputRule(
-                new RegExp(/%\(/),
-                (state, match, start, end) => {
-                    const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const sm = state.storedMarks || [];
-                    const mark = state.schema.marks.summarizeInclusive.create();
-                    sm.push(mark);
-                    const selected = state.tr.setSelection(new TextSelection(state.doc.resolve(start), state.doc.resolve(end))).addMark(start, end, mark);
-                    const content = selected.selection.content();
-                    const replaced = node ? selected.replaceRangeWith(start, end,
-                        schema.nodes.summary.create({ visibility: true, text: content, textslice: content.toJSON() })) :
-                        state.tr;
-                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end + 1))).setStoredMarks([...node.marks, ...sm]);
-                }),
-            new InputRule(
-                new RegExp(/%\)/),
-                (state, match, start, end) => {
-                    return state.tr.deleteRange(start, end).removeStoredMark(state.schema.marks.summarizeInclusive.create());
-                }),
+
+
+            // %f create footnote
             new InputRule(
                 new RegExp(/%f$/),
                 (state, match, start, end) => {
@@ -296,26 +215,160 @@ export class RichTextRules {
                             tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize)));
                 }),
 
-            // activate a style by name using prefix '%'
+            // activate a style by name using prefix '%<color name>'
             new InputRule(
                 new RegExp(/%[a-z]+$/),
                 (state, match, start, end) => {
+
                     const color = match[0].substring(1, match[0].length);
                     const marks = RichTextMenu.Instance._brushMap.get(color);
+
                     if (marks) {
                         const tr = state.tr.deleteRange(start, end);
                         return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;
                     }
+
                     const isValidColor = (strColor: string) => {
                         const s = new Option().style;
                         s.color = strColor;
                         return s.color === strColor.toLowerCase(); // 'false' if color wasn't assigned
                     };
+
                     if (isValidColor(color)) {
                         return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontColor.create({ color: color }));
                     }
+
                     return null;
                 }),
+
+            // stop using active style
+            new InputRule(
+                new RegExp(/%%$/),
+                (state, match, start, end) => {
+
+                    const tr = state.tr.deleteRange(start, end);
+                    const marks = state.tr.selection.$anchor.nodeBefore?.marks;
+
+                    return marks ? Array.from(marks).filter(m => m !== state.schema.marks.user_mark).reduce((tr, m) => tr.removeStoredMark(m), tr) : tr;
+                }),
+
+            // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document 
+            // [[ <fieldKey> : <Doc>]]   
+            // [[:Doc]] => hyperlink   
+            // [[fieldKey]] => show field   
+            // [[fieldKey:Doc]] => show field of doc
+            new InputRule(
+                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
+                (state, match, start, end) => {
+                    const fieldKey = match[1];
+                    const docid = match[3]?.substring(1);
+                    const value = match[2]?.substring(1);
+                    if (!fieldKey) {
+                        if (docid) {
+                            DocServer.GetRefField(docid).then(docx => {
+                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
+                                DocUtils.Publish(target, docid, returnFalse, returnFalse);
+                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
+                            });
+                            const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                            return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                        }
+                        return state.tr;
+                    }
+                    if (value !== "" && value !== undefined) {
+                        const num = value.match(/^[0-9.]$/);
+                        this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : (num ? Number(value) : value);
+                    }
+                    const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
+                    return state.tr.deleteRange(start, end).insert(start, fieldView);
+                }),
+
+            // create an inline view of a document {{ <layoutKey> : <Doc> }}  
+            // {{:Doc}} => show default view of document   
+            // {{<layout>}} => show layout for this doc   
+            // {{<layout> : Doc}} => show layout for another doc
+            new InputRule(
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._/\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                (state, match, start, end) => {
+                    const fieldKey = match[1] || "";
+                    const fieldParam = match[2]?.replace("…", "...") || "";
+                    const docid = match[3]?.substring(1);
+                    if (!fieldKey && !docid) return state.tr;
+                    docid && DocServer.GetRefField(docid).then(docx => {
+                        if (!(docx instanceof Doc && docx)) {
+                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
+                            DocUtils.Publish(docx, docid, returnFalse, returnFalse);
+                        }
+                    });
+                    const node = (state.doc.resolve(start) as any).nodeAfter;
+                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey: fieldKey + fieldParam, float: "unset", alias: Utils.GenerateGuid() });
+                    const sm = state.storedMarks || undefined;
+                    return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+                }),
+
+
+
+            // create an inline view of a tag stored under the '#' field
+            new InputRule(
+                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
+                (state, match, start, end) => {
+                    const tag = match[1];
+                    if (!tag) return state.tr;
+                    const multiple = tag.split(";");
+                    this.Document[DataSym]["#"] = multiple.length > 1 ? new List(multiple) : tag;
+                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
+                    return state.tr.deleteRange(start, end).insert(start, fieldView);
+                }),
+
+
+            // # heading
+            textblockTypeInputRule(
+                new RegExp(/^(#{1,6})\s$/),
+                schema.nodes.heading,
+                match => {
+                    return ({ level: match[1].length });
+                }
+            ),
+
+            // set the Todo user-tag on the current selection (assumes % was used to initiate an EnteringStyle mode)
+            new InputRule(
+                new RegExp(/[ti!x]$/),
+                (state, match, start, end) => {
+
+                    if (state.selection.to === state.selection.from || !this.EnteringStyle) return null;
+
+                    const tag = match[0] === "t" ? "todo" : match[0] === "i" ? "ignore" : match[0] === "x" ? "disagree" : match[0] === "!" ? "important" : "??";
+                    const node = (state.doc.resolve(start) as any).nodeAfter;
+
+                    if (node?.marks.findIndex((m: any) => m.type === schema.marks.user_tag) !== -1) return state.tr.removeMark(start, end, schema.marks.user_tag);
+
+                    return node ? state.tr.addMark(start, end, schema.marks.user_tag.create({ userid: Doc.CurrentUserEmail, tag: tag, modified: Math.round(Date.now() / 1000 / 60) })) : state.tr;
+                }),
+
+            new InputRule(
+                new RegExp(/%\(/),
+                (state, match, start, end) => {
+                    const node = (state.doc.resolve(start) as any).nodeAfter;
+                    const sm = state.storedMarks || [];
+                    const mark = state.schema.marks.summarizeInclusive.create();
+
+                    sm.push(mark);
+                    const selected = state.tr.setSelection(new TextSelection(state.doc.resolve(start), state.doc.resolve(end))).addMark(start, end, mark);
+                    const content = selected.selection.content();
+                    const replaced = node ? selected.replaceRangeWith(start, end,
+                        schema.nodes.summary.create({ visibility: true, text: content, textslice: content.toJSON() })) :
+                        state.tr;
+
+                    return replaced.setSelection(new TextSelection(replaced.doc.resolve(end + 1))).setStoredMarks([...node.marks, ...sm]);
+                }),
+
+            new InputRule(
+                new RegExp(/%\)/),
+                (state, match, start, end) => {
+
+                    return state.tr.deleteRange(start, end).removeStoredMark(state.schema.marks.summarizeInclusive.create());
+                }),
+
         ]
     };
 }
