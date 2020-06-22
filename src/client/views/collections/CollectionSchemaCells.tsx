@@ -405,7 +405,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         } else {
             if (bool) {
                 console.log("show doc");
-                this.props.showDoc(this._doc, this.prop.DataDoc, e.screenX - 230, e.screenY - 570);
+                this.props.showDoc(this._doc, this.prop.DataDoc, e.clientX, e.clientY);
             } else {
                 console.log("no doc");
                 this.props.showDoc(undefined);
@@ -445,11 +445,11 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
-                    //    onPointerDown={(e) => { this.onDown(e); }}
+                    onPointerDown={(e) => { this.onDown(e); }}
                     // onFocus={(e) => this.showPreview(true, e)}
-                    onMouseEnter={(e) => { this.showPreview(true, e); }}
+                    onPointerEnter={(e) => { this.showPreview(true, e); }}
                     // onBlur={(e) => { console.log("Blur"); this.showPreview(false, e) }}
-                    onMouseLeave={(e) => { this.showPreview(false, e); }}
+                    onPointerLeave={(e) => { this.showPreview(false, e); }}
                 >
 
                     <div className="collectionSchemaView-cellContents-document"
