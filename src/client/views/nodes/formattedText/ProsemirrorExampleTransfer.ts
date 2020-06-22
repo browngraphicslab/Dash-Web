@@ -16,16 +16,13 @@ const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : 
 
 export type KeyMap = { [key: string]: any };
 
-export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string) => {
-    let fontSize: number | undefined = undefined;
+export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string, from?: number, to?: number) => {
     tx2.doc.descendants((node: any, offset: any, index: any) => {
-        if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
+        if ((from === undefined || to === undefined || (from <= offset + node.nodeSize && to >= offset)) && (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item)) {
             const path = (tx2.doc.resolve(offset) as any).path;
             let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
             if (node.type === schema.nodes.ordered_list) depth++;
-            fontSize = depth === 1 && node.attrs.setFontSize ? Number(node.attrs.setFontSize) : fontSize;
-            const fsize = fontSize && node.type === schema.nodes.ordered_list ? Math.max(6, fontSize - (depth - 1) * 4) : undefined;
-            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle ? mapStyle : node.attrs.mapStyle, bulletStyle: depth, inheritedFontSize: fsize }, node.marks);
+            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle || node.attrs.mapStyle, bulletStyle: depth, }, node.marks);
         }
     });
     return tx2;
@@ -62,7 +59,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     bind("Mod-U", toggleMark(schema.marks.underline));
 
     //Commands for lists
-    bind("Ctrl-.", wrapInList(schema.nodes.bullet_list));
     bind("Ctrl-i", wrapInList(schema.nodes.ordered_list));
 
     bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {

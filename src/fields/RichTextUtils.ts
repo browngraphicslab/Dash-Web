@@ -256,7 +256,7 @@ export namespace RichTextUtils {
         };
 
         const list = (schema: any, items: Node[]): Node => {
-            return schema.node("bullet_list", null, items);
+            return schema.node("ordered_list", { mapStyle: "bullet" }, items);
         };
 
         const paragraphNode = (schema: any, runs: docs_v1.Schema$TextRun[]): Node => {
