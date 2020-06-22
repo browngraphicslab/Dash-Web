@@ -240,7 +240,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             },
             {
                 style: 'list-style-type=disc', getAttrs(dom: any) {
-                    return { mapStyle: "bullet" }
+                    return { mapStyle: "bullet" };
                 }
             },
             {

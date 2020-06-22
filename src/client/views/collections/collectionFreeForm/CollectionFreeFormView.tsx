@@ -45,7 +45,7 @@ import React = require("react");
 import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
-import { InkingStroke, ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../../InkingStroke";
+import { ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../../InkingStroke";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 

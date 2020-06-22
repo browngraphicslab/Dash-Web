@@ -147,7 +147,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             <td className="keyValueBox-td-value" onClick={(e) => { this._valInput.current!.select(); e.stopPropagation(); }} style={{ width: `${this.splitPercentage}%` }}>
                 <input style={{ width: "100%" }} ref={this._valInput} type="text" placeholder="Value" onKeyDown={this.onEnterKey} />
             </td>
-        </tr>
+        </tr>;
     }
 
     @action
