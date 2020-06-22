@@ -382,8 +382,6 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
     }
 
     onFocus = () => {
-
-        console.log(this._field);
         this._overlayDisposer?.();
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
@@ -413,6 +411,16 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         }
     }
 
+    @action
+    isEditingCalling = (isEditing: boolean): void => {
+        this.showPreview(false, "");
+        document.removeEventListener("keydown", this.onKeyDown);
+        isEditing && document.addEventListener("keydown", this.onKeyDown);
+        this._isEditing = isEditing;
+        this.props.setIsEditing(isEditing);
+        this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
+    }
+
     onDown = (e: any) => {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
@@ -436,31 +444,24 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
     }
 
     render() {
-
-        const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
-        const reference = React.createRef<HTMLDivElement>();
-
         if (typeof this._field === "object" && this._doc && this._docTitle) {
-
-
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
                     onPointerDown={(e) => { this.onDown(e); }}
-                    // onFocus={(e) => this.showPreview(true, e)}
                     onPointerEnter={(e) => { this.showPreview(true, e); }}
-                    // onBlur={(e) => { console.log("Blur"); this.showPreview(false, e) }}
                     onPointerLeave={(e) => { this.showPreview(false, e); }}
                 >
 
                     <div className="collectionSchemaView-cellContents-document"
                         style={{ padding: "5.9px" }}
-                        onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
                         ref={this.dropRef}
+                        onFocus={this.onFocus}
+                        onBlur={() => this._overlayDisposer?.()}
                     >
 
                         <EditableView
                             editing={this._isEditing}
-                            isEditingCallback={this.isEditingCallback}
+                            isEditingCallback={this.isEditingCalling}
                             display={"inline"}
                             contents={this._docTitle}
                             height={"auto"}
@@ -470,6 +471,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
                             }}
                             SetValue={action((value: string) => {
                                 this.onSetValue(value);
+                                this.showPreview(false, "");
                                 return true;
                             })}
                         />
