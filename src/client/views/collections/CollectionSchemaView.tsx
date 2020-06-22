@@ -771,7 +771,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    showDoc(doc: Doc | undefined, dataDoc?: Doc, screenX?: number, screenY?: number) {
+    showDoc = (doc: Doc | undefined, dataDoc?: Doc, screenX?: number, screenY?: number) => {
         this._showDoc = doc;
         if (dataDoc && screenX && screenY) {
             this._showDocPos = this.props.ScreenToLocalTransform().transformPoint(screenX, screenY);
@@ -792,7 +792,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const preview = "";
         return <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {!this._showDoc ? (null) :
-                <div onClick={() => { this.onOpenClick(); }} style={{ position: "absolute", transform: `translate(${this._showDocPos[0]}, ${this._showDocPos[1]})` }}
+                <div onClick={() => { this.onOpenClick(); }}
+                    style={{ position: "absolute", width: 400, height: 300, transform: `translate(${this._showDocPos[0]}px, ${this._showDocPos[1]}px)` }}
                     ref="overlay"><ContentFittingDocumentView
                         Document={this._showDoc}
                         DataDoc={this._showDataDoc}
