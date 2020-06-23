@@ -116,7 +116,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         TraceMobx();
         const x = this.props.PanelWidth() > 1 ? NumCast(this.rootDoc[this.fieldKey + "_x"], 100) : 0;
         const y = this.props.PanelWidth() > 1 ? NumCast(this.rootDoc[this.fieldKey + "_y"], 100) : 0;
-        const c = StrCast(this.layoutDoc.backgroundColor, "lightblue");
+        const c = StrCast(this.layoutDoc.backgroundColor, StrCast(this.dataDoc.backgroundColor, "lightBlue")); // note this is not where the typical lightBlue default color comes from.  See Documents.Create.LinkDocument()
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 

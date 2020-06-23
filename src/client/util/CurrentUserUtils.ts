@@ -87,11 +87,11 @@ export class CurrentUserUtils {
             });
         }
 
-        if (doc["template-button-link"] === undefined) {
-            const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
+        if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
+            const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _backgroundColor: "transparent", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightBlue`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
             linkTemplate.isTemplateDoc = makeTemplate(linkTemplate, true, "linkView");

@@ -624,8 +624,8 @@ export namespace Docs {
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
-                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false,
-                removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
+                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
+                removeDropProperties: new List(["isBackground", "isLinkButton", "_backgroundColor"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;

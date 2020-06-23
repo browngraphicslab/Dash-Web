@@ -77,7 +77,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     editMoved = (e: PointerEvent) => {
-        DragManager.StartDocumentDrag([this._editRef.current!], new DragManager.DocumentDragData([this.props.linkDoc]), e.x, e.y);
+        const dragData = new DragManager.DocumentDragData([this.props.linkDoc]);
+        dragData.dropAction = "alias"; // need to alias the link since it will have its _backgroundColor removed on drop
+        DragManager.StartDocumentDrag([this._editRef.current!], dragData, e.x, e.y);
         return true;
     }
 
