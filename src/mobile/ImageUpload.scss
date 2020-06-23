@@ -55,6 +55,7 @@
         background-color: black;
         display: inline-block;
         margin: 10px;
+        margin-top: 30px;
         width: 100%;
         border-radius: 10px;
     }
@@ -106,16 +107,15 @@
 .closeUpload {
     position: absolute;
     border-radius: 10px;
-    top: 39.7%;
-    color: grey;
-    font-size: 40;
-    left: 65.8%;
+    top: 3;
+    color: black;
+    font-size: 30;
+    right: 3;
     z-index: 1002;
     padding: 0px 3px;
-    background: aliceblue;
+    background: rgba(0, 0, 0, 0);
     transition: 0.5s ease all;
-    border: 3px solid;
-    border-color: black;
+    border: 0px solid;
 }
 
 .loadingImage {
@@ -131,4 +131,5 @@
     border-radius: 20px;
     opacity: 0.3;
     background-color: black;
+    transition: all 2s, opacity 1.5s;
 }

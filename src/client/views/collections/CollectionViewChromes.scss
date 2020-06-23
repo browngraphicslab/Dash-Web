@@ -80,6 +80,12 @@
                 // margin-top: 10px;
             }
 
+            @media only screen and (max-device-width: 480px) {
+                .collectionViewBaseChrome-collapse {
+                    display: none;
+                }
+            }
+
             .collectionViewBaseChrome-template,
             .collectionViewBaseChrome-viewModes {
                 display: grid;

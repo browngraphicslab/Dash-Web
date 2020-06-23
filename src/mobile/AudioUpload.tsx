@@ -6,7 +6,7 @@ import React = require('react');
 import { DocServer } from '../client/DocServer';
 import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
-import { Utils } from '../Utils';
+import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue } from '../Utils';
 import { Networking } from '../client/Network';
 import { Doc, Opt } from '../fields/Doc';
 import { Cast } from '../fields/Types';
@@ -15,8 +15,10 @@ import { List } from '../fields/List';
 import { Scripting } from '../client/util/Scripting';
 import MainViewModal from '../client/views/MainViewModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { nullAudio } from '../fields/URLField';
+import { Transform } from '../client/util/Transform';
+import { DocumentView } from '../client/views/nodes/DocumentView';
 import { MobileInterface } from './MobileInterface';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 
 export interface ImageUploadProps {
     Document: Doc;
@@ -31,7 +33,7 @@ export interface ImageUploadProps {
 const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
-export class Uploader extends React.Component<ImageUploadProps> {
+export class AudioUpload extends React.Component {
     @observable error: string = "";
     @observable status: string = "";
     @observable nm: string = "Choose files";
@@ -39,25 +41,27 @@ export class Uploader extends React.Component<ImageUploadProps> {
 
     onClick = async () => {
         try {
-            const col = this.props.Document;
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
-            // Slab 1
             const slab1 = document.getElementById("slab1");
-            if (slab1) slab1.style.opacity = "1";
+            if (slab1) {
+                slab1.style.opacity = "1";
+            }
             if (imgPrev) {
                 const files: FileList | null = inputRef.current!.files;
-                // Slab 2
                 const slab2 = document.getElementById("slab2");
-                if (slab2) slab2.style.opacity = "1";
+                if (slab2) {
+                    slab2.style.opacity = "1";
+                }
                 if (files && files.length !== 0) {
                     this.process = "Uploading Files";
                     for (let index = 0; index < files.length; ++index) {
                         const file = files[index];
                         const res = await Networking.UploadFilesToServer(file);
-                        // Slab 3
                         const slab3 = document.getElementById("slab3");
-                        if (slab3) slab3.style.opacity = "1";
+                        if (slab3) {
+                            slab3.style.opacity = "1";
+                        }
                         res.map(async ({ result }) => {
                             const name = file.name;
                             if (result instanceof Error) {
@@ -67,15 +71,16 @@ export class Uploader extends React.Component<ImageUploadProps> {
                             let doc = null;
                             console.log("type: " + file.type);
                             if (file.type === "video/mp4") {
-                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: 200, _width: 200, title: name });
                             } else if (file.type === "application/pdf") {
-                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                doc = Docs.Create.PdfDocument(path, { _width: 200, title: name });
                             } else {
-                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
                             }
-                            // Slab 4
                             const slab4 = document.getElementById("slab4");
-                            if (slab4) slab4.style.opacity = "1";
+                            if (slab4) {
+                                slab4.style.opacity = "1";
+                            }
                             const res = await rp.get(Utils.prepend("/getUserDocumentId"));
                             if (!res) {
                                 throw new Error("No user id returned");
@@ -83,24 +88,30 @@ export class Uploader extends React.Component<ImageUploadProps> {
                             const field = await DocServer.GetRefField(res);
                             let pending: Opt<Doc>;
                             if (field instanceof Doc) {
-                                // if (col === Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc) {
-                                //     pending = await Cast(field.rightSidebarCollection, Doc);
-                                // }
-                                pending = col;
-                                //pending = await Cast(field.col, Doc);
+                                pending = await Cast(field.mobileUpload, Doc);
                             }
                             if (pending) {
                                 const data = await Cast(pending.data, listSpec(Doc));
-                                if (data) data.push(doc);
-                                else pending.data = new List([doc]);
+                                if (data) {
+                                    data.push(doc);
+                                } else {
+                                    pending.data = new List([doc]);
+                                }
                                 this.status = "finished";
                                 const slab5 = document.getElementById("slab5");
-                                if (slab5) slab5.style.opacity = "1";
+                                if (slab5) {
+                                    slab5.style.opacity = "1";
+                                }
                                 this.process = "File " + (index + 1).toString() + " Uploaded";
                                 const slab6 = document.getElementById("slab6");
-                                if (slab6) slab6.style.opacity = "1";
+                                if (slab6) {
+                                    slab6.style.opacity = "1";
+                                }
                                 const slab7 = document.getElementById("slab7");
-                                if (slab7) slab7.style.opacity = "1";
+                                if (slab7) {
+                                    slab7.style.opacity = "1";
+                                }
+
                             }
                         });
                     }
@@ -130,19 +141,34 @@ export class Uploader extends React.Component<ImageUploadProps> {
     @action
     clearUpload = () => {
         const slab1 = document.getElementById("slab1");
-        if (slab1) slab1.style.opacity = "0.4";
+        if (slab1) {
+            slab1.style.opacity = "0.4";
+        }
         const slab2 = document.getElementById("slab2");
-        if (slab2) slab2.style.opacity = "0.4";
+        if (slab2) {
+            slab2.style.opacity = "0.4";
+        }
         const slab3 = document.getElementById("slab3");
-        if (slab3) slab3.style.opacity = "0.4";
+        if (slab3) {
+            slab3.style.opacity = "0.4";
+        }
         const slab4 = document.getElementById("slab4");
-        if (slab4) slab4.style.opacity = "0.4";
+        if (slab4) {
+            slab4.style.opacity = "0.4";
+        }
         const slab5 = document.getElementById("slab5");
-        if (slab5) slab5.style.opacity = "0.4";
+        if (slab5) {
+            slab5.style.opacity = "0.4";
+        }
         const slab6 = document.getElementById("slab6");
-        if (slab6) slab6.style.opacity = "0.4";
+        if (slab6) {
+            slab6.style.opacity = "0.4";
+        }
         const slab7 = document.getElementById("slab7");
-        if (slab7) slab7.style.opacity = "0.4";
+        if (slab7) {
+            slab7.style.
+                opacity = "0.4";
+        }
         this.nm = "Choose files";
 
         if (inputRef.current) {
@@ -155,31 +181,38 @@ export class Uploader extends React.Component<ImageUploadProps> {
 
 
     private get uploadInterface() {
+        const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio" }), Doc) as Doc;
+
         return (
             <div className="imgupload_cont">
-                <div className="closeUpload" onClick={MobileInterface.Instance.toggleUpload}>
+                <div className="closeUpload" onClick={MobileInterface.Instance.toggleAudio}>
                     <FontAwesomeIcon icon="window-close" size={"lg"} />
                 </div>
-                <input type="file" accept="application/pdf, video/*,image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
-                <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
-                <div className="upload_label" onClick={this.onClick}>
-                    <FontAwesomeIcon icon="upload" size="sm" />
-                    &nbsp; &nbsp; Upload
-                </div>
-                {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
-                <img id="img_preview" src=""></img>
-                {/* <p>{this.status}</p>
-                <p>{this.error}</p> */}
-                <div className="loadingImage">
-                    <div className="loadingSlab" id="slab1" />
-                    <div className="loadingSlab" id="slab2" />
-                    <div className="loadingSlab" id="slab3" />
-                    <div className="loadingSlab" id="slab4" />
-                    <div className="loadingSlab" id="slab5" />
-                    <div className="loadingSlab" id="slab6" />
-                    <div className="loadingSlab" id="slab7" />
-                </div>
-                <p className="status">{this.process}</p>
+                <DocumentView
+                    Document={audioDoc}
+                    DataDoc={undefined}
+                    LibraryPath={emptyPath}
+                    addDocument={returnFalse}
+                    addDocTab={returnFalse}
+                    pinToPres={emptyFunction}
+                    rootSelected={returnFalse}
+                    removeDocument={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={returnOne}
+                    PanelWidth={() => 1000}
+                    PanelHeight={() => 1000}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={() => "white"}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                />
             </div>
         );
     }
@@ -200,3 +233,5 @@ export class Uploader extends React.Component<ImageUploadProps> {
     }
 
 }
+
+
