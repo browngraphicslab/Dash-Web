@@ -62,10 +62,14 @@
         width: calc(100% - 52px);
         margin-left: 50px;
 
+        z-index: 10000;
+
         &.-header {
             font-size: 12px;
             height: 30px;
             box-shadow: none;
+            z-index: 10000;
+            overflow-y: visible;
         }
 
         .rt-resizable-header-content {

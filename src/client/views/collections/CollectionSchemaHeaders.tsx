@@ -73,6 +73,16 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
     }
 }
 
+
+
+
+
+
+
+
+
+
+
 export interface ColumnMenuProps {
     columnField: SchemaHeaderField;
     // keyValue: string;

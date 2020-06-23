@@ -1,5 +1,5 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
+import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
@@ -21,7 +21,7 @@ import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell } from "./CollectionSchemaCells";
-import { CollectionSchemaAddColumnHeader, CollectionSchemaHeader } from "./CollectionSchemaHeaders";
+import { CollectionSchemaAddColumnHeader, CollectionSchemaHeader, CollectionSchemaColumnMenu } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
@@ -233,10 +233,6 @@ export interface SchemaTableProps {
 
 
 
-
-
-
-
 @observer
 export class SchemaTable extends React.Component<SchemaTableProps> {
     private DIVIDER_WIDTH = 4;
@@ -320,19 +316,48 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
 
         const cols = this.columns.map(col => {
-            const header = <CollectionSchemaHeader
-                keyValue={col}
-                possibleKeys={possibleKeys}
-                existingKeys={this.columns.map(c => c.heading)}
-                keyType={this.getColumnType(col)}
-                typeConst={columnTypes.get(col.heading) !== undefined}
-                onSelect={this.changeColumns}
-                setIsEditing={this.setHeaderIsEditing}
-                deleteColumn={this.deleteColumn}
-                setColumnType={this.setColumnType}
-                setColumnSort={this.setColumnSort}
-                setColumnColor={this.setColumnColor}
-            />;
+
+            const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
+                this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
+                    this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" : "align-justify";
+
+
+
+            const header = <div className="collectionSchemaView-header" style={{ background: col.color }}>
+                <CollectionSchemaColumnMenu
+                    columnField={col}
+                    // keyValue={this.props.keyValue.heading}
+                    possibleKeys={possibleKeys}
+                    existingKeys={this.columns.map(c => c.heading)}
+                    // keyType={this.getColumnType(col)}
+                    typeConst={columnTypes.get(col.heading) !== undefined}
+                    menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{col.heading}</div>}
+                    addNew={false}
+                    onSelect={this.changeColumns}
+                    setIsEditing={this.setHeaderIsEditing}
+                    deleteColumn={this.deleteColumn}
+                    onlyShowOptions={false}
+                    setColumnType={this.setColumnType}
+                    setColumnSort={this.setColumnSort}
+                    setColumnColor={this.setColumnColor}
+                />
+            </div>;
+
+
+            // <CollectionSchemaHeader
+            //     keyValue={col}
+            //     possibleKeys={possibleKeys}
+            //     existingKeys={this.columns.map(c => c.heading)}
+            //     keyType={this.getColumnType(col)}
+            //     typeConst={columnTypes.get(col.heading) !== undefined}
+            //     onSelect={this.changeColumns}
+            //     setIsEditing={this.setHeaderIsEditing}
+            //     deleteColumn={this.deleteColumn}
+            //     setColumnType={this.setColumnType}
+            //     setColumnSort={this.setColumnSort}
+            //     setColumnColor={this.setColumnColor}
+            // />;
+
 
             return {
                 Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.columns} reorderColumns={this.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,

@@ -94,6 +94,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     onPointerDown = async (e: React.PointerEvent): Promise<void> => {
+
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
 
@@ -239,10 +240,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         // );   
         trace();
 
+
+
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
+
+
                         <EditableView
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
@@ -251,28 +256,42 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             GetValue={() => {
-                                const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
-                                const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
-                                const val = cscript !== undefined ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` :
-                                    Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
-                                return val;
+                                if (type === "number" && (contents === 0 || contents === "0")) {
+                                    return "0";
+                                } else {
+                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                    console.log(cfield);
+                                    if (type === "number") {
+                                        return StrCast(cfield);
+                                    }
+                                    const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
+                                    const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
+                                    const val = cscript !== undefined ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` :
+                                        Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
+                                    return val;
+                                }
+
                             }}
                             SetValue={action((value: string) => {
                                 let retVal = false;
+
                                 if (value.startsWith(":=")) {
                                     retVal = this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
                                 } else {
                                     const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                     if (script.compiled) {
                                         retVal = this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
+                                        console.log("compiled");
                                     }
+
                                 }
                                 if (retVal) {
                                     this._isEditing = false; // need to set this here. otherwise, the assignment of the field will invalidate & cause render() to be called with the wrong value for 'editing'
                                     this.props.setIsEditing(false);
                                 }
                                 return retVal;
+
+                                //return true;
                             })}
                             OnFillDown={async (value: string) => {
                                 const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
@@ -284,6 +303,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 }
                             }}
                         />
+
+
                     </div >
                     {/* {fieldIsDoc ? docExpander : null} */}
                 </div>
