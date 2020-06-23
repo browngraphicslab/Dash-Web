@@ -599,10 +599,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
     }
 
-    makeLinkToSelection(linkId: string, title: string, location: string, targetId: string) {
+    makeLinkToSelection(linkId: string, title: string, location: string, targetId: string, targetHref?: string) {
         const state = this._editorView?.state;
         if (state) {
-            const href = Utils.prepend("/doc/" + linkId);
+            const href = targetHref ?? Utils.prepend("/doc/" + linkId);
             const sel = state.selection;
             const splitter = state.schema.marks.splitter.create({ id: Utils.GenerateGuid() });
             let tr = state.tr.addMark(sel.from, sel.to, splitter);
@@ -610,7 +610,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 if (node.firstChild === null && node.marks.find((m: Mark) => m.type.name === schema.marks.splitter.name)) {
                     const allHrefs = [{ href, title, targetId, linkId }];
                     allHrefs.push(...(node.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
-                    const link = state.schema.marks.link.create({ href, allHrefs, title, location, linkId, targetId });
+                    const link = state.schema.marks.link.create({ allHrefs, title, location, linkId });
                     tr = tr.addMark(pos, pos + node.nodeSize, link);
                 }
             });
@@ -937,6 +937,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 const { state: { tr }, dispatch } = this._editorView;
                 dispatch(tr.insertText(startupText));
             }
+            (this._editorView as any).TextView = this;
         }
 
         const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
@@ -1040,6 +1041,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (bounds && this.layoutDoc._chromeStatus !== "disabled") {
             const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
             let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
+            console.log("y = " + y + " hgt = " + RichTextMenu.Instance.height + " cords = " + coords.top);
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
                 y = Math.min(bounds.bottom, window.innerHeight - RichTextMenu.Instance.height);
             }
