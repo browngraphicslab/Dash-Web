@@ -628,7 +628,7 @@ export class CurrentUserUtils {
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", treeViewExpandedView: "layout", stayInCollection: true,
+                childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
             }));
         }
         return doc.myCatalog as Doc;

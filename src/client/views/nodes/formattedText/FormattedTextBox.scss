@@ -252,22 +252,23 @@ footnote::after {
 .prosemirror-links {
     display: none;
     position: absolute;
-    background-color: gray;
-    padding-bottom: 10px;
-    margin-top: 1em;
+    background-color: dimgray;
+    margin-top: 1.5em;
     z-index: 1;
+    padding: 5;
+    border-radius: 2px;
   }
   .prosemirror-hrefoptions{
       width:0px;
       border:unset;
       padding:0px;
-
   }
 
   .prosemirror-links a {
     float: left;
     color: white;
     text-decoration: none;
+    border-radius: 3px;
   }
 
   .prosemirror-links a:hover {

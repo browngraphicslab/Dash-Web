@@ -147,6 +147,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             </button>
         </>;
         const searchTitle = `${!this._searching ? "Open" : "Close"} Search Bar`;
+        const curPage = this.Document.curPage || 1;
         return !this.active() ? (null) :
             (<div className="pdfBox-ui" onKeyDown={e => e.keyCode === KeyCodes.BACKSPACE || e.keyCode === KeyCodes.DELETE ? e.stopPropagation() : true}
                 onPointerDown={e => e.stopPropagation()} style={{ display: this.active() ? "flex" : "none" }}>
@@ -170,11 +171,14 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                     <div className="pdfBox-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                         <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="lg" /></div>
                 </button>
-                <input value={`${(this.Document.curPage || 1)}`}
-                    onChange={e => this.gotoPage(Number(e.currentTarget.value))}
-                    style={{ left: 5, top: 5, height: "20px", width: "3ch", position: "absolute", pointerEvents: "all" }}
-                    onClick={action(() => this._pageControls = !this._pageControls)} />
-                {this._pageControls ? pageBtns : (null)}
+
+                <div className="pdfBox-pageNums">
+                    <input value={curPage}
+                        onChange={e => this.gotoPage(Number(e.currentTarget.value))}
+                        style={{ width: `${curPage > 99 ? 4 : 3}ch`, pointerEvents: "all" }}
+                        onClick={action(() => this._pageControls = !this._pageControls)} />
+                    {this._pageControls ? pageBtns : (null)}
+                </div>
                 <div className="pdfBox-settingsCont" key="settings" onPointerDown={(e) => e.stopPropagation()}>
                     <button className="pdfBox-settingsButton" onClick={action(() => this._flyout = !this._flyout)} title="Open Annotation Settings" >
                         <div className="pdfBox-settingsButton-arrow" style={{ transform: `scaleX(${this._flyout ? -1 : 1})` }} />

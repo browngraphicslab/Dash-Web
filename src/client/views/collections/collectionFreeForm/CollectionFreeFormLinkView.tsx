@@ -63,8 +63,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                         (this.props.A.rootDoc[(this.props.A.props as any).fieldKey] as Doc);
                         const m = targetBhyperlink.getBoundingClientRect();
                         const mp = this.props.A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.A.rootDoc[afield + "_x"] = Math.min(1, mp![0] / this.props.A.props.PanelWidth()) * 100;
-                        this.props.A.rootDoc[afield + "_y"] = Math.min(1, mp![1] / this.props.A.props.PanelHeight()) * 100;
+                        this.props.A.rootDoc[afield + "_x"] = Math.min(1, mp[0] / this.props.A.props.PanelWidth()) * 100;
+                        this.props.A.rootDoc[afield + "_y"] = Math.min(1, mp[1] / this.props.A.props.PanelHeight()) * 100;
                     }, 0);
                 }
                 if (!targetAhyperlink) {
@@ -75,8 +75,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                         (this.props.B.rootDoc[(this.props.B.props as any).fieldKey] as Doc);
                         const m = targetAhyperlink.getBoundingClientRect();
                         const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.rootDoc[bfield + "_x"] = Math.min(1, mp![0] / this.props.B.props.PanelWidth()) * 100;
-                        this.props.B.rootDoc[bfield + "_y"] = Math.min(1, mp![1] / this.props.B.props.PanelHeight()) * 100;
+                        this.props.B.rootDoc[bfield + "_x"] = Math.min(1, mp[0] / this.props.B.props.PanelWidth()) * 100;
+                        this.props.B.rootDoc[bfield + "_y"] = Math.min(1, mp[1] / this.props.B.props.PanelHeight()) * 100;
                     }, 0);
                 }
             })
