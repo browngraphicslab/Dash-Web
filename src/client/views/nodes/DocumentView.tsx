@@ -323,20 +323,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const alias = Doc.MakeAlias(this.props.Document);
                 DocUtils.makeCustomViewClicked(alias, undefined, "onClick");
                 this.props.addDocTab(alias, "onRight");
-                // UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
-                //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.props.Document.links && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
                 if ((this.props.Document.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    // if (this.props.Document.type === DocumentType.RTF) {
-                    //     DocumentView._focusHack = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY) || [0, 0];
-                    //     DocumentView._focusHack = [DocumentView._focusHack[0] + NumCast(this.props.Document.x), DocumentView._focusHack[1] + NumCast(this.props.Document.y)];
-
-                    //     this.props.focus(this.props.Document, false);
-                    // }
                     SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
@@ -576,7 +568,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
+    deleteClicked = (): void => {
+        if (Doc.UserDoc().activeWorkspace === this.props.Document) {
+            alert("Can't delete the active workspace");
+        } else {
+            SelectionManager.DeselectAll();
+            this.props.removeDocument?.(this.props.Document);
+        }
+    }
 
 
     @undoBatch
@@ -1009,6 +1008,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 LayoutTemplate={this.props.LayoutTemplate}
                 makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
+                backgroundHalo={this.props.backgroundHalo}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
                 LibraryPath={this.props.LibraryPath}

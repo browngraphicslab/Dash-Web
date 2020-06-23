@@ -81,6 +81,11 @@ export class MainView extends React.Component {
     componentDidMount() {
         const tag = document.createElement('script');
 
+        const proto = DocServer.GetRefField("rtfProto").then(proto => {
+            (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE),
+                msg => msg && alert(msg));
+        });
+
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
