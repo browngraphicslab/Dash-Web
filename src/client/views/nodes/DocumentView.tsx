@@ -121,7 +121,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
-    @computed get onClickHandler() { return this.props.onClick || Cast(this.layoutDoc.onClick, ScriptField, null) || this.Document.onClick; }
+    @computed get onClickHandler() { return this.props.onClick || Cast(this.layoutDoc.onClick, ScriptField, null); }
     @computed get onDoubleClickHandler() { return this.props.onDoubleClick || Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
@@ -233,10 +233,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.removeDocument = this.props.removeDocument;
-            dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
+            dragData.moveDocument = this.props.moveDocument;//  this.layoutDoc.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
             dragData.treeViewId = this.props.treeViewId;
-            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
+            DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart });
         }
     }
 
@@ -326,7 +326,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.props.Document.links && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
-                if ((this.props.Document.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
+                if ((this.layoutDoc.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
                     SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
@@ -372,7 +372,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
+                if ((this.active || this.layoutDoc.onDragStart || this.layoutDoc.onClick) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -387,11 +387,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.layoutDoc.onClick) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
 
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.layoutDoc.onClick)) {
                     this.cleanUpInteractions();
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
                 }
@@ -504,15 +504,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.Document.onDragStart) &&
+        if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
-            if ((this.active || this.Document.onDragStart) &&
+            if ((this.active || this.layoutDoc.onDragStart) &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
-                !this.Document.inOverlay) {
+                !this.layoutDoc.inOverlay) {
                 e.stopPropagation();
-                if (SelectionManager.IsSelected(this, true) && this.props.Document._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
+                if (SelectionManager.IsSelected(this, true) && this.layoutDoc._viewType !== CollectionViewType.Docking) e.preventDefault(); // goldenlayout needs to be able to move its tabs, so can't preventDefault for it
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -530,9 +530,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, ((e.ctrlKey || e.altKey) && "alias") || (this.props.dropAction || this.Document.dropAction || undefined) as dropActionType);
@@ -580,10 +580,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
-        if (this.Document.isLinkButton || this.Document.onClick || this.Document.ignoreClick) {
+        if (this.Document.isLinkButton || this.layoutDoc.onClick || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
             this.Document.ignoreClick = false;
-            this.Document.onClick = undefined;
+            this.layoutDoc.onClick = undefined;
         } else {
             this.Document.isLinkButton = true;
             this.Document.followLinkZoom = false;
@@ -738,19 +738,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
+        onClicks.push({ description: "Toggle Detail", event: () => this.layoutDoc.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton || this.layoutDoc.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         const funcs: ContextMenuProps[] = [];
-        if (this.Document.onDragStart) {
-            funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
-            funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
-            funcs.push({ description: "Drag Document", icon: "edit", event: () => this.Document.onDragStart = undefined });
+        if (this.layoutDoc.onDragStart) {
+            funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
+            funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
+            funcs.push({ description: "Drag Document", icon: "edit", event: () => this.layoutDoc.onDragStart = undefined });
             cm.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
         }
 
