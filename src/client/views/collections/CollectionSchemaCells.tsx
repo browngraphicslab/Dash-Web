@@ -252,9 +252,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
-                            contents={contents}
+                            contents={contents ? contents : type === "number" ? "0" : "undefined"}
+                            //contents={StrCast(contents)}
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
+                            placeholder={"enter value"}
                             GetValue={() => {
                                 if (type === "number" && (contents === 0 || contents === "0")) {
                                     return "0";
