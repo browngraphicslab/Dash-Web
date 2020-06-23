@@ -1007,6 +1007,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 LayoutTemplate={this.props.LayoutTemplate}
                 makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
+                backgroundHalo={this.props.backgroundHalo}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
                 LibraryPath={this.props.LibraryPath}

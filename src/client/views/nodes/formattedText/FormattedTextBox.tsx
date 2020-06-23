@@ -452,7 +452,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         appearanceItems.push({
             description: "Convert to be a template style", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
-                    const title = StrCast(this.rootDoc.title)
+                    const title = StrCast(this.rootDoc.title);
                     this.rootDoc.title = "text";
                     this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
                 } else {
