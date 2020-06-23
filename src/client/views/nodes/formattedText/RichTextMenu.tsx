@@ -307,7 +307,6 @@ export default class RichTextMenu extends AntimodeMenu {
         function onClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            //self.view?.focus();
             self.view && command && command(self.view.state, self.view.dispatch, self.view);
             self.view && onclick && onclick(self.view.state, self.view.dispatch, self.view);
             self.setActiveMarkButtons(self.getActiveMarksOnSelection());
@@ -427,7 +426,6 @@ export default class RichTextMenu extends AntimodeMenu {
         function onBrushClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            // self.view?.focus();
             self.view && self.fillBrush(self.view.state, self.view.dispatch);
         }
 
@@ -501,13 +499,11 @@ export default class RichTextMenu extends AntimodeMenu {
         function onColorClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            // self.view?.focus();
             self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
         }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
-            //self.view?.focus();
             self.setActiveColor(color);
             self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
         }
@@ -554,13 +550,11 @@ export default class RichTextMenu extends AntimodeMenu {
         function onHighlightClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            // self.view?.focus();
             self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
         }
         function changeHighlight(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
-            // self.view?.focus();
             self.setActiveHighlight(color);
             self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
         }
@@ -834,7 +828,6 @@ class ButtonDropdown extends React.Component<ButtonDropdownProps> {
     onDropdownClick = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        //this.props.view?.focus();
         this.toggleDropdown();
     }
 
