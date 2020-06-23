@@ -36,7 +36,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     view.props.Document.layout instanceof Doc ? view.props.Document.layout :
                         view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
                 if (targetDoc) {
-                    if (view.props.LayoutTemplate || view.props.LayoutTemplateString) {  // this situation typically occurs when you have a link dot -- it's _backgroundColor will be transparent (to not obscure the document it's attached to). so try to set its backgroundColor which will be used in the LinkAnchorBox
+                    if (view.props.LayoutTemplate || view.props.LayoutTemplateString) {  // this situation typically occurs when you have a link dot 
                         targetDoc.backgroundColor = Doc.UserDoc().backgroundColor;  // bcz: don't know how to change the color of an inline template...
                     }
                     else if (StrCast(Doc.Layout(view.props.Document).layout).indexOf("FormattedTextBox") !== -1 && FormattedTextBox.HadSelection) {

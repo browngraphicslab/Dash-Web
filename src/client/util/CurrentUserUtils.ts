@@ -88,7 +88,7 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
-            const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _backgroundColor: "transparent", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
+            const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
