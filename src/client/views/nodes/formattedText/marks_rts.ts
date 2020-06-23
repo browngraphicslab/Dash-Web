@@ -53,21 +53,45 @@ export const marks: { [index: string]: MarkSpec } = {
         }
     },
 
+    /** FONT SIZES */
+    pFontSize: {
+        attrs: { fontSize: { default: 10 } },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                return { fontSize: dom.style.fontSize ? Number(dom.style.fontSize.replace("px", "")) : "" };
+            }
+        }],
+        toDOM: (node) => node.attrs.fontSize ? ['span', { style: `font-size: ${node.attrs.fontSize}px;` }] : ['span', 0]
+    },
 
+    /* FONTS */
+    pFontFamily: {
+        attrs: { family: { default: "" } },
+        parseDOM: [{
+            tag: "span", getAttrs(dom: any) {
+                const cstyle = getComputedStyle(dom);
+                if (cstyle.font) {
+                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
+                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
+                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
+                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
+                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
+                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
+                }
+            }
+        }],
+        toDOM: (node) => node.attrs.family ? ['span', { style: `font-family: "${node.attrs.family}";` }] : ['span', 0]
+    },
     // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
     pFontColor: {
-        attrs: {
-            color: { default: "#000" }
-        },
+        attrs: { color: { default: "" } },
         inclusive: true,
         parseDOM: [{
             tag: "span", getAttrs(dom: any) {
                 return { color: dom.getAttribute("color") };
             }
         }],
-        toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
-        }
+        toDOM: (node) => node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0]
     },
 
     marker: {
@@ -276,39 +300,5 @@ export const marks: { [index: string]: MarkSpec } = {
     code: {
         parseDOM: [{ tag: "code" }],
         toDOM() { return codeDOM; }
-    },
-
-    /* FONTS */
-    pFontFamily: {
-        attrs: {
-            family: { default: "Crimson Text" },
-        },
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                const cstyle = getComputedStyle(dom);
-                if (cstyle.font) {
-                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
-                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
-                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
-                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
-                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
-                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
-                }
-            }
-        }],
-        toDOM: (node) => ['span', {
-            style: `font-family: "${node.attrs.family}";`
-        }]
-    },
-
-    /** FONT SIZES */
-    pFontSize: {
-        attrs: {
-            fontSize: { default: 10 }
-        },
-        parseDOM: [{ style: 'font-size: 10px;' }],
-        toDOM: (node) => ['span', {
-            style: `font-size: ${node.attrs.fontSize}px;`
-        }]
     },
 };

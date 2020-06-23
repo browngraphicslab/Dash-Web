@@ -56,27 +56,27 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const targetAhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(AanchorId));
                 const targetBhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(BanchorId));
                 if (!targetBhyperlink) {
-                    this.props.A.props.Document[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
-                    this.props.A.props.Document[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
+                    this.props.A.rootDoc[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
+                    this.props.A.rootDoc[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
                 } else {
                     setTimeout(() => {
-                        (this.props.A.props.Document[(this.props.A.props as any).fieldKey] as Doc);
+                        (this.props.A.rootDoc[(this.props.A.props as any).fieldKey] as Doc);
                         const m = targetBhyperlink.getBoundingClientRect();
                         const mp = this.props.A.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.A.props.Document[afield + "_x"] = mp[0] / this.props.A.props.PanelWidth() * 100;
-                        this.props.A.props.Document[afield + "_y"] = mp[1] / this.props.A.props.PanelHeight() * 100;
+                        this.props.A.rootDoc[afield + "_x"] = Math.min(1, mp![0] / this.props.A.props.PanelWidth()) * 100;
+                        this.props.A.rootDoc[afield + "_y"] = Math.min(1, mp![1] / this.props.A.props.PanelHeight()) * 100;
                     }, 0);
                 }
                 if (!targetAhyperlink) {
-                    this.props.A.props.Document[bfield + "_x"] = (bpt.point.x - bbounds.left) / bbounds.width * 100;
-                    this.props.A.props.Document[bfield + "_y"] = (bpt.point.y - bbounds.top) / bbounds.height * 100;
+                    this.props.A.rootDoc[bfield + "_x"] = (bpt.point.x - bbounds.left) / bbounds.width * 100;
+                    this.props.A.rootDoc[bfield + "_y"] = (bpt.point.y - bbounds.top) / bbounds.height * 100;
                 } else {
                     setTimeout(() => {
-                        (this.props.B.props.Document[(this.props.B.props as any).fieldKey] as Doc);
+                        (this.props.B.rootDoc[(this.props.B.props as any).fieldKey] as Doc);
                         const m = targetAhyperlink.getBoundingClientRect();
                         const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.props.Document[bfield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
-                        this.props.B.props.Document[bfield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
+                        this.props.B.rootDoc[bfield + "_x"] = Math.min(1, mp![0] / this.props.B.props.PanelWidth()) * 100;
+                        this.props.B.rootDoc[bfield + "_y"] = Math.min(1, mp![1] / this.props.B.props.PanelHeight()) * 100;
                     }, 0);
                 }
             })

@@ -100,9 +100,9 @@ export namespace InteractionUtils {
             const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
             newPoints.pop();
             const bezierCurves = fitCurve(newPoints, parseInt(bezier));
-            for (var i = 0; i < bezierCurves.length; i++) {
+            for (const curve of bezierCurves) {
                 for (var t = 0; t < 1; t += 0.01) {
-                    const point = beziercurve(t, bezierCurves[i]);
+                    const point = beziercurve(t, curve);
                     pts.push({ X: point[0], Y: point[1] });
                 }
             }

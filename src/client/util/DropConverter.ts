@@ -54,10 +54,12 @@ export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string
     return any;
 }
 export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
-    data && data.draggedDocuments.map((doc, i) => {
+    data?.draggedDocuments.map((doc, i) => {
         let dbox = doc;
         // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
-        if (!doc.onDragStart && !doc.isButtonBar) {
+        if (doc.type === DocumentType.FONTICON) {
+            dbox = Doc.MakeAlias(doc);
+        } else if (!doc.onDragStart && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
             if (layoutDoc.type !== DocumentType.FONTICON) {
                 !layoutDoc.isTemplateDoc && makeTemplate(layoutDoc);

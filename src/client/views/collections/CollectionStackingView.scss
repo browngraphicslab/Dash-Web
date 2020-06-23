@@ -241,11 +241,15 @@
             }
 
             .collectionStackingView-sectionColorButton {
-                height: 35px;
+                height: 30px;
+                display: inherit;
             }
 
             .collectionStackingView-colorPicker {
                 width: 78px;
+                z-index: 10;
+                position: relative;
+                background: white;
 
                 .colorOptions {
                     display: flex;
@@ -279,7 +283,7 @@
             }
 
             .collectionStackingView-sectionOptionButton {
-                height: 35px;
+                height: 30px;
             }
 
             .collectionStackingView-optionPicker {

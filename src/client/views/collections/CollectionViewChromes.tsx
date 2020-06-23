@@ -259,10 +259,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     <FontAwesomeIcon icon="bullseye" size="2x" />
                 </div>
                 <select
-                    className="collectionViewBaseChrome-cmdPicker"
-                    onPointerDown={stopPropagation}
-                    onChange={this.commandChanged}
-                    value={this._currentKey}>
+                    className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}
+                    style={{ width: this.props.PanelWidth() < 300 ? 15 : undefined }}>
                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
                     {this._buttonizableCommands.map(cmd =>
                         <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={cmd.title} value={cmd.title}>{cmd.title}</option>
@@ -280,7 +278,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     <FontAwesomeIcon icon="bullseye" size="2x" />
                 </div>
                 <select
-                    className="collectionViewBaseChrome-viewPicker"
+                    className="collectionViewBaseChrome-viewPicker" style={{ width: this.props.PanelWidth() < 300 ? 15 : undefined }}
                     onPointerDown={stopPropagation}
                     onChange={this.viewChanged}
                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
@@ -713,7 +711,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                 </span>
 
                 <select className="collectionGridViewChrome-viewPicker"
-                    style={{ marginRight: 5 }}
+                    style={{ marginRight: 5, width: this.props.PanelWidth() < 300 ? 25 : undefined }}
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
                     value={StrCast(this.props.CollectionView.props.Document.gridStartCompaction, StrCast(this.props.CollectionView.props.Document.gridCompaction))}>

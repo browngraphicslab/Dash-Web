@@ -3,7 +3,7 @@ import { action, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -159,6 +159,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             bringToFront: emptyFunction,
             rootSelected: returnFalse,
             fieldKey: this.props.rowProps.column.id as string,
+            docFilters: returnEmptyFilter,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,

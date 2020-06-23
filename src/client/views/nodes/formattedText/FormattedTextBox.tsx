@@ -13,8 +13,9 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
+import applyDevTools = require("prosemirror-dev-tools");
 import { Id } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
@@ -22,7 +23,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast } from "../../../../fields/Types";
-import { TraceMobx } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_ACL } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -57,7 +58,7 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { InkingStroke } from '../../InkingStroke';
+import requestPromise = require('request-promise');
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -199,22 +200,28 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
-            if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
-                this._applyingChange = true;
-                this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                    if (json !== curLayout?.Data) {
-                        !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
-                        !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
-                        this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
-                        this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
+            if (!this.dataDoc[AclSym]) {
+                if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
+                    this._applyingChange = true;
+                    this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
+                        if (json !== curLayout?.Data) {
+                            !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
+                            !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
+                            this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
+                            this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
+                        }
+                    } else { // if we've deleted all the text in a note driven by a template, then restore the template data
+                        this.dataDoc[this.props.fieldKey] = undefined;
+                        this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
+                        this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                     }
-                } else { // if we've deleted all the text in a note driven by a template, then restore the template data
-                    this.dataDoc[this.props.fieldKey] = undefined;
-                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
+                    this._applyingChange = false;
                 }
-                this._applyingChange = false;
+            } else {
+                const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
+                json.selection = state.toJSON().selection;
+                this._editorView.updateState(EditorState.fromJSON(this.config, json));
             }
             this.updateTitle();
             this.tryUpdateHeight();
@@ -484,6 +491,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
+        this._downX = this._downY = Number.NaN;
     }
 
     recordDictation = () => {
@@ -599,7 +607,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     tr = tr.addMark(pos, pos + node.nodeSize, link);
                 }
             });
+            OVERRIDE_ACL(true);
             this._editorView!.dispatch(tr.removeMark(sel.from, sel.to, splitter));
+            OVERRIDE_ACL(false);
         }
     }
     componentDidMount() {
@@ -914,6 +924,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
+            // applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -989,15 +1000,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (!FormattedTextBox._downEvent) return;
         FormattedTextBox._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
+            const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
-            FormattedTextBoxComment.update(this._editorView!, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
+            const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
+            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
+                new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
+            FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
 
         if (e.buttons === 1 && this.props.isSelected(true) && !e.altKey) {
             e.stopPropagation();
         }
-        this._downX = this._downY = Number.NaN;
     }
 
     @action
@@ -1062,38 +1077,35 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
-    hitBulletTargets(x: number, y: number, select: boolean, highlightOnly: boolean) {
+    hitBulletTargets(x: number, y: number, collapse: boolean, highlightOnly: boolean) {
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
-        const pos = this._editorView!.posAtCoords({ left: x, top: y });
-        if (pos && this.props.isSelected(true)) {
-            // let beforeEle = document.querySelector("." + hit.className) as Element; // const before = hit ? window.getComputedStyle(hit, ':before') : undefined;
-            //const node = this._editorView!.state.doc.nodeAt(pos.pos);
-            const $pos = this._editorView!.state.doc.resolve(pos.pos);
-            let list_node = $pos.node().type === schema.nodes.list_item ? $pos.node() : undefined;
-            if ($pos.node().type === schema.nodes.ordered_list) {
-                for (let off = 1; off < 100; off++) {
-                    const pos = this._editorView!.posAtCoords({ left: x + off, top: y });
-                    const node = pos && this._editorView!.state.doc.nodeAt(pos.pos);
-                    if (node?.type === schema.nodes.list_item) {
-                        list_node = node;
-                        break;
-                    }
+        const clickPos = this._editorView!.posAtCoords({ left: x, top: y });
+        let olistPos = clickPos?.pos;
+        if (clickPos && olistPos && this.props.isSelected(true)) {
+            const clickNode = this._editorView?.state.doc.nodeAt(olistPos);
+            let nodeBef = this._editorView?.state.doc.nodeAt(Math.max(0, olistPos - 1));
+            olistPos = nodeBef?.type === this._editorView?.state.schema.nodes.ordered_list ? olistPos - 1 : olistPos;
+            let $olistPos = this._editorView?.state.doc.resolve(olistPos);
+            let olistNode = (nodeBef !== null || clickNode?.type === this._editorView?.state.schema.nodes.list_item) && olistPos === clickPos?.pos ? clickNode : nodeBef;
+            if (olistNode?.type === this._editorView?.state.schema.nodes.list_item) {
+                if ($olistPos && ($olistPos as any).path.length > 3) {
+                    olistNode = $olistPos.parent;
+                    $olistPos = this._editorView?.state.doc.resolve(($olistPos as any).path[($olistPos as any).path.length - 4]);
                 }
             }
-            if (list_node && pos.inside >= 0 && this._editorView!.state.doc.nodeAt(pos.inside)!.attrs.bulletStyle === list_node.attrs.bulletStyle) {
-                if (select) {
-                    const $olist_pos = this._editorView!.state.doc.resolve($pos.pos - $pos.parentOffset - 1);
+            const listNode = this._editorView?.state.doc.nodeAt(clickPos.pos!);
+            if (olistNode && olistNode.type === this._editorView?.state.schema.nodes.ordered_list) {
+                if (!collapse) {
                     if (!highlightOnly) {
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olist_pos)));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(new NodeSelection($olistPos!)));
                     }
-                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
-                } else if (Math.abs(pos.pos - pos.inside) < 2) {
+                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
+                } else if (listNode && listNode.type === this._editorView.state.schema.nodes.list_item) {
                     if (!highlightOnly) {
-                        const offset = this._editorView!.state.doc.nodeAt(pos.inside)?.type === schema.nodes.ordered_list ? 1 : 0;
-                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside + offset, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside + offset)));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(clickPos.pos!, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility }));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, clickPos.pos!)));
                     }
-                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
+                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
             }
         }
@@ -1220,6 +1232,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         } else if (FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
+        const selPad = this.props.isSelected() ? -10 : 0;
+        const selclass = this.props.isSelected() ? "-selected" : ""
         return (
             <div className={"formattedTextBox-cont"} style={{
                 transform: `scale(${scale})`,
@@ -1260,12 +1274,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         }
                     })}
                 >
-                    <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
-                        <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
+                    <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }} onScroll={this.onscrolled} ref={this._scrollRef}>
+                        <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
-                                padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
-                                pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
-                            }} />
+                                padding: `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
+                                pointerEvents: !this.props.isSelected() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : "all") : undefined
+                            }}
+                        />
                     </div>
                     {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :

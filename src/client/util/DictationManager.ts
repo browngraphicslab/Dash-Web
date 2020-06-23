@@ -144,7 +144,7 @@ export namespace DictationManager {
             recognizer.start();
 
             return new Promise<string>((resolve, reject) => {
-                recognizer.onerror = (e: SpeechRecognitionError) => {
+                recognizer.onerror = (e: any) => { // e is SpeechRecognitionError but where is that defined? 
                     if (!(indefinite && e.error === "no-speech")) {
                         recognizer.stop();
                         reject(e);
@@ -335,7 +335,7 @@ export namespace DictationManager {
                     const prompt = "Press alt + r to start dictating here...";
                     const head = 3;
                     const anchor = head + prompt.length;
-                    const proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
+                    const proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"ordered_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
                     proto.data = new RichTextField(proseMirrorState);
                     proto.backgroundColor = "#eeffff";
                     target.props.addDocTab(newBox, "onRight");

@@ -158,8 +158,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         if (retVal) {
             const newBoxes = (newBox instanceof Doc) ? [newBox] : newBox;
-            for (let i = 0; i < newBoxes.length; i++) {
-                const newBox = newBoxes[i];
+            for (const newBox of newBoxes) {
                 if (newBox.activeFrame !== undefined) {
                     const x = newBox.x;
                     const y = newBox.y;
@@ -240,7 +239,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
-        if (linkDragData.linkSourceDocument === this.props.Document) return false;
+        if (linkDragData.linkSourceDocument === this.props.Document || this.props.Document.annotationOn) return false;
         const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
         this.props.addDocument(source);
         linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
@@ -258,8 +257,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
         } else if (de.complete.docDragData?.droppedDocuments.length && this.internalDocDrop(e, de, de.complete.docDragData, xp, yp)) {
             return true;
-        } else {
-            UndoManager.Undo();
         }
         return false;
     }
@@ -865,7 +862,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
 
-        // TODO This technically isn't correct if type !== "doc", as 
+        // TODO This technically isn't correct if type !== "doc", as
         // currently nothing is done, but we should probably push a new state
         if (state.type === "doc" && this.Document._panX !== undefined && this.Document._panY !== undefined) {
             const init = state.initializers![this.Document[Id]];
@@ -961,6 +958,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.Document,
+            docFilters: this.docFilters,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,
@@ -1199,7 +1197,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.annotationsKey) return;
 
-        ContextMenu.Instance?.addItem({
+        !this.props.isAnnotationOverlay && ContextMenu.Instance?.addItem({
             description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye

@@ -9,13 +9,12 @@ import {
     faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable } from 'mobx';
+import { action, computed, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as rp from 'request-promise';
 import { Doc, DocListCast } from '../fields/Doc';
-import { FieldValue, Cast } from '../fields/Types';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { emptyPath, emptyFunction, returnFalse, returnOne, returnTrue, returnZero, Utils } from '../Utils';
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
 import { DocServer } from '../client/DocServer';
 import { Docs, DocumentOptions } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
@@ -37,10 +36,13 @@ import GestureOverlay from "../client/views/GestureOverlay";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
 import { RadialMenu } from "../client/views/nodes/RadialMenu";
-import { UndoManager } from "../client/util/UndoManager";
+import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { MainView } from "../client/views/MainView";
 import { List } from "../fields/List";
 import { AudioUpload } from "./AudioUpload";
+import { Cast, FieldValue } from '../fields/Types';
+import { CollectionView } from '../client/views/collections/CollectionView';
+import { InkingStroke } from '../client/views/InkingStroke';
 
 library.add(faTasks, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -215,6 +217,7 @@ export class MobileInterface extends React.Component {
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
+                        docFilters={returnEmptyFilter}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
                     />
@@ -236,6 +239,7 @@ export class MobileInterface extends React.Component {
      * Navigates to the given doc and updates the sidebar.
      * @param doc: doc for which the method is called
      */
+    @undoBatch
     handleClick = async (doc: Doc) => {
         const children = DocListCast(doc.data);
         if (doc.type !== "collection" && this.sidebarActive) this.openFromSidebar(doc);
@@ -508,11 +512,12 @@ export class MobileInterface extends React.Component {
         }
     }
 
+
     undo = () => {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
-                    style={{ backgroundColor: "black", color: "white" }}
+                    style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
                     id="undoButton"
                     title="undo"
                     onClick={(e: React.MouseEvent) => {
@@ -529,7 +534,7 @@ export class MobileInterface extends React.Component {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
-                    style={{ backgroundColor: "black", color: "white" }}
+                    style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
                     id="undoButton"
                     title="redo"
                     onClick={(e: React.MouseEvent) => {
@@ -831,8 +836,10 @@ export class MobileInterface extends React.Component {
 
 
 
-Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
-Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); });
+Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); },
+    "changes the active document displayed on the mobile, (doc: any)");
+Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); },
+    "opens the presentation on mobile");
 Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Instance.toggleSidebar(); });
 Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.toggleAudio(); });
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });

@@ -17,7 +17,7 @@ import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyFilter } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -45,6 +45,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { UndoManager } from '../../util/UndoManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -166,7 +167,17 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return true;
         }
         const first = doc instanceof Doc ? doc : doc[0];
-        return !first?.stayInCollection && addDocument !== returnFalse && this.removeDocument(doc) ? addDocument(doc) : false;
+        if (!first?.stayInCollection && addDocument !== returnFalse) {
+            if (UndoManager.RunInTempBatch(() => this.removeDocument(doc))) {
+                const added = addDocument(doc);
+                if (!added) UndoManager.UndoTempBatch();
+                else UndoManager.ClearTempBatch();
+
+                return added;
+            }
+            UndoManager.ClearTempBatch();
+        }
+        return false;
     }
 
     showIsTagged = () => {
@@ -180,8 +191,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props: SubCollectionViewProps = { ...this.props, ...renderProps, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ScreenToLocalTransform: this.screenToLocalTransform, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
@@ -455,6 +467,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         DataDoc={facetCollection}
                         fieldKey={`${this.props.fieldKey}-filter`}
                         CollectionView={this}
+                        docFilters={returnEmptyFilter}
                         ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                         ContainingCollectionView={this.props.ContainingCollectionView}
                         PanelWidth={this.facetWidth}
@@ -503,13 +516,10 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
-        return (<div className={"collectionView"}
-            style={{
-                pointerEvents: this.props.Document.isBackground ? "none" : undefined,
-                boxShadow: Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
-                    `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31)" : "#9c9396"} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
-            }}
-            onContextMenu={this.onContextMenu}>
+        const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+            `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+        return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
+            style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
             <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
