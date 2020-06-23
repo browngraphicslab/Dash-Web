@@ -374,7 +374,7 @@ export class Track extends React.Component<IProps> {
                         onPointerOver={() => Doc.BrushDoc(this.props.node)}
                         onPointerOut={() => Doc.UnBrushDoc(this.props.node)} >
                         {this.regions?.map((region, i) => {
-                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} />;
+                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} primitiveWhiteList={this.primitiveWhitelist} />;
                         })}
                     </div>
                 </div>
