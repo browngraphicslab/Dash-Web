@@ -41,7 +41,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _url: string = "hello";
     @observable private _pressX: number = 0;
     @observable private _pressY: number = 0;
-
+    private _keyInput = React.createRef<HTMLInputElement>();
     private _longPressSecondsHack?: NodeJS.Timeout;
     private _outerRef = React.createRef<HTMLDivElement>();
     private _iframeRef = React.createRef<HTMLIFrameElement>();
@@ -237,6 +237,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 onDragOver={this.onUrlDragover}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
+                                onClick={(e) => {
+                                    this._keyInput.current!.select();
+                                    e.stopPropagation();
+                                }}
+                                ref={this._keyInput}
                             />
                             <div style={{
                                 display: "flex",
