@@ -632,7 +632,9 @@ export default class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                this.InkShape = "";
+                if (this.InkShape !== "noRec") {
+                    this.InkShape = "";
+                }
             }
             // if we're not drawing in a toolglass try to recognize as gesture
             else {

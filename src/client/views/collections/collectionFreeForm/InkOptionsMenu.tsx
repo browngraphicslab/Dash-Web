@@ -16,7 +16,7 @@ import { Document } from "../../../../fields/documentSchemas";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, } from "@fortawesome/free-solid-svg-icons";
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve);
 
@@ -28,12 +28,12 @@ export default class InkOptionsMenu extends AntimodeMenu {
     private _width = ["1", "5", "10", "100"];
     // private _buttons = ["circle", "triangle", "rectangle", "arrow", "line"];
     // private _icons = ["O", "∆", "ロ", "➜", "-"];
-    private _buttons = ["circle", "triangle", "rectangle", "line", "", "noRec"];
-    private _icons = ["O", "∆", "ロ", "––", " ", "✖︎"];
+    private _buttons = ["circle", "triangle", "rectangle", "line", "noRec", "",];
+    private _icons = ["O", "∆", "ロ", "⎯", "✖︎", " "];
     //arrowStart and arrowEnd must match and defs must exist in Inking Stroke
     private _arrowStart = ["arrowHead", "arrowHead", "dot", "dot", "none"];
     private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
-    private _arrowIcons = ["→", "↔︎", "・", "・・", " "];
+    private _arrowIcons = ["→", "↔︎", "•", "••", " "];
 
     @observable _colorBtn = false;
     @observable _widthBtn = false;
@@ -121,7 +121,9 @@ export default class InkOptionsMenu extends AntimodeMenu {
         for (var i = 0; i < this._arrowStart.length; i++) {
             if (this._arrowStart[i] === ActiveArrowStart() && this._arrowEnd[i] === ActiveArrowEnd()) {
                 currIcon = this._arrowIcons[i];
-
+                if (this._arrowIcons[i] === " ") {
+                    currIcon = "➤";
+                }
             }
         }
         var arrowPicker = <button
@@ -254,10 +256,17 @@ export default class InkOptionsMenu extends AntimodeMenu {
             shapePicker = <div className="btn2-group" key="shape">
                 {shapePicker}
                 {this._buttons.map((btn, i) => {
+                    var ttl = btn;
+                    if (btn === "") {
+                        ttl = "no shape";
+                    }
+                    if (btn === "noRec") {
+                        ttl = "disable shape recognition";
+                    }
                     return <button
                         className="antimodeMenu-button"
                         title={`Draw ${btn}`}
-                        key={btn}
+                        key={ttl}
                         onPointerDown={action((e) => { GestureOverlay.Instance.InkShape = btn; this._shapeBtn = false; })}
                         style={{ backgroundColor: this._shapeBtn ? "121212" : "" }}>
                         {this._icons[i]}
@@ -303,7 +312,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
             this.colorPicker,
             this.fillPicker,
             this.arrowPicker,
-            this.dashButton
+            this.dashButton,
         ];
         return this.getElement(buttons);
     }
