@@ -62,6 +62,11 @@ export class TimelineMenu extends React.Component {
     }
 
     @action
+    addCheckbox = (items: any[]) => {
+        this._currentMenu.push(...items);
+    }
+
+    @action
     addMenu = (title: string) => {
         this._currentMenu.unshift(<div key={Utils.GenerateGuid()} className="timeline-menu-header"><p className="timeline-menu-header-desc">{title}</p></div>);
     }

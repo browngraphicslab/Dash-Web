@@ -409,7 +409,6 @@ export class Timeline extends React.Component<FieldViewProps> {
      * turns on the toggle button (the purple slide button that changes from editing mode and play mode
      */
     private toggleHandle = () => {
-        console.log("author on", this.props.Document.isATOn);
         const roundToggle = this._roundToggleRef.current!;
         const roundToggleContainer = this._roundToggleContainerRef.current!;
         const timelineContainer = this._timelineContainer.current!;

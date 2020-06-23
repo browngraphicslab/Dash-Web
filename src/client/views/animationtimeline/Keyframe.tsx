@@ -5,14 +5,15 @@ import "../globalCssVariables.scss";
 import { observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, computed, runInAction, trace } from "mobx";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../fields/Doc";
-import { Cast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast, BoolCast } from "../../../fields/Types";
 import { List } from "../../../fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../fields/Schema";
 import { Transform } from "../../util/Transform";
-import { TimelineMenu } from "./TimelineMenu";
+import { TimelineMenu, FieldToggle } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { emptyPath } from "../../../Utils";
+import { emptyPath, Utils } from "../../../Utils";
+import { check } from "express-validator/check";
 
 
 /**
@@ -129,6 +130,7 @@ interface IProps {
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
     makeKeyData: (region: RegionData, pos: number, kftype: KeyframeFunc.KeyframeType) => Doc;
+    primitiveWhiteList: string[];
 }
 
 
@@ -170,9 +172,19 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
 
+    @observable fieldToVal: Map<string, boolean> = this.makeFieldMap;
+    @computed get getFieldMap() { return this.fieldToVal; }
+
+    @computed get makeFieldMap() {
+        const map = new Map<string, boolean>();
+        this.props.primitiveWhiteList.map(field => map.set(field, true));
+        return map;
+    }
+
     constructor(props: any) {
         super(props);
     }
+
     componentDidMount() {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
@@ -347,9 +359,24 @@ export class Keyframe extends React.Component<IProps> {
                     this.keyframes[kfIndex].time = parseInt(val, 10);
                     this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
                 }
-            }));
+            })),
+            TimelineMenu.Instance.addCheckbox(this.props.primitiveWhiteList.map(field => this.makeCheckbox(field))); //make checkbox for each tracked field
         TimelineMenu.Instance.addMenu("Keyframe");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
+    }
+
+    makeCheckbox = (field: string) => {
+        return <div className="timeline-menu-item">
+            <input type="checkbox" key={Utils.GenerateGuid()} className="timeline-menu-checkbox"
+                checked={BoolCast(this.fieldToVal.get(field))}
+                onChange={action(e => {
+                    e.stopPropagation();
+                    this.fieldToVal.set(field, !BoolCast(this.fieldToVal.get(field)));
+                    e.target.checked = BoolCast(this.fieldToVal.get(field));
+                    console.log(field, this.fieldToVal.get(field), "checked", e.target.checked);
+                })} />
+            {field}
+        </div>;
     }
 
     /**
