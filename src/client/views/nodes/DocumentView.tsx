@@ -619,6 +619,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (this.props.Document === Doc.UserDoc().activeWorkspace) {
+            alert("linking to document tabs not yet supported.  Drop link on document content.");
+            return;
+        }
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
