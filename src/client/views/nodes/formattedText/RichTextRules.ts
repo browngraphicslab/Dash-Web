@@ -59,7 +59,16 @@ export class RichTextRules {
             ),
 
             // * + - create bullet list
-            wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.bullet_list),
+            wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.ordered_list,
+                // match => {
+                () => {
+                    return ({ mapStyle: "bullet" });
+                    // return ({ order: +match[1] })
+                },
+                (match: any, node: any) => {
+                    return node.childCount + node.attrs.order === +match[1];
+                },
+                (type: any) => ({ type: type, attrs: { mapStyle: "bullet" } })),
 
             // ``` create code block
             textblockTypeInputRule(/^```$/, schema.nodes.code_block),

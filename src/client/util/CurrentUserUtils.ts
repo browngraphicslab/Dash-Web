@@ -87,11 +87,11 @@ export class CurrentUserUtils {
             });
         }
 
-        if (doc["template-button-link"] === undefined) {
+        if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
             const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightBlue`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
             linkTemplate.isTemplateDoc = makeTemplate(linkTemplate, true, "linkView");
@@ -576,7 +576,7 @@ export class CurrentUserUtils {
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", treeViewExpandedView: "layout", stayInCollection: true,
+                childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
             }));
         }
         return doc.myCatalog as Doc;

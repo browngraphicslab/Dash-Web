@@ -312,8 +312,8 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @computed get renderContent() {
         TraceMobx();
-        const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
-        if (expandKey !== undefined) {
+        const expandKey = this.treeViewExpandedView;
+        if (["links", this.fieldKey].includes(expandKey)) {
             const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) =>
                 (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true), true);
@@ -338,7 +338,7 @@ class TreeView extends React.Component<TreeViewProps> {
             const layoutDoc = Doc.Layout(this.props.document);
             const panelHeight = layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight;
             const panelWidth = layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth;
-            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.props.document[Id] + this.props.document.title}>
+            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.props.document[Id]}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
@@ -732,7 +732,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             layoutItems.push({ description: (this.props.Document.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.props.Document.treeViewHideTitle = !this.props.Document.treeViewHideTitle, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
         }
-        ContextMenu.Instance.addItem({
+        !Doc.UserDoc().noviceMode && ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
                 const { ImageDocument, PdfDocument } = Docs.Create;
                 const { Document } = this.props;
@@ -794,6 +794,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         console.log(e);
     }
     render() {
+        TraceMobx();
         if (!(this.props.Document instanceof Doc)) return (null);
         const dropAction = StrCast(this.props.Document.childDropAction) as dropActionType;
         const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
