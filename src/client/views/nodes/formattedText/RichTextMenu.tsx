@@ -161,11 +161,10 @@ export default class RichTextMenu extends AntimodeMenu {
             return;
         }
         this.view = view;
-        const state = view.state;
         props && (this.editorProps = props);
 
         // Don't do anything if the document/selection didn't change
-        if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) return;
+        if (lastState?.doc.eq(view.state.doc) && lastState.selection.eq(view.state.selection)) return;
 
         // update active marks
         const activeMarks = this.getActiveMarksOnSelection();
@@ -173,18 +172,18 @@ export default class RichTextMenu extends AntimodeMenu {
 
         // update active font family and size
         const active = this.getActiveFontStylesOnSelection();
-        const activeFamilies = active && active.get("families");
-        const activeSizes = active && active.get("sizes");
+        const activeFamilies = active?.get("families");
+        const activeSizes = active?.get("sizes");
 
-        this.activeFontFamily = !activeFamilies || activeFamilies.length === 0 ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
-        this.activeFontSize = !activeSizes || activeSizes.length === 0 ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) + "pt" : "various";
+        this.activeFontFamily = !activeFamilies?.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
+        this.activeFontSize = !activeSizes?.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "various";
 
         // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
         this.setCurrentLink(targetTitle);
     }
 
-    setMark = (mark: Mark, state: EditorState<any>, dispatch: any) => {
+    setMark = (mark: Mark, state: EditorState<any>, dispatch: any, dontToggle: boolean = false) => {
         if (mark) {
             const node = (state.selection as NodeSelection).node;
             if (node?.type === schema.nodes.ordered_list) {
@@ -194,14 +193,15 @@ export default class RichTextMenu extends AntimodeMenu {
                 if (mark.type === schema.marks.pFontColor) attrs = { ...attrs, fontColor: mark.attrs.color };
                 const tr = updateBullets(state.tr.setNodeMarkup(state.selection.from, node.type, attrs), state.schema);
                 dispatch(tr.setSelection(new NodeSelection(tr.doc.resolve(state.selection.from))));
-            } else {
+            } else if (dontToggle) {
                 toggleMark(mark.type, mark.attrs)(state, (tx: any) => {
                     const { from, $from, to, empty } = tx.selection;
-                    // if (!tx.doc.rangeHasMark(from, to, mark.type)) {
-                    //     toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
-                    // } else
-                    dispatch(tx);
+                    if (!tx.doc.rangeHasMark(from, to, mark.type)) { // hack -- should have just set the mark in the first place
+                        toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
+                    } else dispatch(tx);
                 });
+            } else {
+                toggleMark(mark.type, mark.attrs)(state, (tx: any) => dispatch(tx));
             }
         }
     }
@@ -368,11 +368,11 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
-        this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch);
+        this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch, true);
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
-        this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch);
+        this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch, true);
     }
 
     // TODO: remove doesn't work
@@ -406,7 +406,13 @@ export default class RichTextMenu extends AntimodeMenu {
         tr.addMark(state.selection.from, state.selection.to, mark);
         const content = tr.selection.content();
         const newNode = state.schema.nodes.summary.create({ visibility: false, text: content, textslice: content.toJSON() });
-        dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
+        dispatch?.(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
+        return true;
+    }
+
+    insertBlockquote(state: EditorState<any>, dispatch: any) {
+        if (state.selection.empty) return false;
+        setBlockType(state.schema.nodes.blockquote)(state, (tx: any) => dispatch(tx));
         return true;
     }
 
@@ -539,7 +545,7 @@ export default class RichTextMenu extends AntimodeMenu {
             dispatch(state.tr.addStoredMark(colorMark));
             return false;
         }
-        this.setMark(colorMark, state, dispatch);
+        this.setMark(colorMark, state, dispatch, true);
     }
 
     @action toggleHighlightDropdown() { this.showHighlightDropdown = !this.showHighlightDropdown; }
@@ -766,6 +772,7 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createLinkButton(),
             this.createBrushButton(),
             this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
+            this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
