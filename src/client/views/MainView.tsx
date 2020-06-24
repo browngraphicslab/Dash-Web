@@ -55,6 +55,8 @@ import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { SnappingManager } from '../util/SnappingManager';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { DocumentManager } from '../util/DocumentManager';
+import { DocumentLinksButton } from './nodes/DocumentLinksButton';
+import { LinkMenu } from './linking/LinkMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -578,6 +580,7 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
+            {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             <ContextMenu />
             <RadialMenu />
             <PDFMenu />

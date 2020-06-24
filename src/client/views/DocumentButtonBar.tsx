@@ -239,14 +239,14 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get linkButton() {
         const view0 = this.view0;
         const linkCount = view0 && DocListCast(view0.props.Document.links).length;
-        return !view0 ? (null) : <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<LinkMenu docView={view0} addDocTab={view0.props.addDocTab} changeFlyout={emptyFunction} />}>
-                <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >
-                    {linkCount ? linkCount : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
+        return !view0 || linkCount ? (null) :
+            <div className="documentButtonBar-button">
+                <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
+                    <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >
+                        {linkCount ? linkCount : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
+                    </div>
                 </div>
-            </Flyout>
-        </div>;
+            </div>;
     }
 
     @computed
@@ -317,9 +317,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
-            <div className="documentButtonBar-button">
-                {this.linkButton}
-            </div>
+            {this.linkButton}
             <div className="documentButtonBar-button">
                 {this.templateButton}
             </div>

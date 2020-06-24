@@ -41,6 +41,7 @@ import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { DocumentLinksButton } from './DocumentLinksButton';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -735,10 +736,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
-        if (!options) {
-            options = { description: "Options...", subitems: optionItems, icon: "compass" };
-            cm.addItem(options);
-        }
+        optionItems.push({ description: "Toggle Show Each Link Dot", event: () => this.layoutDoc.showLinks = !this.layoutDoc.showLinks, icon: "eye" });
+        !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -1037,7 +1036,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 select={this.select}
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
-            {this.anchors}
+            {this.layoutDoc.showLinks ? this.anchors : (null)}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" ? (null) : <DocumentLinksButton View={this} />}
         </div>
         );
     }
