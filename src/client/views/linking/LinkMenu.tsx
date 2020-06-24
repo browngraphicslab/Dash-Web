@@ -9,7 +9,6 @@ import { LinkManager } from "../../util/LinkManager";
 import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 library.add(faTrash);
 

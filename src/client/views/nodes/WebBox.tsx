@@ -195,9 +195,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
-            e.stopPropagation();
             this.submitURL();
         }
+        e.stopPropagation();
     }
 
     toggleAnnotationMode = () => {

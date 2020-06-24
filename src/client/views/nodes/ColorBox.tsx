@@ -36,8 +36,11 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
                     view.props.Document.layout instanceof Doc ? view.props.Document.layout :
                         view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
                 if (targetDoc) {
-                    if (StrCast(Doc.Layout(view.props.Document).layout).indexOf("FormattedTextBox") !== -1 && FormattedTextBox.HadSelection) {
-                        Doc.Layout(view.props.Document).color = Doc.UserDoc().bacgroundColor;
+                    if (view.props.LayoutTemplate?.() || view.props.LayoutTemplateString) {  // this situation typically occurs when you have a link dot 
+                        targetDoc.backgroundColor = Doc.UserDoc().backgroundColor;  // bcz: don't know how to change the color of an inline template...
+                    }
+                    else if (StrCast(Doc.Layout(view.props.Document).layout).includes("FormattedTextBox") && FormattedTextBox.HadSelection) {
+                        Doc.Layout(view.props.Document)[Doc.LayoutFieldKey(view.props.Document) + "-color"] = Doc.UserDoc().backgroundColor;
                     } else {
                         Doc.Layout(view.props.Document)._backgroundColor = Doc.UserDoc().backgroundColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                     }

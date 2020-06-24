@@ -215,9 +215,11 @@ export namespace DragManager {
                     dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                         docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
                             docDragData.dropAction === "copy" ? Doc.MakeDelegate(d) : d);
-                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) =>
-                    (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
-                );
+                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
+                    const dragProps = Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []);
+                    const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
+                    remProps.map(prop => drop[prop] = undefined)
+                });
                 batch.end();
             }
             return e;

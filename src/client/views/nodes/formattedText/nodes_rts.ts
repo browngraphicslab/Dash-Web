@@ -67,8 +67,8 @@ export const nodes: { [index: string]: NodeSpec } = {
     // nodes by default. Represented as a `<pre>` element with a
     // `<code>` element inside of it.
     code_block: {
-        content: "text*",
-        marks: "",
+        content: "inline*",
+        marks: "_",
         group: "block",
         code: true,
         defining: true,
