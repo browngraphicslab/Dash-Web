@@ -1,14 +1,12 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { computed, action, runInAction, observable } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import './DocumentLinksButton.scss';
-import React = require("react");
+import { Doc, DocListCast } from "../../../fields/Doc";
 import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
-import { DocListCast, Doc } from "../../../fields/Doc";
-import { DocumentView } from "./DocumentView";
-import { LinkMenu } from "../linking/LinkMenu";
-import { UndoManager } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
+import { UndoManager } from "../../util/UndoManager";
+import './DocumentLinksButton.scss';
+import { DocumentView } from "./DocumentView";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -60,12 +58,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @computed
     get linkButton() {
-        const view0 = this.props.View;
-        const linkCount = view0 && DocListCast(view0.props.Document.links).length;
-        return !view0 || !linkCount ? (null) :
+        const links = DocListCast(this.props.View.props.Document.links);
+        return !this.props.View || !links.length || links[0].hidden ? (null) :
             <div title="Drag(create link) Tap(view links)" style={{ position: "absolute", left: -15, bottom: -15 }} ref={this._linkButton}>
-                <div className={"documentLinksButton-button-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >
-                    {linkCount ? linkCount : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
+                <div className={"documentLinksButton-button-nonempty"} onPointerDown={this.onLinkButtonDown} >
+                    {links.length}
                 </div>
             </div>;
     }

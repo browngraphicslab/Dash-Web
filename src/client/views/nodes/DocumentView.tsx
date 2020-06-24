@@ -584,10 +584,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleLinkButtonBehavior = (): void => {
         if (this.Document.isLinkButton || this.layoutDoc.onClick || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = false);
             this.Document.ignoreClick = false;
             this.layoutDoc.onClick = undefined;
         } else {
             this.Document.isLinkButton = true;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = true);
             this.Document.followLinkZoom = false;
             this.Document.followLinkLocation = undefined;
         }
@@ -597,8 +601,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleFollowInPlace = (): void => {
         if (this.Document.isLinkButton) {
             this.Document.isLinkButton = false;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = false);
         } else {
             this.Document.isLinkButton = true;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = true);
             this.Document.followLinkZoom = true;
             this.Document.followLinkLocation = "inPlace";
         }
@@ -608,6 +616,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleFollowOnRight = (): void => {
         if (this.Document.isLinkButton) {
             this.Document.isLinkButton = false;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = false);
         } else {
             this.Document.isLinkButton = true;
             this.Document.followLinkZoom = false;
@@ -1192,7 +1202,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
+                boxShadow: this.Document.isLinkButton ? StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") : this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
