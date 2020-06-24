@@ -1,29 +1,32 @@
 import React = require("react");
-import AntimodeMenu from "../../AntimodeMenu";
-import { observable, action, } from "mobx";
-import { observer } from "mobx-react";
-import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
-import { schema } from "./schema_rts";
-import { EditorView } from "prosemirror-view";
-import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller, faSleigh } from "@fortawesome/free-solid-svg-icons";
-import { updateBullets } from "./ProsemirrorExampleTransfer";
-import { FieldViewProps } from "../FieldView";
-import { Cast, StrCast } from "../../../../fields/Types";
-import { FormattedTextBoxProps, FormattedTextBox } from "./FormattedTextBox";
-import { unimplementedFunction, Utils } from "../../../../Utils";
+import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faIndent, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, observable } from "mobx";
+import { observer } from "mobx-react";
+import { lift, wrapIn } from "prosemirror-commands";
+import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos } from "prosemirror-model";
 import { wrapInList } from "prosemirror-schema-list";
-import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
-import "./RichTextMenu.scss";
-import { DocServer } from "../../../DocServer";
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 import { Doc } from "../../../../fields/Doc";
-import { SelectionManager } from "../../../util/SelectionManager";
+import { DarkPastelSchemaPalette, PastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
+import { Cast, StrCast } from "../../../../fields/Types";
+import { unimplementedFunction, Utils } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
 import { LinkManager } from "../../../util/LinkManager";
-const { toggleMark, setBlockType } = require("prosemirror-commands");
+import { SelectionManager } from "../../../util/SelectionManager";
+import AntimodeMenu from "../../AntimodeMenu";
+import { FieldViewProps } from "../FieldView";
+import { FormattedTextBox, FormattedTextBoxProps } from "./FormattedTextBox";
+import { updateBullets } from "./ProsemirrorExampleTransfer";
+import "./RichTextMenu.scss";
+import { schema } from "./schema_rts";
+import { TraceMobx } from "../../../../fields/util";
+const { toggleMark } = require("prosemirror-commands");
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
+
 
 @observer
 export default class RichTextMenu extends AntimodeMenu {
@@ -69,6 +72,7 @@ export default class RichTextMenu extends AntimodeMenu {
         super(props);
         RichTextMenu.Instance = this;
         this._canFade = false;
+        this.Pinned = true;
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
@@ -201,7 +205,7 @@ export default class RichTextMenu extends AntimodeMenu {
                     } else dispatch(tx);
                 });
             } else {
-                toggleMark(mark.type, mark.attrs)(state, (tx: any) => dispatch(tx));
+                toggleMark(mark.type, mark.attrs)(state, dispatch);
             }
         }
     }
@@ -411,8 +415,12 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     insertBlockquote(state: EditorState<any>, dispatch: any) {
-        if (state.selection.empty) return false;
-        setBlockType(state.schema.nodes.blockquote)(state, (tx: any) => dispatch(tx));
+        const path = (state.selection.$from as any).path;
+        if (path.length > 6 && path[path.length - 6].type === schema.nodes.blockquote) {
+            lift(state, dispatch);
+        } else {
+            wrapIn(schema.nodes.blockquote)(state, dispatch);
+        }
         return true;
     }
 
@@ -758,7 +766,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     render() {
-
+        TraceMobx();
         const row1 = <div className="antimodeMenu-row" key="row1" style={{ display: this.collapsed ? "none" : undefined }}>{[
             !this.collapsed ? this.getDragger() : (null),
             this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
