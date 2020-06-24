@@ -100,7 +100,8 @@ export class Track extends React.Component<IProps> {
         if (this._newKeyframe) {
             DocListCast(this.saveStateRegion?.keyframes).forEach((kf, index) => {
                 this.copyDocDataToKeyFrame(kf);
-                kf.opacity = (index === 0 || index === 3) ? 0.1 : 1;
+                // kf.opacity = (index === 0 || index === 3) ? 0.1 : 1;
+                kf.opacity = 1;
             });
             this._newKeyframe = false;
         }

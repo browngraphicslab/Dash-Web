@@ -89,8 +89,10 @@ export namespace KeyframeFunc {
         const regiondata = new Doc(); //creating regiondata in MILI
         regiondata.duration = 4000;
         regiondata.position = 0;
-        regiondata.fadeIn = 1000;
-        regiondata.fadeOut = 1000;
+        // regiondata.fadeIn = 1000;
+        // regiondata.fadeOut = 1000;
+        regiondata.fadeIn = 0;
+        regiondata.fadeOut = 0;
         regiondata.functions = new List<Doc>();
         regiondata.hasData = false;
         return regiondata;
@@ -170,8 +172,8 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get keyframes() { return DocListCast(this.regiondata.keyframes); }
     @computed private get pixelPosition() { return KeyframeFunc.convertPixelTime(this.regiondata.position, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-    @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-    @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
+    // @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
+    // @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
 
     // @observable private fieldToVal = new Map<string, boolean>();
     // @computed get trackedFields(): string[] {
@@ -206,13 +208,13 @@ export class Keyframe extends React.Component<IProps> {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
             const start = this.props.makeKeyData(this.regiondata, this.regiondata.position, KeyframeFunc.KeyframeType.end);
-            const fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
-            const fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
+            // const fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
+            // const fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
             const finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.end);
-            fadeIn.opacity = 1;
-            fadeOut.opacity = 1;
-            start.opacity = 0.1;
-            finish.opacity = 0.1;
+            // fadeIn.opacity = 1;
+            // fadeOut.opacity = 1;
+            start.opacity = 1;
+            finish.opacity = 0.5;
             this.forceUpdate(); //not needed, if setTimeout is gone...
         }, 1000);
     }
@@ -579,7 +581,8 @@ export class Keyframe extends React.Component<IProps> {
             <div className="bar" ref={this._bar} style={{
                 transform: `translate(${this.pixelPosition}px)`,
                 width: `${this.pixelDuration}px`,
-                background: `linear-gradient(90deg, rgba(154, 206, 223, 0) 0%, rgba(154, 206, 223, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(154, 206, 223, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(154, 206, 223, 0) 100% )`
+                background: 'lightblue'
+                // background: `linear-gradient(90deg, rgba(154, 206, 223, 0) 0%, rgba(154, 206, 223, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(154, 206, 223, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(154, 206, 223, 0) 100% )`
             }}
                 onPointerDown={this.onBarPointerDown}>
                 <div className="leftResize keyframe-indicator" onPointerDown={this.onResizeLeft} ></div>
