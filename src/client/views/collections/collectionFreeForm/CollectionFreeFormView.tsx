@@ -245,7 +245,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             // this.props.addDocument(source);
             // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
-           return false;
+            return false;
         } else {
             const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             this.props.addDocument(source);

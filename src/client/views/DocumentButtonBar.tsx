@@ -1,28 +1,28 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faArrowAltCircleRight, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faPhotoVideo, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
-import { NumCast, StrCast, Cast } from "../../fields/Types";
+import { Cast, NumCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
+import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { Docs, DocUtils } from '../documents/Documents';
+import { DragManager } from '../util/DragManager';
 import { UndoManager } from "../util/UndoManager";
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
-import { LinkMenu } from "./linking/LinkMenu";
+import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { DragManager } from '../util/DragManager';
-import { MetadataEntryMenu } from './MetadataEntryMenu';
-import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
-import { Docs } from '../documents/Documents';
+import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -142,7 +142,16 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
 
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, emptyFunction);
+        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, (e, doubleTap) => {
+            if (doubleTap) {
+                if (!DocumentLinksButton.StartLink) {
+                    runInAction(() => DocumentLinksButton.StartLink = this.view0);
+                } else {
+                    DocumentLinksButton.StartLink !== this.view0 && this.view0 &&
+                        DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.view0.props.Document }, "long drag");
+                }
+            }
+        });
     }
 
 
@@ -242,7 +251,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !view0 || linkCount ? (null) :
             <div className="documentButtonBar-button">
                 <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
-                    <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >
+                    <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")}
+                        style={{ backgroundColor: "lightBlue", color: "black", border: DocumentLinksButton.StartLink ? "solid red 2px" : "" }}
+                        onPointerDown={this.onLinkButtonDown} >
                         {linkCount ? linkCount : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
                     </div>
                 </div>

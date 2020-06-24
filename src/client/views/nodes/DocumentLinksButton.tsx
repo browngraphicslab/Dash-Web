@@ -1,12 +1,14 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../fields/Doc";
-import { emptyFunction, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, setupMoveUpEvents, returnFalse } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { UndoManager } from "../../util/UndoManager";
 import './DocumentLinksButton.scss';
 import { DocumentView } from "./DocumentView";
 import React = require("react");
+import { DocUtils } from "../../documents/Documents";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -45,10 +47,27 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         return false;
     }
 
+    @observable static StartLink: DocumentView | undefined;
     onLinkButtonDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e) => {
-            DocumentLinksButton.EditLink = this.props.View;
-            DocumentLinksButton.EditLinkLoc = [e.clientX, e.clientY];
+        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
+            if (doubleTap) {
+                DocumentLinksButton.StartLink = this.props.View;
+            } else {
+                DocumentLinksButton.EditLink = this.props.View;
+                DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
+            }
+        }));
+    }
+    completeLink = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e, doubleTap) => {
+            if (doubleTap) {
+                if (DocumentLinksButton.StartLink === this.props.View) {
+                    DocumentLinksButton.StartLink = undefined;
+                } else {
+                    DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
+                        DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                }
+            }
         }));
     }
 
@@ -59,11 +78,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @computed
     get linkButton() {
         const links = DocListCast(this.props.View.props.Document.links);
-        return !this.props.View || !links.length || links[0].hidden ? (null) :
-            <div title="Drag(create link) Tap(view links)" style={{ position: "absolute", left: -15, bottom: -15 }} ref={this._linkButton}>
+        return !links.length || links[0].hidden ? (null) :
+            <div title="Drag(create link) Tap(view links)" ref={this._linkButton}>
                 <div className={"documentLinksButton-button-nonempty"} onPointerDown={this.onLinkButtonDown} >
-                    {links.length}
+                    {links.length ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
                 </div>
+                {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-button-empty"} onPointerDown={this.completeLink} /> : (null)}
+                {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-button"} /> : (null)}
             </div>;
     }
     render() {

@@ -19,6 +19,7 @@ import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
 import { DocumentDecorations } from "./DocumentDecorations";
 import { MainView } from "./MainView";
 import { DocumentView } from "./nodes/DocumentView";
+import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -77,6 +78,7 @@ export default class KeyManager {
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
+                DocumentLinksButton.StartLink = undefined;
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);
                 if (main.isPointerDown) {
