@@ -258,6 +258,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this._collectionStatus) {
             query = this.addCollectionFilter(query);
             query = query.replace(/\s+/g, ' ').trim();
+            console.log(query)
+
         }
         return query;
     }
@@ -283,6 +285,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     addCollectionFilter(query: string): string {
         const collections: Doc[] = this.getCurCollections();
+        
+        console.log(collections);
         const oldWords = query.split(" ");
 
         const collectionString: string[] = [];
@@ -308,7 +312,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     getCurCollections(): Doc[] {
         const selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
         const collections: Doc[] = [];
-
+        console.log(selectedDocs);
         selectedDocs.forEach(async element => {
             const layout: string = StrCast(element.props.Document.layout);
             //checks if selected view (element) is a collection. if it is, adds to list to search through
@@ -387,6 +391,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._isSorted=[];
         this._visibleElements = [];
         this._visibleDocuments = [];
+        console.log(this._timeout);
+        
+        if (this._timeout){clearTimeout(this._timeout); this._timeout=undefined};
+        this._timeout= setTimeout(()=>{
+            console.log("Resubmitting search");
+            this.submitSearch();
+        }, 10000);
+
         if (query !== "") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
@@ -401,6 +413,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             });
         }
     }
+    @observable _timeout:any=undefined;
     
     @observable firststring: string = "";
     @observable secondstring: string = "";
@@ -796,8 +809,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     //if true, any keywords can be used. if false, all keywords are required.
     @action.bound
     handleWordQueryChange =  async() => {
-        this._basicWordStatus = !this._basicWordStatus;
-        if (this._basicWordStatus) {
+        this._collectionStatus = !this._collectionStatus;
+        if (this._collectionStatus) {
             let doc = await Cast(this.props.Document.keywords, Doc)
             doc!.backgroundColor= "grey";
 
@@ -1207,6 +1220,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         return (
             <div style={{pointerEvents:"all"}}className="searchBox-container">
+
                 <div className="searchBox-bar">
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
