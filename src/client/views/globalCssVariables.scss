@@ -12,6 +12,7 @@ $lighter-alt-accent: rgb(207, 220, 240);
 $darker-alt-accent: rgb(178, 206, 248);
 $intermediate-color: #9c9396;
 $dark-color: #121721;
+$antimodemenu-height: 35px;
 // fonts
 $sans-serif: "Noto Sans",
 sans-serif;
@@ -40,4 +41,5 @@ $MAX_ROW_HEIGHT: 44px;
     MINIMIZED_ICON_SIZE: $MINIMIZED_ICON_SIZE;
     MAX_ROW_HEIGHT: $MAX_ROW_HEIGHT;
     SEARCH_THUMBNAIL_SIZE: $search-thumnail-size;
+    ANTIMODEMENU_HEIGHT: $antimodemenu-height;
 }

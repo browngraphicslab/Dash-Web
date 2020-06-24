@@ -90,6 +90,7 @@ export interface DocumentViewProps {
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
+    forcedBackgroundColor?: (doc: Doc) => string | undefined;
     opacity?: () => number | undefined;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
@@ -618,6 +619,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (this.props.Document === Doc.UserDoc().activeWorkspace) {
+            alert("linking to document tabs not yet supported.  Drop link on document content.");
+            return;
+        }
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
@@ -1064,7 +1069,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 PanelWidth={this.anchorPanelWidth}
                 PanelHeight={this.anchorPanelHeight}
                 ContentScaling={returnOne}
-                backgroundColor={returnTransparent}
+                forcedBackgroundColor={returnTransparent}
                 removeDocument={this.hideLinkAnchor}
                 pointerEvents={false}
                 LayoutTemplate={undefined}
@@ -1150,7 +1155,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     render() {
         if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
         if (!(this.props.Document instanceof Doc)) return (null);
-        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
