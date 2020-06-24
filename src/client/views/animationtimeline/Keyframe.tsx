@@ -91,8 +91,8 @@ export namespace KeyframeFunc {
         regiondata.position = 0;
         // regiondata.fadeIn = 1000;
         // regiondata.fadeOut = 1000;
-        regiondata.fadeIn = 0;
-        regiondata.fadeOut = 0;
+        // regiondata.fadeIn = 0;
+        // regiondata.fadeOut = 0;
         regiondata.functions = new List<Doc>();
         regiondata.hasData = false;
         return regiondata;
@@ -115,8 +115,8 @@ export const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
     duration: defaultSpec("number", 0),
     keyframes: listSpec(Doc),
-    fadeIn: defaultSpec("number", 0),
-    fadeOut: defaultSpec("number", 0),
+    // fadeIn: defaultSpec("number", 0),
+    // fadeOut: defaultSpec("number", 0),
     functions: listSpec(Doc),
     hasData: defaultSpec("boolean", false)
 });
@@ -207,14 +207,6 @@ export class Keyframe extends React.Component<IProps> {
     componentDidMount() {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
-            const start = this.props.makeKeyData(this.regiondata, this.regiondata.position, KeyframeFunc.KeyframeType.end);
-            // const fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
-            // const fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
-            const finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.end);
-            // fadeIn.opacity = 1;
-            // fadeOut.opacity = 1;
-            start.opacity = 1;
-            finish.opacity = 0.5;
             this.forceUpdate(); //not needed, if setTimeout is gone...
         }, 1000);
     }
@@ -296,8 +288,8 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.position = leftRegion.position + leftRegion.duration;
             this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - (leftRegion.position + leftRegion.duration);
         } else if (NumCast(this.keyframes[1].time) + offset >= NumCast(this.keyframes[2].time)) {
-            this.regiondata.position = NumCast(this.keyframes[2].time) - this.regiondata.fadeIn;
-            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - NumCast(this.keyframes[2].time) + this.regiondata.fadeIn;
+            this.regiondata.position = NumCast(this.keyframes[2].time);
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - NumCast(this.keyframes[2].time);
         } else if (NumCast(this.keyframes[0].time) + offset <= 0) {
             this.regiondata.position = 0;
             this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time);
@@ -306,7 +298,7 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.position += offset;
         }
         this.keyframes[0].time = this.regiondata.position;
-        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
+        this.keyframes[1].time = this.regiondata.position;
     }
 
 
@@ -318,14 +310,14 @@ export class Keyframe extends React.Component<IProps> {
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         const rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
         const fadeOutKeyframeTime = NumCast(this.keyframes[this.keyframes.length - 3].time);
-        if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= fadeOutKeyframeTime) { //case 1: when third to last keyframe is in the way 
-            this.regiondata.duration = fadeOutKeyframeTime - this.regiondata.position + this.regiondata.fadeOut;
+        if (this.regiondata.position + this.regiondata.duration + offset <= fadeOutKeyframeTime) { //case 1: when third to last keyframe is in the way 
+            this.regiondata.duration = fadeOutKeyframeTime - this.regiondata.position;
         } else if (rightRegion && (this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position)) {
             this.regiondata.duration = rightRegion.position - this.regiondata.position;
         } else {
             this.regiondata.duration += offset;
         }
-        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
+        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration;
         this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration;
     }
 
@@ -335,13 +327,13 @@ export class Keyframe extends React.Component<IProps> {
         this._mouseToggled = true;
         const bar = this._bar.current!;
         const offset = KeyframeFunc.convertPixelTime(Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
-            const position = this.regiondata.position;
-            this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
-            this.regiondata.hasData = true;
-            this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
+        // if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
+        const position = this.regiondata.position;
+        this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
+        this.regiondata.hasData = true;
+        this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
 
-        }
+        // }
     }
 
 
@@ -376,7 +368,7 @@ export class Keyframe extends React.Component<IProps> {
                 }
                 if (!cannotMove) {
                     this.keyframes[kfIndex].time = parseInt(val, 10);
-                    this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
+                    this.keyframes[1].time = this.regiondata.position;
                 }
             })),
             TimelineMenu.Instance.addCheckbox(this.props.primitiveWhiteList.map(field => this.makeCheckbox(field))); //make checkbox for each tracked field
@@ -460,7 +452,7 @@ export class Keyframe extends React.Component<IProps> {
                     if (!cannotMove) {
                         this.regiondata.duration = parseInt(val, 10);
                         this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration;
-                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
+                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration;
                     }
                 });
             }),
@@ -574,9 +566,9 @@ export class Keyframe extends React.Component<IProps> {
     //154, 206, 223
     render() {
         trace();
-        console.log(this.props.RegionData.position);
-        console.log(this.regiondata.position);
-        console.log(this.pixelPosition);
+        // console.log(this.props.RegionData.position);
+        // console.log(this.regiondata.position);
+        // console.log(this.pixelPosition);
         return (
             <div className="bar" ref={this._bar} style={{
                 transform: `translate(${this.pixelPosition}px)`,

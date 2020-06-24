@@ -106,25 +106,7 @@ export class Track extends React.Component<IProps> {
             this._newKeyframe = false;
         }
         if (!kf) return;
-        if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
-            this.copyDocDataToKeyFrame(kf);
-            const leftkf = KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, kf); // lef keyframe, if it exists
-            const rightkf = KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, kf); //right keyframe, if it exists 
-            if (leftkf?.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
-                const edge = KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, leftkf);
-                edge && this.copyDocDataToKeyFrame(edge);
-                leftkf && this.copyDocDataToKeyFrame(leftkf);
-                edge && (edge.opacity = 0.1);
-                leftkf && (leftkf.opacity = 1);
-            }
-            if (rightkf?.type === KeyframeFunc.KeyframeType.fade) {
-                const edge = KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, rightkf);
-                edge && this.copyDocDataToKeyFrame(edge);
-                rightkf && this.copyDocDataToKeyFrame(rightkf);
-                edge && (edge.opacity = 0.1);
-                rightkf && (rightkf.opacity = 1);
-            }
-        }
+        kf.type === KeyframeFunc.KeyframeType.default && this.copyDocDataToKeyFrame(kf); // only save for non-fades
         keyframes[kfIndex] = kf;
         this.saveStateKf = undefined;
         this.saveStateRegion = undefined;
@@ -175,18 +157,7 @@ export class Track extends React.Component<IProps> {
     currentBarXReaction = () => {
         return reaction(() => this.props.currentBarX, () => {
             const regiondata = this.findRegion(this.time);
-            if (regiondata) {
-                this.props.node.hidden = false;
-                // if (!this._autoKfReaction) {
-                //     // console.log("creating another reaction"); 
-                //     // this._autoKfReaction = this.autoCreateKeyframe(); 
-                // }
-                this.timeChange();
-            } else {
-                this.props.node.hidden = true;
-                this.props.node.opacity = 0;
-                //if (this._autoKfReaction) this._autoKfReaction(); 
-            }
+            regiondata && this.timeChange();
         });
     }
 
@@ -202,9 +173,6 @@ export class Track extends React.Component<IProps> {
                 this.regions.filter(region => !region.hasData).forEach(region => {
                     for (let i = 0; i < 4; i++) {
                         this.copyDocDataToKeyFrame(DocListCast(region.keyframes)[i]);
-                        if (i === 0 || i === 3) { //manually inputing fades
-                            DocListCast(region.keyframes)[i].opacity = 0.1;
-                        }
                     }
                 });
             } else {
@@ -232,8 +200,8 @@ export class Track extends React.Component<IProps> {
             const leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
             const rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             const currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
+
             if (currentkf) {
-                console.log("is current");
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf;
                 this.saveStateRegion = regiondata;
@@ -326,7 +294,7 @@ export class Track extends React.Component<IProps> {
             if (rightRegion && rightRegion.position - regiondata.position <= 4000) { //edge case when there is less than default 4000 duration space between this and right region
                 regiondata.duration = rightRegion.position - regiondata.position;
             }
-            if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))) {
+            if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= 0)) {
                 Cast(this.props.node.regions, listSpec(Doc))?.push(regiondata);
                 this._newKeyframe = true;
                 this.saveStateRegion = regiondata;
