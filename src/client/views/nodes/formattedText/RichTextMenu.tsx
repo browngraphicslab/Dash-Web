@@ -779,7 +779,7 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
-            this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
+            this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
             this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
         ]}</div>;
 
