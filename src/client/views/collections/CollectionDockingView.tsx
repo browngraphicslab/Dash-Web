@@ -11,7 +11,7 @@ import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnTrue, Utils, returnZero, returnEmptyFilter } from "../../../Utils";
+import { emptyFunction, returnOne, returnTrue, Utils, returnZero, returnEmptyFilter, setupMoveUpEvents, returnFalse } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -521,13 +521,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     tab.setActive(true);
                 };
                 const onDown = (e: React.PointerEvent) => {
-                    if (!(e.nativeEvent as any).defaultPrevented) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const dragData = new DragManager.DocumentDragData([doc]);
-                        dragData.dropAction = doc.dropAction as dropActionType;
-                        DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
-                    }
+                    setupMoveUpEvents(this, e, (e) => {
+                        if (!(e as any).defaultPrevented) {
+                            const dragData = new DragManager.DocumentDragData([doc]);
+                            dragData.dropAction = doc.dropAction as dropActionType;
+                            DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
+                            return true;
+                        }
+                        return false;
+                    }, returnFalse, emptyFunction);
                 };
 
                 tab.buttonDisposer = reaction(() => ((view: Opt<DocumentView>) => view ? [view] : [])(DocumentManager.Instance.getDocumentView(doc)),

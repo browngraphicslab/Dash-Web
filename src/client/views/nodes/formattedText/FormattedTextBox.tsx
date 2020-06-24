@@ -230,7 +230,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     updateTitle = () => {
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.rootDoc.customTitle) {
-            const str = this._editorView.state.doc.textContent;
+            let node = this._editorView.state.doc;
+            while (node.firstChild) node = node.firstChild;
+            const str = node.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
@@ -932,7 +934,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            // applyDevTools.applyDevTools(this._editorView);
+            //applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1042,11 +1044,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (bounds && this.layoutDoc._chromeStatus !== "disabled") {
             const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
             let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
-            console.log("y = " + y + " hgt = " + RichTextMenu.Instance.height + " cords = " + coords.top);
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
                 y = Math.min(bounds.bottom, window.innerHeight - RichTextMenu.Instance.height);
             }
-            RichTextMenu.Instance.jumpTo(x, y);
+            setTimeout(() => window.document.activeElement === this.ProseRef?.children[0] && RichTextMenu.Instance.jumpTo(x, y), 250);
         }
     }
     onPointerWheel = (e: React.WheelEvent): void => {

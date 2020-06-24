@@ -46,6 +46,7 @@ import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
 import { ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../../InkingStroke";
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -240,11 +241,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
         if (linkDragData.linkSourceDocument === this.props.Document || this.props.Document.annotationOn) return false;
-        const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-        this.props.addDocument(source);
-        linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
-        e.stopPropagation();
-        return true;
+        if (!linkDragData.linkSourceDocument.context || StrCast(Cast(linkDragData.linkSourceDocument.context, Doc, null)?.type) === DocumentType.COL) {
+            // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+            // this.props.addDocument(source);
+            // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
+           return false;
+        } else {
+            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+            this.props.addDocument(source);
+            linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
+            e.stopPropagation();
+            return true;
+        }
     }
 
     @action

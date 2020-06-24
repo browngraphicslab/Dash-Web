@@ -62,6 +62,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _scriptSuggestedParams: any = "";
     @observable private _scriptParamsText: any = "";
 
+    constructor(props: any) {
+        super(props);
+    }
+
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
     @computed({ keepAlive: true }) get paramsTypes() { return this.compileParams.map(p => p.split(":")[1].trim()); }
@@ -135,9 +139,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     onFinish = () => {
         this.rootDoc.layoutKey = "layout";
-        this.rootDoc._height = 50;
-        this.rootDoc._width = 100;
-        this.dataDoc.documentText = this.rawScript;
     }
 
     // displays error message
@@ -158,8 +159,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             params,
             typecheck: false
         });
-        this.dataDoc.documentText = this.rawScript;
-        this.dataDoc.data = result.compiled ? new ScriptField(result) : undefined;
+        this.dataDoc[this.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
         this.onError(result.compiled ? undefined : result.errors);
         return result.compiled;
     }
@@ -171,7 +171,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             const bindings: { [name: string]: any } = {};
             this.paramsNames.forEach(key => bindings[key] = this.dataDoc[key]);
             // binds vars so user doesnt have to refer to everything as self.<var>
-            ScriptCast(this.dataDoc.data, null)?.script.run({ self: this.rootDoc, this: this.layoutDoc, ...bindings }, this.onError);
+            ScriptCast(this.dataDoc[this.fieldKey], null)?.script.run({ self: this.rootDoc, this: this.layoutDoc, ...bindings }, this.onError);
         }
     }
 
@@ -589,7 +589,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     // inputs for scripting div (script box, params box, and params column)
-    @computed({ keepAlive: true }) get renderScriptingInputs() {
+    @computed get renderScriptingInputs() {
+        TraceMobx();
 
         // should there be a border? style={{ borderStyle: "groove", borderBlockWidth: "1px" }}
         // params box on bottom
@@ -673,6 +674,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // renders script UI if _applied = false and params UI if _applied = true
     render() {
+        TraceMobx();
         return (
             <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}
                 onPointerUp={!this._function ? this.suggestionPos : undefined}>

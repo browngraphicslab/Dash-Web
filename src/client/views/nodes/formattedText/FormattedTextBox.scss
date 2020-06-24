@@ -288,6 +288,15 @@ footnote::after {
         font-family: inherit;
     }
 
+    blockquote {
+        padding: 10px 10px;
+        font-size: smaller;
+        margin: 0;
+        font-style: italic;
+        background: lightgray;
+        border-left: solid 2px dimgray;
+    }
+
     ol, ul {
         counter-reset: deci1 0 multi1 0;
         padding-left: 1em;
