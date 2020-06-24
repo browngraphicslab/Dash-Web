@@ -197,19 +197,23 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     render() {
         return (<div className="metadataEntry-outerDiv" id="metadataEntry-outer" onPointerDown={e => e.stopPropagation()}>
             <div className="metadataEntry-inputArea">
-                Key:
-                <div className="metadataEntry-autoSuggester" onClick={e => this.autosuggestRef.current!.input?.focus()}  >
-                    <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
-                        getSuggestionValue={this.getSuggestionValue}
-                        suggestions={emptyPath}
-                        alwaysRenderSuggestions={false}
-                        renderSuggestion={this.renderSuggestion}
-                        onSuggestionsFetchRequested={emptyFunction}
-                        onSuggestionsClearRequested={emptyFunction}
-                        ref={this.autosuggestRef} />
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <span>Key:</span>
+                    <div className="metadataEntry-autoSuggester" onClick={e => this.autosuggestRef.current!.input?.focus()}  >
+                        <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
+                            getSuggestionValue={this.getSuggestionValue}
+                            suggestions={emptyPath}
+                            alwaysRenderSuggestions={false}
+                            renderSuggestion={this.renderSuggestion}
+                            onSuggestionsFetchRequested={emptyFunction}
+                            onSuggestionsClearRequested={emptyFunction}
+                            ref={this.autosuggestRef} />
+                    </div>
                 </div>
-                Value:
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <span>Value:</span>
                     <input className="metadataEntry-input" ref={this._ref} value={this._currentValue} onClick={e => this._ref.current!.focus()} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                </div>
                 {this.considerChildOptions}
             </div>
             <div className="metadataEntry-keys" >

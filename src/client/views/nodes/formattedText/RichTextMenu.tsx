@@ -776,11 +776,11 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes")]}
             </div>
             <div key="button">
-                <div key="collapser">
+                {/* <div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
                         <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />
                     </button>
-                </div>
+                </div> */}
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
@@ -788,7 +788,7 @@ export default class RichTextMenu extends AntimodeMenu {
         </div>;
 
         return (
-            <div className="richTextMenu" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+            <div className="richTextMenu" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave} >
                 {this.getElementWithRows([row1, row2], 2, false)}
             </div>
         );

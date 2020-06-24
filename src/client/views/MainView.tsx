@@ -570,6 +570,7 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <DocumentDecorations />
             <GestureOverlay>
+                <RichTextMenu key="rich" />
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
@@ -578,7 +579,6 @@ export class MainView extends React.Component {
             <PDFMenu />
             <MarqueeOptionsMenu />
             <InkOptionsMenu />
-            <RichTextMenu />
             <OverlayView />
             <TimelineMenu />
             {this.snapLines}
