@@ -47,6 +47,7 @@ import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
 import { ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../../InkingStroke";
 import { DocumentType } from "../../../documents/DocumentTypes";
+import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -589,6 +590,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onClick = (e: React.MouseEvent) => {
         if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (Date.now() - this._lastTap < 300) {
+                runInAction(() => DocumentLinksButton.StartLink = undefined);
                 const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
                 this.scaleAtPt(docpt, 1);
                 e.stopPropagation();
