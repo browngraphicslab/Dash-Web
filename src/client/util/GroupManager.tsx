@@ -12,8 +12,14 @@ import SharingManager, { User } from "./SharingManager";
 import { Utils } from "../../Utils";
 import * as RequestPromise from "request-promise";
 import Select from 'react-select';
+import "./GroupManager.scss";
 
 library.add(fa.faWindowClose);
+
+interface UserOptions {
+    label: string;
+    value: string;
+}
 
 @observer
 export default class GroupManager extends React.Component<{}> {
@@ -23,7 +29,8 @@ export default class GroupManager extends React.Component<{}> {
     @observable private dialogueBoxOpacity: number = 1;
     @observable private overlayOpacity: number = 0.4;
     @observable private users: string[] = [];
-    @observable private selectedUsers: string[] | null = null;
+    @observable private selectedUsers: UserOptions[] | null = null;
+    private inputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -65,7 +72,7 @@ export default class GroupManager extends React.Component<{}> {
     }
 
     getGroup(groupName: string): Doc | undefined {
-        const groupDoc = GroupManager.Instance.getAllGroups().find(group => group.name === groupName);
+        const groupDoc = GroupManager.Instance.getAllGroups().find(group => group.groupName === groupName);
         return groupDoc;
     }
 
@@ -74,6 +81,7 @@ export default class GroupManager extends React.Component<{}> {
     }
 
     hasEditAccess(groupDoc: Doc): boolean {
+        if (!groupDoc) return false;
         const accessList: string[] = JSON.parse(groupDoc.owners as string);
         return accessList.includes(Doc.CurrentUserEmail) || GroupManager.Instance.adminGroupMembers.includes(Doc.CurrentUserEmail);
     }
@@ -87,25 +95,17 @@ export default class GroupManager extends React.Component<{}> {
     }
 
     addGroup(groupDoc: Doc): boolean {
-        // const groupList = GroupManager.Instance.getAllGroups();
-        // groupList.push(groupDoc);
         if (GroupManager.Instance.GroupManagerDoc) {
             Doc.AddDocToList(GroupManager.Instance.GroupManagerDoc, "data", groupDoc);
-            // GroupManager.Instance.GroupManagerDoc.data = new List<Doc>(groupList);
             return true;
         }
         return false;
     }
 
     deleteGroup(groupName: string): boolean {
-        // const groupList = GroupManager.Instance.getAllGroups();
-        // const index = groupList.indexOf(groupDoc);
-        // if (index !== -1) {
-        // groupList.splice(index, 1);
         const groupDoc = GroupManager.Instance.getGroup(groupName);
         if (groupDoc) {
             if (GroupManager.Instance.GroupManagerDoc && GroupManager.Instance.hasEditAccess(groupDoc)) {
-                // GroupManager.Instance.GroupManagerDoc.data = new List<Doc>(groupList);
                 Doc.RemoveDocFromList(GroupManager.Instance.GroupManagerDoc, "data", groupDoc);
                 return true;
             }
@@ -134,44 +134,63 @@ export default class GroupManager extends React.Component<{}> {
 
     @action
     handleChange = (selectedOptions: any) => {
-        const castOptions = selectedOptions as { label: string, value: string }[];
-        console.log(castOptions);
-        this.selectedUsers = castOptions.map(option => option.value);
+        console.log(selectedOptions);
+        this.selectedUsers = selectedOptions as UserOptions[];
     }
 
     @action
-    resetSelection = () => {
-        console.log(this.selectedUsers?.[0]);
-        this.selectedUsers = null;
-    }
-
     createGroup = () => {
+        if (!this.inputRef.current?.value) {
+            alert("Please enter a group name");
+            return;
+        }
+        if (!this.selectedUsers) {
+            alert("Please select users");
+            return;
+        }
+        if (this.getAllGroups().find(group => group.groupName === this.inputRef.current!.value)) { // why do I need  null check here?
+            alert("Please select a unique group name");
+            return;
+        }
+        this.createGroupDoc(this.inputRef.current.value, this.selectedUsers.map(user => user.value));
         this.selectedUsers = null;
+        this.inputRef.current.value = "";
     }
 
     private get groupInterface() {
         return (
-            <div className="settings-interface">
-                <div className="settings-heading">
+            <div className="group-interface">
+                <div className="group-heading">
                     <h1>Groups</h1>
                     <div className={"close-button"} onClick={this.close}>
                         <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
                     </div>
-                    <button onClick={this.resetSelection} style={{ width: "50%" }}>Create group</button>
                 </div>
-                <span style={{ width: "50%" }}>
-                    <Select
-                        isMulti={true}
-                        isSearchable={true}
-                        options={this.options}
-                        onChange={this.handleChange}
-                        placeholder={"Select users"}
-                        value={this.selectedUsers}
-                    />
-                </span>
-                <span>
-                    <input type="text" id="groupNameInput" />
-                </span>
+                <div className="group-body">
+                    <div className="group-create">
+                        <button onClick={this.createGroup}>Create group</button>
+                        <input ref={this.inputRef} type="text" placeholder="Group name" />
+                        <Select
+                            isMulti={true}
+                            isSearchable={true}
+                            options={this.options}
+                            onChange={this.handleChange}
+                            placeholder={"Select users"}
+                            value={this.selectedUsers}
+                            closeMenuOnSelect={false}
+                        />
+                    </div>
+                    <div className="group-content">
+                        {this.getAllGroups().map(group =>
+                            <div className="group-row">
+                                <div className="group-name">{group.groupName}</div>
+                                <button>
+                                    {this.hasEditAccess(this.getGroup(group.groupName as string) as Doc) ? "Edit" : "View"}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         );
     }
