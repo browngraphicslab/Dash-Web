@@ -9,7 +9,8 @@ import { Cast, NumCast, BoolCast } from "../../../fields/Types";
 import { List } from "../../../fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../fields/Schema";
 import { Transform } from "../../util/Transform";
-import { TimelineMenu, FieldToggle } from "./TimelineMenu";
+import { TimelineMenu } from "./TimelineMenu";
+// import { FieldToggle } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { emptyPath, Utils } from "../../../Utils";
@@ -172,18 +173,34 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
 
-    @observable fieldToVal: Map<string, boolean> = this.makeFieldMap;
-    @computed get getFieldMap() { return this.fieldToVal; }
+    // @observable private fieldToVal = new Map<string, boolean>();
+    // @computed get trackedFields(): string[] {
+    //     const res: string[] = [];
+    //     this.fieldToVal.forEach((val, field) =>
+    //         val && res.push(field)
+    //     );
+    //     return res;
+    // }
 
-    @computed get makeFieldMap() {
-        const map = new Map<string, boolean>();
-        this.props.primitiveWhiteList.map(field => map.set(field, true));
-        return map;
-    }
+    @observable private trackedFields = [
+        "x",
+        "y",
+        "_width",
+        "_height",
+        "opacity",
+        "_scrollTop",
+        "_panX",
+        "_panY",
+        "scale"
+    ];
 
     constructor(props: any) {
         super(props);
     }
+
+    // componentWillMount() {
+    //     this.props.primitiveWhiteList.map(field => this.fieldToVal.set(field, true));
+    // }
 
     componentDidMount() {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
@@ -368,13 +385,13 @@ export class Keyframe extends React.Component<IProps> {
     makeCheckbox = (field: string) => {
         return <div className="timeline-menu-item">
             <input type="checkbox" key={Utils.GenerateGuid()} className="timeline-menu-checkbox"
-                checked={BoolCast(this.fieldToVal.get(field))}
-                onChange={action(e => {
+                checked={this.trackedFields.includes(field)}
+                onChange={e => {
                     e.stopPropagation();
-                    this.fieldToVal.set(field, !BoolCast(this.fieldToVal.get(field)));
-                    e.target.checked = BoolCast(this.fieldToVal.get(field));
-                    console.log(field, this.fieldToVal.get(field), "checked", e.target.checked);
-                })} />
+                    const index = this.trackedFields.indexOf(field);
+                    index === -1 ? this.trackedFields.push(field) : this.trackedFields.splice(index, 1);
+                    console.log(field, this.trackedFields.includes(field));
+                }} />
             {field}
         </div>;
     }
