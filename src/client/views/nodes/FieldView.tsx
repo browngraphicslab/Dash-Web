@@ -27,6 +27,8 @@ export interface FieldViewProps {
     LibraryPath: Doc[];
     onClick?: ScriptField;
     dropAction: dropActionType;
+    backgroundHalo?: () => boolean;
+    docFilters: () => string[];
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;

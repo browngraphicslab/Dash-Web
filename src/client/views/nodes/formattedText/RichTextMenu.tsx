@@ -12,7 +12,7 @@ import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscr
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../FieldView";
 import { Cast, StrCast } from "../../../../fields/Types";
-import { FormattedTextBoxProps } from "./FormattedTextBox";
+import { FormattedTextBoxProps, FormattedTextBox } from "./FormattedTextBox";
 import { unimplementedFunction, Utils } from "../../../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
 import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
@@ -104,7 +104,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
-            { node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
+            //{ node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
         ];
 
         this.fontColors = [
@@ -189,9 +189,9 @@ export default class RichTextMenu extends AntimodeMenu {
             const node = (state.selection as NodeSelection).node;
             if (node?.type === schema.nodes.ordered_list) {
                 let attrs = node.attrs;
-                if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, setFontFamily: mark.attrs.family };
-                if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, setFontSize: mark.attrs.fontSize };
-                if (mark.type === schema.marks.pFontColor) attrs = { ...attrs, setFontColor: mark.attrs.color };
+                if (mark.type === schema.marks.pFontFamily) attrs = { ...attrs, fontFamily: mark.attrs.family };
+                if (mark.type === schema.marks.pFontSize) attrs = { ...attrs, fontSize: `${mark.attrs.fontSize}px` };
+                if (mark.type === schema.marks.pFontColor) attrs = { ...attrs, fontColor: mark.attrs.color };
                 const tr = updateBullets(state.tr.setNodeMarkup(state.selection.from, node.type, attrs), state.schema);
                 dispatch(tr.setSelection(new NodeSelection(tr.doc.resolve(state.selection.from))));
             } else {
@@ -307,7 +307,6 @@ export default class RichTextMenu extends AntimodeMenu {
         function onClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.view.focus();
             self.view && command && command(self.view.state, self.view.dispatch, self.view);
             self.view && onclick && onclick(self.view.state, self.view.dispatch, self.view);
             self.setActiveMarkButtons(self.getActiveMarksOnSelection());
@@ -378,26 +377,24 @@ export default class RichTextMenu extends AntimodeMenu {
 
     // TODO: remove doesn't work
     //remove all node type and apply the passed-in one to the selected text
-    changeListType = (nodeType: NodeType | undefined) => {
+    changeListType = (nodeType: Node | undefined) => {
         if (!this.view) return;
 
-        if (nodeType === schema.nodes.bullet_list) {
-            wrapInList(nodeType)(this.view.state, this.view.dispatch);
-        } else {
-            const marks = this.view.state.storedMarks || (this.view.state.selection.$to.parentOffset && this.view.state.selection.$from.marks());
-            if (!wrapInList(schema.nodes.ordered_list)(this.view.state, (tx2: any) => {
-                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
+        const marks = this.view.state.storedMarks || (this.view.state.selection.$to.parentOffset && this.view.state.selection.$from.marks());
+        if (!wrapInList(schema.nodes.ordered_list)(this.view.state, (tx2: any) => {
+            const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle, this.view!.state.selection.from - 1, this.view!.state.selection.to + 1);
+            marks && tx3.ensureMarks([...marks]);
+            marks && tx3.setStoredMarks([...marks]);
+
+            this.view!.dispatch(tx2);
+        })) {
+            const tx2 = this.view.state.tr;
+            if (nodeType && this.view.state.selection.$from.nodeAfter?.type === schema.nodes.ordered_list) {
+                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle, this.view.state.selection.from, this.view.state.selection.to);
                 marks && tx3.ensureMarks([...marks]);
                 marks && tx3.setStoredMarks([...marks]);
 
-                this.view!.dispatch(tx2);
-            })) {
-                const tx2 = this.view.state.tr;
-                const tx3 = updateBullets(tx2, schema, nodeType && (nodeType as any).attrs.mapStyle);
-                marks && tx3.ensureMarks([...marks]);
-                marks && tx3.setStoredMarks([...marks]);
-
-                this.view.dispatch(tx3);
+                this.view.dispatch(tx3.setSelection(new NodeSelection(tx3.doc.resolve(this.view.state.selection.$from.pos))));
             }
         }
     }
@@ -429,7 +426,6 @@ export default class RichTextMenu extends AntimodeMenu {
         function onBrushClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.view.focus();
             self.view && self.fillBrush(self.view.state, self.view.dispatch);
         }
 
@@ -503,13 +499,11 @@ export default class RichTextMenu extends AntimodeMenu {
         function onColorClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.view.focus();
             self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
         }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.view.focus();
             self.setActiveColor(color);
             self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
         }
@@ -556,13 +550,11 @@ export default class RichTextMenu extends AntimodeMenu {
         function onHighlightClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.view.focus();
             self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
         }
         function changeHighlight(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.view.focus();
             self.setActiveHighlight(color);
             self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
         }
@@ -661,15 +653,8 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     // TODO: should check for valid URL
-    makeLinkToURL = (target: String, lcoation: string) => {
-        if (!this.view) return;
-
-        let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
-        this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
-        this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
-        node = this.view.state.selection.$from.nodeAfter;
-        link = node && node.marks.find(m => m.type.name === "link");
+    makeLinkToURL = (target: string, lcoation: string) => {
+        ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRight", "", target);
     }
 
     deleteLink = () => {
@@ -762,13 +747,14 @@ export default class RichTextMenu extends AntimodeMenu {
         this.collapsed = !this.collapsed;
         setTimeout(() => {
             const x = Math.min(this._left, window.innerWidth - RichTextMenu.Instance.width);
-            RichTextMenu.Instance.jumpTo(x, this._top);
+            RichTextMenu.Instance.jumpTo(x, this._top, true);
         }, 0);
     }
 
     render() {
 
         const row1 = <div className="antimodeMenu-row" key="row1" style={{ display: this.collapsed ? "none" : undefined }}>{[
+            !this.collapsed ? this.getDragger() : (null),
             this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
             this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
             this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
@@ -783,6 +769,7 @@ export default class RichTextMenu extends AntimodeMenu {
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
+            {this.collapsed ? this.getDragger() : (null)}
             <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
@@ -797,7 +784,6 @@ export default class RichTextMenu extends AntimodeMenu {
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
-                {this.getDragger()}
             </div>
         </div>;
 
@@ -842,7 +828,6 @@ class ButtonDropdown extends React.Component<ButtonDropdownProps> {
     onDropdownClick = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        this.props.view && this.props.view.focus();
         this.toggleDropdown();
     }
 

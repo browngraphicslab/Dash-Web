@@ -233,6 +233,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
             focus={this.props.focus}
+            docFilters={this.docFilters}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}

@@ -21,6 +21,7 @@ import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { LabelBox } from "../views/nodes/LabelBox";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -323,9 +324,17 @@ export class CurrentUserUtils {
             iconView.isTemplateDoc = makeTemplate(iconView);
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
+        if (doc["template-icon-view-pdf"] === undefined) {
+            const iconPdfView = Docs.Create.LabelDocument({
+                title: "icon_" + DocumentType.PDF, textTransform: "unset", letterSpacing: "unset", layout: LabelBox.LayoutString("title"), _backgroundColor: "dimGray",
+                _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
+            });
+            iconPdfView.isTemplateDoc = makeTemplate(iconPdfView, true, "icon_" + DocumentType.PDF);
+            doc["template-icon-view-pdf"] = new PrefetchProxy(iconPdfView);
+        }
         if (doc["template-icon-view-rtf"] === undefined) {
             const iconRtfView = Docs.Create.LabelDocument({
-                title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset",
+                title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", layout: LabelBox.LayoutString("text"),
                 _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
             });
             iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
@@ -345,11 +354,11 @@ export class CurrentUserUtils {
         }
         if (doc["template-icons"] === undefined) {
             doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
                 await Promise.all(curIcons!);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
@@ -583,12 +592,17 @@ export class CurrentUserUtils {
         }
 
         if (doc["tabs-button-tools"] === undefined) {
+            const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
+                _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
+            })) as any as Doc;
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
                 _width: 35, _height: 25, title: "Tools", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                    _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
-                })) as any as Doc,
+                sourcePanel: toolsStack,
+                onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
+                dragFactory: toolsStack,
+                removeDropProperties: new List<string>(["lockedPosition"]),
+                stayInCollection: true,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
             }));
@@ -613,8 +627,8 @@ export class CurrentUserUtils {
     static setupCatalog(doc: Doc) {
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
-                title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
-                childDropAction: "alias", targetDropAction: "same", treeViewExpandedView: "layout"
+                title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
+                childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
             }));
         }
         return doc.myCatalog as Doc;
@@ -623,7 +637,7 @@ export class CurrentUserUtils {
         // setup Recently Closed library item
         if (doc.myRecentlyClosed === undefined) {
             doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
+                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, stayInCollection: true,
             }));
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
@@ -641,13 +655,18 @@ export class CurrentUserUtils {
         const recentlyClosed = CurrentUserUtils.setupRecentlyClosed(doc);
 
         if (doc["tabs-button-library"] === undefined) {
+            const libraryStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
+                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
                 _width: 50, _height: 25, title: "Library", _fontSize: 10, targetDropAction: "same",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                    lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
-                })) as any as Doc,
+                sourcePanel: libraryStack,
+                onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
+                dragFactory: libraryStack,
+                removeDropProperties: new List<string>(["lockedPosition"]),
+                stayInCollection: true,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
             }));
@@ -791,6 +810,7 @@ export class CurrentUserUtils {
     }
 
     static async updateUserDocument(doc: Doc) {
+        doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");

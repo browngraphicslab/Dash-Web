@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { Doc, Opt, Field, AclSym, AclPrivate } from "../../../fields/Doc";
 import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { OmitKeys, Without, emptyPath } from "../../../Utils";
-import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
+import { DirectoryImportBox } from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";

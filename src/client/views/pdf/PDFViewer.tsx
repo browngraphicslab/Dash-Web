@@ -51,6 +51,7 @@ interface IViewerProps {
     fieldKey: string;
     Document: Doc;
     DataDoc?: Doc;
+    docFilters: () => string[];
     ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -110,6 +111,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _downX: number = 0;
     private _downY: number = 0;
     private _coverPath: any;
+    private _viewerIsSetup = false;
 
     @computed get allAnnotations() {
         return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).filter(
@@ -159,7 +161,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }, { fireImmediately: true });
 
         this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
-            () => (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer(),
+            selected => {
+                if (!selected) {
+                    this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
+                    this._savedAnnotations.keys().forEach(k => this._savedAnnotations.setValue(k, []));
+                    PDFMenu.Instance.fadeOut(true);
+                }
+                (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer();
+            },
             { fireImmediately: true });
         this._reactionDisposer = reaction(
             () => this.Document._scrollY,
@@ -215,8 +224,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     setupPdfJsViewer = async () => {
-        this._selectionReactionDisposer && this._selectionReactionDisposer();
-        this._selectionReactionDisposer = undefined;
+        if (this._viewerIsSetup) return;
+        else this._viewerIsSetup = true;
         this._showWaiting = true;
         this.props.setPdfViewer(this);
         await this.initialLoad();

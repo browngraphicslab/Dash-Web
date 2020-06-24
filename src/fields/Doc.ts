@@ -134,7 +134,7 @@ export class Doc extends RefField {
             has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                (target[AclSym] !== AclPrivate) && Object.assign(obj, target.___fields);
+                if (target[AclSym] !== AclPrivate) Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },

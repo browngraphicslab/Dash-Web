@@ -10,7 +10,7 @@ import { WebField } from "../../../fields/URLField";
 import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
-import { Utils, returnFalse } from "../../../Utils";
+import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Networking } from "../../Network";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
@@ -101,8 +101,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
         }
+        docFilters = () => {
+            return this.props.ignoreFields?.includes("_docFilters") ? [] :
+                this.props.docFilters !== returnEmptyFilter ? this.props.docFilters() :
+                    Cast(this.props.Document._docFilters, listSpec("string"), []);
+        }
         @computed get childDocs() {
-            const docFilters = this.props.ignoreFields?.includes("_docFilters") ? [] : Cast(this.props.Document._docFilters, listSpec("string"), []);
+            const docFilters = this.docFilters();
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
             const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
             for (let i = 0; i < docFilters.length; i += 3) {

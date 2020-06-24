@@ -18,6 +18,7 @@ import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
+import e = require("express");
 
 export type KVPScript = {
     script: CompiledScript;
@@ -31,10 +32,11 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     private _mainCont = React.createRef<HTMLDivElement>();
     private _keyHeader = React.createRef<HTMLTableHeaderCellElement>();
+    private _keyInput = React.createRef<HTMLInputElement>();
+    private _valInput = React.createRef<HTMLInputElement>();
 
     @observable private rows: KeyValuePair[] = [];
-    @observable private _keyInput: string = "";
-    @observable private _valueInput: string = "";
+
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
     get fieldDocToLayout() { return this.props.fieldKey ? Cast(this.props.Document[this.props.fieldKey], Doc, null) : this.props.Document; }
 
@@ -42,10 +44,11 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
             e.stopPropagation();
-            if (this._keyInput && this._valueInput && this.fieldDocToLayout) {
-                if (KeyValueBox.SetField(this.fieldDocToLayout, this._keyInput, this._valueInput)) {
-                    this._keyInput = "";
-                    this._valueInput = "";
+            if (this._keyInput.current?.value && this._valInput.current?.value && this.fieldDocToLayout) {
+                if (KeyValueBox.SetField(this.fieldDocToLayout, this._keyInput.current.value, this._valInput.current.value)) {
+                    this._keyInput.current.value = "";
+                    this._valInput.current.value = "";
+                    document.body.focus();
                 }
             }
         }
@@ -103,7 +106,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
     rowHeight = () => 30;
 
-    createTable = () => {
+    @computed get createTable() {
         const doc = this.fieldDocToLayout;
         if (!doc) {
             return <tr><td>Loading...</td></tr>;
@@ -136,28 +139,16 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         }
         return rows;
     }
-
-    @action
-    keyChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._keyInput = e.currentTarget.value;
+    @computed get newKeyValue() {
+        return <tr className="keyValueBox-valueRow">
+            <td className="keyValueBox-td-key" onClick={(e) => { this._keyInput.current!.select(); e.stopPropagation(); }} style={{ width: `${100 - this.splitPercentage}%` }}>
+                <input style={{ width: "100%" }} ref={this._keyInput} type="text" placeholder="Key" />
+            </td>
+            <td className="keyValueBox-td-value" onClick={(e) => { this._valInput.current!.select(); e.stopPropagation(); }} style={{ width: `${this.splitPercentage}%` }}>
+                <input style={{ width: "100%" }} ref={this._valInput} type="text" placeholder="Value" onKeyDown={this.onEnterKey} />
+            </td>
+        </tr>;
     }
-
-    @action
-    valueChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._valueInput = e.currentTarget.value;
-    }
-
-    newKeyValue = () =>
-        (
-            <tr className="keyValueBox-valueRow">
-                <td className="keyValueBox-td-key" style={{ width: `${100 - this.splitPercentage}%` }}>
-                    <input style={{ width: "100%" }} type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} />
-                </td>
-                <td className="keyValueBox-td-value" style={{ width: `${this.splitPercentage}%` }}>
-                    <input style={{ width: "100%" }} type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyDown={this.onEnterKey} />
-                </td>
-            </tr>
-        )
 
     @action
     onDividerMove = (e: PointerEvent): void => {
@@ -260,8 +251,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                         >Key</th>
                         <th className="keyValueBox-fields" style={{ width: `${this.splitPercentage}%` }}>Fields</th>
                     </tr>
-                    {this.createTable()}
-                    {this.newKeyValue()}
+                    {this.createTable}
+                    {this.newKeyValue}
                 </tbody>
             </table>
             {dividerDragger}

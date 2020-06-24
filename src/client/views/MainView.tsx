@@ -20,7 +20,7 @@ import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -58,7 +58,7 @@ import { DocumentManager } from '../util/DocumentManager';
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 26;
+    private _buttonBarHeight = 36;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
@@ -79,6 +79,11 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         const tag = document.createElement('script');
+
+        const proto = DocServer.GetRefField("rtfProto").then(proto => {
+            (proto instanceof Doc) && reaction(() => StrCast(proto.BROADCAST_MESSAGE),
+                msg => msg && alert(msg));
+        });
 
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -201,9 +206,9 @@ export class MainView extends React.Component {
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
-        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
-        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
+        const copyWorkspace = ScriptField.MakeScript(`copyWorkspace()`);
+        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyWorkspace!]);
+        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Workspace"]);
 
         Doc.AddDocToList(workspaces, "data", workspaceDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
@@ -310,6 +315,7 @@ export class MainView extends React.Component {
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
+            docFilters={returnEmptyFilter}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
         />;
@@ -389,7 +395,7 @@ export class MainView extends React.Component {
             return (null);
         }
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight - 10/*margin-top*/}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
                     Document={this.sidebarButtonsDoc}
                     DataDoc={undefined}
@@ -412,6 +418,7 @@ export class MainView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>
@@ -438,6 +445,7 @@ export class MainView extends React.Component {
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
@@ -529,6 +537,7 @@ export class MainView extends React.Component {
                     renderDepth={0}
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
+                    docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;
@@ -578,7 +587,7 @@ export class MainView extends React.Component {
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
-Scripting.addGlobal(function cloneWorkspace() {
+Scripting.addGlobal(function copyWorkspace() {
     const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
     const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
     Doc.AddDocToList(workspaces, "data", copiedWorkspace);

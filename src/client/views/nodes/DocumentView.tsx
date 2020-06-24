@@ -17,10 +17,8 @@ import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ClientRecommender } from '../../ClientRecommender';
-import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
-import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { SnappingManager } from '../../util/SnappingManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -54,6 +52,7 @@ export type DocFocusFunc = () => boolean;
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    docFilters: () => string[];
     FreezeDimensions?: boolean;
     NativeWidth: () => number;
     NativeHeight: () => number;
@@ -138,7 +137,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.removeEndListeners();
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
-        console.log(SelectionManager.SelectedDocuments());
         if (RadialMenu.Instance._display === false) {
             this.addHoldMoveListeners();
             this.addHoldEndListeners();
@@ -327,20 +325,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const alias = Doc.MakeAlias(this.props.Document);
                 DocUtils.makeCustomViewClicked(alias, undefined, "onClick");
                 this.props.addDocTab(alias, "onRight");
-                // UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
-                //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.props.Document.links && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
                 if ((this.props.Document.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
-                    // if (this.props.Document.type === DocumentType.RTF) {
-                    //     DocumentView._focusHack = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY) || [0, 0];
-                    //     DocumentView._focusHack = [DocumentView._focusHack[0] + NumCast(this.props.Document.x), DocumentView._focusHack[1] + NumCast(this.props.Document.y)];
-
-                    //     this.props.focus(this.props.Document, false);
-                    // }
                     SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
                 }
                 preventDefault = false;
@@ -580,7 +570,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
+    deleteClicked = (): void => {
+        if (Doc.UserDoc().activeWorkspace === this.props.Document) {
+            alert("Can't delete the active workspace");
+        } else {
+            SelectionManager.DeselectAll();
+            this.props.removeDocument?.(this.props.Document);
+        }
+    }
 
 
     @undoBatch
@@ -734,7 +731,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let options = cm?.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
-        optionItems.push({ description: "Open Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         if (!options) {
             options = { description: "Options...", subitems: optionItems, icon: "compass" };
@@ -794,12 +790,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const help = cm?.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        helpItems.push({
-            description: "Keyboard Shortcuts       Ctrl+/",
-            event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"),
-            icon: "keyboard"
-        });
-        cm?.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
+        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
+        helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
+        cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
 
         const existingAcls = cm?.findByDescription("Privacy...");
         const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
@@ -1003,8 +996,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<>
+        return (<div style={{ position: "absolute", width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
+                docFilters={this.props.docFilters}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 NativeWidth={this.NativeWidth}
@@ -1015,6 +1009,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 LayoutTemplate={this.props.LayoutTemplate}
                 makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
+                backgroundHalo={this.props.backgroundHalo}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
                 LibraryPath={this.props.LibraryPath}
@@ -1040,7 +1035,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
             {this.anchors}
-        </>
+        </div>
         );
     }
 

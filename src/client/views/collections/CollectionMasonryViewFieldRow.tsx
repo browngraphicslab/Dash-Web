@@ -43,6 +43,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @observable private heading: string = "";
     @observable private color: string = "#f1efeb";
     @observable private collapsed: boolean = false;
+    @observable private _paletteOn = false;
     private set _heading(value: string) { runInAction(() => this.props.headingObject && (this.props.headingObject.heading = this.heading = value)); }
     private set _color(value: string) { runInAction(() => this.props.headingObject && (this.props.headingObject.color = this.color = value)); }
     private set _collapsed(value: boolean) { runInAction(() => this.props.headingObject && (this.props.headingObject.collapsed = this.collapsed = value)); }
@@ -293,11 +294,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         {noChrome ? evContents : <EditableView {...headerEditableViewProps} />}
                         {noChrome || evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
-                                <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
-                                    <button className="collectionStackingView-sectionColorButton">
-                                        <FontAwesomeIcon icon="palette" size="lg" />
-                                    </button>
-                                </ Flyout >
+                                <button className="collectionStackingView-sectionColorButton" onClick={action(e => this._paletteOn = !this._paletteOn)}>
+                                    <FontAwesomeIcon icon="palette" size="lg" />
+                                </button>
+                                {this._paletteOn ? this.renderColorPicker() : (null)}
                             </div>
                         }
                         {noChrome ? (null) : <button className="collectionStackingView-sectionDelete" onClick={noChrome ? undefined : this.collapseSection}>
@@ -305,7 +305,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         </button>}
                         {noChrome || evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionOptions">
-                                <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
+                                <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderMenu()}>
                                     <button className="collectionStackingView-sectionOptionButton">
                                         <FontAwesomeIcon icon="ellipsis-v" size="lg" />
                                     </button>

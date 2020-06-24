@@ -4,7 +4,7 @@ import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import { Doc, DocCastAsync } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne, returnEmptyFilter } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { schema } from "./schema_rts";
@@ -222,9 +222,10 @@ export class FormattedTextBoxComment {
                                     addDocTab={returnFalse}
                                     pinToPres={returnFalse}
                                     dontRegisterView={true}
+                                    docFilters={returnEmptyFilter}
                                     ContainingCollectionDoc={undefined}
                                     ContainingCollectionView={undefined}
-                                    renderDepth={1}
+                                    renderDepth={0}
                                     PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
                                     PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
                                     focus={emptyFunction}

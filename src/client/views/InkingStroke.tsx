@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { makeInterface } from "../../fields/Schema";
-import { Cast, StrCast } from "../../fields/Types";
+import { Cast, StrCast, BoolCast } from "../../fields/Types";
 import { TraceMobx } from "../../fields/util";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { InteractionUtils } from "../util/InteractionUtils";
@@ -54,7 +54,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const scaleY = (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
         const strokeColor = StrCast(this.layoutDoc.color, ActiveInkColor());
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5);
+            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", "none", (this.props.isSelected() || BoolCast(this.props.backgroundHalo?.())) && strokeWidth <= 5);
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false);

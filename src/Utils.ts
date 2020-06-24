@@ -395,6 +395,8 @@ export function returnZero() { return 0; }
 
 export function returnEmptyString() { return ""; }
 
+export function returnEmptyFilter() { return [] as string[]; }
+
 export let emptyPath = [];
 
 export function emptyFunction() { }
