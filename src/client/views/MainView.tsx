@@ -57,6 +57,7 @@ import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
+import { LinkDocPreview } from './nodes/LinkDocPreview';
 
 @observer
 export class MainView extends React.Component {
@@ -581,6 +582,9 @@ export class MainView extends React.Component {
             </GestureOverlay>
             <PreviewCursor />
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
+            {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
+                linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
+                addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
             <ContextMenu />
             <RadialMenu />
             <PDFMenu />
