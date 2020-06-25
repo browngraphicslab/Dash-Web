@@ -1232,7 +1232,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
         const selPad = this.props.isSelected() ? -10 : 0;
-        const selclass = this.props.isSelected() ? "-selected" : ""
+        const selclass = this.props.isSelected() ? "-selected" : "";
         return (
             <div className={"formattedTextBox-cont"} style={{
                 transform: `scale(${scale})`,

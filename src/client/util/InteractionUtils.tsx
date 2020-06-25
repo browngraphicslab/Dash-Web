@@ -1,7 +1,6 @@
 import React = require("react");
 import * as beziercurve from 'bezier-curve';
 import * as fitCurve from 'fit-curve';
-import InkOptionsMenu from "../views/collections/collectionFreeForm/InkOptionsMenu";
 import "./InteractionUtils.scss";
 import { Utils } from "../../Utils";
 
@@ -136,7 +135,7 @@ export namespace InteractionUtils {
             <polyline
                 points={strpts}
                 style={{
-                    filter: drawHalo ? "url(#dangerShine)" : undefined,
+                    filter: drawHalo ? "url(#inkSelectionHalo)" : undefined,
                     fill,
                     opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,

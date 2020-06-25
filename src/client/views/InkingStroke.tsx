@@ -61,7 +61,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()),
-            "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblestroke" : "none", false, true);
+            "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
         return (
             <svg className="inkingStroke"
                 width={width}
@@ -77,22 +77,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
                 }}
             ><defs>
-                    <filter id="dangerShine">
-                        <feColorMatrix type="matrix"
-                            result="color"
-                            values="1 0 0 0 0
-                        0 0 0 0 0
-                        0 0 0 0 0
-                        0 0 0 1 0">
-                        </feColorMatrix>
-                        <feGaussianBlur in="color" stdDeviation="4" result="blur"></feGaussianBlur>
-                        <feOffset in="blur" dx="0" dy="0" result="offset"></feOffset>
-                        <feMerge>
-                            <feMergeNode in="bg"></feMergeNode>
-                            <feMergeNode in="offset"></feMergeNode>
-                            <feMergeNode in="SourceGraphic"></feMergeNode>
-                        </feMerge>
-                    </filter>
                 </defs>
                 {hpoints}
                 {points}

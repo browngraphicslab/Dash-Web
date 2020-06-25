@@ -557,8 +557,32 @@ export class MainView extends React.Component {
         </div>;
     }
 
+    @computed get inkResources() {
+        return <svg>
+            <defs>
+                <filter id="inkSelectionHalo">
+                    <feColorMatrix type="matrix"
+                        result="color"
+                        values="1 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0">
+                    </feColorMatrix>
+                    <feGaussianBlur in="color" stdDeviation="4" result="blur"></feGaussianBlur>
+                    <feOffset in="blur" dx="0" dy="0" result="offset"></feOffset>
+                    <feMerge>
+                        <feMergeNode in="bg"></feMergeNode>
+                        <feMergeNode in="offset"></feMergeNode>
+                        <feMergeNode in="SourceGraphic"></feMergeNode>
+                    </feMerge>
+                </filter>
+            </defs>
+        </svg>;
+    }
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
+            {this.inkResources}
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
