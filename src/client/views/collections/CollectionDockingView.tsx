@@ -527,7 +527,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             dragData.dropAction = doc.dropAction as dropActionType;
                             DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
                             return true;
-                        } return false
+                        }
+                        return false;
                     }, returnFalse, emptyFunction);
                 };
 

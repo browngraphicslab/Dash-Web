@@ -218,7 +218,7 @@ export namespace DragManager {
                 docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
                     const dragProps = Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []);
                     const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
-                    remProps.map(prop => drop[prop] = undefined)
+                    remProps.map(prop => drop[prop] = undefined);
                 });
                 batch.end();
             }
