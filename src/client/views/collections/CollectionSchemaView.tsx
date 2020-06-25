@@ -1,37 +1,29 @@
 import React = require("react");
-import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, Column, ComponentPropsGetterR, Resize, SortingRule } from "react-table";
+import { Resize } from "react-table";
 import "react-table/react-table.css";
-import { Doc, DocListCast, Field, Opt, LayoutSym } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
+import { Doc } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
-import { ComputedField } from "../../../fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
-import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell } from "./CollectionSchemaCells";
-import { CollectionSchemaAddColumnHeader, CollectionSchemaHeader, CollectionSchemaColumnMenu, KeysDropdown } from "./CollectionSchemaHeaders";
+import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse, returnEmptyFilter, emptyPath } from "../../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
 import { SnappingManager } from "../../util/SnappingManager";
 import Measure from "react-measure";
-import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import { SchemaTable } from "./SchemaTable";
-//import { SchemaTable } from "./SchemaTable";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -354,7 +346,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     getPreviewTransform = (): Transform => {
-        return this.props.ScreenToLocalTransform().translate(- this.borderWidth - 4 - this.tableWidth, - this.borderWidth);
+        return this.props.ScreenToLocalTransform().translate(- this.borderWidth - NumCast(COLLECTION_BORDER_WIDTH) - this.tableWidth, - this.borderWidth);
     }
 
     @computed get renderMenu() {
@@ -462,7 +454,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get schemaTable() {
-        const preview = "";
         return <SchemaTable
             Document={this.props.Document}
             PanelHeight={this.props.PanelHeight}
