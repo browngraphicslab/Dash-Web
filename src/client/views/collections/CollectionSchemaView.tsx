@@ -350,11 +350,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
+    onHeaderClick = (e: React.PointerEvent) => {
+        this.props.active(true);
+        e.stopPropagation();
+    }
+
+    @action
     onWheel(e: React.WheelEvent) {
         const scale = this.props.ScreenToLocalTransform().Scale;
         this.props.active(true) && e.stopPropagation();
-        this.menuCoordinates[0] += e.screenX * scale;
-        this.menuCoordinates[1] += e.screenY * scale;
+        this.menuCoordinates[0] -= e.screenX / scale;
+        this.menuCoordinates[1] -= e.screenY / scale;
     }
 
     @computed get renderMenu() {
@@ -362,9 +368,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionSchema-header-menu" ref={this.setNode}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
+                onPointerDown={e => this.onHeaderClick(e)}
                 style={{
                     position: "absolute", background: "white",
-                    transform: `translate(${this.menuCoordinates[0]}px, ${this.menuCoordinates[1] - 100 / scale}px)`
+                    transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)`
                 }}>
                 <Measure offset onResize={action((r: any) => {
                     const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
