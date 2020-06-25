@@ -271,7 +271,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
-                <DocumentLinksButton View={this.view0!} />
+                <DocumentLinksButton View={this.view0!} AlwaysOn={true} />
             </div>
             <div className="documentButtonBar-button">
                 {this.templateButton}
