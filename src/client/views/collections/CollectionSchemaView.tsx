@@ -29,6 +29,7 @@ import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse, returnEmptyFilter, emptyPath } from "../../../Utils";
 import { SnappingManager } from "../../util/SnappingManager";
+import Measure from "react-measure";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -66,7 +67,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @observable pointerX: number = 0;
     @observable pointerY: number = 0;
-    @computed get menuCoordinates() { return this.props.ScreenToLocalTransform().transformPoint(this.pointerX, this.pointerY); }
+    @computed get menuCoordinates() {
+        const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this.pointerX));
+        const y = Math.max(0, Math.min(document.body.clientHeight - this._menuHeight, this.pointerY));
+        return this.props.ScreenToLocalTransform().transformPoint(x, y);
+    }
 
     @computed get columns() {
         return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
@@ -116,6 +121,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         } else {
             this._isOpen = false;
             this.setHeaderIsEditing(false);
+            this.closeHeader();
         }
     }
 
@@ -296,10 +302,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    openHeader = (col: any, menu: any) => {
+    openHeader = (col: any, menu: any, screenx: number, screeny: number) => {
         this.menuContent = menu;
         this.col = col;
         this.headerOpen = !this.headerOpen;
+        this.pointerX = screenx;
+        this.pointerY = screeny;
     }
 
     @action
@@ -357,14 +365,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     //anchorPoints.TOP_CENTER 
 
+    @observable _menuWidth = 0
+    @observable _menuHeight = 0;
     @computed get renderMenu() {
         return (
             <div className="collectionSchema-header-menu" ref={this.setNode}
                 style={{
                     position: "absolute", background: "white",
-                    transform: `translate(${this.menuCoordinates[0]}px, ${this.menuCoordinates[1] - 150}px)`
+                    transform: `translate(${this.menuCoordinates[0]}px, ${this.menuCoordinates[1]}px)`
                 }}>
-                {this.renderContent(this.col)}
+                <Measure offset onResize={action((r: any) => {
+                    const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
+                    this._menuWidth = dim[0]; this._menuHeight = dim[1];
+                })}>
+                    {({ measureRef }) => <div ref={measureRef}>{this.renderContent(this.col)}</div>}
+                </Measure>
             </div>
         );
     }
@@ -407,7 +422,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 this.props.select(false);
             }
         }
-        this.headerOpen = false;
     }
 
     @computed
@@ -496,9 +510,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     public get schemaToolbar() {
         return <div className="collectionSchemaView-toolbar">
             <div className="collectionSchemaView-toolbar-item">
-                <div id="preview-schema-checkbox-div"><input type="checkbox"
-                    key={"Show Preview"} checked={this.previewWidth() !== 0}
-                    onChange={this.toggleExpander} />Show Preview</div>
+                <div id="preview-schema-checkbox-div">
+                    <input type="checkbox"
+                        key={"Show Preview"} checked={this.previewWidth() !== 0}
+                        onChange={this.toggleExpander} />Show Preview</div>
             </div>
         </div>;
     }
@@ -511,7 +526,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         }
         this.pointerY = e.screenY;
         this.pointerX = e.screenX;
-        this.headerOpen = false;
     }
 
     onResizedChange = (newResized: Resize[], event: any) => {
@@ -590,7 +604,7 @@ export interface SchemaTableProps {
     columns: SchemaHeaderField[];
     documentKeys: any[];
     headerIsEditing: boolean;
-    openHeader: (column: any, menu: any) => void;
+    openHeader: (column: any, menu: any, screenx: number, screeny: number) => void;
     onPointerDown: (e: React.PointerEvent) => void;
     onResizedChange: (newResized: Resize[], event: any) => void;
     setColumns: (columns: SchemaHeaderField[]) => void;
@@ -683,7 +697,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             const menuContent = <div><FontAwesomeIcon icon={icon} size="sm" />  {col.heading}</div>;
             const header =
                 <div className="collectionSchemaView-header"
-                    onClick={e => { this.props.openHeader(col, menuContent); }}
+                    onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
                     style={{
                         background: col.color, padding: "4px",
                         letterSpacing: "2px",
