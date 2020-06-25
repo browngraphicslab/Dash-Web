@@ -6,7 +6,7 @@ import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, Column, ComponentPropsGetterR, Resize, SortingRule } from "react-table";
 import "react-table/react-table.css";
-import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt, LayoutSym } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -302,6 +302,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.headerOpen = !this.headerOpen;
     }
 
+    @action
+    closeHeader = () => { this.headerOpen = false; }
+
     renderContent = (col: any) => {
         return (
             <div className="collectionSchema-header-menuOptions">
@@ -323,7 +326,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         {this.renderSorting(col)}
                         {this.renderColors(col)}
                         <div className="collectionSchema-headerMenu-group">
-                            <button onClick={() => this.deleteColumn(col.heading)}>Delete Column</button>
+                            <button onClick={() => { this.deleteColumn(col.heading); }}
+                            >Delete Column</button>
                         </div>
                     </>
                 }
@@ -344,6 +348,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 this.columns = columns;
             }
         }
+        this.closeHeader();
     }
 
     getPreviewTransform = (): Transform => {
@@ -359,9 +364,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     position: "absolute", background: "white",
                     transform: `translate(${this.menuCoordinates[0]}px, ${this.menuCoordinates[1] - 150}px)`
                 }}>
-                {/* <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderContent(this.col)}>
-                    <div className="collectionSchema-header-toggler" onClick={() => this.toggleIsOpen()}>{this.menuContent}</div>
-                </ Flyout > */}
                 {this.renderContent(this.col)}
             </div>
         );
@@ -414,7 +416,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed
     get dividerDragger() {
         return this.previewWidth() === 0 ? (null) :
-            <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
+            <div className="collectionSchemaView-dividerDragger"
+                onPointerDown={this.onDividerDown}
+                style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
     }
 
     @computed
@@ -492,7 +496,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     public get schemaToolbar() {
         return <div className="collectionSchemaView-toolbar">
             <div className="collectionSchemaView-toolbar-item">
-                <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
+                <div id="preview-schema-checkbox-div"><input type="checkbox"
+                    key={"Show Preview"} checked={this.previewWidth() !== 0}
+                    onChange={this.toggleExpander} />Show Preview</div>
             </div>
         </div>;
     }
@@ -541,7 +547,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%"
             }}  >
-            <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.previewWidth()}px)` }} onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-tableContainer"
+                style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
+                onPointerDown={this.onPointerDown}
+                onWheel={e => this.props.active(true) && e.stopPropagation()}
+                onDrop={e => this.onExternalDrop(e, {})}
+                ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}
@@ -669,11 +680,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
 
 
-            const menuContent = <div><FontAwesomeIcon icon={icon} size="sm" />{col.heading}</div>;
+            const menuContent = <div><FontAwesomeIcon icon={icon} size="sm" />  {col.heading}</div>;
             const header =
                 <div className="collectionSchemaView-header"
                     onClick={e => { this.props.openHeader(col, menuContent); }}
-                    style={{ background: col.color }}>
+                    style={{
+                        background: col.color, padding: "4px",
+                        letterSpacing: "2px",
+                        textTransform: "uppercase"
+                    }}>
                     {menuContent}
                 </div>;
 
