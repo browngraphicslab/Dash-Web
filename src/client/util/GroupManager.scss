@@ -50,7 +50,6 @@
                 }
             }
 
-
             .editing-contents {
                 overflow-y: auto;
                 // max-height: 67%;
@@ -169,23 +168,7 @@
                 margin: 2px 0;
             }
 
-            .error-text {
-                color: #C40233;
-            }
-
-            .success-text {
-                color: #009F6B;
-            }
-
-            p {
-                padding: 0 0 .1em .2em;
-            }
-
         }
-    }
-
-    .focus-span {
-        text-decoration: underline;
     }
 
     h1 {
@@ -193,33 +176,5 @@
         text-transform: uppercase;
         letter-spacing: 2px;
         font-size: 120%;
-    }
-
-    .container {
-        display: block;
-        position: relative;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        font-size: 22px;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        width: 700px;
-        min-width: 700px;
-        max-width: 700px;
-        text-align: left;
-        font-style: normal;
-        font-size: 15;
-        font-weight: normal;
-        padding: 0;
-
-        .padding {
-            padding: 0 0 0 20px;
-            color: black;
-        }
-
-
-
     }
 }
