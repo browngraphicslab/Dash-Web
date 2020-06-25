@@ -353,7 +353,7 @@ export namespace DragManager {
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
-                scaleY = rect.height / ele.offsetHeight;
+                scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
             elesCont.left = Math.min(rect.left, elesCont.left);
             elesCont.top = Math.min(rect.top, elesCont.top);
             elesCont.right = Math.max(rect.right, elesCont.right);

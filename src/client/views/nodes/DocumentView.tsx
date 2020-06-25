@@ -1047,7 +1047,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.showLinks ? this.anchors : (null)}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" ? (null) : <DocumentLinksButton View={this} />}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} />}
         </div>
         );
     }
@@ -1071,7 +1071,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     @computed get anchors() {
         TraceMobx();
-        return this.layoutDoc.presBox ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+        return this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.presBox || this.props.dontRegisterView ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
             <DocumentView {...this.props} key={i + 1}
                 Document={d}
                 ContainingCollectionView={this.props.ContainingCollectionView}
@@ -1079,6 +1079,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 PanelWidth={this.anchorPanelWidth}
                 PanelHeight={this.anchorPanelHeight}
                 ContentScaling={returnOne}
+                dontRegisterView={false}
                 forcedBackgroundColor={returnTransparent}
                 removeDocument={this.hideLinkAnchor}
                 pointerEvents={false}
@@ -1202,7 +1203,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: this.Document.isLinkButton ? StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") : this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
+                boxShadow: this.Document.isLinkButton && !this.props.dontRegisterView && this.props.forcedBackgroundColor?.(this.Document) !== "transparent" ?
+                    StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") :
+                    this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
+                        undefined,
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
