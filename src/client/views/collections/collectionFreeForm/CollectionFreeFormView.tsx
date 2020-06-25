@@ -46,6 +46,8 @@ import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
 import { InkingStroke, ActiveArrowStart, ActiveArrowEnd, ActiveInkColor, ActiveFillColor, ActiveInkWidth, ActiveInkBezierApprox, ActiveDash } from "../../InkingStroke";
+import { DocumentType } from "../../../documents/DocumentTypes";
+import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -240,11 +242,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
         if (linkDragData.linkSourceDocument === this.props.Document || this.props.Document.annotationOn) return false;
-        const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-        this.props.addDocument(source);
-        linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
-        e.stopPropagation();
-        return true;
+        if (!linkDragData.linkSourceDocument.context || StrCast(Cast(linkDragData.linkSourceDocument.context, Doc, null)?.type) === DocumentType.COL) {
+            // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+            // this.props.addDocument(source);
+            // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
+            return false;
+        } else {
+            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+            this.props.addDocument(source);
+            linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
+            e.stopPropagation();
+            return true;
+        }
     }
 
     @action
@@ -581,6 +590,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onClick = (e: React.MouseEvent) => {
         if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (Date.now() - this._lastTap < 300) {
+                runInAction(() => DocumentLinksButton.StartLink = undefined);
                 const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
                 this.scaleAtPt(docpt, 1);
                 e.stopPropagation();
@@ -1128,6 +1138,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             this.props.Document[this.scaleFieldKey] = Math.max(1, NumCast(this.props.Document[this.scaleFieldKey]));
         }
 
+        this.Document.useClusters && !this._clusterSets.length && this.childDocs.length && this.updateClusters(true);
         return elements;
     }
 
@@ -1197,57 +1208,58 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.annotationsKey) return;
 
-        !this.props.isAnnotationOverlay && ContextMenu.Instance.addItem({
-            description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
-                this._timelineVisible = !this._timelineVisible;
-            }), icon: this._timelineVisible ? faEyeSlash : faEye
-        });
+        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
+        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
+        appearanceItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
+        appearanceItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
+        appearanceItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+        appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
+        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
-        const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-
-        optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
-        optionItems.push({ description: "toggle snap line display", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
-        optionItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-        optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
-        optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
-        optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
+        const optionItems = options && "subitems" in options ? options.subitems : [];
+        !this.props.isAnnotationOverlay &&
+            optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
+        this.props.ContainingCollectionView &&
+            optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
+        optionItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " snap lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
-        // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        optionItems.push({
-            description: "Import document", icon: "upload", event: ({ x, y }) => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".zip";
-                input.onchange = async _e => {
-                    const upload = Utils.prepend("/uploadDoc");
-                    const formData = new FormData();
-                    const file = input.files && input.files[0];
-                    if (file) {
-                        formData.append('file', file);
-                        formData.append('remap', "true");
-                        const response = await fetch(upload, { method: "POST", body: formData });
-                        const json = await response.json();
-                        if (json !== "error") {
-                            const doc = await DocServer.GetRefField(json);
-                            if (doc instanceof Doc) {
-                                const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
-                                doc.x = xx, doc.y = yy;
-                                this.props.addDocument?.(doc);
+        if (!Doc.UserDoc().noviceMode) {
+            optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
+            optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
+            optionItems.push({
+                description: "Import document", icon: "upload", event: ({ x, y }) => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = ".zip";
+                    input.onchange = async _e => {
+                        const upload = Utils.prepend("/uploadDoc");
+                        const formData = new FormData();
+                        const file = input.files && input.files[0];
+                        if (file) {
+                            formData.append('file', file);
+                            formData.append('remap', "true");
+                            const response = await fetch(upload, { method: "POST", body: formData });
+                            const json = await response.json();
+                            if (json !== "error") {
+                                const doc = await DocServer.GetRefField(json);
+                                if (doc instanceof Doc) {
+                                    const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
+                                    doc.x = xx, doc.y = yy;
+                                    this.props.addDocument?.(doc);
+                                }
                             }
                         }
-                    }
-                };
-                input.click();
-            }
-        });
-        optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
+                    };
+                    input.click();
+                }
+            });
+        }
+        !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
 
     }
-    @observable _timelineVisible = false;
+    @observable showTimeline = false;
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },
         r2: { left: number, top: number, width: number, height: number }) {
@@ -1348,7 +1360,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                 {this.children}
             </CollectionFreeFormViewPannableContents>
-            {this._timelineVisible ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
+            {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }
 

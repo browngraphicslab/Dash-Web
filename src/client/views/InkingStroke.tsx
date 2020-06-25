@@ -15,7 +15,6 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { Scripting } from "../util/Scripting";
 import { Doc } from "../../fields/Doc";
-import { NodeFlags } from "typescript";
 
 library.add(faPaintBrush);
 

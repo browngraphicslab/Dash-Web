@@ -28,7 +28,7 @@ const ALIGN_PATTERN = /(left|right|center|justify)/;
 // https://github.com/ProseMirror/prosemirror-schema-basic/blob/master/src/schema-basic.js
 // :: NodeSpec A plain paragraph textblock. Represented in the DOM
 // as a `<p>` element.
-const ParagraphNodeSpec: NodeSpec = {
+export const ParagraphNodeSpec: NodeSpec = {
     attrs: {
         align: { default: null },
         color: { default: null },

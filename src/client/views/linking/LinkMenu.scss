@@ -8,6 +8,10 @@
 .linkMenu-list {
     max-height: 200px;
     overflow-y: scroll;
+    position: absolute;
+    z-index: 10;
+    background: $link-color;
+    min-width: 150px
 }
 
 .linkMenu-group {

@@ -181,7 +181,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseClick = async (e: React.MouseEvent|undefined) => {
+    onCloseClick = async (e: React.MouseEvent | undefined) => {
         if (!e?.button) {
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
@@ -631,7 +631,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
-            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
+            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                 <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
             </div>
         </div >

@@ -31,6 +31,7 @@ export default class PDFMenu extends AntimodeMenu {
         super(props);
 
         PDFMenu.Instance = this;
+        PDFMenu.Instance._canFade = false;
     }
 
     pointerDown = (e: React.PointerEvent) => {

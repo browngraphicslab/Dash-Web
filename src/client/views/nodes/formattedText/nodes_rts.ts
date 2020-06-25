@@ -1,7 +1,7 @@
 import React = require("react");
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import ParagraphNodeSpec from "./ParagraphNodeSpec";
+import { ParagraphNodeSpec, toParagraphDOM, getParagraphNodeAttrs } from "./ParagraphNodeSpec";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -32,12 +32,28 @@ export const nodes: { [index: string]: NodeSpec } = {
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
-        content: "block+",
+        content: "block*",
         group: "block",
         defining: true,
         parseDOM: [{ tag: "blockquote" }],
         toDOM() { return blockquoteDOM; }
     },
+
+
+    // blockquote: {
+    //     ...ParagraphNodeSpec,
+    //     defining: true,
+    //     parseDOM: [{
+    //         tag: "blockquote", getAttrs(dom: any) {
+    //             return getParagraphNodeAttrs(dom);
+    //         }
+    //     }],
+    //     toDOM(node: any) {
+    //         const dom = toParagraphDOM(node);
+    //         (dom as any)[0] = 'blockquote';
+    //         return dom;
+    //     },
+    // },
 
     // :: NodeSpec A horizontal rule (`<hr>`).
     horizontal_rule: {
@@ -67,8 +83,8 @@ export const nodes: { [index: string]: NodeSpec } = {
     // nodes by default. Represented as a `<pre>` element with a
     // `<code>` element inside of it.
     code_block: {
-        content: "text*",
-        marks: "",
+        content: "inline*",
+        marks: "_",
         group: "block",
         code: true,
         defining: true,
@@ -218,48 +234,85 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: 'block',
         attrs: {
             bulletStyle: { default: 0 },
-            mapStyle: { default: "decimal" },
-            setFontSize: { default: undefined },
-            setFontFamily: { default: "inherit" },
-            setFontColor: { default: "inherit" },
-            inheritedFontSize: { default: undefined },
+            mapStyle: { default: "decimal" },// "decimal", "multi", "bullet"
+            fontColor: { default: "inherit" },
+            fontSize: { default: undefined },
+            fontFamily: { default: undefined },
             visibility: { default: true },
             indent: { default: undefined }
         },
+        parseDOM: [
+            {
+                tag: "ul", getAttrs(dom: any) {
+                    return {
+                        bulletStyle: dom.getAttribute("data-bulletStyle"),
+                        mapStyle: dom.getAttribute("data-mapStyle"),
+                        fontColor: dom.style.color,
+                        fontSize: dom.style["font-size"],
+                        fontFamily: dom.style["font-family"],
+                        indent: dom.style["margin-left"]
+                    };
+                }
+            },
+            {
+                style: 'list-style-type=disc', getAttrs(dom: any) {
+                    return { mapStyle: "bullet" };
+                }
+            },
+            {
+                tag: "ol", getAttrs(dom: any) {
+                    return {
+                        bulletStyle: dom.getAttribute("data-bulletStyle"),
+                        mapStyle: dom.getAttribute("data-mapStyle"),
+                        fontColor: dom.style.color,
+                        fontSize: dom.style["font-size"],
+                        fontFamily: dom.style["font-family"],
+                        indent: dom.style["margin-left"]
+                    };
+                }
+            }],
         toDOM(node: Node<any>) {
-            if (node.attrs.mapStyle === "bullet") return ['ul', 0];
             const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
-            const fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
-            const ffam = node.attrs.setFontFamily;
-            const color = node.attrs.setFontColor;
+            const fsize = node.attrs.fontSize ? `font-size: ${node.attrs.fontSize};` : "";
+            const ffam = node.attrs.fontFamily ? `font-family:${node.attrs.fontFamily};` : "";
+            const fcol = node.attrs.fontColor ? `color: ${node.attrs.fontColor};` : "";
+            const marg = node.attrs.indent ? `margin-left: ${node.attrs.indent};` : "";
+            if (node.attrs.mapStyle === "bullet") {
+                return ['ul', {
+                    "data-mapStyle": node.attrs.mapStyle,
+                    "data-bulletStyle": node.attrs.bulletStyle,
+                    style: `${fsize} ${ffam} ${fcol} ${marg}`
+                }, 0];
+            }
             return node.attrs.visibility ?
-                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}; color:${color}; margin-left: ${node.attrs.indent}` }, 0] :
+                ['ol', {
+                    class: `${map}-ol`,
+                    "data-mapStyle": node.attrs.mapStyle,
+                    "data-bulletStyle": node.attrs.bulletStyle,
+                    style: `list-style: none; ${fsize} ${ffam} ${fcol} ${marg}`
+                }, 0] :
                 ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
         }
     },
 
-    bullet_list: {
-        ...bulletList,
-        content: 'list_item+',
-        group: 'block',
-        // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        toDOM(node: Node<any>) {
-            return ['ul', 0];
-        }
-    },
-
     list_item: {
+        ...listItem,
         attrs: {
             bulletStyle: { default: 0 },
-            mapStyle: { default: "decimal" },
+            mapStyle: { default: "decimal" }, // "decimal", "multi", "bullet"
             visibility: { default: true }
         },
-        ...listItem,
         content: 'paragraph block*',
+        parseDOM: [{
+            tag: "li", getAttrs(dom: any) {
+                return { mapStyle: dom.getAttribute("data-mapStyle"), bulletStyle: dom.getAttribute("data-bulletStyle") };
+            }
+        }],
         toDOM(node: any) {
             const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
-            return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
-            //return ["li", { class: `${map}` }, 0];
+            return node.attrs.visibility ?
+                ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, 0] :
+                ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, "..."];
         }
     },
 };
