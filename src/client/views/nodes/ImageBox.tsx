@@ -236,6 +236,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (this._curSuffix === "_m") this._mediumRetryCount++;
         if (this._curSuffix === "_l") this._largeRetryCount++;
     }
+
     @action onError = (error: any) => {
         const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
         if (timeout < 5) {

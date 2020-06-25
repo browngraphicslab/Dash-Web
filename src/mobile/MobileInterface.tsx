@@ -11,6 +11,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
+import { trace } from 'mobx';
 import * as rp from 'request-promise';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
@@ -116,12 +117,14 @@ export class MobileInterface extends React.Component {
     /**
      * Method called when 'Library' button is pressed on the home screen
      */
-    switchToLibrary = () => {
+    switchToLibrary = async () => {
         this._parents.push(this._activeDoc);
         this.switchCurrentView((userDoc: Doc) => this._library);
         this._activeDoc = this._library;
         this._homeMenu = false;
-        this.sidebarActive = true;
+        this.toggleSidebar();
+        //setTimeout(this.toggleSidebar, 300);
+
     }
 
     openWorkspaces = () => {
@@ -129,6 +132,7 @@ export class MobileInterface extends React.Component {
         this.switchCurrentView((userDoc: Doc) => this._library);
         this._activeDoc = this._library;
         this._homeMenu = false;
+        this.sidebarActive = true;
     }
 
     /**
@@ -243,7 +247,13 @@ export class MobileInterface extends React.Component {
     @undoBatch
     handleClick = async (doc: Doc) => {
         const children = DocListCast(doc.data);
-        if (doc.type !== "collection" && this.sidebarActive) this.openFromSidebar(doc);
+        if (doc.type !== "collection" && this.sidebarActive) {
+            this._parents.push(this._activeDoc);
+            this._activeDoc = doc;
+            this.switchCurrentView((userDoc: Doc) => doc);
+            this._homeMenu = false;
+            this.toggleSidebar();
+        }
         else if (doc.type === "collection" && children.length === 0) this.openFromSidebar(doc);
         else {
             this._parents.push(this._activeDoc);
@@ -408,6 +418,7 @@ export class MobileInterface extends React.Component {
                         <span></span>
                         <span></span>
                     </div>
+                    <div className={`background ${this.sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}></div>
                 </div>
                 {this.renderPathbar()}
                 <div className={`sidebar ${this.sidebarActive ? "active" : ""}`}>
@@ -435,6 +446,8 @@ export class MobileInterface extends React.Component {
                             </>
                         }
                     </div>
+                </div>
+                <div className={`blanket ${this.sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}>
                 </div>
             </div>
         );
@@ -843,3 +856,4 @@ Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Insta
 Scripting.addGlobal(function openMobileWorkspaces() { return MobileInterface.Instance.openWorkspaces(); });
 Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
 Scripting.addGlobal(function switchToMobileUploads() { return MobileInterface.Instance.switchToMobileUploads(); });
+Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });

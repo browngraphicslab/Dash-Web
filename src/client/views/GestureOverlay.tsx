@@ -157,8 +157,8 @@ export default class GestureOverlay extends Touchable {
                 // -- radial menu code --
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
-                    const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    const pt: any = te.touches[te.touches.length - 1];
+                    const target = document.elementFromPoint(te.changedTouches?.item(0).clientX, te.changedTouches?.item(0).clientY);
+                    const pt: any = te.touches[te.touches?.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
