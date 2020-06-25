@@ -1015,7 +1015,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
-            const node = pcords && editor.state.doc.resolve(pcords.pos).node();// editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            const node = pcords && editor.state.doc.resolve(pcords.pos).node();// bcz: changed so that clicking on the attribution of a PDF pasted link will trigger. editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
                 new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
