@@ -11,7 +11,7 @@ import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc } from "../../../../fields/Doc";
 import { DarkPastelSchemaPalette, PastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
-import { Cast, StrCast } from "../../../../fields/Types";
+import { Cast, StrCast, BoolCast } from "../../../../fields/Types";
 import { unimplementedFunction, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { LinkManager } from "../../../util/LinkManager";
@@ -72,7 +72,7 @@ export default class RichTextMenu extends AntimodeMenu {
         super(props);
         RichTextMenu.Instance = this;
         this._canFade = false;
-        this.Pinned = true;
+        this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
@@ -146,7 +146,6 @@ export default class RichTextMenu extends AntimodeMenu {
     update(view: EditorView, lastState: EditorState | undefined) {
         this.updateFromDash(view, lastState, this.editorProps);
     }
-
 
     public MakeLinkToSelection = (linkDocId: string, title: string, location: string, targetDocId: string): string => {
         if (this.view) {
@@ -750,7 +749,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action
     toggleMenuPin = (e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
+        Doc.UserDoc()["menuRichText-pinned"] = this.Pinned = !this.Pinned;
         if (!this.Pinned) {
             this.fadeOut(true);
         }
@@ -779,7 +778,7 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
-            this.createButton("indent", "Summarize", undefined, this.insertSummarizer),
+            this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
             this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
         ]}</div>;
 

@@ -552,7 +552,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
-            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
+            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                 <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
             </div>
         </div >

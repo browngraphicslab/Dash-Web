@@ -193,7 +193,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         const newDoc = Docs.Create.TextDocument("", {
             title: "", _chromeStatus: "disabled",
             x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
-            _width: NumCast(this.props.Document._width), _height: 3 * NumCast(this.props.Document._height)
+            _width: NumCast(this.props.Document._width), _height: 2 * NumCast(this.props.Document._height)
         });
         Doc.GetProto(newDoc).recordingSource = this.dataDoc;
         Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);

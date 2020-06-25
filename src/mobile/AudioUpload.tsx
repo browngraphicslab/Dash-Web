@@ -5,11 +5,11 @@ import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
 import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
-import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue } from '../Utils';
+import { observable, action, computed } from 'mobx';
+import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter } from '../Utils';
 import { Networking } from '../client/Network';
 import { Doc, Opt } from '../fields/Doc';
-import { Cast } from '../fields/Types';
+import { Cast, FieldValue } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
 import { List } from '../fields/List';
 import { Scripting } from '../client/util/Scripting';
@@ -38,183 +38,98 @@ export class AudioUpload extends React.Component {
     @observable status: string = "";
     @observable nm: string = "Choose files";
     @observable process: string = "";
+    @observable public _audioCol: Doc = FieldValue(Cast(Docs.Create.FreeformDocument([Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio", _width: 500, _height: 100 }), Doc) as Doc], { title: "mobile audio", _fitToBox: true, boxShadow: "0 0" }), Doc)) as Doc;
 
-    onClick = async () => {
-        try {
-            await Docs.Prototypes.initialize();
-            const imgPrev = document.getElementById("img_preview");
-            const slab1 = document.getElementById("slab1");
-            if (slab1) {
-                slab1.style.opacity = "1";
-            }
-            if (imgPrev) {
-                const files: FileList | null = inputRef.current!.files;
-                const slab2 = document.getElementById("slab2");
-                if (slab2) {
-                    slab2.style.opacity = "1";
-                }
-                if (files && files.length !== 0) {
-                    this.process = "Uploading Files";
-                    for (let index = 0; index < files.length; ++index) {
-                        const file = files[index];
-                        const res = await Networking.UploadFilesToServer(file);
-                        const slab3 = document.getElementById("slab3");
-                        if (slab3) {
-                            slab3.style.opacity = "1";
-                        }
-                        res.map(async ({ result }) => {
-                            const name = file.name;
-                            if (result instanceof Error) {
-                                return;
-                            }
-                            const path = Utils.prepend(result.accessPaths.agnostic.client);
-                            let doc = null;
-                            console.log("type: " + file.type);
-                            if (file.type === "video/mp4") {
-                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: 200, _width: 200, title: name });
-                            } else if (file.type === "application/pdf") {
-                                doc = Docs.Create.PdfDocument(path, { _width: 200, title: name });
-                            } else {
-                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
-                            }
-                            const slab4 = document.getElementById("slab4");
-                            if (slab4) {
-                                slab4.style.opacity = "1";
-                            }
-                            const res = await rp.get(Utils.prepend("/getUserDocumentId"));
-                            if (!res) {
-                                throw new Error("No user id returned");
-                            }
-                            const field = await DocServer.GetRefField(res);
-                            let pending: Opt<Doc>;
-                            if (field instanceof Doc) {
-                                pending = await Cast(field.mobileUpload, Doc);
-                            }
-                            if (pending) {
-                                const data = await Cast(pending.data, listSpec(Doc));
-                                if (data) {
-                                    data.push(doc);
-                                } else {
-                                    pending.data = new List([doc]);
-                                }
-                                this.status = "finished";
-                                const slab5 = document.getElementById("slab5");
-                                if (slab5) {
-                                    slab5.style.opacity = "1";
-                                }
-                                this.process = "File " + (index + 1).toString() + " Uploaded";
-                                const slab6 = document.getElementById("slab6");
-                                if (slab6) {
-                                    slab6.style.opacity = "1";
-                                }
-                                const slab7 = document.getElementById("slab7");
-                                if (slab7) {
-                                    slab7.style.opacity = "1";
-                                }
-
-                            }
-                        });
-                    }
-                } else {
-                    this.process = "No file selected";
-                }
-                setTimeout(this.clearUpload, 3000);
-            }
-        } catch (error) {
-            this.error = JSON.stringify(error);
-        }
-    }
-
-    // Updates label after a files is selected (so user knows a file is uploaded)
-    inputLabel = async () => {
-        const files: FileList | null = inputRef.current!.files;
-        await files;
-        if (files && files.length === 1) {
-            console.log(files);
-            this.nm = files[0].name;
-        } else if (files && files.length > 1) {
-            console.log(files.length);
-            this.nm = files.length.toString() + " files selected";
-        }
-    }
 
     @action
     clearUpload = () => {
-        const slab1 = document.getElementById("slab1");
-        if (slab1) {
-            slab1.style.opacity = "0.4";
+        for (let i = 1; i < 8; i++) {
+            this.setOpacity(i, "0.2");
         }
-        const slab2 = document.getElementById("slab2");
-        if (slab2) {
-            slab2.style.opacity = "0.4";
-        }
-        const slab3 = document.getElementById("slab3");
-        if (slab3) {
-            slab3.style.opacity = "0.4";
-        }
-        const slab4 = document.getElementById("slab4");
-        if (slab4) {
-            slab4.style.opacity = "0.4";
-        }
-        const slab5 = document.getElementById("slab5");
-        if (slab5) {
-            slab5.style.opacity = "0.4";
-        }
-        const slab6 = document.getElementById("slab6");
-        if (slab6) {
-            slab6.style.opacity = "0.4";
-        }
-        const slab7 = document.getElementById("slab7");
-        if (slab7) {
-            slab7.style.
-                opacity = "0.4";
-        }
-        this.nm = "Choose files";
-
-        if (inputRef.current) {
-            inputRef.current.value = "";
-        }
-        this.process = "";
-        console.log(inputRef.current!.files);
+        this._audioCol = FieldValue(Cast(Docs.Create.FreeformDocument([Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio", _width: 500, _height: 100 }), Doc) as Doc], { title: "mobile audio", _fitToBox: true, boxShadow: "0 0" }), Doc)) as Doc;
     }
 
-
+    closeUpload = () => {
+        this.clearUpload();
+        MobileInterface.Instance.toggleAudio();
+    }
 
     private get uploadInterface() {
-        const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio" }), Doc) as Doc;
-
         return (
-            <div className="imgupload_cont">
-                <div className="closeUpload" onClick={MobileInterface.Instance.toggleAudio}>
+            <>
+                <div className="closeUpload" onClick={() => this.closeUpload()}>
                     <FontAwesomeIcon icon="window-close" size={"lg"} />
                 </div>
-                <DocumentView
-                    Document={audioDoc}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={returnFalse}
-                    addDocTab={returnFalse}
-                    pinToPres={emptyFunction}
-                    rootSelected={returnFalse}
-                    removeDocument={undefined}
-                    onClick={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={returnOne}
-                    PanelWidth={() => 1000}
-                    PanelHeight={() => 1000}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    backgroundColor={() => "white"}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                />
-            </div>
+                <FontAwesomeIcon icon="microphone" size="lg" style={{ fontSize: "130" }} />
+                <div className="audioUpload_cont">
+                    <DocumentView
+                        Document={this._audioCol}
+                        DataDoc={undefined}
+                        LibraryPath={emptyPath}
+                        addDocument={returnFalse}
+                        addDocTab={returnFalse}
+                        pinToPres={emptyFunction}
+                        rootSelected={returnFalse}
+                        removeDocument={undefined}
+                        docFilters={returnEmptyFilter}
+                        onClick={undefined}
+                        ScreenToLocalTransform={Transform.Identity}
+                        ContentScaling={returnOne}
+                        PanelWidth={() => 600}
+                        PanelHeight={() => 400}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
+                        renderDepth={0}
+                        focus={emptyFunction}
+                        backgroundColor={() => "rgba(0,0,0,0)"}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                    />
+                </div>
+                <div className="restart_label" onClick={this.clearUpload}>
+                    Restart
+                </div>
+                <div className="upload_label" onClick={this.uploadAudio}>
+                    Upload
+                </div>
+                <div className="loadingImage">
+                    <div className="loadingSlab" id="slab01" />
+                    <div className="loadingSlab" id="slab02" />
+                    <div className="loadingSlab" id="slab03" />
+                    <div className="loadingSlab" id="slab04" />
+                    <div className="loadingSlab" id="slab05" />
+                    <div className="loadingSlab" id="slab06" />
+                    <div className="loadingSlab" id="slab07" />
+                </div>
+            </>
         );
+    }
+
+    setOpacity = (i: number, o: string) => {
+        const slab = document.getElementById("slab0" + i);
+        if (slab) {
+            console.log(slab?.id);
+            slab.style.opacity = o;
+        }
+    }
+
+    // Pushing the audio doc onto Dash Web through the right side bar
+    uploadAudio = () => {
+        console.log("uploading");
+        const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        const audioDoc = this._audioCol;
+        const data = Cast(audioRightSidebar.data, listSpec(Doc));
+        for (let i = 1; i < 8; i++) {
+            setTimeout(() => this.setOpacity(i, "1"), i * 200);
+        }
+        if (data) {
+            data.push(audioDoc);
+        }
+
+        setTimeout(this.clearUpload, 3000);
     }
 
     @observable private dialogueBoxOpacity = 1;

@@ -5,8 +5,45 @@
     justify-content: center;
     flex-direction: column;
     align-items: center;
-    max-width: 400px;
-    min-width: 400px;
+    margin-top: 10px;
+    height: 400px;
+    width: 600px;
+}
+
+.upload_label {
+    position: relative;
+    font-weight: 700;
+    color: black;
+    background-color: rgba(0, 0, 0, 0);
+    border: solid 3px black;
+    margin: 10px;
+    font-size: 30;
+    height: 70px;
+    width: 60%;
+    display: inline-flex;
+    font-family: sans-serif;
+    text-transform: uppercase;
+    justify-content: center;
+    flex-direction: column;
+    border-radius: 10px;
+}
+
+.restart_label {
+    position: relative;
+    font-weight: 700;
+    color: black;
+    background-color: rgba(0, 0, 0, 0);
+    border: solid 3px black;
+    margin: 10px;
+    font-size: 30;
+    height: 70px;
+    width: 60%;
+    display: inline-flex;
+    font-family: sans-serif;
+    text-transform: uppercase;
+    justify-content: center;
+    flex-direction: column;
+    border-radius: 10px;
 }
 
 .audio-upload {

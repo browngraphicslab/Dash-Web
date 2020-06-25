@@ -474,12 +474,12 @@ export class CurrentUserUtils {
 
     static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "WORKSPACES", icon: "folder-open", click: 'openWorkspaces()', backgroundColor: "#ffd6d6", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
-            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "#ffbfbf", info: "Use your phone to record and upload audio onto Dash Web." },
-            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "#ff9e9e", info: "Upload images or videos from your mobile device so they can be accessed on Dash Web." },
-            { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "#ff8080", info: "Use your phone as a remote for you presentation." },
-            { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploads()', backgroundColor: "#ff7373", info: "Access the collection of your mobile uploads." },
-            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "#ff5e5e", info: "Change your password, log out, or manage your account security." }
+            { title: "WORKSPACES", icon: "bars", click: 'openMobileWorkspaces()', backgroundColor: "lightgrey", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
+            { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "lightgrey", info: "Upload files from your mobile device so they can be accessed on Dash Web." },
+            { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploads()', backgroundColor: "lightgrey", info: "Access the collection of your mobile uploads." },
+            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey", info: "Use your phone to record, dictate and then upload audio onto Dash Web." },
+            { title: "PRESENTATION", icon: "desktop", click: 'openMobilePresentation()', backgroundColor: "lightgrey", info: "Use your phone as a remote for you presentation." },
+            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "lightgrey", info: "Change your password, log out, or manage your account security." }
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data =>
             this.mobileButton({
