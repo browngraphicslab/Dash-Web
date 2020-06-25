@@ -24,10 +24,10 @@ body {
 
 .navbar .cover {
     position: absolute;
-    right: 20px;
-    top: 30px;
-    height: 70px;
-    width: 70px;
+    right: 0px;
+    top: 0px;
+    height: 120px;
+    width: 120px;
     background-color: whitesmoke;
     z-index: 200;
 }
@@ -38,7 +38,21 @@ body {
     top: 30px;
     height: 70px;
     width: 70px;
-    transition: all 300ms ease-in-out 200ms;
+    transition: all 400ms ease-in-out 200ms;
+    z-index: 180;
+}
+
+.navbar .background {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    height: 120px;
+    width: 120px;
+    //border: 1px solid black;
+}
+
+.navbar .background.active {
+    background-color: lightgrey;
 }
 
 .navbar .toggle-btn-home {
@@ -73,6 +87,7 @@ body {
     height: 4px;
     background: black;
     transition: all 200ms ease;
+    z-index: 180;
 }
 
 .navbar .toggle-btn span:nth-child(1) {
@@ -107,8 +122,8 @@ body {
     top: 120px;
     opacity: 0;
     right: -100%;
-    width: 100%;
-    height: calc(100% - (120px));
+    width: 80%;
+    height: calc(80% - (120px));
     z-index: 101;
     background-color: whitesmoke;
     transition: all 400ms ease 50ms;
@@ -116,6 +131,7 @@ body {
     // overflow-y: auto;
     // -webkit-overflow-scrolling: touch;
     // border-right: 5px solid black;
+    box-shadow: 0 0 5px 5px grey;
 }
 
 .sidebar .item {
@@ -140,6 +156,24 @@ body {
 .sidebarButtons {
     top: 80px;
     position: relative;
+}
+
+.blanket {
+    position: fixed;
+    top: 120px;
+    opacity: 0.5;
+    right: -100%;
+    width: 100%;
+    height: calc(100% - (120px));
+    z-index: 101;
+    background-color: grey;
+    padding: 20px;
+}
+
+.blanket.active {
+    position: absolute;
+    right: 0%;
+    z-index: 100;
 }
 
 .home {
@@ -213,7 +247,7 @@ body {
 
 .sidebar.active {
     position: absolute;
-    right: 0%;
+    right:0%;
     opacity: 1;
     z-index: 101;
 }
