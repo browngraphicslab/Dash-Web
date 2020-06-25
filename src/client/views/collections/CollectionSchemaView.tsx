@@ -116,6 +116,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         } else {
             this._isOpen = false;
             this.setHeaderIsEditing(false);
+            this.closeHeader();
         }
     }
 
@@ -358,11 +359,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     //anchorPoints.TOP_CENTER 
 
     @computed get renderMenu() {
+        const scale = this.props.ScreenToLocalTransform().Scale;
         return (
             <div className="collectionSchema-header-menu" ref={this.setNode}
+                onWheel={e => this.props.active(true) && e.stopPropagation()}
                 style={{
-                    position: "absolute", background: "white",
-                    transform: `translate(${this.menuCoordinates[0]}px, ${this.menuCoordinates[1] - 150}px)`
+                    position: "absolute",
+                    background: "white",
+                    transform: `translate(${this.menuCoordinates[0]}px, ${this.menuCoordinates[1] - 160 * scale}px)`
                 }}>
                 {this.renderContent(this.col)}
             </div>
@@ -1026,7 +1030,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     render() {
         const preview = "";
-        return <div className="collectionSchemaView-table" onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
+        return <div className="collectionSchemaView-table" onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
+            onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
             <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
             {!this._showDoc ? (null) :
