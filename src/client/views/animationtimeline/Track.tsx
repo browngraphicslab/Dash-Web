@@ -219,7 +219,7 @@ export class Track extends React.Component<IProps> {
         this.defaultTrackedFields.forEach(key => {
             if (!kf[key]) {
                 this.props.node[key] = undefined;
-            } else if (BoolCast(kf[key + "Tracked"], true)) { // prob needs fixing for diff scenarios // when first initialized `{field}Tracked` is undefined, so default to true 
+            } else if (BoolCast(kf[key + "Tracked"], true)) { // prob needs fixing for diff scenarios // when first initialized fieldTracked is undefined, so default to true 
                 const stored = kf[key];
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
             }

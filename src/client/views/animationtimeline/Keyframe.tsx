@@ -14,8 +14,6 @@ import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { emptyPath, Utils, numberRange } from "../../../Utils";
-import { check } from "express-validator/check";
-
 
 /**
  * Useful static functions that you can use. Mostly for logic, but you can also add UI logic here also 
@@ -339,21 +337,21 @@ export class Keyframe extends React.Component<IProps> {
                     this.keyframes[1].time = this.regiondata.position;
                 }
             })),
-            TimelineMenu.Instance.addCheckbox(this.props.defaultTrackedFields.map(field => this.makeCheckbox(kf, field))); //make checkbox for each tracked field
+            TimelineMenu.Instance.addCheckbox(this.props.defaultTrackedFields.map(field => this.makeCheckbox(kf, field))); //make checkbox for each tracked field //integrate w addItem later
         TimelineMenu.Instance.addMenu("Keyframe");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
     }
 
     makeCheckbox = (kf: Doc, field: string) => {
-        const fieldTracked = field + "Tracked";
+        const fieldTracked: string = field + "Tracked";
         return <div className="timeline-menu-item">
             <input type="checkbox" key={Utils.GenerateGuid()} className="timeline-menu-checkbox"
-                checked={BoolCast(kf[fieldTracked], true)}
-                onChange={e => {
+                checked={BoolCast(kf[fieldTracked], true)} // all fields should be tracked by default, so default BoolCast to true when fieldTracked is undefined
+                onChange={action(e => {
                     e.stopPropagation();
                     kf[fieldTracked] = BoolCast(kf[fieldTracked], true) ? false : true;
                     console.log(fieldTracked, kf[fieldTracked]);
-                }} />
+                })} />
             {field}
         </div>;
     }
