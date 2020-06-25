@@ -6,10 +6,11 @@ import { Copy } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
 import { listSpec } from "../../../fields/Schema";
-import { Cast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast, BoolCast } from "../../../fields/Types";
 import { Transform } from "../../util/Transform";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import "./Track.scss";
+import { primitive } from "serializr";
 
 interface IProps {
     node: Doc;
@@ -32,7 +33,8 @@ export class Track extends React.Component<IProps> {
     @observable private _newKeyframe: boolean = false;
     private readonly MAX_TITLE_HEIGHT = 75;
     @observable private _trackHeight = 0;
-    private primitiveWhitelist = [
+
+    private defaultTrackedFields = [
         "x",
         "y",
         "_width",
@@ -98,10 +100,9 @@ export class Track extends React.Component<IProps> {
         const kfIndex = keyframes.indexOf(this.saveStateKf!);
         const kf = keyframes[kfIndex] as Doc; //index in the keyframe
         if (this._newKeyframe) {
-            DocListCast(this.saveStateRegion?.keyframes).forEach((kf, index) => {
+            DocListCast(this.saveStateRegion?.keyframes).forEach(kf => {
                 this.copyDocDataToKeyFrame(kf);
                 // kf.opacity = (index === 0 || index === 3) ? 0.1 : 1;
-                kf.opacity = 1;
             });
             this._newKeyframe = false;
         }
@@ -114,17 +115,17 @@ export class Track extends React.Component<IProps> {
 
 
     /**
-     * autocreates keyframe
+     * autocreates keyframe (not currently used)
      */
     @action
-    autoCreateKeyframe = () => {
+    autoCreateKeyframe = (trackedFields: string[]) => {
         const objects = this.objectWhitelist.map(key => this.props.node[key]);
         intercept(this.props.node, change => {
             console.log(change);
             return change;
         });
         return reaction(() => {
-            return [...this.primitiveWhitelist.map(key => this.props.node[key]), ...objects];
+            return [...trackedFields.map(key => this.props.node[key]), ...objects];
         }, (changed, reaction) => {
             //check for region 
             const region = this.findRegion(this.time);
@@ -136,8 +137,6 @@ export class Track extends React.Component<IProps> {
             }
         }, { fireImmediately: false });
     }
-
-
 
     // @observable private _storedState:(Doc | undefined) = undefined; 
     // /**
@@ -217,10 +216,10 @@ export class Track extends React.Component<IProps> {
      */
     @action
     private applyKeys = async (kf: Doc) => {
-        this.primitiveWhitelist.forEach(key => {
+        this.defaultTrackedFields.forEach(key => {
             if (!kf[key]) {
                 this.props.node[key] = undefined;
-            } else {
+            } else if (BoolCast(kf[key + "Tracked"], true)) { // prob needs fixing for diff scenarios // when first initialized `{field}Tracked` is undefined, so default to true 
                 const stored = kf[key];
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
             }
@@ -244,18 +243,21 @@ export class Track extends React.Component<IProps> {
 
     /**
      * basic linear interpolation function 
+     * only interpolates field if both left & right doc are tracking the field (might need changing)
      */
     @action
     interpolate = async (left: Doc, right: Doc) => {
-        this.primitiveWhitelist.forEach(key => {
-            if (left[key] && right[key] && typeof (left[key]) === "number" && typeof (right[key]) === "number") { //if it is number, interpolate
-                const dif = NumCast(right[key]) - NumCast(left[key]);
-                const deltaLeft = this.time - NumCast(left.time);
-                const ratio = deltaLeft / (NumCast(right.time) - NumCast(left.time));
-                this.props.node[key] = NumCast(left[key]) + (dif * ratio);
-            } else { // case data 
-                const stored = left[key];
-                this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
+        this.defaultTrackedFields.forEach(key => {
+            if (BoolCast(left[key + "Tracked"], true) && (BoolCast(right[key + "Tracked"], true))) {
+                if (left[key] && right[key] && typeof (left[key]) === "number" && typeof (right[key]) === "number") { //if it is number, interpolate
+                    const dif = NumCast(right[key]) - NumCast(left[key]);
+                    const deltaLeft = this.time - NumCast(left.time);
+                    const ratio = deltaLeft / (NumCast(right.time) - NumCast(left.time));
+                    this.props.node[key] = NumCast(left[key]) + (dif * ratio);
+                } else { // case data 
+                    const stored = left[key];
+                    this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
+                }
             }
         });
     }
@@ -324,10 +326,14 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    copyDocDataToKeyFrame = (doc: Doc) => {
-        this.primitiveWhitelist.map(key => {
-            const originalVal = this.props.node[key];
-            doc[key] = originalVal instanceof ObjectField ? originalVal[Copy]() : originalVal;
+    copyDocDataToKeyFrame = (doc: Doc, ) => {
+        this.defaultTrackedFields.map(key => {
+            const fieldTracked = BoolCast(doc[key + "Tracked"], true); // when first initialized `{field}Tracked` is undefined, so default to true 
+            console.log(key, fieldTracked, doc[key]);
+            if (fieldTracked) {
+                const originalVal = this.props.node[key];
+                doc[key] = originalVal instanceof ObjectField ? originalVal[Copy]() : originalVal;
+            }
         });
     }
 
@@ -343,7 +349,7 @@ export class Track extends React.Component<IProps> {
                         onPointerOver={() => Doc.BrushDoc(this.props.node)}
                         onPointerOut={() => Doc.UnBrushDoc(this.props.node)} >
                         {this.regions?.map((region, i) => {
-                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} primitiveWhiteList={this.primitiveWhitelist} />;
+                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} defaultTrackedFields={this.defaultTrackedFields} />;
                         })}
                     </div>
                 </div>

@@ -13,7 +13,7 @@ import { TimelineMenu } from "./TimelineMenu";
 // import { FieldToggle } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { emptyPath, Utils } from "../../../Utils";
+import { emptyPath, Utils, numberRange } from "../../../Utils";
 import { check } from "express-validator/check";
 
 
@@ -128,7 +128,7 @@ interface IProps {
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
     makeKeyData: (region: RegionData, pos: number, kftype: KeyframeFunc.KeyframeType) => Doc;
-    primitiveWhiteList: string[];
+    defaultTrackedFields: string[];
 }
 
 
@@ -167,18 +167,6 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get keyframes() { return DocListCast(this.regiondata.keyframes); }
     @computed private get pixelPosition() { return KeyframeFunc.convertPixelTime(this.regiondata.position, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-
-    @observable private trackedFields = [
-        "x",
-        "y",
-        "_width",
-        "_height",
-        "opacity",
-        "_scrollTop",
-        "_panX",
-        "_panY",
-        "scale"
-    ];
 
     constructor(props: any) {
         super(props);
@@ -305,7 +293,6 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
-
     @action
     createKeyframe = async (clientX: number) => {
         this._mouseToggled = true;
@@ -352,20 +339,20 @@ export class Keyframe extends React.Component<IProps> {
                     this.keyframes[1].time = this.regiondata.position;
                 }
             })),
-            TimelineMenu.Instance.addCheckbox(this.props.primitiveWhiteList.map(field => this.makeCheckbox(field))); //make checkbox for each tracked field
+            TimelineMenu.Instance.addCheckbox(this.props.defaultTrackedFields.map(field => this.makeCheckbox(kf, field))); //make checkbox for each tracked field
         TimelineMenu.Instance.addMenu("Keyframe");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
     }
 
-    makeCheckbox = (field: string) => {
+    makeCheckbox = (kf: Doc, field: string) => {
+        const fieldTracked = field + "Tracked";
         return <div className="timeline-menu-item">
             <input type="checkbox" key={Utils.GenerateGuid()} className="timeline-menu-checkbox"
-                checked={this.trackedFields.includes(field)}
+                checked={BoolCast(kf[fieldTracked], true)}
                 onChange={e => {
                     e.stopPropagation();
-                    const index = this.trackedFields.indexOf(field);
-                    index === -1 ? this.trackedFields.push(field) : this.trackedFields.splice(index, 1);
-                    console.log(field, this.trackedFields.includes(field));
+                    kf[fieldTracked] = BoolCast(kf[fieldTracked], true) ? false : true;
+                    console.log(fieldTracked, kf[fieldTracked]);
                 }} />
             {field}
         </div>;
@@ -378,30 +365,30 @@ export class Keyframe extends React.Component<IProps> {
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Remove Region", () =>
             Cast(this.props.node.regions, listSpec(Doc))?.splice(this.regions.indexOf(this.props.RegionData), 1)),
-            TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
-                runInAction(() => {
-                    let cannotMove: boolean = false;
-                    if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position) {
-                        cannotMove = true;
-                    }
-                    if (!cannotMove) {
-                        this.regiondata.fadeIn = parseInt(val, 10);
-                        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
-                    }
-                });
-            }),
-            TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {
-                runInAction(() => {
-                    let cannotMove: boolean = false;
-                    if (val < 0 || val > this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[this.keyframes.length - 3].time)) {
-                        cannotMove = true;
-                    }
-                    if (!cannotMove) {
-                        this.regiondata.fadeOut = parseInt(val, 10);
-                        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - val;
-                    }
-                });
-            }),
+            // TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
+            //     runInAction(() => {
+            //         let cannotMove: boolean = false;
+            //         if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position) {
+            //             cannotMove = true;
+            //         }
+            //         if (!cannotMove) {
+            //             this.regiondata.fadeIn = parseInt(val, 10);
+            //             this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
+            //         }
+            //     });
+            // }),
+            // TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {
+            //     runInAction(() => {
+            //         let cannotMove: boolean = false;
+            //         if (val < 0 || val > this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[this.keyframes.length - 3].time)) {
+            //             cannotMove = true;
+            //         }
+            //         if (!cannotMove) {
+            //             this.regiondata.fadeOut = parseInt(val, 10);
+            //             this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - val;
+            //         }
+            //     });
+            // }),
             TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {
                 runInAction(() => {
                     const prevPosition = this.regiondata.position;
