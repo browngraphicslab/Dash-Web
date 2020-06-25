@@ -1047,7 +1047,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.showLinks ? this.anchors : (null)}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} />}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
     }

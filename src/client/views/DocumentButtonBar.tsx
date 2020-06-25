@@ -113,48 +113,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
 
     get view0() { return this.props.views()?.[0]; }
 
-    @action
-    onLinkButtonMoved = (e: PointerEvent) => {
-        if (this._linkButton.current !== null) {
-            const linkDrag = UndoManager.StartBatch("Drag Link");
-            this.view0 && DragManager.StartLinkDrag(this._linkButton.current, this.view0.props.Document, e.pageX, e.pageY, {
-                dragComplete: dropEv => {
-                    const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
-                    if (this.view0 && linkDoc) {
-                        !linkDoc.linkRelationship && (Doc.GetProto(linkDoc).linkRelationship = "hyperlink");
-
-                        // we want to allow specific views to handle the link creation in their own way (e.g., rich text makes text hyperlinks)
-                        // the dragged view can regiser a linkDropCallback to be notified that the link was made and to update their data structures
-                        // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
-                        // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
-                        dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
-                        runInAction(() => this.view0!._link = linkDoc);
-                        setTimeout(action(() => this.view0!._link = undefined), 0);
-                    }
-                    linkDrag?.end();
-                },
-                hideSource: false
-            });
-            return true;
-        }
-        return false;
-    }
-
-
-    onLinkButtonDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, (e, doubleTap) => {
-            if (doubleTap) {
-                if (!DocumentLinksButton.StartLink) {
-                    runInAction(() => DocumentLinksButton.StartLink = this.view0);
-                } else {
-                    DocumentLinksButton.StartLink !== this.view0 && this.view0 &&
-                        DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.view0.props.Document }, "long drag");
-                }
-            }
-        });
-    }
-
-
     @computed
     get considerGoogleDocsPush() {
         const targetDoc = this.view0?.props.Document;
@@ -245,22 +203,6 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     }
 
     @computed
-    get linkButton() {
-        const view0 = this.view0;
-        const linkCount = view0 && DocListCast(view0.props.Document.links).length;
-        return !view0 ? (null) :
-            <div className="documentButtonBar-button">
-                <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
-                    <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")}
-                        style={{ backgroundColor: "lightBlue", color: "black", border: DocumentLinksButton.StartLink ? "solid red 2px" : "" }}
-                        onPointerDown={this.onLinkButtonDown} >
-                        {linkCount ? linkCount : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
-                    </div>
-                </div>
-            </div>;
-    }
-
-    @computed
     get metadataButton() {
         const view0 = this.view0;
         return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
@@ -328,7 +270,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
-            {this.linkButton}
+            <div className="documentButtonBar-button">
+                <DocumentLinksButton View={this.view0!} AlwaysOn={true} />
+            </div>
             <div className="documentButtonBar-button">
                 {this.templateButton}
             </div>
