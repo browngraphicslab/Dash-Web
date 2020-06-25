@@ -9,6 +9,7 @@ import { DocumentView } from "./DocumentView";
 import React = require("react");
 import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { LinkDocPreview } from "./LinkDocPreview";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -80,11 +81,19 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         const links = DocListCast(this.props.View.props.Document.links);
         return !links.length || links[0].hidden ? (null) :
             <div title="Drag(create link) Tap(view links)" ref={this._linkButton}>
-                <div className={"documentLinksButton-button-nonempty"} onPointerDown={this.onLinkButtonDown} >
+                <div className={"documentLinksButton"} style={{ backgroundColor: DocumentLinksButton.StartLink ? "transparent" : "" }}
+                    onPointerDown={this.onLinkButtonDown}
+                    onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+                    onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
+                        addDocTab: this.props.View.props.addDocTab,
+                        linkSrc: this.props.View.props.Document,
+                        linkDoc: links[0],
+                        Location: [e.clientX, e.clientY + 20]
+                    })} >
                     {links.length ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
                 </div>
-                {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-button-empty"} onPointerDown={this.completeLink} /> : (null)}
-                {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-button"} /> : (null)}
+                {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"} onPointerDown={this.completeLink} /> : (null)}
+                {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-startLink"} /> : (null)}
             </div>;
     }
     render() {

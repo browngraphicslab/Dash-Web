@@ -1,21 +1,9 @@
 @import "../globalCssVariables.scss";
 
 
-.documentLinksButton-button-empty:hover {
-    background: $main-accent;
-    transform: scale(1.05);
-    cursor: pointer;
-}
-
-.documentLinksButton-button-nonempty:hover {
-    background: $main-accent;
-    transform: scale(1.05);
-    cursor: pointer;
-}
-
-.documentLinksButton-button,
-.documentLinksButton-button-empty,
-.documentLinksButton-button-nonempty {
+.documentLinksButton,
+.documentLinksButton-endLink,
+.documentLinksButton-startLink {
     height: 20px;
     width: 20px;
     left: -15px;
@@ -34,18 +22,18 @@
     align-items: center;
 
     &:hover {
-        background: $main-accent;
+        background: deepskyblue;
         transform: scale(1.05);
-        cursor: pointer;
+        cursor: default;
     }
 }
-.documentLinksButton-button-nonempty {
+.documentLinksButton {
     background-color: $link-color;
 }
-.documentLinksButton-button-empty {
+.documentLinksButton-endLink {
     border: red solid 2px;
 }
-.documentLinksButton-button {
+.documentLinksButton-startLink {
     border: red solid 2px;
     background-color: rgba(255, 192, 203, 0.5);
 }

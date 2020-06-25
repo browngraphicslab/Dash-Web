@@ -248,7 +248,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get linkButton() {
         const view0 = this.view0;
         const linkCount = view0 && DocListCast(view0.props.Document.links).length;
-        return !view0 || linkCount ? (null) :
+        return !view0 ? (null) :
             <div className="documentButtonBar-button">
                 <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
                     <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")}

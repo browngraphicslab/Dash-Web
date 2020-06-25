@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
 import { Id } from "../../../fields/FieldSymbols";
+import { LinkDocPreview } from "./LinkDocPreview";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -132,6 +133,13 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         );
         const small = this.props.PanelWidth() <= 1;
         return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
+            onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+            onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
+                addDocTab: this.props.addDocTab,
+                linkSrc: this.props.ContainingCollectionDoc!,
+                linkDoc: this.rootDoc,
+                Location: [e.clientX, e.clientY + 20]
+            })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
