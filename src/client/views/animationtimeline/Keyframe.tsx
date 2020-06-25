@@ -167,17 +167,6 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get keyframes() { return DocListCast(this.regiondata.keyframes); }
     @computed private get pixelPosition() { return KeyframeFunc.convertPixelTime(this.regiondata.position, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-    // @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-    // @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-
-    // @observable private fieldToVal = new Map<string, boolean>();
-    // @computed get trackedFields(): string[] {
-    //     const res: string[] = [];
-    //     this.fieldToVal.forEach((val, field) =>
-    //         val && res.push(field)
-    //     );
-    //     return res;
-    // }
 
     @observable private trackedFields = [
         "x",
@@ -194,10 +183,6 @@ export class Keyframe extends React.Component<IProps> {
     constructor(props: any) {
         super(props);
     }
-
-    // componentWillMount() {
-    //     this.props.primitiveWhiteList.map(field => this.fieldToVal.set(field, true));
-    // }
 
     componentDidMount() {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
@@ -239,12 +224,13 @@ export class Keyframe extends React.Component<IProps> {
         const right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions)!;
         const prevX = this.regiondata.position;
         const futureX = this.regiondata.position + KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const space = 500;
         if (futureX <= 0) {
             this.regiondata.position = 0;
-        } else if ((left && left.position + left.duration >= futureX)) {
-            this.regiondata.position = left.position + left.duration;
-        } else if ((right && right.position <= futureX + this.regiondata.duration)) {
-            this.regiondata.position = right.position - this.regiondata.duration;
+        } else if ((left && left.position + left.duration >= futureX - space)) {
+            this.regiondata.position = left.position + left.duration + space;
+        } else if ((right && right.position <= futureX + this.regiondata.duration + space)) {
+            this.regiondata.position = right.position - this.regiondata.duration - space;
         } else {
             this.regiondata.position = futureX;
         }
