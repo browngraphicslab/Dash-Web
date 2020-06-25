@@ -26,11 +26,65 @@
     display: flex;
     flex-direction: column;
 
+    .dialogue-box {
+        width: 90%;
+        height: 80%;
+
+        .editing-interface {
+            background-color: whitesmoke !important;
+            color: grey;
+            width: 100%;
+            height: 100%;
+
+            .editing-header {
+                margin-bottom: 5;
+
+                .group-buttons {
+                    display: flex;
+                    margin-top: 5;
+
+                    .add-member-dropdown {
+                        width: 100%;
+                        margin: 0 5;
+                    }
+                }
+            }
+
+
+            .editing-contents {
+                overflow-y: auto;
+                // max-height: 67%;
+                height: 67%;
+                width: 100%;
+
+                .editing-row {
+                    display: flex;
+                    align-items: center;
+                    border: 1px solid;
+                    border-radius: 10px;
+
+                    .user-email {
+                        // position: relative;
+                        min-width: 65%;
+                        word-break: break-all;
+                        padding: 0 5;
+                    }
+                }
+            }
+
+
+        }
+    }
+
+    .overlay {
+        transform: translate(-20px, -20px);
+        border-radius: 10px;
+    }
+
     button {
         width: 100%;
         align-self: center;
         background: $darker-alt-accent;
-        margin-top: 4px;
     }
 
     .delete-button {
@@ -42,6 +96,7 @@
         right: 1em;
         top: 1em;
         cursor: pointer;
+        z-index: 1000;
     }
 
     .group-heading {
@@ -82,22 +137,25 @@
             .group-row {
                 display: flex;
                 position: relative;
-                margin-top: 5px;
-                margin-bottom: 16.5px;
+                margin-bottom: 5px;
+                min-height: 40px;
+                border: 1px solid;
+                border-radius: 10px;
+                align-items: center;
 
                 .group-name {
                     position: relative;
                     max-width: 65%;
+                    left: 10;
                 }
 
                 button {
                     position: absolute;
                     width: 30%;
-                    right: 0;
+                    right: 2;
+                    margin-top: 0;
                 }
             }
-
-
 
             ::placeholder {
                 color: $intermediate-color;
