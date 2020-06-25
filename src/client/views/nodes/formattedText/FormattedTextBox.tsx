@@ -1193,6 +1193,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    ondrop = (eve: React.DragEvent) => {
+        eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
+    }
     onscrolled = (ev: React.UIEvent) => {
         this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
     }
@@ -1281,7 +1284,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         }
                     })}
                 >
-                    <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }} onScroll={this.onscrolled} ref={this._scrollRef}>
+                    <div className={`formattedTextBox-outer`} ref={this._scrollRef}
+                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }}
+                        onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
                                 padding: `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
