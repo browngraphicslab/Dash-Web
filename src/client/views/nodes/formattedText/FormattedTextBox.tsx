@@ -261,20 +261,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
+
+            
+            const lastSel = Math.min(flattened.length - 1, this._searchIndex);
+            flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
+            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+            this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
+            
+            console.log(this._searchIndex, length);
             if (this._searchIndex>1){
                 this._searchIndex+=-2;
             }
             else if (this._searchIndex===1){
                 this._searchIndex=length-1;
             }
-            else if (this._searchIndex===0){
+            else if (this._searchIndex===0 && length!==1){
                 this._searchIndex=length-2;
             }
-            
-            const lastSel = Math.min(flattened.length - 1, this._searchIndex);
-            flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
-            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-            this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
             let index = this._searchIndex;
 
             Doc.GetProto(this.dataDoc).searchIndex = index;

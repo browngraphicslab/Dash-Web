@@ -181,7 +181,6 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
-    searchText?: string, //for searchbox
     searchQuery?: string, // for quersyBox
     filterQuery?: filterData,
     linearViewIsExpanded?: boolean; // is linear view expanded

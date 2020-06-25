@@ -315,6 +315,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         console.log(selectedDocs);
         selectedDocs.forEach(async element => {
             const layout: string = StrCast(element.props.Document.layout);
+            console.log(layout);
             //checks if selected view (element) is a collection. if it is, adds to list to search through
             if (layout.indexOf("Collection") > -1) {
                 //makes sure collections aren't added more than once
@@ -391,13 +392,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._isSorted=[];
         this._visibleElements = [];
         this._visibleDocuments = [];
-        console.log(this._timeout);
-        
-        if (this._timeout){clearTimeout(this._timeout); this._timeout=undefined};
-        this._timeout= setTimeout(()=>{
-            console.log("Resubmitting search");
-            this.submitSearch();
-        }, 10000);
+        if (StrCast(this.props.Document.searchQuery)){
+            if (this._timeout){clearTimeout(this._timeout); this._timeout=undefined};
+            this._timeout= setTimeout(()=>{
+                console.log("Resubmitting search");
+                this.submitSearch();
+            }, 60000);
+            }
 
         if (query !== "") {
             this._endIndex = 12;
@@ -442,7 +443,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
         }
 
-        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `default bucket`});
+        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true,title: `default bucket`});
         bucket._viewType === CollectionViewType.Stacking;
         bucket._height=185;
         bucket.bucketfield = "results";
@@ -452,7 +453,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.bucketcount[0]=0;
         
         if (this.firststring!==""){
-        let firstbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.firststring });
+        let firstbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true, title: this.firststring });
         firstbucket._height=185;
 
         firstbucket._viewType === CollectionViewType.Stacking;
@@ -465,7 +466,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
 
         if (this.secondstring!==""){
-        let secondbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.secondstring });
+        let secondbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true, title: this.secondstring });
         secondbucket._height=185;
         secondbucket._viewType === CollectionViewType.Stacking;
         secondbucket.bucketfield = this.secondstring;
@@ -475,20 +476,29 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.bucketcount[2]=0;
         }
 
-        let webbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.secondstring });
+        let webbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking, childDropAction: "alias", ignoreClick: true, lockedPosition: true, title: this.secondstring });
         webbucket._height=185;
         webbucket._viewType === CollectionViewType.Stacking;
         webbucket.bucketfield = "webs";
         webbucket.isBucket=true;
+        let old = Cast(this.props.Document.webbucket,Doc) as Doc;
+        let old2=Cast(this.props.Document.bing,Doc) as Doc;
+        if (old){
+            console.log("Cleanup");
+            Doc.RemoveDocFromList(old, this.props.fieldKey,old2);
+        }
         const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${this.layoutDoc._searchString}`, {
                     _width: 200,  _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
                     title: "bing", UseCors: true
                 });
+        this.props.Document.bing=textDoc;
+        this.props.Document.webbucket = webbucket;
         Doc.AddDocToList(this.dataDoc, this.props.fieldKey, webbucket);
         Doc.AddDocToList(webbucket, this.props.fieldKey, textDoc);
 
 
     }
+
 
     @observable buckets:Doc[]|undefined;
 
@@ -539,6 +549,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const highlight = highlights[doc[Id]];
                             const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
+                            doc? console.log(Cast(doc.context, Doc)) : null;
                             if (this.findCommonElements(hlights)){
                             }
                             else{
@@ -619,7 +630,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             basicWordStatus: this._basicWordStatus,
             icons: this._icons,
         }
-        return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Stacking , title: StrCast(this.layoutDoc._searchString), filterQuery: filter, searchQuery: StrCast(this.layoutDoc._searchString) });
+        return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Stacking , title: StrCast(this.layoutDoc._searchString), searchQuery: StrCast(this.layoutDoc._searchString) });
     }
 
     @action.bound
