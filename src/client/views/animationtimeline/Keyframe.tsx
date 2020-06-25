@@ -24,7 +24,6 @@ export namespace KeyframeFunc {
 
     export enum KeyframeType {
         end = "end",
-        fade = "fade",
         default = "default",
     }
 
@@ -89,10 +88,6 @@ export namespace KeyframeFunc {
         const regiondata = new Doc(); //creating regiondata in MILI
         regiondata.duration = 4000;
         regiondata.position = 0;
-        // regiondata.fadeIn = 1000;
-        // regiondata.fadeOut = 1000;
-        // regiondata.fadeIn = 0;
-        // regiondata.fadeOut = 0;
         regiondata.functions = new List<Doc>();
         regiondata.hasData = false;
         return regiondata;
@@ -284,23 +279,25 @@ export class Keyframe extends React.Component<IProps> {
         const bar = this._bar.current!;
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         const leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
-        if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {
-            this.regiondata.position = leftRegion.position + leftRegion.duration;
-            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - (leftRegion.position + leftRegion.duration);
-        } else if (NumCast(this.keyframes[1].time) + offset >= NumCast(this.keyframes[2].time)) {
-            this.regiondata.position = NumCast(this.keyframes[2].time);
-            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - NumCast(this.keyframes[2].time);
-        } else if (NumCast(this.keyframes[0].time) + offset <= 0) {
+        const newLeftPos = this.regiondata.position + offset;
+        const space = 500;
+        if (leftRegion && newLeftPos <= leftRegion.position + leftRegion.duration + space) { // prevent collision with left region (if there is one)
+            this.regiondata.duration = this.regiondata.position + this.regiondata.duration - (leftRegion.position + leftRegion.duration) - space;
+            this.regiondata.position = leftRegion.position + leftRegion.duration + space;
+        } else if (this.keyframes.length > 0 && newLeftPos >= NumCast(this.keyframes[0].time) - space) { // prevent collision with leftmost keyframe
+            this.regiondata.duration = this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[0].time) + space;
+            this.regiondata.position = NumCast(this.keyframes[0].time) - space;
+        } else if (newLeftPos >= this.regiondata.position + this.regiondata.duration - space) { // prevent collision with right end of this region
+            this.regiondata.duration = space;
+            this.regiondata.position = this.regiondata.position + this.regiondata.duration;
+        } else if (newLeftPos <= 0) { // prevent negative position
+            this.regiondata.duration = this.regiondata.position + this.regiondata.duration;
             this.regiondata.position = 0;
-            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time);
         } else {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
-        this.keyframes[0].time = this.regiondata.position;
-        this.keyframes[1].time = this.regiondata.position;
     }
-
 
     @action
     onDragResizeRight = (e: PointerEvent) => {
@@ -309,16 +306,17 @@ export class Keyframe extends React.Component<IProps> {
         const bar = this._bar.current!;
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         const rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
-        const fadeOutKeyframeTime = NumCast(this.keyframes[this.keyframes.length - 3].time);
-        if (this.regiondata.position + this.regiondata.duration + offset <= fadeOutKeyframeTime) { //case 1: when third to last keyframe is in the way 
-            this.regiondata.duration = fadeOutKeyframeTime - this.regiondata.position;
-        } else if (rightRegion && (this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position)) {
-            this.regiondata.duration = rightRegion.position - this.regiondata.position;
+        const newRightPos = this.regiondata.position + this.regiondata.duration + offset;
+        const space = 500;
+        if (rightRegion && newRightPos >= rightRegion.position - space) { // prevent collision with right region (if there is one)
+            this.regiondata.duration = rightRegion.position - this.regiondata.position - space;
+        } else if (this.keyframes.length > 0 && newRightPos <= NumCast(this.keyframes[this.keyframes.length - 1].time) + space) { // prevent collision with rightmost keyframe
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - this.regiondata.position + space;
+        } else if (newRightPos <= this.regiondata.position + space) { // prevent collision with left end of this region
+            this.regiondata.duration = space;
         } else {
             this.regiondata.duration += offset;
         }
-        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration;
-        this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration;
     }
 
 
@@ -331,8 +329,8 @@ export class Keyframe extends React.Component<IProps> {
         const position = this.regiondata.position;
         this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
         this.regiondata.hasData = true;
-        this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
-
+        this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement));
+        //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         // }
     }
 
@@ -349,13 +347,10 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     makeKeyframeMenu = (kf: Doc, e: MouseEvent) => {
-        TimelineMenu.Instance.addItem("button", "Toggle Fade Only", () => {
-            kf.type = kf.type === KeyframeFunc.KeyframeType.fade ? KeyframeFunc.KeyframeType.default : KeyframeFunc.KeyframeType.fade;
-        }),
-            TimelineMenu.Instance.addItem("button", "Show Data", action(() => {
-                const kvp = Docs.Create.KVPDocument(kf, { _width: 300, _height: 300 });
-                CollectionDockingView.AddRightSplit(kvp, emptyPath);
-            })),
+        TimelineMenu.Instance.addItem("button", "Show Data", action(() => {
+            const kvp = Docs.Create.KVPDocument(kf, { _width: 300, _height: 300 });
+            CollectionDockingView.AddRightSplit(kvp, emptyPath);
+        })),
             TimelineMenu.Instance.addItem("button", "Delete", action(() => {
                 (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
                 this.forceUpdate();
