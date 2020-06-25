@@ -65,11 +65,19 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
-    @observable pointerX: number = 0;
-    @observable pointerY: number = 0;
+    @observable _menuWidth = 0
+    @observable _menuContent: any = "";
+    @observable _headerOpen = false;
+    @observable _isOpen = false;
+    @observable _node: HTMLDivElement | null = null;
+    @observable _headerIsEditing = false;
+    @observable _col: any = "";
+    @observable _menuHeight = 0;
+    @observable _pointerX = 0;
+    @observable _pointerY = 0;
     @computed get menuCoordinates() {
-        const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this.pointerX));
-        const y = Math.max(0, Math.min(document.body.clientHeight - this._menuHeight, this.pointerY));
+        const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this._pointerX));
+        const y = Math.max(0, Math.min(document.body.clientHeight - this._menuHeight, this._pointerY));
         return this.props.ScreenToLocalTransform().transformPoint(x, y);
     }
 
@@ -94,17 +102,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns.forEach(key => keys[key.heading] = true);
         return Array.from(Object.keys(keys));
     }
-
-    @observable col: any = "";
     @computed get possibleKeys() { return this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1); }
 
-    @observable menuContent: any = "";
-    @observable headerOpen: boolean = false;
-
-    @observable private _isOpen: boolean = false;
-    @observable private _node: HTMLDivElement | null = null;
-
-    @observable _headerIsEditing: boolean = false;
 
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
@@ -130,9 +129,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._isOpen = !this._isOpen;
         this.setHeaderIsEditing(this._isOpen);
     }
-
-
-
 
     changeColumnType = (type: ColumnType, col: any): void => {
         this.setColumnType(col, type);
@@ -181,17 +177,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns = columns;
     }
 
-
-
     @action
     setNode = (node: HTMLDivElement): void => {
-        if (node) {
-            this._node = node;
-        }
+        node && (this._node = node);
     }
 
     renderTypes = (col: any) => {
-        if (columnTypes.get(col.heading)) return <></>;
+        if (columnTypes.get(col.heading)) return (null);
 
         const type = col.type;
         return (
@@ -303,15 +295,15 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     openHeader = (col: any, menu: any, screenx: number, screeny: number) => {
-        this.menuContent = menu;
-        this.col = col;
-        this.headerOpen = !this.headerOpen;
-        this.pointerX = screenx;
-        this.pointerY = screeny;
+        this._menuContent = menu;
+        this._col = col;
+        this._headerOpen = !this._headerOpen;
+        this._pointerX = screenx;
+        this._pointerY = screeny;
     }
 
     @action
-    closeHeader = () => { this.headerOpen = false; }
+    closeHeader = () => { this._headerOpen = false; }
 
     renderContent = (col: any) => {
         return (
@@ -363,12 +355,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.ScreenToLocalTransform().translate(- this.borderWidth - 4 - this.tableWidth, - this.borderWidth);
     }
 
-    //anchorPoints.TOP_CENTER 
-
-    @observable _menuWidth = 0
-    @observable _menuHeight = 0;
     @computed get renderMenu() {
-        const scale = this.props.ScreenToLocalTransform().Scale;
         return (
             <div className="collectionSchema-header-menu" ref={this.setNode}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
@@ -380,7 +367,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
                     this._menuWidth = dim[0]; this._menuHeight = dim[1];
                 })}>
-                    {({ measureRef }) => <div ref={measureRef}>{this.renderContent(this.col)}</div>}
+                    {({ measureRef }) => <div ref={measureRef}>{this.renderContent(this._col)}</div>}
                 </Measure>
             </div>
         );
@@ -526,8 +513,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();
         }
-        this.pointerY = e.screenY;
-        this.pointerX = e.screenX;
+        this._pointerY = e.screenY;
+        this._pointerX = e.screenX;
     }
 
     onResizedChange = (newResized: Resize[], event: any) => {
@@ -573,7 +560,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
             {this.dividerDragger}
             {!this.previewWidth() ? (null) : this.previewPanel}
-            {this.headerOpen ? this.renderMenu : null}
+            {this._headerOpen ? this.renderMenu : null}
         </div>;
     }
 }
