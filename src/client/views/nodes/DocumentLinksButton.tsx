@@ -16,6 +16,7 @@ export const Flyout = higflyout.default;
 
 interface DocumentLinksButtonProps {
     View: DocumentView;
+    Offset?: number[];
 }
 @observer
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
@@ -80,7 +81,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     get linkButton() {
         const links = DocListCast(this.props.View.props.Document.links);
         return !links.length || links[0].hidden ? (null) :
-            <div title="Drag(create link) Tap(view links)" ref={this._linkButton}>
+            <div title="Drag(create link) Tap(view links)" ref={this._linkButton} style={{ position: "absolute", left: this.props.Offset?.[0] }}>
                 <div className={"documentLinksButton"} style={{ backgroundColor: DocumentLinksButton.StartLink ? "transparent" : "" }}
                     onPointerDown={this.onLinkButtonDown}
                     onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
