@@ -3,7 +3,7 @@ import { observable, action, runInAction, computed } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
@@ -30,6 +30,7 @@ export default class GroupManager extends React.Component<{}> {
     @observable private overlayOpacity: number = 0.4;
     @observable private users: string[] = [];
     @observable private selectedUsers: UserOptions[] | null = null;
+    @observable private currentGroupModal: Opt<Doc>;
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     constructor(props: Readonly<{}>) {
@@ -60,6 +61,7 @@ export default class GroupManager extends React.Component<{}> {
 
     close = action(() => {
         this.isOpen = false;
+        this.currentGroupModal = undefined;
     });
 
     get GroupManagerDoc(): Doc | undefined {
@@ -77,13 +79,13 @@ export default class GroupManager extends React.Component<{}> {
     }
 
     get adminGroupMembers(): string[] {
-        return JSON.parse(GroupManager.Instance.getGroup("admin")!.members as string);
+        return GroupManager.Instance.getGroup("admin") ? JSON.parse(GroupManager.Instance.getGroup("admin")!.members as string) : "";
     }
 
     hasEditAccess(groupDoc: Doc): boolean {
         if (!groupDoc) return false;
         const accessList: string[] = JSON.parse(groupDoc.owners as string);
-        return accessList.includes(Doc.CurrentUserEmail) || GroupManager.Instance.adminGroupMembers.includes(Doc.CurrentUserEmail);
+        return accessList.includes(Doc.CurrentUserEmail) || GroupManager.Instance.adminGroupMembers?.includes(Doc.CurrentUserEmail);
     }
 
     createGroupDoc(groupName: string, memberEmails: string[]) {
@@ -157,9 +159,27 @@ export default class GroupManager extends React.Component<{}> {
         this.inputRef.current.value = "";
     }
 
+    private get editingInterface() {
+        return (
+            // <div className="editing-interface">
+
+            // </div>
+            "HEY HEY"
+        );
+
+    }
+
+
     private get groupInterface() {
         return (
             <div className="group-interface">
+                <MainViewModal
+                    contents={this.editingInterface}
+                    isDisplayed={this.currentGroupModal ? true : false}
+                    interactive={true}
+                    dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
+                    overlayDisplayedOpacity={this.overlayOpacity}
+                />
                 <div className="group-heading">
                     <h1>Groups</h1>
                     <div className={"close-button"} onClick={this.close}>
@@ -184,7 +204,7 @@ export default class GroupManager extends React.Component<{}> {
                         {this.getAllGroups().map(group =>
                             <div className="group-row">
                                 <div className="group-name">{group.groupName}</div>
-                                <button>
+                                <button onClick={action(() => this.currentGroupModal = group)}>
                                     {this.hasEditAccess(this.getGroup(group.groupName as string) as Doc) ? "Edit" : "View"}
                                 </button>
                             </div>
