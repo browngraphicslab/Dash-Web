@@ -63,6 +63,7 @@
         margin-left: 50px;
 
         z-index: 10000;
+        overflow-y: visible;
 
         &.-header {
             font-size: 12px;
@@ -179,11 +180,15 @@
 .collectionSchemaView-header {
     height: 100%;
     color: gray;
+    z-index: 10000;
+    overflow-y: visible;
 
     .collectionSchema-header-menu {
         height: 100%;
+        z-index: 10000;
 
         .collectionSchema-header-toggler {
+            z-index: 10000;
             width: 100%;
             height: 100%;
             padding: 4px;
