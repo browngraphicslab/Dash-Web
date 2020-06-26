@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { baseKeymap } from "prosemirror-commands";
+import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
@@ -102,6 +102,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";
+    public static PasteOnLoad: ClipboardEvent | undefined;
     public static SelectOnLoadChar = "";
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
@@ -274,6 +275,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const end = this._editorView.state.doc.nodeSize - 2;
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
+        }
+        if (FormattedTextBox.PasteOnLoad) {
+            const pdfDocId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfOrigin");
+            const pdfRegionId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfRegion");
+            FormattedTextBox.PasteOnLoad = undefined;
+            setTimeout(() => pdfDocId && pdfRegionId && this.addPdfReference(pdfDocId, pdfRegionId, undefined), 10);
         }
     }
     adoptAnnotation = (start: number, end: number, mark: Mark) => {
@@ -726,7 +733,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                     const marks = [...node.marks];
                     const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
-                    return linkIndex !== -1 && marks[linkIndex].attrs.allRefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
+                    return linkIndex !== -1 && marks[linkIndex].attrs.allHrefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
                 let start = 0;
@@ -857,8 +864,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
         const cbe = event as ClipboardEvent;
-        const pdfDocId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfOrigin");
-        const pdfRegionId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfRegion");
+        const pdfDocId = cbe.clipboardData?.getData("dash/pdfOrigin");
+        const pdfRegionId = cbe.clipboardData?.getData("dash/pdfRegion");
+        return pdfDocId && pdfRegionId && this.addPdfReference(pdfDocId, pdfRegionId, slice) ? true : false;
+    }
+
+    addPdfReference = (pdfDocId: string, pdfRegionId: string, slice?: Slice) => {
+        const view = this._editorView!;
         if (pdfDocId && pdfRegionId) {
             DocServer.GetRefField(pdfDocId).then(pdfDoc => {
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
@@ -871,12 +883,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
                         const link = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: pdfRegion }, "PDF pasted");
                         if (link) {
-                            cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                             const linkId = link[Id];
-                            const frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
-                            slice = new Slice(frag, slice.openStart, slice.openEnd);
-                            const tr = view.state.tr.replaceSelection(slice);
-                            view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                            const quote = view.state.schema.nodes.blockquote.create();
+                            quote.content = addMarkToFrag(slice?.content || view.state.doc.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
+                            const newSlice = new Slice(Fragment.from(quote), slice?.openStart || 0, slice?.openEnd || 0);
+                            if (slice) {
+                                view.dispatch(view.state.tr.replaceSelection(newSlice).scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                            } else {
+                                selectAll(view.state, (tx: Transaction) => view.dispatch(tx.replaceSelection(newSlice).scrollIntoView()));
+
+                            }
                         }
                     }
                 });
@@ -898,7 +914,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: Utils.prepend(`/doc/${linkId}`), location: "onRight", title: title, docref: true });
+            const allHrefs = [{ href: Utils.prepend(`/doc/${linkId}`), title, linkId }];
+            const link = view.state.schema.mark(view.state.schema.marks.link, { allHrefs, location: "onRight", title, docref: true });
             marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
@@ -933,7 +950,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            //applyDevTools.applyDevTools(this._editorView);
+            !Doc.UserDoc().noviceMode && applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1193,6 +1210,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    ondrop = (eve: React.DragEvent) => {
+        eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
+    }
     onscrolled = (ev: React.UIEvent) => {
         this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
     }
@@ -1281,7 +1301,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         }
                     })}
                 >
-                    <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }} onScroll={this.onscrolled} ref={this._scrollRef}>
+                    <div className={`formattedTextBox-outer`} ref={this._scrollRef}
+                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }}
+                        onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
                                 padding: `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,

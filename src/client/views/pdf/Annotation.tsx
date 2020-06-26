@@ -8,7 +8,6 @@ import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
-import { DocumentView } from "../nodes/DocumentView";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -19,7 +18,9 @@ interface IAnnotationProps {
     fieldKey: string;
 }
 
-export default class Annotation extends React.Component<IAnnotationProps> {
+@observer
+export default
+    class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a => (
             <RegionAnnotation {...this.props} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />));

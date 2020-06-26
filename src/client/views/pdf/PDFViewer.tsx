@@ -80,7 +80,6 @@ interface IViewerProps {
 export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
-    @observable private _annotations: Doc[] = [];
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     @observable private _script: CompiledScript = CompileScript("return true") as CompiledScript;
     @observable private Index: number = -1;
@@ -112,17 +111,14 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _downY: number = 0;
     private _coverPath: any;
     private _viewerIsSetup = false;
+    private _lastSearch: string = "";
 
     @computed get allAnnotations() {
-        return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).filter(
-            anno => this._script.run({ this: anno }, console.log, true).result);
+        return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).
+            filter(anno => this._script.run({ this: anno }, console.log, true).result);
     }
+    @computed get nonDocAnnotations() { return this.allAnnotations.filter(a => a.annotations); }
 
-    @computed get nonDocAnnotations() {
-        return this._annotations.filter(anno => this._script.run({ this: anno }, console.log, true).result);
-    }
-
-    _lastSearch: string = "";
     componentDidMount = async () => {
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
@@ -148,7 +144,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
-        this._mainCont.current!.scrollTop = this.layoutDoc._scrollTop || 0;
+        this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
             if (search) {
                 this.search(Doc.SearchQuery(), true);
@@ -231,25 +227,19 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         await this.initialLoad();
 
         this._scrollTopReactionDisposer = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
-            (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined) && (this._mainCont.current!.scrollTop = stop), { fireImmediately: true });
-
-        this._annotationReactionDisposer = reaction(
-            () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
-            annotations => annotations?.length && (this._annotations = annotations),
+            (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) && (this._mainCont.current.scrollTop = stop),
             { fireImmediately: true });
 
         this._filterReactionDisposer = reaction(
-            () => ({ scriptField: Cast(this.Document.filterScript, ScriptField), annos: this._annotations.slice() }),
-            action(({ scriptField, annos }: { scriptField: FieldResult<ScriptField>, annos: Doc[] }) => {
+            () => Cast(this.Document.filterScript, ScriptField),
+            action(scriptField => {
                 const oldScript = this._script.originalScript;
-                this._script = scriptField && scriptField.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
+                this._script = scriptField?.script.compiled ? scriptField.script : CompileScript("return true") as CompiledScript;
                 if (this._script.originalScript !== oldScript) {
                     this.Index = -1;
                 }
-                annos.forEach(d => d.opacity = this._script.run({ this: d }, console.log, 1).result ? 1 : 0);
             }),
-            { fireImmediately: true }
-        );
+            { fireImmediately: true });
 
         this.createPdfViewer();
     }
@@ -656,8 +646,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @computed get annotationLayer() {
         TraceMobx();
         return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
-            {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)}
+            {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
+                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
+            }
         </div>;
     }
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);
