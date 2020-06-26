@@ -857,8 +857,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
         const cbe = event as ClipboardEvent;
-        const pdfDocId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfOrigin");
-        const pdfRegionId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfRegion");
+        const pdfDocId = cbe.clipboardData?.getData("dash/pdfOrigin");
+        const pdfRegionId = cbe.clipboardData?.getData("dash/pdfRegion");
         if (pdfDocId && pdfRegionId) {
             DocServer.GetRefField(pdfDocId).then(pdfDoc => {
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
@@ -873,9 +873,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         if (link) {
                             cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                             const linkId = link[Id];
-                            const frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
-                            slice = new Slice(frag, slice.openStart, slice.openEnd);
-                            const tr = view.state.tr.replaceSelection(slice);
+                            const quote = view.state.schema.nodes.blockquote.create();
+                            quote.content = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
+                            slice = new Slice(Fragment.from(quote), slice.openStart, slice.openEnd);
+                            const tr = view.state.tr.replaceSelection(slice)
                             view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
                         }
                     }
@@ -898,7 +899,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: Utils.prepend(`/doc/${linkId}`), location: "onRight", title: title, docref: true });
+            const allHrefs = [{ href: Utils.prepend(`/doc/${linkId}`), title, linkId }];
+            const link = view.state.schema.mark(view.state.schema.marks.link, { allHrefs, location: "onRight", title, docref: true });
             marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
@@ -933,7 +935,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            //applyDevTools.applyDevTools(this._editorView);
+            applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1013,7 +1015,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
-            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            const node = pcords && editor.state.doc.resolve(pcords.pos).node();// bcz: changed so that clicking on the attribution of a PDF pasted link will trigger. editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
                 new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");

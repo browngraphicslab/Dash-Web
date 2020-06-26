@@ -26,6 +26,7 @@ export default class PDFMenu extends AntimodeMenu {
     public AddTag: (key: string, value: string) => boolean = returnFalse;
     public PinToPres: () => void = unimplementedFunction;
     public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
+    public get Active() { return this._opacity ? true : false; }
 
     constructor(props: Readonly<{}>) {
         super(props);
