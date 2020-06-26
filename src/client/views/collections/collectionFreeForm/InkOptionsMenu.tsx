@@ -303,9 +303,9 @@ export default class InkOptionsMenu extends AntimodeMenu {
 
     render() {
         const buttons = [
-            <button className="antimodeMenu-button" title="Drag" key="drag" onPointerDown={e => this.dragStart(e)}>
-                <FontAwesomeIcon icon="arrows-alt" size="lg" />
-            </button>,
+            // <button className="antimodeMenu-button" title="Drag" key="drag" onPointerDown={e => this.dragStart(e)}>
+            //     <FontAwesomeIcon icon="arrows-alt" size="lg" />
+            // </button>,
             this.shapePicker,
             this.bezierButton,
             this.widthPicker,

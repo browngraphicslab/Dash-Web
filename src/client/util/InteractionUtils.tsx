@@ -121,12 +121,12 @@ export namespace InteractionUtils {
         return (<svg fill={fill === "none" ? color : fill}> {/* setting the svg fill sets the arrowhead fill */}
             {nodefs ? (null) : <defs>
                 <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
-                    <circle r={0.5} fill="context-stroke" />
+                    <circle r={1} fill="context-stroke" />
                 </marker>
-                <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="3" refY="0" markerWidth="10" markerHeight="7">
-                    <polygon points="10 -5, 10 5, 0 0" />
+                <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
+                    <polygon points="3 0, 3 2, 0 1" />
                 </marker>
-                <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
+                <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
                     <polygon points="0 0, 3 1, 0 2" />
                 </marker>
 
@@ -142,7 +142,8 @@ export namespace InteractionUtils {
                     stroke: color ?? "rgb(0, 0, 0)",
                     strokeWidth: strokeWidth,
                     strokeLinejoin: "round",
-                    strokeLinecap: "round"
+                    strokeLinecap: "round",
+                    strokeDasharray: dashArray
                 }}
                 markerStart={`url(#${arrowStart + defGuid})`}
                 markerEnd={`url(#${arrowEnd + defGuid})`}
