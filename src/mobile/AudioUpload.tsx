@@ -19,6 +19,9 @@ import { nullAudio } from '../fields/URLField';
 import { Transform } from '../client/util/Transform';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { MobileInterface } from './MobileInterface';
+import { DictationOverlay } from '../client/views/DictationOverlay';
+import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
+import { ContextMenu } from '../client/views/ContextMenu';
 
 export interface ImageUploadProps {
     Document: Doc;
@@ -57,6 +60,9 @@ export class AudioUpload extends React.Component {
     private get uploadInterface() {
         return (
             <>
+                <ContextMenu />
+                <DictationOverlay />
+                <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
                 <div className="closeUpload" onClick={() => this.closeUpload()}>
                     <FontAwesomeIcon icon="window-close" size={"lg"} />
                 </div>
@@ -66,10 +72,10 @@ export class AudioUpload extends React.Component {
                         Document={this._audioCol}
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
-                        addDocument={returnFalse}
+                        addDocument={undefined}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
-                        rootSelected={returnFalse}
+                        rootSelected={returnTrue}
                         removeDocument={undefined}
                         docFilters={returnEmptyFilter}
                         onClick={undefined}

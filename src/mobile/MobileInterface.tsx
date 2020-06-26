@@ -45,6 +45,8 @@ import { Cast, FieldValue } from '../fields/Types';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { InkingStroke } from '../client/views/InkingStroke';
 import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
+import { AudioBox } from "../client/views/nodes/AudioBox";
+import { FormattedTextBox } from "../client/views/nodes/formattedText/FormattedTextBox";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -80,13 +82,22 @@ export class MobileInterface extends React.Component {
 
     @action
     componentDidMount = () => {
-        Doc.UserDoc().activeMobile = this._homeDoc;
+        // Doc.UserDoc().activeMobile = this._homeDoc;
         this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
         Doc.SetSelectedTool(InkTool.None);
-        this.switchCurrentView((userDoc: Doc) => this._homeDoc);
+        Doc.UserDoc().activeMobile = this._homeDoc;
+        AudioBox.Enabled = true;
 
         document.removeEventListener("dblclick", this.onReactDoubleClick);
         document.addEventListener("dblclick", this.onReactDoubleClick);
+        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on 
+            const id = FormattedTextBox.GetDocFromUrl(e.detail);
+            DocServer.GetRefField(id).then(doc => {
+                if (doc instanceof Doc) {
+                    DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+                }
+            });
+        });
     }
 
     @action
@@ -101,10 +112,14 @@ export class MobileInterface extends React.Component {
 
     // Switch the mobile view to the given doc
     @action
-    switchCurrentView = (doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) => {
+    switchCurrentView = (doc: Doc, renderView?: () => JSX.Element, onSwitch?: () => void) => {
         if (!this.userDoc) return;
-
-        Doc.UserDoc().activeMobile = doc(this.userDoc);
+        if (this._activeDoc === this._homeDoc) {
+            this._parents.push(this._activeDoc);
+            this._homeMenu = false;
+        }
+        this._activeDoc = doc;
+        Doc.UserDoc().activeMobile = doc;
         onSwitch && onSwitch();
 
         this.renderView = renderView;
@@ -118,21 +133,10 @@ export class MobileInterface extends React.Component {
      * Method called when 'Library' button is pressed on the home screen
      */
     switchToLibrary = async () => {
-        this._parents.push(this._activeDoc);
-        this.switchCurrentView((userDoc: Doc) => this._library);
-        this._activeDoc = this._library;
+        this.switchCurrentView(this._library);
         this._homeMenu = false;
         this.toggleSidebar();
         //setTimeout(this.toggleSidebar, 300);
-
-    }
-
-    openWorkspaces = () => {
-        this._parents.push(this._activeDoc);
-        this.switchCurrentView((userDoc: Doc) => this._library);
-        this._activeDoc = this._library;
-        this._homeMenu = false;
-        this.sidebarActive = true;
     }
 
     /**
@@ -144,23 +148,19 @@ export class MobileInterface extends React.Component {
 
         if (doc === Cast(this._library, Doc) as Doc) {
             this._child = null;
-            this.userDoc.activeMobile = this._library;
+            this.switchCurrentView(this._library);
         } else if (doc === Cast(this._homeDoc, Doc) as Doc) {
             this._homeMenu = true;
             this._parents = [];
-            this._activeDoc = this._homeDoc;
             this._child = null;
-            this.switchCurrentView((userDoc: Doc) => this._homeDoc);
+            this.switchCurrentView(this._homeDoc);
         } else {
             if (doc) {
                 this._child = doc;
-                this.switchCurrentView((userDoc: Doc) => doc);
+                this.switchCurrentView(doc);
                 this._homeMenu = false;
                 header.textContent = String(doc.title);
             }
-        }
-        if (doc) {
-            this._activeDoc = doc;
         }
         this._ink = false;
     }
@@ -172,9 +172,8 @@ export class MobileInterface extends React.Component {
         if (!this._homeMenu || this.sidebarActive) {
             this._homeMenu = true;
             this._parents = [];
-            this._activeDoc = this._homeDoc;
             this._child = null;
-            this.switchCurrentView((userDoc: Doc) => this._homeDoc);
+            this.switchCurrentView(this._homeDoc);
         }
         if (this.sidebarActive) {
             this.toggleSidebar();
@@ -186,8 +185,7 @@ export class MobileInterface extends React.Component {
      */
     returnMain = () => {
         this._parents = [this._homeDoc];
-        this._activeDoc = this._library;
-        this.switchCurrentView((userDoc: Doc) => this._library);
+        this.switchCurrentView(this._library);
         this._homeMenu = false;
         this._child = null;
     }
@@ -244,21 +242,17 @@ export class MobileInterface extends React.Component {
      * Navigates to the given doc and updates the sidebar.
      * @param doc: doc for which the method is called
      */
-    @undoBatch
     handleClick = async (doc: Doc) => {
         const children = DocListCast(doc.data);
         if (doc.type !== "collection" && this.sidebarActive) {
             this._parents.push(this._activeDoc);
-            this._activeDoc = doc;
-            this.switchCurrentView((userDoc: Doc) => doc);
+            this.switchCurrentView(doc);
             this._homeMenu = false;
             this.toggleSidebar();
         }
-        else if (doc.type === "collection" && children.length === 0) this.openFromSidebar(doc);
         else {
             this._parents.push(this._activeDoc);
-            this._activeDoc = doc;
-            this.switchCurrentView((userDoc: Doc) => doc);
+            this.switchCurrentView(doc);
             this._homeMenu = false;
             this._child = doc;
         }
@@ -266,8 +260,7 @@ export class MobileInterface extends React.Component {
 
     openFromSidebar = (doc: Doc) => {
         this._parents.push(this._activeDoc);
-        this._activeDoc = doc;
-        this.switchCurrentView((userDoc: Doc) => doc);
+        this.switchCurrentView(doc);
         this._homeMenu = false;
         this._child = doc; //?
         this.toggleSidebar();
@@ -354,16 +347,14 @@ export class MobileInterface extends React.Component {
     // Handles when user clicks on a document in the pathbar
     handlePathClick = (doc: Doc, index: number) => {
         if (doc === this._library) {
-            this._activeDoc = doc;
             this._child = null;
-            this.switchCurrentView((userDoc: Doc) => doc);
+            this.switchCurrentView(doc);
             this._parents.length = index;
         } else if (doc === this._homeDoc) {
             this.returnHome();
         } else {
-            this._activeDoc = doc;
             this._child = doc;
-            this.switchCurrentView((userDoc: Doc) => doc);
+            this.switchCurrentView(doc);
             this._parents.length = index;
         }
     }
@@ -610,31 +601,6 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Mobile audio doc
-    recordAudio = async () => {
-        // upload to server with known URL
-        if (this._activeDoc.title !== "mobile audio") {
-            this._parents.push(this._activeDoc);
-        }
-        const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
-        if (audioDoc) {
-            this._activeDoc = audioDoc;
-            this.switchCurrentView((userDoc: Doc) => audioDoc);
-            this._homeMenu = false;
-        }
-    }
-
-    // // Pushing the audio doc onto Dash Web through the right side bar
-    // uploadAudio = () => {
-    //     const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-    //     const audioDoc = this._activeDoc;
-    //     const data = Cast(audioRightSidebar.data, listSpec(Doc));
-
-    //     if (data) {
-    //         data.push(audioDoc);
-    //     }
-    // }
-
     // Button for pinning images to presentation
     pinToPresentation = () => {
         // Only making button available if it is an image
@@ -719,15 +685,11 @@ export class MobileInterface extends React.Component {
 
     // For setting up the presentation document for the home menu
     setupDefaultPresentation = () => {
-        if (this._activeDoc.title !== "Presentation") {
-            this._parents.push(this._activeDoc);
-        }
 
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {
-            this._activeDoc = presentation;
-            this.switchCurrentView((userDoc: Doc) => presentation);
+            this.switchCurrentView(presentation);
             this._homeMenu = false;
         }
     }
@@ -801,13 +763,8 @@ export class MobileInterface extends React.Component {
     }
 
     switchToMobileUploads = () => {
-        if (this._activeDoc.title !== "Presentation") {
-            this._parents.push(this._activeDoc);
-        }
         const mobileUpload = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-        console.log(mobileUpload.title);
-        this._activeDoc = mobileUpload;
-        this.switchCurrentView((userDoc: Doc) => mobileUpload);
+        this.switchCurrentView(mobileUpload);
         this._homeMenu = false;
     }
 
@@ -831,9 +788,7 @@ export class MobileInterface extends React.Component {
                         {this.undo()}
                         {this.drawInk()}
                         {this.redo()}
-                        {/* {this.upload()} */}
                         {this.uploadImageButton()}
-                        {/* {this.uploadAudioButton()} */}
                     </div>
                     {this.displayWorkspaces()}
                     {this.renderDefaultContent()}
@@ -846,14 +801,13 @@ export class MobileInterface extends React.Component {
 
 
 
-Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); },
+Scripting.addGlobal(function switchMobileView(doc: Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); },
     "changes the active document displayed on the mobile, (doc: any)");
 Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); },
     "opens the presentation on mobile");
 Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Instance.toggleSidebar(); });
 Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.toggleAudio(); });
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
-Scripting.addGlobal(function openMobileWorkspaces() { return MobileInterface.Instance.openWorkspaces(); });
 Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
 Scripting.addGlobal(function switchToMobileUploads() { return MobileInterface.Instance.switchToMobileUploads(); });
-Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });
+Scripting.addGlobal(function switchToMobileLibrary() { return MobileInterface.Instance.switchToLibrary(); });

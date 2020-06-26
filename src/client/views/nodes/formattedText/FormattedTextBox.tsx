@@ -505,6 +505,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     recordDictation = () => {
+        console.log("recording dictation");
+        console.log(this._editorView);
         DictationManager.Controls.listen({
             interimHandler: this.setCurrentBulletContent,
             continuous: { indefinite: false },
@@ -523,6 +525,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     recordBullet = async () => {
+        console.log("recording bullet");
         const completedCue = "end session";
         const results = await DictationManager.Controls.listen({
             interimHandler: this.setCurrentBulletContent,
@@ -539,6 +542,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     setCurrentBulletContent = (value: string) => {
         if (this._editorView) {
+            console.log("this._editorView");
             const state = this._editorView.state;
             const now = Date.now();
             let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
