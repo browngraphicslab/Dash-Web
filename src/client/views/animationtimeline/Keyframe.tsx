@@ -10,7 +10,6 @@ import { List } from "../../../fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../fields/Schema";
 import { Transform } from "../../util/Transform";
 import { TimelineMenu } from "./TimelineMenu";
-// import { FieldToggle } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { emptyPath, Utils, numberRange } from "../../../Utils";
@@ -322,7 +321,7 @@ export class Keyframe extends React.Component<IProps> {
             this.selectedKf!.time = rightKfTime - this.space;
         } else if (newKfTime <= regionStartTime + this.space) { // prevent moving past the start of the region
             this.selectedKf!.time = regionStartTime + this.space;
-        } else if (newKfTime >= regionEndTime) { // prevent moving past the end of the region
+        } else if (newKfTime >= regionEndTime - this.space) { // prevent moving past the end of the region
             this.selectedKf!.time = regionEndTime - this.space;
         } else {
             this.selectedKf!.time = newKfTime;
