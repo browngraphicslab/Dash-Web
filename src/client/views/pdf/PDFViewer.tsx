@@ -1,5 +1,6 @@
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
+const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
@@ -41,7 +42,10 @@ export const pageSchema = createSchema({
     serachMatch: "boolean"
 });
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
+//pdfjsLib.GlobalWorkerOptions.workerSrc = `/assets/pdf.worker.js`;
+// The workerSrc property shall be specified.
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@2.4.456/build/pdf.worker.min.js";
+
 type PdfDocument = makeInterface<[typeof documentSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, pageSchema);
 
@@ -260,16 +264,18 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
         document.removeEventListener("copy", this.copy);
         document.addEventListener("copy", this.copy);
-        document.addEventListener("pagesinit", this.pagesinit);
-        document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
+        const eventBus = new PDFJSViewer.EventBus(true);
+        eventBus._on("pagesinit", this.pagesinit);
+        eventBus._on("pagerendered", action(() => this._showCover = this._showWaiting = false));
         const pdfLinkService = new PDFJSViewer.PDFLinkService();
-        const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService });
+        const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService, eventBus });
         this._pdfViewer = new PDFJSViewer.PDFViewer({
             container: this._mainCont.current,
             viewer: this._viewer.current,
             linkService: pdfLinkService,
             findController: pdfFindController,
             renderer: "canvas",
+            eventBus
         });
         pdfLinkService.setViewer(this._pdfViewer);
         pdfLinkService.setDocument(this.props.pdf, null);
@@ -393,7 +399,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
         }
-        else if (this._pdfViewer._pageViewsReady) {
+        else if (this._pdfViewer.pageViewsReady) {
             this._pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: !fwd,
@@ -493,7 +499,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                         const annoBox = document.createElement("div");
                         annoBox.className = "pdfViewer-annotationBox";
                         // transforms the positions from screen onto the pdf div
-                        annoBox.style.top = ((rect.top - boundingRect.top) * scaleY / this._zoomed + this._mainCont.current.scrollTop).toString();
+                        annoBox.style.top = ((rect.top - boundingRect.top) * scaleX / this._zoomed + this._mainCont.current.scrollTop).toString();
                         annoBox.style.left = ((rect.left - boundingRect.left) * scaleX / this._zoomed).toString();
                         annoBox.style.width = (rect.width * this._mainCont.current.offsetWidth / boundingRect.width / this._zoomed).toString();
                         annoBox.style.height = (rect.height * this._mainCont.current.offsetHeight / boundingRect.height / this._zoomed).toString();
