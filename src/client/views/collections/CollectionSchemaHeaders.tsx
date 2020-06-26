@@ -285,6 +285,7 @@ export interface KeysDropdownProps {
     addNew: boolean;
     onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
     setIsEditing: (isEditing: boolean) => void;
+    width?: string;
 }
 @observer
 export class KeysDropdown extends React.Component<KeysDropdownProps> {
@@ -357,12 +358,13 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
         const options = keyOptions.map(key => {
-            return <div key={key} className="key-option" onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
+            return <div key={key} className="key-option" style={{ border: "1px solid lightgray" }}
+                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
         if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
-            options.push(<div key={""} className="key-option"
+            options.push(<div key={""} className="key-option" style={{ border: "1px solid lightgray" }}
                 onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
                 Create "{this._searchTerm}" key</div>);
         }
@@ -373,13 +375,15 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div className="keys-dropdown">
-                <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
+                <input className="keys-search" style={{ width: this.props.width }}
+                    ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)}
                     onClick={(e) => {
                         //this._inputRef.current!.select();
                         e.stopPropagation();
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
-                <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
+                <div className="keys-options-wrapper" style={{ backgroundColor: "white" }}
+                    onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this.renderOptions()}
                 </div>
             </div >

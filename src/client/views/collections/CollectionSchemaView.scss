@@ -266,6 +266,7 @@ button.add-column {
     .keys-dropdown {
         position: relative;
         width: 100%;
+        background-color: white;
 
         input {
             border: 2px solid $light-color-secondary;
@@ -285,9 +286,11 @@ button.add-column {
             position: absolute;
             top: 28px;
             box-shadow: 0 10px 16px rgba(0, 0, 0, 0.1);
+            background-color: white;
 
             .key-option {
-                background-color: $light-color;
+                //background-color: $light-color;
+                background-color: white;
                 border: 1px solid lightgray;
                 padding: 2px 3px;
 

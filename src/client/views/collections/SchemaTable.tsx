@@ -20,12 +20,13 @@ import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell } from "./CollectionSchemaCells";
-import { CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
+import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { emptyFunction, returnZero, returnOne, returnFalse, returnEmptyFilter, emptyPath } from "../../../Utils";
+import { TouchScrollableMenuItem } from "../TouchScrollableMenu";
 
 
 enum ColumnType {
@@ -72,11 +73,13 @@ export interface SchemaTableProps {
     columns: SchemaHeaderField[];
     documentKeys: any[];
     headerIsEditing: boolean;
-    openHeader: (column: any, menu: any, screenx: number, screeny: number) => void;
+    openHeader: (column: any, screenx: number, screeny: number) => void;
     onPointerDown: (e: React.PointerEvent) => void;
     onResizedChange: (newResized: Resize[], event: any) => void;
     setColumns: (columns: SchemaHeaderField[]) => void;
     reorderColumns: (toMove: SchemaHeaderField, relativeTo: SchemaHeaderField, before: boolean, columnsValues: SchemaHeaderField[]) => void;
+    changeColumns: (oldKey: string, newKey: string, addNew: boolean) => void;
+    setHeaderIsEditing: (isEditing: boolean) => void;
 }
 
 @observer
@@ -90,6 +93,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @observable _showDoc: Doc | undefined;
     @observable _showDataDoc: any = "";
     @observable _showDocPos: number[] = [];
+
+    @observable _showTitleDropdown: boolean = false;
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -126,6 +131,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }, [] as SortingRule[]);
     }
 
+    @action
+    changeDropdown = () => { console.log("header clicked"); this._showTitleDropdown = !this._showTitleDropdown; }
+
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
 
@@ -156,26 +164,48 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         const cols = this.props.columns.map(col => {
 
+            const keysDropdown = <KeysDropdown
+                keyValue={col.heading}
+                possibleKeys={possibleKeys}
+                existingKeys={this.props.columns.map(c => c.heading)}
+                canAddNew={true}
+                addNew={false}
+                // i think issue is with these two props
+                onSelect={this.props.changeColumns}
+                setIsEditing={this.props.setHeaderIsEditing}
+                width={"100%"}
+            />;
+
             const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
                 this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
                     this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" : "align-justify";
 
+            const headerText = this._showTitleDropdown ? keysDropdown : col.heading;
 
-
-            const menuContent = <div><FontAwesomeIcon icon={icon} size="sm" />  {col.heading}</div>;
+            const menuContent = <div style={{
+                display: "flex", justifyContent: "space-between", width: "90%"
+            }}>
+                <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
+                <div className="keys-dropdown"
+                    style={{ display: "inline", zIndex: 10000 }}>
+                    {keysDropdown}
+                </div>
+            </div>;
 
             const header =
-                <div className="collectionSchemaView-header"
+                <div //className="collectionSchemaView-header"
                     //onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
+                    className="collectionSchemaView-menuOptions"
                     style={{
-                        background: col.color, padding: "4px",
-                        letterSpacing: "2px",
-                        textTransform: "uppercase"
+                        background: col.color, padding: "2px",
+                        // letterSpacing: "2px",
+                        // textTransform: "uppercase",
+                        display: "flex"
                     }}>
                     {menuContent}
-                    <div onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
-                        style={{ float: "right" }}>
-                        <FontAwesomeIcon icon={"caret-down"} size="2x" />
+                    <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
+                        style={{ float: "right", paddingRight: "6px" }}>
+                        <FontAwesomeIcon icon={"caret-down"} id={"down arrow"} size="2x" />
                     </div>
                 </div>;
 
@@ -342,6 +372,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.props.columns.push(new SchemaHeaderField(`New field ${index ? "(" + index + ")" : ""}`, "#f1efeb"));
     }
 
+    @action
     getColumnType = (column: SchemaHeaderField): ColumnType => {
         // added functionality to convert old column type stuff to new column type stuff -syip
         if (column.type && column.type !== 0) {

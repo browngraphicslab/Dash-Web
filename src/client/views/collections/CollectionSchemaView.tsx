@@ -60,7 +60,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
     @observable _menuWidth = 0;
-    @observable _menuContent: any = "";
     @observable _headerOpen = false;
     @observable _isOpen = false;
     @observable _node: HTMLDivElement | null = null;
@@ -288,8 +287,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    openHeader = (col: any, menu: any, screenx: number, screeny: number) => {
-        this._menuContent = menu;
+    openHeader = (col: any, screenx: number, screeny: number) => {
         this._col = col;
         this._headerOpen = !this._headerOpen;
         this._pointerX = screenx;
@@ -363,8 +361,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onWheel(e: React.WheelEvent) {
         const scale = this.props.ScreenToLocalTransform().Scale;
         this.props.active(true) && e.stopPropagation();
-        this.menuCoordinates[0] -= e.screenX / scale;
-        this.menuCoordinates[1] -= e.screenY / scale;
+        //this.menuCoordinates[0] -= e.screenX / scale;
+        //this.menuCoordinates[1] -= e.screenY / scale;
     }
 
     @computed get renderMenu() {
@@ -505,6 +503,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             onResizedChange={this.onResizedChange}
             setColumns={this.setColumns}
             reorderColumns={this.reorderColumns}
+            changeColumns={this.changeColumns}
+            setHeaderIsEditing={this.setHeaderIsEditing}
         />;
     }
 
