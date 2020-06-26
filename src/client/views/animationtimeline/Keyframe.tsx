@@ -346,7 +346,7 @@ export class Keyframe extends React.Component<IProps> {
         const fieldTracked: string = field + "Tracked";
         return <div className="timeline-menu-item">
             <input type="checkbox" key={Utils.GenerateGuid()} className="timeline-menu-checkbox"
-                checked={BoolCast(kf[fieldTracked], true)} // all fields should be tracked by default, so default BoolCast to true when fieldTracked is undefined
+                defaultChecked={BoolCast(kf[fieldTracked], true)} // all fields should be tracked by default, so default BoolCast to true when fieldTracked is undefined
                 onChange={action(e => {
                     e.stopPropagation();
                     kf[fieldTracked] = BoolCast(kf[fieldTracked], true) ? false : true;
