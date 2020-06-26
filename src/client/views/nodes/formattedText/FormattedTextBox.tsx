@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { baseKeymap } from "prosemirror-commands";
+import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
@@ -102,6 +102,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";
+    public static PasteOnLoad: ClipboardEvent | undefined;
     public static SelectOnLoadChar = "";
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
@@ -274,6 +275,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const end = this._editorView.state.doc.nodeSize - 2;
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
+        }
+        if (FormattedTextBox.PasteOnLoad) {
+            const pdfDocId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfOrigin");
+            const pdfRegionId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfRegion");
+            FormattedTextBox.PasteOnLoad = undefined;
+            setTimeout(() => pdfDocId && pdfRegionId && this.addPdfReference(pdfDocId, pdfRegionId, undefined), 10);
         }
     }
     adoptAnnotation = (start: number, end: number, mark: Mark) => {
@@ -726,7 +733,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                     const marks = [...node.marks];
                     const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
-                    return linkIndex !== -1 && marks[linkIndex].attrs.allRefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
+                    return linkIndex !== -1 && marks[linkIndex].attrs.allHrefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
                 let start = 0;
@@ -859,6 +866,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const cbe = event as ClipboardEvent;
         const pdfDocId = cbe.clipboardData?.getData("dash/pdfOrigin");
         const pdfRegionId = cbe.clipboardData?.getData("dash/pdfRegion");
+        return pdfDocId && pdfRegionId && this.addPdfReference(pdfDocId, pdfRegionId, slice) ? true : false;
+    }
+
+    addPdfReference = (pdfDocId: string, pdfRegionId: string, slice?: Slice) => {
+        const view = this._editorView!;
         if (pdfDocId && pdfRegionId) {
             DocServer.GetRefField(pdfDocId).then(pdfDoc => {
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
@@ -871,13 +883,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
                         const link = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: pdfRegion }, "PDF pasted");
                         if (link) {
-                            cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                             const linkId = link[Id];
                             const quote = view.state.schema.nodes.blockquote.create();
-                            quote.content = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
-                            slice = new Slice(Fragment.from(quote), slice.openStart, slice.openEnd);
-                            const tr = view.state.tr.replaceSelection(slice)
-                            view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                            quote.content = addMarkToFrag(slice?.content || view.state.doc.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
+                            const newSlice = new Slice(Fragment.from(quote), slice?.openStart || 0, slice?.openEnd || 0);
+                            if (slice) {
+                                view.dispatch(view.state.tr.replaceSelection(newSlice).scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                            } else {
+                                selectAll(view.state, (tx: Transaction) => view.dispatch(tx.replaceSelection(newSlice).scrollIntoView()));
+
+                            }
                         }
                     }
                 });
@@ -935,7 +950,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            applyDevTools.applyDevTools(this._editorView);
+            !Doc.UserDoc().noviceMode && applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1015,7 +1030,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
-            const node = pcords && editor.state.doc.resolve(pcords.pos).node();// bcz: changed so that clicking on the attribution of a PDF pasted link will trigger. editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
+            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
             !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
                 new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
