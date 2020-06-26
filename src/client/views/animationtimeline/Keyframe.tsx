@@ -160,6 +160,7 @@ export class Keyframe extends React.Component<IProps> {
     @observable private _bar = React.createRef<HTMLDivElement>();
     @observable private _mouseToggled = false;
     @observable private _doubleClickEnabled = false;
+    @observable private space = 500; //the minimum space allowed between any two regions or keyframes
 
     @computed private get regiondata() { return RegionData(this.props.RegionData); }
     @computed private get regions() { return DocListCast(this.props.node.regions); }
@@ -211,13 +212,12 @@ export class Keyframe extends React.Component<IProps> {
         const right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions)!;
         const prevX = this.regiondata.position;
         const futureX = this.regiondata.position + KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        const space = 500;
         if (futureX <= 0) {
             this.regiondata.position = 0;
-        } else if ((left && left.position + left.duration >= futureX - space)) {
-            this.regiondata.position = left.position + left.duration + space;
-        } else if ((right && right.position <= futureX + this.regiondata.duration + space)) {
-            this.regiondata.position = right.position - this.regiondata.duration - space;
+        } else if ((left && left.position + left.duration >= futureX - this.space)) {
+            this.regiondata.position = left.position + left.duration + this.space;
+        } else if ((right && right.position <= futureX + this.regiondata.duration + this.space)) {
+            this.regiondata.position = right.position - this.regiondata.duration - this.space;
         } else {
             this.regiondata.position = futureX;
         }
@@ -253,15 +253,14 @@ export class Keyframe extends React.Component<IProps> {
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         const leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
         const newLeftPos = this.regiondata.position + offset;
-        const space = 500;
-        if (leftRegion && newLeftPos <= leftRegion.position + leftRegion.duration + space) { // prevent collision with left region (if there is one)
-            this.regiondata.duration = this.regiondata.position + this.regiondata.duration - (leftRegion.position + leftRegion.duration) - space;
-            this.regiondata.position = leftRegion.position + leftRegion.duration + space;
-        } else if (this.keyframes.length > 0 && newLeftPos >= NumCast(this.keyframes[0].time) - space) { // prevent collision with leftmost keyframe
-            this.regiondata.duration = this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[0].time) + space;
-            this.regiondata.position = NumCast(this.keyframes[0].time) - space;
-        } else if (newLeftPos >= this.regiondata.position + this.regiondata.duration - space) { // prevent collision with right end of this region
-            this.regiondata.duration = space;
+        if (leftRegion && newLeftPos <= leftRegion.position + leftRegion.duration + this.space) { // prevent collision with left region (if there is one)
+            this.regiondata.duration = this.regiondata.position + this.regiondata.duration - (leftRegion.position + leftRegion.duration) - this.space;
+            this.regiondata.position = leftRegion.position + leftRegion.duration + this.space;
+        } else if (this.keyframes.length > 0 && newLeftPos >= NumCast(this.keyframes[0].time) - this.space) { // prevent collision with leftmost keyframe
+            this.regiondata.duration = this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[0].time) + this.space;
+            this.regiondata.position = NumCast(this.keyframes[0].time) - this.space;
+        } else if (newLeftPos >= this.regiondata.position + this.regiondata.duration - this.space) { // prevent collision with right end of this region
+            this.regiondata.duration = this.space;
             this.regiondata.position = this.regiondata.position + this.regiondata.duration;
         } else if (newLeftPos <= 0) { // prevent negative position
             this.regiondata.duration = this.regiondata.position + this.regiondata.duration;
@@ -280,13 +279,12 @@ export class Keyframe extends React.Component<IProps> {
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         const rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
         const newRightPos = this.regiondata.position + this.regiondata.duration + offset;
-        const space = 500;
-        if (rightRegion && newRightPos >= rightRegion.position - space) { // prevent collision with right region (if there is one)
-            this.regiondata.duration = rightRegion.position - this.regiondata.position - space;
-        } else if (this.keyframes.length > 0 && newRightPos <= NumCast(this.keyframes[this.keyframes.length - 1].time) + space) { // prevent collision with rightmost keyframe
-            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - this.regiondata.position + space;
-        } else if (newRightPos <= this.regiondata.position + space) { // prevent collision with left end of this region
-            this.regiondata.duration = space;
+        if (rightRegion && newRightPos >= rightRegion.position - this.space) { // prevent collision with right region (if there is one)
+            this.regiondata.duration = rightRegion.position - this.regiondata.position - this.space;
+        } else if (this.keyframes.length > 0 && newRightPos <= NumCast(this.keyframes[this.keyframes.length - 1].time) + this.space) { // prevent collision with rightmost keyframe
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - this.regiondata.position + this.space;
+        } else if (newRightPos <= this.regiondata.position + this.space) { // prevent collision with left end of this region
+            this.regiondata.duration = this.space;
         } else {
             this.regiondata.duration += offset;
         }
@@ -312,7 +310,25 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         const bar = this._bar.current!;
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        this.selectedKf && (this.selectedKf.time = this.regiondata.position + this.regiondata.duration + offset);
+        const newKfTime = this.selectedKf!.time = this.regiondata.position + this.regiondata.duration + offset;
+
+        const currentIndex = this.keyframes.indexOf(this.selectedKf!);
+
+        const leftKfTime: number | undefined = currentIndex > 0 ? NumCast(this.keyframes[currentIndex - 1].time) : undefined;
+        const rightKfTime: number | undefined = currentIndex < this.keyframes.length - 1 ? NumCast(this.keyframes[currentIndex + 1].time) : undefined;
+
+        if (leftKfTime && newKfTime <= leftKfTime + this.space) { // prevent collision with left keyframe
+            console.log(1, leftKfTime);
+            this.selectedKf!.time = leftKfTime + this.space;
+        } else if (rightKfTime && newKfTime >= rightKfTime - this.space) { // prevent collision with right keyframe
+            console.log(2, rightKfTime);
+            this.selectedKf!.time = rightKfTime - this.space;
+        } else {
+            console.log(3, newKfTime);
+            this.selectedKf!.time = newKfTime;
+        }
+        // prevent collision with beginning of region / time = 0
+        // prevent collision with end of region
     }
 
     @action
