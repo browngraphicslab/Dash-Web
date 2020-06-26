@@ -24,6 +24,7 @@ import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { update } from 'serializr';
+import { Transform } from "../util/Transform";
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -260,7 +261,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     const top = Math.min(...ys);
                     const right = Math.max(...xs);
                     const bottom = Math.max(...ys);
-                    this._centerPoints.push({ X: ((right - left) / 2) + left, Y: ((bottom - top) / 2) + bottom });
+                    // this._centerPoints.push({ X: ((right - left) / 2) + left, Y: ((bottom - top) / 2) + bottom });
+                    this._centerPoints.push({ X: left, Y: top });
                 }
             }
         }));
@@ -268,6 +270,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @action
     onRotateMove = (e: PointerEvent, down: number[]): boolean => {
+
         // const distance = Math.sqrt((this._prevY - e.clientY) * (this._prevY - e.clientY) + (this._prevX - e.clientX) * (this._prevX - e.clientX));
         const distance = Math.abs(this._prevY - e.clientY);
         var angle = 0;
@@ -287,6 +290,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
+
                     const newPoints: { X: number, Y: number }[] = [];
                     for (var i = 0; i < ink.length; i++) {
                         const newX = Math.cos(angle) * (ink[i].X - this._centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
@@ -300,8 +304,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     const top = Math.min(...ys);
                     const right = Math.max(...xs);
                     const bottom = Math.max(...ys);
-                    doc._height = bottom - top;
-                    doc._width = right - left;
+
+                    doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
+                    doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+
                 }
                 index++;
             }
