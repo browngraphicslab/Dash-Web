@@ -310,25 +310,23 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         const bar = this._bar.current!;
         const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        const newKfTime = this.selectedKf!.time = this.regiondata.position + this.regiondata.duration + offset;
-
         const currentIndex = this.keyframes.indexOf(this.selectedKf!);
-
+        const newKfTime = this.selectedKf!.time = this.regiondata.position + this.regiondata.duration + offset;
         const leftKfTime: number | undefined = currentIndex > 0 ? NumCast(this.keyframes[currentIndex - 1].time) : undefined;
         const rightKfTime: number | undefined = currentIndex < this.keyframes.length - 1 ? NumCast(this.keyframes[currentIndex + 1].time) : undefined;
-
+        const regionStartTime: number = this.regiondata.position;
+        const regionEndTime: number = this.regiondata.position + this.regiondata.duration;
         if (leftKfTime && newKfTime <= leftKfTime + this.space) { // prevent collision with left keyframe
-            console.log(1, leftKfTime);
             this.selectedKf!.time = leftKfTime + this.space;
         } else if (rightKfTime && newKfTime >= rightKfTime - this.space) { // prevent collision with right keyframe
-            console.log(2, rightKfTime);
             this.selectedKf!.time = rightKfTime - this.space;
+        } else if (newKfTime <= regionStartTime + this.space) { // prevent moving past the start of the region
+            this.selectedKf!.time = regionStartTime + this.space;
+        } else if (newKfTime >= regionEndTime) { // prevent moving past the end of the region
+            this.selectedKf!.time = regionEndTime - this.space;
         } else {
-            console.log(3, newKfTime);
             this.selectedKf!.time = newKfTime;
         }
-        // prevent collision with beginning of region / time = 0
-        // prevent collision with end of region
     }
 
     @action
