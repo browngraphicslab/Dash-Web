@@ -7,7 +7,7 @@ import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { User } from "./SharingManager";
+import SharingManager, { User } from "./SharingManager";
 import { Utils } from "../../Utils";
 import * as RequestPromise from "request-promise";
 import Select from 'react-select';
@@ -172,6 +172,7 @@ export default class GroupManager extends React.Component<{}> {
         if (group) {
             if (this.GroupManagerDoc && this.hasEditAccess(group)) {
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
+                SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 if (group === this.currentGroup) {
                     runInAction(() => this.currentGroup = undefined);
                 }

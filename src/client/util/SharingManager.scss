@@ -23,9 +23,8 @@
                 border: 1px solid black;
                 padding-left: 10px;
                 padding-right: 10px;
-                // max-height: 200px;
-                overflow: scroll;
-                height: -webkit-fill-available;
+                overflow-y: scroll;
+                overflow-x: hidden;
                 text-align: left;
                 display: flex;
                 align-content: center;
@@ -33,9 +32,8 @@
                 text-align: center;
                 justify-content: center;
                 color: red;
-
-                // width: 50%;
-                max-height: 150px;
+                height: 150px;
+                margin: 0 2;
             }
         }
     }
@@ -45,7 +43,6 @@
     }
 
     p {
-        // font-size: 20px;
         font-size: 15px;
         text-align: left;
         font-style: italic;
@@ -92,12 +89,12 @@
         max-width: 700px;
         text-align: left;
         font-style: normal;
-        font-size: 15;
+        font-size: 14;
         font-weight: normal;
         padding: 0;
 
         .padding {
-            padding: 0 0 0 20px;
+            padding: 0 0 0 10px;
             color: black;
         }
 
