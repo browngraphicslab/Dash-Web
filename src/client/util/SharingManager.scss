@@ -1,13 +1,52 @@
 .sharing-interface {
     display: flex;
     flex-direction: column;
+    width: 730px;
+
+    .sharing-contents {
+        display: flex;
+
+        .individual-container,
+        .group-container {
+            width: 50%;
+
+            .share-groups,
+            .share-individual {
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+
+            .groups-list,
+            .users-list {
+                font-style: italic;
+                background: white;
+                border: 1px solid black;
+                padding-left: 10px;
+                padding-right: 10px;
+                // max-height: 200px;
+                overflow: scroll;
+                height: -webkit-fill-available;
+                text-align: left;
+                display: flex;
+                align-content: center;
+                align-items: center;
+                text-align: center;
+                justify-content: center;
+                color: red;
+
+                // width: 50%;
+                max-height: 150px;
+            }
+        }
+    }
 
     .focus-span {
         text-decoration: underline;
     }
 
     p {
-        font-size: 20px;
+        // font-size: 20px;
+        font-size: 15px;
         text-align: left;
         font-style: italic;
         padding: 0;
@@ -36,28 +75,7 @@
         }
     }
 
-    .share-individual {
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
 
-    .users-list {
-        font-style: italic;
-        background: white;
-        border: 1px solid black;
-        padding-left: 10px;
-        padding-right: 10px;
-        max-height: 200px;
-        overflow: scroll;
-        height: -webkit-fill-available;
-        text-align: left;
-        display: flex;
-        align-content: center;
-        align-items: center;
-        text-align: center;
-        justify-content: center;
-        color: red;
-    }
 
     .container {
         display: block;

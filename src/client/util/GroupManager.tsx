@@ -88,7 +88,7 @@ export default class GroupManager extends React.Component<{}> {
     /**
      * @returns a list of all group documents.
      */
-    getAllGroups(): Doc[] {
+    private getAllGroups(): Doc[] {
         const groupDoc = this.GroupManagerDoc;
         return groupDoc ? DocListCast(groupDoc.data) : [];
     }
@@ -97,9 +97,29 @@ export default class GroupManager extends React.Component<{}> {
      * @returns a group document based on the group name.
      * @param groupName 
      */
-    getGroup(groupName: string): Doc | undefined {
+    private getGroup(groupName: string): Doc | undefined {
         const groupDoc = this.getAllGroups().find(group => group.groupName === groupName);
         return groupDoc;
+    }
+
+    /**
+     * @returns a readonly copy of a single group document
+     */
+    getGroupCopy(groupName: string): Doc | undefined {
+        const groupDoc = this.getGroup(groupName);
+        if (groupDoc) {
+            const { members, owners } = groupDoc;
+            return Doc.assign(new Doc, { groupName, members: StrCast(members), owners: StrCast(owners) });
+        }
+        return undefined;
+    }
+    /**
+     * @returns a readonly copy of the list of group documents
+     */
+    getAllGroupsCopy(): Doc[] {
+        return this.getAllGroups().map(({ groupName, owners, members }) =>
+            Doc.assign(new Doc, { groupName: (groupName as string), owners: (owners as string), members: (members as string) })
+        );
     }
 
     /**
@@ -194,7 +214,6 @@ export default class GroupManager extends React.Component<{}> {
      */
     @action
     handleChange = (selectedOptions: any) => {
-        console.log(selectedOptions);
         this.selectedUsers = selectedOptions as UserOptions[];
     }
 
@@ -312,7 +331,7 @@ export default class GroupManager extends React.Component<{}> {
                             <div className="group-row">
                                 <div className="group-name">{group.groupName}</div>
                                 <button onClick={action(() => this.currentGroup = group)}>
-                                    {this.hasEditAccess(this.getGroup(StrCast(group.groupName)) as Doc) ? "Edit" : "View"}
+                                    {this.hasEditAccess(group) ? "Edit" : "View"}
                                 </button>
                             </div>
                         )}
