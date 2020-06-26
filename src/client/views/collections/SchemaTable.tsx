@@ -163,15 +163,20 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
 
             const menuContent = <div><FontAwesomeIcon icon={icon} size="sm" />  {col.heading}</div>;
+
             const header =
                 <div className="collectionSchemaView-header"
-                    onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
+                    //onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
                     style={{
                         background: col.color, padding: "4px",
                         letterSpacing: "2px",
                         textTransform: "uppercase"
                     }}>
                     {menuContent}
+                    <div onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
+                        style={{ float: "right" }}>
+                        <FontAwesomeIcon icon={"caret-down"} size="2x" />
+                    </div>
                 </div>;
 
             return {

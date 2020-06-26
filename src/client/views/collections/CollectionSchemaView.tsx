@@ -299,20 +299,24 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     closeHeader = () => { this._headerOpen = false; }
 
+    renderKeysDropDown = (col: any) => {
+        return <KeysDropdown
+            keyValue={col.heading}
+            possibleKeys={this.possibleKeys}
+            existingKeys={this.columns.map(c => c.heading)}
+            canAddNew={true}
+            addNew={false}
+            onSelect={this.changeColumns}
+            setIsEditing={this.setHeaderIsEditing}
+        />;
+    }
+
     renderContent = (col: any) => {
         return (
             <div className="collectionSchema-header-menuOptions">
                 <div className="collectionSchema-headerMenu-group">
                     <label>Key:</label>
-                    <KeysDropdown
-                        keyValue={col.heading}
-                        possibleKeys={this.possibleKeys}
-                        existingKeys={this.columns.map(c => c.heading)}
-                        canAddNew={true}
-                        addNew={false}
-                        onSelect={this.changeColumns}
-                        setIsEditing={this.setHeaderIsEditing}
-                    />
+                    {this.renderKeysDropDown(col)}
                 </div>
                 {false ? <></> :
                     <>

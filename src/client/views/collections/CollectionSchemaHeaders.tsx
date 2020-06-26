@@ -376,7 +376,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)}
                     onClick={(e) => {
-                        this._inputRef.current!.select();
+                        //this._inputRef.current!.select();
                         e.stopPropagation();
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>

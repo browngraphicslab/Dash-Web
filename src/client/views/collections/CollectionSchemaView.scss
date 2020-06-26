@@ -182,6 +182,9 @@
     color: gray;
     z-index: 10000;
     overflow-y: visible;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
 
     .collectionSchema-header-menu {
         height: 100%;
