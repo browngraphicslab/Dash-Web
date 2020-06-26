@@ -154,6 +154,7 @@ export class Track extends React.Component<IProps> {
     */
     @action
     currentBarXReaction = () => {
+        console.log("BAR REACTION");
         return reaction(() => this.props.currentBarX, () => {
             const regiondata = this.findRegion(this.time);
             regiondata && this.timeChange();
@@ -189,6 +190,7 @@ export class Track extends React.Component<IProps> {
      */
     @action
     timeChange = async () => {
+        console.log("TIMECHANGE");
         if (this.saveStateKf !== undefined) {
             await this.saveKeyframe();
         } else if (this._newKeyframe) {
@@ -196,15 +198,18 @@ export class Track extends React.Component<IProps> {
         }
         const regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
+            console.log("REGIONDATA");
             const leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
             const rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             const currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
 
             if (currentkf) {
+                console.log("ON A KEYFRAME");
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf;
                 this.saveStateRegion = regiondata;
             } else if (leftkf && rightkf) {
+                console.log("NOT ON A KEYFRAME");
                 await this.interpolate(leftkf, rightkf);
             }
         }
@@ -349,7 +354,7 @@ export class Track extends React.Component<IProps> {
                         onPointerOver={() => Doc.BrushDoc(this.props.node)}
                         onPointerOut={() => Doc.UnBrushDoc(this.props.node)} >
                         {this.regions?.map((region, i) => {
-                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} defaultTrackedFields={this.defaultTrackedFields} />;
+                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} defaultTrackedFields={this.defaultTrackedFields} currentBarX={this.props.currentBarX} />;
                         })}
                     </div>
                 </div>

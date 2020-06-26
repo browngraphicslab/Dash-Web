@@ -123,6 +123,7 @@ interface IProps {
     tickSpacing: number;
     tickIncrement: number;
     time: number;
+    currentBarX: number;
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
     makeKeyData: (region: RegionData, pos: number, kftype: KeyframeFunc.KeyframeType) => Doc;
@@ -291,6 +292,36 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
+    @observable private selectedKf: Doc | undefined;
+
+    //could be moved to render function
+    @action
+    onKeyframeDown = (e: React.PointerEvent, kf: Doc) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.selectedKf = kf;
+        document.addEventListener("pointermove", this.onKeyframeDrag);
+        document.addEventListener("pointerup", () => {
+            document.removeEventListener("pointermove", this.onKeyframeDrag);
+        });
+    }
+
+    @action
+    onKeyframeDrag = (e: PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const bar = this._bar.current!;
+        const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        this.selectedKf && (this.selectedKf.time = this.regiondata.position + this.regiondata.duration + offset);
+    }
+
+    @action
+    moveToKeyframe = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.selectedKf && this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(NumCast(this.selectedKf.time!), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement));
+    }
+
     @action
     createKeyframe = async (clientX: number) => {
         this._mouseToggled = true;
@@ -303,14 +334,6 @@ export class Keyframe extends React.Component<IProps> {
         this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement));
         //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         // }
-    }
-
-
-    @action
-    moveKeyframe = async (e: React.MouseEvent, kf: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(NumCast(kf.time!), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement));
     }
 
     /**
@@ -326,17 +349,17 @@ export class Keyframe extends React.Component<IProps> {
                 (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
                 this.forceUpdate();
             })),
-            TimelineMenu.Instance.addItem("input", "Move", action((val) => {
-                let cannotMove: boolean = false;
-                const kfIndex: number = this.keyframes.indexOf(kf);
-                if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
-                    cannotMove = true;
-                }
-                if (!cannotMove) {
-                    this.keyframes[kfIndex].time = parseInt(val, 10);
-                    this.keyframes[1].time = this.regiondata.position;
-                }
-            })),
+            // TimelineMenu.Instance.addItem("input", "Move", action((val) => {
+            //     let cannotMove: boolean = false;
+            //     const kfIndex: number = this.keyframes.indexOf(kf);
+            //     if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
+            //         cannotMove = true;
+            //     }
+            //     if (!cannotMove) {
+            //         this.keyframes[kfIndex].time = parseInt(val, 10);
+            //         this.keyframes[1].time = this.regiondata.position;
+            //     }
+            // })),
             TimelineMenu.Instance.addCheckbox(this.props.defaultTrackedFields.map(field => this.makeCheckbox(kf, field))); //make checkbox for each tracked field //integrate w addItem later
         TimelineMenu.Instance.addMenu("Keyframe");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
@@ -350,7 +373,6 @@ export class Keyframe extends React.Component<IProps> {
                 onChange={action(e => {
                     e.stopPropagation();
                     kf[fieldTracked] = BoolCast(kf[fieldTracked], true) ? false : true;
-                    console.log(fieldTracked, kf[fieldTracked]);
                 })} />
             {field}
         </div>;
@@ -475,7 +497,8 @@ export class Keyframe extends React.Component<IProps> {
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>
                         <div className="keyframeCircle keyframe-indicator"
-                            onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }}
+                            onClick={this.moveToKeyframe}
+                            onPointerDown={(e) => this.onKeyframeDown(e, kf)}
                             onContextMenu={(e: React.MouseEvent) => {
                                 e.preventDefault();
                                 e.stopPropagation();
