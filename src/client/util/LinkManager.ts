@@ -72,7 +72,7 @@ export class LinkManager {
         });
         DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).map(anno => {
             related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
-        })
+        });
         return related;
     }
 

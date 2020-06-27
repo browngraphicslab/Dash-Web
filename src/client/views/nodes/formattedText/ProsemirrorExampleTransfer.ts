@@ -175,7 +175,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         }
     });
 
-    var backspace = chainCommands(deleteSelection, joinBackward, selectNodeBackward);
+    // backspace = chainCommands(deleteSelection, joinBackward, selectNodeBackward);
     bind("Backspace", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
         if (!deleteSelection(state, (tx: Transaction<Schema<any, any>>) => {
             dispatch(updateBullets(tx, schema));

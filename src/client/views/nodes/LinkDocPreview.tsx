@@ -25,8 +25,8 @@ export class LinkDocPreview extends React.Component<Props> {
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
 
-    componentDidUpdate() { this.updatePreview() }
-    componentDidMount() { this.updatePreview() }
+    componentDidUpdate() { this.updatePreview(); }
+    componentDidMount() { this.updatePreview(); }
     async updatePreview() {
         const linkDoc = this.props.linkDoc;
         const linkSrc = this.props.linkSrc;
