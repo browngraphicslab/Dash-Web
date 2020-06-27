@@ -337,6 +337,7 @@ export class Keyframe extends React.Component<IProps> {
 
     @action
     createKeyframe = async (clientX: number) => {
+        console.log("CREATEKEYFRAME");
         this._mouseToggled = true;
         const bar = this._bar.current!;
         const offset = KeyframeFunc.convertPixelTime(Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
@@ -503,7 +504,6 @@ export class Keyframe extends React.Component<IProps> {
      * this probably needs biggest change, since everyone expected all keyframes to have a circle (and draggable)
      */
     drawKeyframes = () => {
-        const keyframeDivs: JSX.Element[] = [];
         return DocListCast(this.regiondata.keyframes).map(kf => {
             if (kf.type as KeyframeFunc.KeyframeType !== KeyframeFunc.KeyframeType.end) {
                 return <>

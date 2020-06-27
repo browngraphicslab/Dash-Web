@@ -198,18 +198,15 @@ export class Track extends React.Component<IProps> {
         }
         const regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
-            console.log("REGIONDATA");
             const leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
             const rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             const currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
 
             if (currentkf) {
-                console.log("ON A KEYFRAME");
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf;
                 this.saveStateRegion = regiondata;
             } else if (leftkf && rightkf) {
-                console.log("NOT ON A KEYFRAME");
                 await this.interpolate(leftkf, rightkf);
             }
         }
@@ -312,6 +309,7 @@ export class Track extends React.Component<IProps> {
 
     @action
     makeKeyData = (regiondata: RegionData, time: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
+        console.log("MAKEKEYDATA");
         const trackKeyFrames = DocListCast(regiondata.keyframes);
         const existingkf = trackKeyFrames.find(TK => TK.time === time);
         if (existingkf) return existingkf;
@@ -321,9 +319,12 @@ export class Track extends React.Component<IProps> {
         newKeyFrame.type = type;
         this.copyDocDataToKeyFrame(newKeyFrame);
         //assuming there are already keyframes (for keeping keyframes in order, sorted by time)
-        if (trackKeyFrames.length === 0) regiondata.keyframes!.push(newKeyFrame);
+        if (trackKeyFrames.length === 0) { regiondata.keyframes!.push(newKeyFrame); console.log("added, only keyframe"); }
         trackKeyFrames.map(kf => NumCast(kf.time)).forEach((kfTime, index) => {
-            if ((kfTime < time && index === trackKeyFrames.length - 1) || (kfTime < time && time < NumCast(trackKeyFrames[index + 1].time))) {
+            if (index === 0 && time < kfTime) { // if newKeyFrame is leftmost keyframe
+                regiondata.keyframes!.unshift(newKeyFrame);
+            } else if ((index === trackKeyFrames.length - 1 && kfTime < time) || (kfTime < time && time < NumCast(trackKeyFrames[index + 1].time))) { // if newKeyFrame is rightmost keyframe, or in between keyframes
+                console.log("added to index ", index);
                 regiondata.keyframes!.splice(index + 1, 0, newKeyFrame);
             }
         });
@@ -332,9 +333,9 @@ export class Track extends React.Component<IProps> {
 
     @action
     copyDocDataToKeyFrame = (doc: Doc, ) => {
+        console.log("copyDocDataToKeyFrame");
         this.defaultTrackedFields.map(key => {
             const fieldTracked = BoolCast(doc[key + "Tracked"], true); // when first initialized `{field}Tracked` is undefined, so default to true 
-            console.log(key, fieldTracked, doc[key]);
             if (fieldTracked) {
                 const originalVal = this.props.node[key];
                 doc[key] = originalVal instanceof ObjectField ? originalVal[Copy]() : originalVal;

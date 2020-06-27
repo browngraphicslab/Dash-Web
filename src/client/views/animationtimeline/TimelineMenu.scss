@@ -1,52 +1,52 @@
-@import "./../globalCssVariables.scss"; 
+@import "./../globalCssVariables.scss";
 
 
-.timeline-menu-container{
+.timeline-menu-container {
     position: absolute;
     display: flex;
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
     flex-direction: column;
     background: whitesmoke;
     z-index: 10000;
-    width: 200px; 
+    width: 200px;
     padding-bottom: 10px;
     border-radius: 15px;
 
     border: solid #BBBBBBBB 1px;
- 
 
 
-    .timeline-menu-input{
-        font: $sans-serif; 
-        font-size: 13px; 
-        width:100%;
-        text-transform: uppercase; 
-        letter-spacing: 2px; 
-        margin-left: 10px; 
-        background-color: transparent; 
-        border-width: 0px; 
-        transition: border-width 500ms; 
+
+    .timeline-menu-input {
+        font: $sans-serif;
+        font-size: 13px;
+        width: 100%;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-left: 10px;
+        background-color: transparent;
+        border-width: 0px;
+        transition: border-width 500ms;
     }
 
-    .timeline-menu-input:hover{
-        border-width: 2px; 
+    .timeline-menu-input:hover {
+        border-width: 2px;
     }
-    
-    
-    
 
-    .timeline-menu-header{
-        border-top-left-radius: 15px; 
-        border-top-right-radius: 15px; 
-        text-transform: uppercase; 
-        background: $dark-color; 
-        letter-spacing: 2px; 
 
-        .timeline-menu-header-desc{
-            font:$sans-serif; 
-            font-size: 13px; 
-            text-align: center; 
-            color: whitesmoke; 
+
+
+    .timeline-menu-header {
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+        text-transform: uppercase;
+        background: $dark-color;
+        letter-spacing: 2px;
+
+        .timeline-menu-header-desc {
+            font: $sans-serif;
+            font-size: 13px;
+            text-align: center;
+            color: whitesmoke;
         }
     }
 
@@ -73,7 +73,11 @@
         letter-spacing: 2px;
         text-transform: uppercase;
         padding-right: 20px;
-        padding-left: 10px; 
+        padding-left: 10px;
+
+        .timeline-menu-checkbox {
+            margin-right: 10px;
+        }
     }
 
     .timeline-menu-item:hover {
@@ -82,13 +86,13 @@
         border-color: $intermediate-color;
         border-bottom-style: solid;
         border-top-style: solid;
-        background: $darker-alt-accent; 
+        background: $darker-alt-accent;
     }
 
     .timeline-menu-desc {
-        padding-left: 10px; 
-        font:$sans-serif; 
-        font-size: 13px; 
+        padding-left: 10px;
+        font: $sans-serif;
+        font-size: 13px;
     }
-    
+
 }

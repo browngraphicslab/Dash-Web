@@ -245,7 +245,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             // const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             // this.props.addDocument(source);
             // linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
-           return false;
+            return false;
         } else {
             const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             this.props.addDocument(source);
@@ -1217,7 +1217,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay &&
-            optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
+            optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
         this.props.ContainingCollectionView &&
             optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " snap lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
