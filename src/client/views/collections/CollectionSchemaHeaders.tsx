@@ -358,13 +358,19 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
         const options = keyOptions.map(key => {
-            return <div key={key} className="key-option" style={{ border: "1px solid lightgray" }}
+            return <div key={key} className="key-option" style={{
+                border: "1px solid lightgray",
+                maxWidth: this.props.width, overflowX: "hidden"
+            }}
                 onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
         if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
-            options.push(<div key={""} className="key-option" style={{ border: "1px solid lightgray" }}
+            options.push(<div key={""} className="key-option" style={{
+                border: "1px solid lightgray",
+                maxWidth: this.props.width, overflowX: "hidden"
+            }}
                 onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
                 Create "{this._searchTerm}" key</div>);
         }
@@ -382,7 +388,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                         //this._inputRef.current!.select();
                         e.stopPropagation();
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
-                <div className="keys-options-wrapper" style={{ backgroundColor: "white" }}
+                <div className="keys-options-wrapper" style={{
+                    backgroundColor: "white",
+                    width: this.props.width, overflowX: "hidden"
+                }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this.renderOptions()}
                 </div>

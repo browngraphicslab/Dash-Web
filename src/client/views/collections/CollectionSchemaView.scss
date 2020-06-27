@@ -293,6 +293,7 @@ button.add-column {
                 background-color: white;
                 border: 1px solid lightgray;
                 padding: 2px 3px;
+                overflow-x: hidden;
 
                 &:not(:first-child) {
                     border-top: 0;

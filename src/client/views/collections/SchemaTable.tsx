@@ -80,6 +80,7 @@ export interface SchemaTableProps {
     reorderColumns: (toMove: SchemaHeaderField, relativeTo: SchemaHeaderField, before: boolean, columnsValues: SchemaHeaderField[]) => void;
     changeColumns: (oldKey: string, newKey: string, addNew: boolean) => void;
     setHeaderIsEditing: (isEditing: boolean) => void;
+    changeColumnSort: (columnField: SchemaHeaderField, descending: boolean | undefined) => void;
 }
 
 @observer
@@ -132,7 +133,22 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    changeDropdown = () => { console.log("header clicked"); this._showTitleDropdown = !this._showTitleDropdown; }
+    changeSorting = (col: any) => {
+        console.log(col.heading);
+        if (col.desc === undefined) {
+            // no sorting
+            this.props.changeColumnSort(col, true);
+        } else if (col.desc === true) {
+            // descending sort
+            this.props.changeColumnSort(col, false);
+        } else if (col.desc === false) {
+            // ascending sort
+            this.props.changeColumnSort(col, undefined);
+        }
+    }
+
+    @action
+    changeTitleMode = () => { console.log("header clicked"); this._showTitleDropdown = !this._showTitleDropdown; }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
@@ -180,7 +196,17 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
                     this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" : "align-justify";
 
-            const headerText = this._showTitleDropdown ? keysDropdown : col.heading;
+            const headerText = this._showTitleDropdown ? keysDropdown : <div
+                onClick={this.changeTitleMode}
+                style={{
+                    background: col.color, padding: "2px",
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                    display: "flex"
+                }}>
+                {col.heading}</div>;
+
+            const sortIcon = col.desc === undefined ? "circle" : col.desc === true ? "caret-down" : "caret-up";
 
             const menuContent = <div style={{
                 display: "flex", justifyContent: "space-between", width: "90%"
@@ -195,17 +221,28 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             const header =
                 <div //className="collectionSchemaView-header"
                     //onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
-                    className="collectionSchemaView-menuOptions"
+                    className="collectionSchemaView-menuOptions-wrapper"
                     style={{
                         background: col.color, padding: "2px",
-                        // letterSpacing: "2px",
-                        // textTransform: "uppercase",
                         display: "flex"
                     }}>
-                    {menuContent}
+
+                    <div style={{
+                        display: "flex", justifyContent: "space-between", width: "90%"
+                    }}>
+                        <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} /></div>
+                    <div className="keys-dropdown"
+                        style={{ display: "inline", zIndex: 10000 }}>
+                        {keysDropdown}
+                    </div>
+
+                    <div onClick={e => this.changeSorting(col)}
+                        style={{ paddingRight: "6px" }}>
+                        <FontAwesomeIcon icon={sortIcon} size="sm" />
+                    </div>
                     <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
                         style={{ float: "right", paddingRight: "6px" }}>
-                        <FontAwesomeIcon icon={"caret-down"} id={"down arrow"} size="2x" />
+                        <FontAwesomeIcon icon={"compass"} size="sm" />
                     </div>
                 </div>;
 

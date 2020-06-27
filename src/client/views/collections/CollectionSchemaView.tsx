@@ -505,6 +505,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             reorderColumns={this.reorderColumns}
             changeColumns={this.changeColumns}
             setHeaderIsEditing={this.setHeaderIsEditing}
+            changeColumnSort={this.setColumnSort}
         />;
     }
 
