@@ -878,7 +878,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         setTimeout(async () => {
                             const targetField = Doc.LayoutFieldKey(pdfDoc);
                             const targetAnnotations = await DocListCastAsync(pdfDoc[DataSym][targetField + "-annotations"]);// bcz: better to have the PDF's view handle updating its own annotations
-                            targetAnnotations?.push(pdfRegion);
+                            if (targetAnnotations) targetAnnotations.push(pdfRegion);
+                            else Doc.AddDocToList(pdfDoc[DataSym], targetField + "-annotations", pdfRegion);
                         });
 
                         const link = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: pdfRegion }, "PDF pasted");

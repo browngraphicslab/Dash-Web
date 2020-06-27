@@ -302,7 +302,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             mapStyle: { default: "decimal" }, // "decimal", "multi", "bullet"
             visibility: { default: true }
         },
-        content: 'paragraph block*',
+        content: 'paragraph+ | (paragraph ordered_list)',
         parseDOM: [{
             tag: "li", getAttrs(dom: any) {
                 return { mapStyle: dom.getAttribute("data-mapStyle"), bulletStyle: dom.getAttribute("data-bulletStyle") };

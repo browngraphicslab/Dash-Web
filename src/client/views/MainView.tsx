@@ -5,7 +5,7 @@ import {
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faQuoteLeft, faSortAmountDown
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -138,7 +138,7 @@ export class MainView extends React.Component {
             faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
             faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
-            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faQuoteLeft, faSortAmountDown);
+            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -569,8 +569,32 @@ export class MainView extends React.Component {
         </div>;
     }
 
+    @computed get inkResources() {
+        return <svg width={0} height={0}>
+            <defs>
+                <filter id="inkSelectionHalo">
+                    <feColorMatrix type="matrix"
+                        result="color"
+                        values="1 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0">
+                    </feColorMatrix>
+                    <feGaussianBlur in="color" stdDeviation="4" result="blur"></feGaussianBlur>
+                    <feOffset in="blur" dx="0" dy="0" result="offset"></feOffset>
+                    <feMerge>
+                        <feMergeNode in="bg"></feMergeNode>
+                        <feMergeNode in="offset"></feMergeNode>
+                        <feMergeNode in="SourceGraphic"></feMergeNode>
+                    </feMerge>
+                </filter>
+            </defs>
+        </svg>;
+    }
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
+            {this.inkResources}
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />

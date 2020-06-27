@@ -45,7 +45,7 @@ import React = require("react");
 import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
-import { ActiveInkColor, ActiveInkWidth, ActiveInkBezierApprox } from "../../InkingStroke";
+import { InkingStroke, ActiveArrowStart, ActiveArrowEnd, ActiveInkColor, ActiveFillColor, ActiveInkWidth, ActiveInkBezierApprox, ActiveDash } from "../../InkingStroke";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
 
@@ -463,7 +463,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             case GestureUtils.Gestures.Stroke:
                 const points = ge.points;
                 const B = this.getTransform().transformBounds(ge.bounds.left, ge.bounds.top, ge.bounds.width, ge.bounds.height);
-                const inkDoc = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), points,
+                const inkDoc = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), points,
                     { title: "ink stroke", x: B.x - Number(ActiveInkWidth()) / 2, y: B.y - Number(ActiveInkWidth()) / 2, _width: B.width + Number(ActiveInkWidth()), _height: B.height + Number(ActiveInkWidth()) });
                 this.addDocument(inkDoc);
                 e.stopPropagation();
