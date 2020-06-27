@@ -2,6 +2,7 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import RouteSubscriber from "../RouteSubscriber";
 import { existsSync, createReadStream, createWriteStream } from "fs";
+const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import * as Pdfjs from 'pdfjs-dist';
 import { createCanvas } from "canvas";
 const imageSize = require("probe-image-size");
@@ -51,11 +52,13 @@ async function getOrCreateThumbnail(coreFilename: string, pageNum: number, res: 
 }
 
 async function CreateThumbnail(coreFilename: string, pageNum: number, res: express.Response, subtree?: string) {
-    const sourcePath = resolve(pathToDirectory(Directory.pdfs), `${subtree ?? ""}${coreFilename}.pdf`);
+    const part1 = subtree ?? "";
+    const filename = `${part1}${coreFilename}.pdf`;
+    const sourcePath = resolve(pathToDirectory(Directory.pdfs), filename);
     const documentProxy = await Pdfjs.getDocument(sourcePath).promise;
     const factory = new NodeCanvasFactory();
     const page = await documentProxy.getPage(pageNum);
-    const viewport = page.getViewport(1 as any);
+    const viewport = page.getViewport({ scale: 1, rotation: 0, dontFlip: false });
     const { canvas, context } = factory.create(viewport.width, viewport.height);
     const renderContext = {
         canvasContext: context,
