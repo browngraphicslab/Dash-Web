@@ -118,18 +118,18 @@ export namespace InteractionUtils {
          ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
         const dashArray = String(Number(width) * Number(dash));
         const defGuid = Utils.GenerateGuid();
+        const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
         return (<svg fill={fill === "none" ? color : fill}> {/* setting the svg fill sets the arrowhead fill */}
             {nodefs ? (null) : <defs>
-                <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
+                {arrowStart !== "dot" && arrowEnd !== "dot" ? (null) : <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
                     <circle r={1} fill="context-stroke" />
-                </marker>
-                <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="3" refY="1" markerWidth="10" markerHeight="7">
-                    <polygon points="3 0, 3 2, 0 1" />
-                </marker>
-                <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
-                    <polygon points="0 0, 3 1, 0 2" />
-                </marker>
-
+                </marker>}
+                {arrowStart !== "arrowHead" && arrowEnd !== "arrowHead" ? (null) : <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
+                    <polygon points={`${arrowDim} ${-Math.max(1, arrowDim / 2)}, ${arrowDim} ${Math.max(1, arrowDim / 2)}, -1 0`} />
+                </marker>}
+                {arrowStart !== "arrowEnd" && arrowEnd !== "arrowEnd" ? (null) : <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
+                    <polygon points={`${2 - arrowDim} ${-Math.max(1, arrowDim / 2)}, ${2 - arrowDim} ${Math.max(1, arrowDim / 2)}, 3 0`} />
+                </marker>}
             </defs>}
 
             <polyline
