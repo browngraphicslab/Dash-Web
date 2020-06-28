@@ -104,8 +104,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         }
         docFilters = () => {
             return this.props.ignoreFields?.includes("_docFilters") ? [] :
-                this.props.docFilters !== returnEmptyFilter ? this.props.docFilters() :
-                    Cast(this.props.Document._docFilters, listSpec("string"), []);
+                [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
             const docFilters = this.docFilters();
