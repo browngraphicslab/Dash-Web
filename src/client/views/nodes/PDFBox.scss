@@ -199,7 +199,7 @@
 }
 
 .pdfBox {
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         .textLayer {
             span {
                 user-select: none;
@@ -210,7 +210,7 @@
 
 .pdfBox-interactive {
     pointer-events: all;
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         .textLayer {
             span {
                 user-select: text;
