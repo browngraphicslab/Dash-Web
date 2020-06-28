@@ -973,7 +973,7 @@ export namespace Doc {
     export function toggleNativeDimensions(layoutDoc: Doc, contentScale: number, panelWidth: number, panelHeight: number) {
         runInAction(() => {
             if (layoutDoc._nativeWidth || layoutDoc._nativeHeight) {
-                layoutDoc.scale = NumCast(layoutDoc.scale, 1) * contentScale;
+                layoutDoc._viewScale = NumCast(layoutDoc._viewScale, 1) * contentScale;
                 layoutDoc._nativeWidth = undefined;
                 layoutDoc._nativeHeight = undefined;
             }
@@ -1159,7 +1159,6 @@ Scripting.addGlobal(function activePresentationItem() {
     const curPres = Doc.UserDoc().activePresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
-Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().activeSelection = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().activeSelection).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&

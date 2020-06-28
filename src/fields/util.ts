@@ -10,6 +10,7 @@ import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast } from "./Types";
 
+
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
@@ -110,7 +111,7 @@ const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHe
     "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    if (target[AclSym] && !_overrideAcl) return true;
+    if (target[AclSym] && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return true;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
@@ -155,9 +156,6 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
 
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
     receiver = receiver || target[SelfProxy];
-    if (target === undefined) {
-        console.log("");
-    }
     let field = target.__fields[prop];
     for (const plugin of getterPlugins) {
         const res = plugin(receiver, prop, field);

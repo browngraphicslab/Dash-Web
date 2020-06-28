@@ -15,10 +15,11 @@ import { SelectionManager } from "../util/SelectionManager";
 import SharingManager from "../util/SharingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
-import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
 import { DocumentDecorations } from "./DocumentDecorations";
 import { MainView } from "./MainView";
 import { DocumentView } from "./nodes/DocumentView";
+import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
+import PDFMenu from "./pdf/PDFMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -74,9 +75,10 @@ export default class KeyManager {
             case "a": DragManager.CanEmbed = true;
                 break;
             case " ":
-                MarqueeView.DragMarquee = !MarqueeView.DragMarquee;
+                // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
+                DocumentLinksButton.StartLink = undefined;
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);
                 if (main.isPointerDown) {
@@ -103,6 +105,7 @@ export default class KeyManager {
                 }
                 UndoManager.RunInBatch(() =>
                     SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
+                SelectionManager.DeselectAll();
                 break;
             case "arrowleft":
                 UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left");
@@ -252,8 +255,8 @@ export default class KeyManager {
             case "x":
                 if (SelectionManager.SelectedDocuments().length) {
                     const bds = DocumentDecorations.Instance.Bounds;
-                    const pt = [bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2];
-                    const text = `__DashDocId(${pt[0]},${pt[1]}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
+                    const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
+                    const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
                     DocumentDecorations.Instance.onCloseClick(undefined);
                     stopPropagation = false;
@@ -261,10 +264,10 @@ export default class KeyManager {
                 }
                 break;
             case "c":
-                if (DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
+                if (!PDFMenu.Instance.Active && DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
-                    const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
+                    const text = `__DashCloneId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
                     stopPropagation = false;
                 }
@@ -279,10 +282,12 @@ export default class KeyManager {
     });
 
     public paste(e: ClipboardEvent) {
-        if (e.clipboardData?.getData("text/plain") !== "" && e.clipboardData?.getData("text/plain").startsWith("__DashDocId(")) {
+        const plain = e.clipboardData?.getData("text/plain");
+        const clone = plain?.startsWith("__DashCloneId(");
+        if (plain && (plain.startsWith("__DashDocId(") || clone)) {
             const first = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
             if (first?.props.Document.type === DocumentType.COL) {
-                const docids = e.clipboardData.getData("text/plain").split(":");
+                const docids = plain.split(":");
                 let count = 1;
                 const list: Doc[] = [];
                 const targetDataDoc = Doc.GetProto(first.props.Document);
@@ -294,7 +299,7 @@ export default class KeyManager {
                         list.push(doc);
                     }
                     if (count === docids.length) {
-                        const added = list.filter(d => !docList.includes(d));
+                        const added = list.filter(d => !docList.includes(d)).map(d => clone ? Doc.MakeClone(d) : d);
                         if (added.length) {
                             added.map(doc => doc.context = targetDataDoc);
                             undoBatch(() => {

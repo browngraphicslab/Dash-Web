@@ -22,7 +22,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     zIndex?: number;
     highlight?: boolean;
     jitterRotation: number;
-    transition?: string;
+    dataTransition?: string;
     fitToBox?: boolean;
     replica: string;
 }
@@ -60,10 +60,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const someView = Cast(this.props.Document.someView, Doc);
             const minimap = Cast(this.props.Document.minimap, Doc);
             if (someView instanceof Doc && minimap instanceof Doc) {
-                const x = (NumCast(someView._panX) - NumCast(someView._width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap._width) - NumCast(minimap._width) / 2;
-                const y = (NumCast(someView._panY) - NumCast(someView._height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap._height) - NumCast(minimap._height) / 2;
-                const w = NumCast(someView._width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
-                const h = NumCast(someView._height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
+                const x = (NumCast(someView._panX) - NumCast(someView._width) / 2 / NumCast(someView._viewScale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap._width) - NumCast(minimap._width) / 2;
+                const y = (NumCast(someView._panY) - NumCast(someView._height) / 2 / NumCast(someView._viewScale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap._height) - NumCast(minimap._height) / 2;
+                const w = NumCast(someView._width) / NumCast(someView._viewScale) / NumCast(minimap.fitW) * NumCast(minimap.width);
+                const h = NumCast(someView._height) / NumCast(someView._viewScale) / NumCast(minimap.fitH) * NumCast(minimap.height);
                 return { x: x, y: y, width: w, height: h };
             }
         }
@@ -81,9 +81,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static setValues(time: number, d: Doc, x?: number, y?: number, opacity?: number) {
         const timecode = Math.round(time);
-        Cast(d["x-indexed"], listSpec("number"), [])[timecode] = x as any as number;
-        Cast(d["y-indexed"], listSpec("number"), [])[timecode] = y as any as number;
-        Cast(d["opacity-indexed"], listSpec("number"), null)[timecode] = opacity as any as number;
+        const xindexed = Cast(d["x-indexed"], listSpec("number"), []).slice();
+        const yindexed = Cast(d["y-indexed"], listSpec("number"), []).slice();
+        const oindexed = Cast(d["opacity-indexed"], listSpec("number"), []).slice();
+        xindexed[timecode] = x as any as number;
+        yindexed[timecode] = y as any as number;
+        oindexed[timecode] = opacity as any as number;
+        d["x-indexed"] = new List<number>(xindexed);
+        d["y-indexed"] = new List<number>(yindexed);
+        d["opacity-indexed"] = new List<number>(oindexed);
     }
     public static updateKeyframe(docs: Doc[], time: number) {
         const timecode = Math.round(time);
@@ -94,14 +100,14 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
             yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
-            doc.transition = "all 1s";
+            doc.dataTransition = "all 1s";
         });
-        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
+        setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
     }
 
     public static gotoKeyframe(docs: Doc[]) {
-        docs.forEach(doc => doc.transition = "all 1s");
-        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
+        docs.forEach(doc => doc.dataTransition = "all 1s");
+        setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
     }
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
@@ -119,7 +125,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
-            doc.transition = "inherit";
+            doc.dataTransition = "inherit";
         });
     }
 
@@ -144,13 +150,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 boxShadow:
                     this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
                         this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.props.backgroundHalo?.() ? (`${this.props.backgroundColor?.(this.props.Document)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                            this.props.backgroundHalo?.() && this.props.Document.type !== DocumentType.INK ? (`${this.props.backgroundColor?.(this.props.Document)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
                 borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
-                transition: this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
+                transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
                 width: this.props.Document.isInkMask ? 5000 : this.width,
                 height: this.props.Document.isInkMask ? 5000 : this.height,
                 zIndex: this.ZInd,

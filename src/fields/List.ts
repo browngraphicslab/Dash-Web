@@ -291,9 +291,10 @@ class ListImpl<T extends Field> extends ObjectField {
         this.___fields = value;
         for (const key in value) {
             const field = value[key];
-            if (!(field instanceof ObjectField)) continue;
-            (field as ObjectField)[Parent] = this[Self];
-            (field as ObjectField)[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
+            if (field instanceof ObjectField) {
+                field[Parent] = this[Self];
+                field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
+            }
         }
     }
 

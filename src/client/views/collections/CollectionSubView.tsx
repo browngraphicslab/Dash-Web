@@ -19,6 +19,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import React = require("react");
+import * as rp from 'request-promise';
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -103,8 +104,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         }
         docFilters = () => {
             return this.props.ignoreFields?.includes("_docFilters") ? [] :
-                this.props.docFilters !== returnEmptyFilter ? this.props.docFilters() :
-                    Cast(this.props.Document._docFilters, listSpec("string"), []);
+                [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
             const docFilters = this.docFilters();
@@ -400,9 +400,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 const item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.includes("uri")) {
                     const stringContents = await new Promise<string>(resolve => item.getAsString(resolve));
-                    const type = "html";// (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
+                    const type = (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
                     if (type) {
-                        const doc = await DocUtils.DocumentFromType(type, stringContents, options);
+                        const doc = await DocUtils.DocumentFromType(type, Utils.CorsProxy(stringContents), options);
                         doc && generatedDocuments.push(doc);
                     }
                 }

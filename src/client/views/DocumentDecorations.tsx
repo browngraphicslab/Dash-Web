@@ -17,11 +17,14 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import { Id } from '../../fields/FieldSymbols';
+import { Id, Copy, Update } from '../../fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
+import { InkData, InkField, InkTool } from "../../fields/InkField";
+import { update } from 'serializr';
+import { Transform } from "../util/Transform";
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -55,6 +58,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _resizeUndo?: UndoManager.Batch;
     private _offX = 0; _offY = 0;  // offset from click pt to inner edge of resize border
     private _snapX = 0; _snapY = 0; // last snapped location of resize border
+    private _prevX = 0;
+    private _prevY = 0;
+    private _centerPoints: { X: number, Y: number }[] = [];
+
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
@@ -75,7 +82,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
-                documentView.props.treeViewId ||
+                documentView.props.treeViewDoc ||
                 Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
@@ -180,7 +187,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseClick = async (e: PointerEvent | undefined) => {
+    onCloseClick = async (e: React.MouseEvent | undefined) => {
         if (!e?.button) {
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
@@ -242,6 +249,82 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             map(d => d.borderRounding = `${Math.max(0, dist)}px`);
         return false;
     }
+
+    @action
+    onRotateDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, this.onRotateMove, this.onRotateUp, (e) => { });
+        this._prevX = e.clientX;
+        this._prevY = e.clientY;
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
+                const ink = Cast(doc.data, InkField)?.inkData;
+                if (ink) {
+                    const xs = ink.map(p => p.X);
+                    const ys = ink.map(p => p.Y);
+                    const left = Math.min(...xs);
+                    const top = Math.min(...ys);
+                    const right = Math.max(...xs);
+                    const bottom = Math.max(...ys);
+                    // this._centerPoints.push({ X: ((right - left) / 2) + left, Y: ((bottom - top) / 2) + bottom });
+                    this._centerPoints.push({ X: left, Y: top });
+                }
+            }
+        }));
+
+    }
+    @action
+    onRotateMove = (e: PointerEvent, down: number[]): boolean => {
+
+        // const distance = Math.sqrt((this._prevY - e.clientY) * (this._prevY - e.clientY) + (this._prevX - e.clientX) * (this._prevX - e.clientX));
+        const distance = Math.abs(this._prevY - e.clientY);
+        var angle = 0;
+        //think of a better condition later...
+        // if ((down[0] < e.clientX && this._prevY < e.clientY) || (down[0] > e.clientX && this._prevY > e.clientY)) {
+        if (e.clientY > this._prevY) {
+            angle = distance * (Math.PI / 180);
+            // } else if ((down[0] < e.clientX && this._prevY > e.clientY) || (down[0] > e.clientX && this._prevY <= e.clientY)) {
+        } else if (e.clientY < this._prevY) {
+            angle = - distance * (Math.PI / 180);
+        }
+        this._prevX = e.clientX;
+        this._prevY = e.clientY;
+        var index = 0;
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
+                const ink = Cast(doc.data, InkField)?.inkData;
+                if (ink) {
+
+                    const newPoints: { X: number, Y: number }[] = [];
+                    for (var i = 0; i < ink.length; i++) {
+                        const newX = Math.cos(angle) * (ink[i].X - this._centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
+                        const newY = Math.sin(angle) * (ink[i].X - this._centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
+                        newPoints.push({ X: newX, Y: newY });
+                    }
+                    doc.data = new InkField(newPoints);
+                    const xs = newPoints.map(p => p.X);
+                    const ys = newPoints.map(p => p.Y);
+                    const left = Math.min(...xs);
+                    const top = Math.min(...ys);
+                    const right = Math.max(...xs);
+                    const bottom = Math.max(...ys);
+
+                    doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
+                    doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+
+                }
+                index++;
+            }
+        }));
+        return false;
+    }
+
+    onRotateUp = (e: PointerEvent) => {
+        this._centerPoints = [];
+    }
+
+
 
     _initialAutoHeight = false;
     _dragHeights = new Map<Doc, number>();
@@ -465,7 +548,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                 <FontAwesomeIcon size="lg" icon="cog" />
             </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onIconifyDown}>
+                <div className="documentDecorations-minimizeButton" title="Iconify" onClick={this.onCloseClick}>
                     {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>);
@@ -474,16 +557,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <>
                 <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle}
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
-                {minimal ? (null) : <div className="publishBox" title="make document referenceable by its title"
-                    onPointerDown={action(e => {
-                        if (!seldoc.props.Document.customTitle) {
-                            seldoc.props.Document.customTitle = true;
-                            StrCast(Doc.GetProto(seldoc.props.Document).title).startsWith("-") && (Doc.GetProto(seldoc.props.Document).title = StrCast(seldoc.props.Document.title).substring(1));
-                            this._accumulatedTitle = StrCast(seldoc.props.Document.title);
-                        }
-                        DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument);
-                    })}>
-                    <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
+                {minimal ? (null) : <div className="publishBox" // title="make document referenceable by its title"
+                // onPointerDown={action(e => {
+                //     if (!seldoc.props.Document.customTitle) {
+                //         seldoc.props.Document.customTitle = true;
+                //         StrCast(Doc.GetProto(seldoc.props.Document).title).startsWith("-") && (Doc.GetProto(seldoc.props.Document).title = StrCast(seldoc.props.Document.title).substring(1));
+                //         this._accumulatedTitle = StrCast(seldoc.props.Document.title);
+                //     }
+                //     DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument);
+                // })}
+                >
+                    {/* <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon> */}
                 </div>}
             </> :
             <>
@@ -524,9 +608,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 {maximizeIcon}
                 {titleArea}
+                {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
+                    <div className="documentDecorations-iconifyButton" title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} onPointerDown={this.onIconifyDown}>
+                        {"_"}
+                    </div>}
                 <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
                     {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                 </div>
+                <div id="documentDecorations-rotation" className="documentDecorations-rotation"
+                    onPointerDown={this.onRotateDown}> ⟲ </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
@@ -553,7 +643,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
-            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
+            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
                 <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
             </div>
         </div >

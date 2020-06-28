@@ -3,6 +3,8 @@ import { Doc } from "../../fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
 import { List } from "../../fields/List";
+import { Scripting } from "./Scripting";
+import { DocumentManager } from "./DocumentManager";
 
 export namespace SelectionManager {
 
@@ -10,7 +12,6 @@ export namespace SelectionManager {
 
         @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
-
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
@@ -82,3 +83,9 @@ export namespace SelectionManager {
     }
 }
 
+
+Scripting.addGlobal(function selectDoc(doc: any) {
+    const view = DocumentManager.Instance.getDocumentView(doc);
+    view && SelectionManager.SelectDoc(view, false);
+    //Doc.UserDoc().activeSelection = new List([doc]); 
+});

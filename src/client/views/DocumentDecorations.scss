@@ -22,11 +22,20 @@ $linkGap : 3px;
     }
 
 
+    .documentDecorations-rotation {
+        pointer-events: auto;
+        // cursor: grabbing;
+        cursor: ns-resize;
+        width: 10px;
+        height: 10px;
+    }
+
     .documentDecorations-resizer {
         pointer-events: auto;
         background: $alt-accent;
         opacity: 0.1;
     }
+
     .documentDecorations-resizer:hover {
         opacity: 1;
     }
@@ -87,14 +96,17 @@ $linkGap : 3px;
         background: unset;
         opacity: 1;
     }
+
     #documentDecorations-topLeftResizer {
-        border-left:  2px solid;
-        border-top:  solid 2px;
+        border-left: 2px solid;
+        border-top: solid 2px;
     }
+
     #documentDecorations-bottomRightResizer {
-        border-right:  2px solid;
-        border-bottom:  solid 2px;
+        border-right: 2px solid;
+        border-bottom: solid 2px;
     }
+
     #documentDecorations-topLeftResizer:hover,
     #documentDecorations-bottomRightResizer:hover {
         opacity: 1;
@@ -110,14 +122,17 @@ $linkGap : 3px;
         background: unset;
         opacity: 1;
     }
+
     #documentDecorations-topRightResizer {
-        border-right:  2px solid;
-        border-top:  2px solid;
+        border-right: 2px solid;
+        border-top: 2px solid;
     }
+
     #documentDecorations-bottomLeftResizer {
-        border-left:  2px solid;
-        border-bottom:  2px solid;
+        border-left: 2px solid;
+        border-bottom: 2px solid;
     }
+
     #documentDecorations-topRightResizer:hover,
     #documentDecorations-bottomLeftResizer:hover {
         cursor: nesw-resize;
@@ -139,10 +154,11 @@ $linkGap : 3px;
         width: 25px;
         height: calc(100% + 8px); // 8px for the height of the top resizer bar
         grid-column-start: 2;
-        grid-column-end : 2;
+        grid-column-end: 2;
         pointer-events: all;
         padding-left: 5px;
     }
+
     .documentDecorations-title {
         opacity: 1;
         grid-column-start: 3;
@@ -150,14 +166,16 @@ $linkGap : 3px;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
-        display: flex;    
+        display: flex;
         border-bottom: solid 1px;
-        margin-left:10px;
+        margin-left: 10px;
         width: calc(100% - 10px);
     }
+
     .focus-visible {
-        margin-left:0px;
+        margin-left: 0px;
     }
+
     .publishBox {
         width: 20px;
         height: 22px;
@@ -172,13 +190,30 @@ $linkGap : 3px;
 }
 
 
+.documentDecorations-iconifyButton {
+    opacity: 1;
+    grid-column-start: 4;
+    grid-column-end: 5;
+    pointer-events: all;
+    text-align: center;
+    left: -25px;
+    top: -2px;
+    cursor: pointer;
+    position: absolute;
+    background: transparent;
+    width: 20px;
+}
+
 .documentDecorations-closeButton {
     opacity: 1;
     grid-column-start: 4;
-    grid-column-end: 6;
+    grid-column-end: 5;
     pointer-events: all;
     text-align: center;
     cursor: pointer;
+    width: 15px;
+    margin-left: -8px;
+    margin-top: auto;
 }
 
 .documentDecorations-minimizeButton {
@@ -194,8 +229,9 @@ $linkGap : 3px;
     width: 8px;
     height: $MINIMIZED_ICON_SIZE;
     max-height: 20px;
-    > svg {
-        margin:0;
+
+    >svg {
+        margin: 0;
     }
 }
 
@@ -334,7 +370,8 @@ $linkGap : 3px;
     padding: 2px 12px;
     list-style: none;
 
-    .templateToggle, .chromeToggle {
+    .templateToggle,
+    .chromeToggle {
         text-align: left;
     }
 

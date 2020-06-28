@@ -9,6 +9,7 @@ import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
 import { undoBatch } from '../util/UndoManager';
 import { NumCast } from '../../fields/Types';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -32,10 +33,11 @@ export class PreviewCursor extends React.Component<{}> {
 
             // tests for URL and makes web document
             const re: any = /^https?:\/\//g;
-            if (e.clipboardData.getData("text/plain") !== "") {
+            const plain = e.clipboardData.getData("text/plain");
+            if (plain) {
                 // tests for youtube and makes video document
-                if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
-                    const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
+                if (plain.indexOf("www.youtube.com/watch") !== -1) {
+                    const url = plain.replace("youtube.com/watch?v=", "youtube.com/embed/");
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
                         title: url, _width: 400, _height: 315,
                         _nativeWidth: 600, _nativeHeight: 472.5,
@@ -43,8 +45,8 @@ export class PreviewCursor extends React.Component<{}> {
                     })))();
                 }
 
-                else if (re.test(e.clipboardData.getData("text/plain"))) {
-                    const url = e.clipboardData.getData("text/plain");
+                else if (re.test(plain)) {
+                    const url = plain;
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
                         title: url, _width: 500, _height: 300, UseCors: true,
                         // nativeWidth: 300, nativeHeight: 472.5,
@@ -52,10 +54,11 @@ export class PreviewCursor extends React.Component<{}> {
                     })))();
                 }
 
-                else if (e.clipboardData.getData("text/plain").startsWith("__DashDocId(")) {
-                    const docids = e.clipboardData.getData("text/plain").split(":");
+                else if (plain.startsWith("__DashDocId(") || plain.startsWith("__DashCloneId(")) {
+                    const clone = plain.startsWith("__DashCloneId(");
+                    const docids = plain.split(":");
                     const strs = docids[0].split(",");
-                    const ptx = Number(strs[0].substring("__DashDocId(".length));
+                    const ptx = Number(strs[0].substring((clone ? "__DashCloneId(" : "__DashDocId(").length));
                     const pty = Number(strs[1].substring(0, strs[1].length - 1));
                     let count = 1;
                     const list: Doc[] = [];
@@ -65,7 +68,7 @@ export class PreviewCursor extends React.Component<{}> {
                         count++;
                         if (doc instanceof Doc) {
                             i === 1 && (first = doc);
-                            const alias = Doc.MakeClone(doc);
+                            const alias = clone ? Doc.MakeClone(doc) : doc;
                             const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
                             const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
                             alias.x = newPoint[0] + deltaX;
@@ -79,6 +82,7 @@ export class PreviewCursor extends React.Component<{}> {
                     e.stopPropagation();
                 } else {
                     // creates text document
+                    FormattedTextBox.PasteOnLoad = e;
                     undoBatch(() => PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
                         _width: 500,
                         limitHeight: 400,
@@ -115,9 +119,9 @@ export class PreviewCursor extends React.Component<{}> {
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
-            if ((!e.ctrlKey || (e.keyCode >= 48 && e.keyCode <= 57)) && !e.metaKey) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
+            if ((!e.metaKey && !e.ctrlKey) || (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90)) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress?.(e);
-                PreviewCursor.Visible = false;
+                ((!e.ctrlKey && !e.metaKey) || e.key !== "v") && (PreviewCursor.Visible = false);
             }
         } else if (PreviewCursor.Visible) {
             if (e.key === "ArrowRight") {

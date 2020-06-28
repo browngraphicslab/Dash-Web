@@ -77,7 +77,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                     paddingBottom: NumCast(this.layoutDoc._yPadding),
                     whiteSpace: this.layoutDoc._singleLine ? "pre" : "pre-wrap"
                 }} >
-                    {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
+                    {StrCast(this.rootDoc[this.fieldKey], StrCast(this.rootDoc.title))}
                 </div>
                 <div className="labelBox-fieldKeyParams" >
                     {!missingParams?.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}

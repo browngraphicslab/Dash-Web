@@ -21,6 +21,7 @@ import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { LabelBox } from "../views/nodes/LabelBox";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -86,11 +87,11 @@ export class CurrentUserUtils {
             });
         }
 
-        if (doc["template-button-link"] === undefined) {
+        if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
             const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
-                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightBlue`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
             linkTemplate.isTemplateDoc = makeTemplate(linkTemplate, true, "linkView");
@@ -305,16 +306,20 @@ export class CurrentUserUtils {
     // setup templates for different document types when they are iconified from Document Decorations
     static setupDefaultIconTemplates(doc: Doc) {
         if (doc["template-icon-view"] === undefined) {
-            const iconView = Docs.Create.TextDocument("", {
-                title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
+            const iconView = Docs.Create.LabelDocument({
+                title: "icon", textTransform: "unset", letterSpacing: "unset", layout: LabelBox.LayoutString("title"), _backgroundColor: "dimGray",
+                _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
             });
-            Doc.GetProto(iconView).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
+            //  Docs.Create.TextDocument("", {
+            //     title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
+            // });
+            // Doc.GetProto(iconView).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
             iconView.isTemplateDoc = makeTemplate(iconView);
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
         if (doc["template-icon-view-rtf"] === undefined) {
             const iconRtfView = Docs.Create.LabelDocument({
-                title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset",
+                title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", layout: LabelBox.LayoutString("text"),
                 _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
             });
             iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
@@ -334,11 +339,11 @@ export class CurrentUserUtils {
         }
         if (doc["template-icons"] === undefined) {
             doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
                 await Promise.all(curIcons!);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
@@ -567,7 +572,7 @@ export class CurrentUserUtils {
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", treeViewExpandedView: "layout", stayInCollection: true,
+                childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
             }));
         }
         return doc.myCatalog as Doc;
@@ -596,6 +601,7 @@ export class CurrentUserUtils {
         if (doc["tabs-button-library"] === undefined) {
             const libraryStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
@@ -748,11 +754,16 @@ export class CurrentUserUtils {
     }
 
     static async updateUserDocument(doc: Doc) {
+        doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc.activeInkPen = doc;
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
-        doc.activeInkBezier = StrCast(doc.activeInkBezier, "");
+        doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
+        doc.activeFillColor = StrCast(doc.activeFillColor, "none");
+        doc.activeArrowStart = StrCast(doc.activeArrowStart, "none");
+        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "none");
+        doc.activeDash = StrCast(doc.activeDash, "0");
         doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
