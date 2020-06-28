@@ -43,21 +43,18 @@ export class Uploader extends React.Component<ImageUploadProps> {
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
             // Slab 1
-            const slab1 = document.getElementById("slab1");
-            if (slab1) slab1.style.opacity = "1";
+            this.setOpacity(1, "1");
             if (imgPrev) {
                 const files: FileList | null = inputRef.current!.files;
                 // Slab 2
-                const slab2 = document.getElementById("slab2");
-                if (slab2) slab2.style.opacity = "1";
+                this.setOpacity(2, "1");
                 if (files && files.length !== 0) {
                     this.process = "Uploading Files";
                     for (let index = 0; index < files.length; ++index) {
                         const file = files[index];
                         const res = await Networking.UploadFilesToServer(file);
                         // Slab 3
-                        const slab3 = document.getElementById("slab3");
-                        if (slab3) slab3.style.opacity = "1";
+                        this.setOpacity(3, "1");
                         res.map(async ({ result }) => {
                             const name = file.name;
                             if (result instanceof Error) {
@@ -74,8 +71,7 @@ export class Uploader extends React.Component<ImageUploadProps> {
                                 doc = Docs.Create.ImageDocument(path, { _nativeWidth: 400, _width: 400, title: name });
                             }
                             // Slab 4
-                            const slab4 = document.getElementById("slab4");
-                            if (slab4) slab4.style.opacity = "1";
+                            this.setOpacity(4, "1");
                             const res = await rp.get(Utils.prepend("/getUserDocumentId"));
                             if (!res) {
                                 throw new Error("No user id returned");
@@ -94,13 +90,15 @@ export class Uploader extends React.Component<ImageUploadProps> {
                                 if (data) data.push(doc);
                                 else pending.data = new List([doc]);
                                 this.status = "finished";
-                                const slab5 = document.getElementById("slab5");
-                                if (slab5) slab5.style.opacity = "1";
+                                this.setOpacity(5, "1"); // Slab 5
                                 this.process = "File " + (index + 1).toString() + " Uploaded";
-                                const slab6 = document.getElementById("slab6");
-                                if (slab6) slab6.style.opacity = "1";
-                                const slab7 = document.getElementById("slab7");
-                                if (slab7) slab7.style.opacity = "1";
+                                this.setOpacity(6, "1"); // Slab 6
+                                this.setOpacity(7, "1"); // Slab 7
+                            }
+                            console.log("i: " + index + 1);
+                            console.log("l: " + files.length);
+                            if ((index + 1) === files.length) {
+                                this.process = "Uploads Completed";
                             }
                         });
                     }
@@ -129,20 +127,9 @@ export class Uploader extends React.Component<ImageUploadProps> {
 
     @action
     clearUpload = () => {
-        const slab1 = document.getElementById("slab1");
-        if (slab1) slab1.style.opacity = "0.4";
-        const slab2 = document.getElementById("slab2");
-        if (slab2) slab2.style.opacity = "0.4";
-        const slab3 = document.getElementById("slab3");
-        if (slab3) slab3.style.opacity = "0.4";
-        const slab4 = document.getElementById("slab4");
-        if (slab4) slab4.style.opacity = "0.4";
-        const slab5 = document.getElementById("slab5");
-        if (slab5) slab5.style.opacity = "0.4";
-        const slab6 = document.getElementById("slab6");
-        if (slab6) slab6.style.opacity = "0.4";
-        const slab7 = document.getElementById("slab7");
-        if (slab7) slab7.style.opacity = "0.4";
+        for (let i = 1; i < 8; i++) {
+            this.setOpacity(i, "0.2");
+        }
         this.nm = "Choose files";
 
         if (inputRef.current) {
@@ -152,24 +139,33 @@ export class Uploader extends React.Component<ImageUploadProps> {
         console.log(inputRef.current!.files);
     }
 
+    closeUpload = () => {
+        this.clearUpload();
+        MobileInterface.Instance.toggleUpload();
+    }
+
+    setOpacity = (i: number, o: string) => {
+        const slab = document.getElementById("slab" + i);
+        if (slab) {
+            console.log(slab?.id);
+            slab.style.opacity = o;
+        }
+    }
 
 
     private get uploadInterface() {
         return (
             <div className="imgupload_cont">
-                <div className="closeUpload" onClick={MobileInterface.Instance.toggleUpload}>
+                <div className="closeUpload" onClick={() => this.closeUpload()}>
                     <FontAwesomeIcon icon="window-close" size={"lg"} />
                 </div>
-                <input type="file" accept="application/pdf, video/*,image/*" className="inputFile" id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
+                <FontAwesomeIcon icon="upload" size="lg" style={{ fontSize: "130" }} />
+                <input type="file" accept="application/pdf, video/*,image/*" className={`inputFile ${this.nm !== "Choose files" ? "active" : ""}`} id="input_image_file" ref={inputRef} onChange={this.inputLabel} multiple></input>
                 <label className="file" id="label" htmlFor="input_image_file">{this.nm}</label>
                 <div className="upload_label" onClick={this.onClick}>
-                    <FontAwesomeIcon icon="upload" size="sm" />
-                    &nbsp; &nbsp; Upload
+                    Upload
                 </div>
-                {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>
-                {/* <p>{this.status}</p>
-                <p>{this.error}</p> */}
                 <div className="loadingImage">
                     <div className="loadingSlab" id="slab1" />
                     <div className="loadingSlab" id="slab2" />

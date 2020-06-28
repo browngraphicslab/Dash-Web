@@ -1,7 +1,7 @@
 import * as React from "react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTasks, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -45,8 +45,9 @@ import { AudioUpload } from "./AudioUpload";
 import { Cast, FieldValue } from '../fields/Types';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { InkingStroke } from '../client/views/InkingStroke';
+import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
 
-library.add(faTasks, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -398,13 +399,13 @@ export class MobileInterface extends React.Component {
                 return (
                     <div
                         className="item"
-                        key={index}
-                        onClick={() => this.handleClick(doc)}>
-                        <div className="item-title"> {doc.title} </div>
-                        <div className="item-type">{doc.type}</div>
-                        <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
+                        key={index}>
+                        <div className="item-title" onClick={() => this.handleClick(doc)}> {doc.title} </div>
+                        <div className="item-type" onClick={() => this.handleClick(doc)}>{doc.type}</div>
+                        <FontAwesomeIcon onClick={() => this.handleClick(doc)} className="right" icon="angle-right" size="lg" style={{ display: `${doc.type === "collection" ? "block" : "none"}` }} />
                         <FontAwesomeIcon className="open" onClick={() => this.openFromSidebar(doc)} icon="external-link-alt" size="lg" />
-                    </div>);
+                    </div>
+                );
             }
         });
 
@@ -454,7 +455,7 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Handles the Create New Workspace button in the menu
+     * Handles the Create New Workspace button in the menu (taken from MainView.tsx)
      */
     @action
     createNewWorkspace = async (id?: string) => {
@@ -773,12 +774,7 @@ export class MobileInterface extends React.Component {
             toggle = this.toggleUpload;
         }
         return (
-            <div>
-                <div className="closeUpload" onClick={toggle}>
-                    <FontAwesomeIcon icon="window-close" size={"lg"} />
-                </div>
-                <Uploader Document={doc} />
-            </div>
+            <Uploader Document={doc} />
         );
     }
 
@@ -832,6 +828,7 @@ export class MobileInterface extends React.Component {
                 {this.switchMenuView()}
                 {this.inkMenu()}
                 <GestureOverlay>
+                    <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
                     <div className="docButtonContainer">
                         {this.pinToPresentation()}
                         {this.downloadDocument()}
@@ -860,7 +857,7 @@ Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.I
 Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Instance.toggleSidebar(); });
 Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.toggleAudio(); });
 Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
-Scripting.addGlobal(function openWorkspaces() { return MobileInterface.Instance.openWorkspaces(); });
+Scripting.addGlobal(function openMobileWorkspaces() { return MobileInterface.Instance.openWorkspaces(); });
 Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
 Scripting.addGlobal(function switchToMobileUploads() { return MobileInterface.Instance.switchToMobileUploads(); });
 Scripting.addGlobal(function switchToLibrary() { return MobileInterface.Instance.switchToLibrary(); });

@@ -42,6 +42,7 @@ import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { MobileInterface } from '../../../mobile/MobileInterface';
+import { DocumentLinksButton } from './DocumentLinksButton';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -585,10 +586,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleLinkButtonBehavior = (): void => {
         if (this.Document.isLinkButton || this.layoutDoc.onClick || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = false);
             this.Document.ignoreClick = false;
             this.layoutDoc.onClick = undefined;
         } else {
             this.Document.isLinkButton = true;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = true);
             this.Document.followLinkZoom = false;
             this.Document.followLinkLocation = undefined;
         }
@@ -598,8 +603,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleFollowInPlace = (): void => {
         if (this.Document.isLinkButton) {
             this.Document.isLinkButton = false;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = false);
         } else {
             this.Document.isLinkButton = true;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = true);
             this.Document.followLinkZoom = true;
             this.Document.followLinkLocation = "inPlace";
         }
@@ -609,6 +618,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleFollowOnRight = (): void => {
         if (this.Document.isLinkButton) {
             this.Document.isLinkButton = false;
+            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
+            first && (first.hidden = false);
         } else {
             this.Document.isLinkButton = true;
             this.Document.followLinkZoom = false;
@@ -737,10 +748,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
-        if (!options) {
-            options = { description: "Options...", subitems: optionItems, icon: "compass" };
-            cm?.addItem(options);
-        }
+        optionItems.push({ description: "Toggle Show Each Link Dot", event: () => this.layoutDoc.showLinks = !this.layoutDoc.showLinks, icon: "eye" });
+        !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
         const existingOnClick = cm?.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -1039,7 +1048,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 select={this.select}
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
-            {this.anchors}
+            {this.layoutDoc.showLinks ? this.anchors : (null)}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
     }
@@ -1063,7 +1073,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     @computed get anchors() {
         TraceMobx();
-        return this.layoutDoc.presBox ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+        return this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.presBox || this.props.dontRegisterView ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
             <DocumentView {...this.props} key={i + 1}
                 Document={d}
                 ContainingCollectionView={this.props.ContainingCollectionView}
@@ -1071,6 +1081,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 PanelWidth={this.anchorPanelWidth}
                 PanelHeight={this.anchorPanelHeight}
                 ContentScaling={returnOne}
+                dontRegisterView={false}
                 forcedBackgroundColor={returnTransparent}
                 removeDocument={this.hideLinkAnchor}
                 pointerEvents={false}
@@ -1194,7 +1205,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
-                boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
+                boxShadow: this.Document.isLinkButton && !this.props.dontRegisterView && this.props.forcedBackgroundColor?.(this.Document) !== "transparent" ?
+                    StrCast(this.props.Document._linkButtonShadow, "lightblue 0em 0em 1em") :
+                    this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" :
+                        undefined,
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
