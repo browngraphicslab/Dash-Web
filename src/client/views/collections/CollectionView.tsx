@@ -105,15 +105,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
-        if (CollectionView._safeMode) {
-            if (viewField === CollectionViewType.Freeform) {
-                return CollectionViewType.Tree;
-            }
-            if (viewField === CollectionViewType.Invalid) {
-                return CollectionViewType.Freeform;
-            }
-        }
-        return viewField as any as CollectionViewType;
+        return CollectionView._safeMode ? CollectionViewType.Tree : viewField as any as CollectionViewType;
     }
 
     active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) || this.props.rootSelected(outsideReaction) || this.props.Document.forceActive || this._isChildActive || this.props.renderDepth === 0) ? true : false;
