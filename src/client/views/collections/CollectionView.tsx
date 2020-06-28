@@ -106,7 +106,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
-            if (viewField === CollectionViewType.Freeform) {
+            if (viewField === CollectionViewType.Freeform || viewField === CollectionViewType.Schema) {
                 return CollectionViewType.Tree;
             }
             if (viewField === CollectionViewType.Invalid) {
@@ -191,7 +191,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
+    screenToLocalTransform = () => this.props.renderDepth ? this.props.ScreenToLocalTransform() : this.props.ScreenToLocalTransform().scale(this.props.PanelWidth() / this.bodyPanelWidth());
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         const props: SubCollectionViewProps = { ...this.props, ...renderProps, ScreenToLocalTransform: this.screenToLocalTransform, CollectionView: this, annotationsKey: "" };
         switch (type) {
@@ -521,7 +521,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
-            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ height: "100%", position: "absolute", width: this.props.PanelWidth() - this.facetWidth() }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>

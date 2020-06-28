@@ -433,7 +433,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._downX = e.clientX;
         this._downY = e.clientY;
         addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
-        if ((this.Document.scale || 1) !== 1) return;
+        if ((this.Document._viewScale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
             this._setPreviewCursor?.(e.clientX, e.clientY, true);
             //e.stopPropagation();
@@ -641,11 +641,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onZoomWheel = (e: React.WheelEvent) => {
-        e.stopPropagation();
-        if (e.ctrlKey) {
-            const curScale = Number(this._pdfViewer.currentScaleValue);
-            this._pdfViewer.currentScaleValue = Math.max(1, Math.min(10, curScale - curScale * e.deltaY / 1000));
-            this._zoomed = Number(this._pdfViewer.currentScaleValue);
+        if (this.active()) {
+            e.stopPropagation();
+            if (e.ctrlKey) {
+                const curScale = Number(this._pdfViewer.currentScaleValue);
+                this._pdfViewer.currentScaleValue = Math.max(1, Math.min(10, curScale - curScale * e.deltaY / 1000));
+                this._zoomed = Number(this._pdfViewer.currentScaleValue);
+            }
         }
     }
 

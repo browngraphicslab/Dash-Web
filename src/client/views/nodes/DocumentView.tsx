@@ -69,7 +69,7 @@ export interface DocumentViewProps {
     onDoubleClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
-    treeViewId?: string;
+    treeViewDoc?: Doc;
     dropAction?: dropActionType;
     dragDivName?: string;
     nudge?: (x: number, y: number) => void;
@@ -237,7 +237,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;//  this.layoutDoc.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
-            dragData.treeViewId = this.props.treeViewId;
+            dragData.treeViewDoc = this.props.treeViewDoc;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart });
         }
     }
@@ -1071,30 +1071,34 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     @computed get anchors() {
         TraceMobx();
-        return this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.presBox || this.props.dontRegisterView ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
-            <DocumentView {...this.props} key={i + 1}
-                Document={d}
-                ContainingCollectionView={this.props.ContainingCollectionView}
-                ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
-                PanelWidth={this.anchorPanelWidth}
-                PanelHeight={this.anchorPanelHeight}
-                ContentScaling={returnOne}
-                dontRegisterView={false}
-                forcedBackgroundColor={returnTransparent}
-                removeDocument={this.hideLinkAnchor}
-                pointerEvents={false}
-                LayoutTemplate={undefined}
-                LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)}
-            />);
+        return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
+            this.layoutDoc.presBox ||  // presentationbox nodes
+            this.props.dontRegisterView ? (null) : // view that are not registered
+            DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+                <DocumentView {...this.props} key={i + 1}
+                    Document={d}
+                    ContainingCollectionView={this.props.ContainingCollectionView}
+                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
+                    PanelWidth={this.anchorPanelWidth}
+                    PanelHeight={this.anchorPanelHeight}
+                    ContentScaling={returnOne}
+                    dontRegisterView={false}
+                    forcedBackgroundColor={returnTransparent}
+                    removeDocument={this.hideLinkAnchor}
+                    pointerEvents={false}
+                    LayoutTemplate={undefined}
+                    LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)}
+                />);
     }
     @computed get innards() {
         TraceMobx();
-        if (!this.props.PanelWidth()) {  // this happens when the document is a tree view label
-            return <div className="documentView-linkAnchorBoxAnchor" >
+        if (this.props.treeViewDoc && !this.props.LayoutTemplateString) {  // this happens when the document is a tree view label (but not an anchor dot)
+            return <div className="documentView-treeView" style={{ maxWidth: this.props.PanelWidth() || undefined }}>
                 {StrCast(this.props.Document.title)}
                 {this.anchors}
             </div>;
         }
+
         const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
@@ -1156,7 +1160,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     renderLock() {
         return (this.Document.isBackground !== undefined || this.isSelected(false)) &&
             ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
-            this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
+            this.props.renderDepth > 0 && !this.props.treeViewDoc ?
             <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
                 <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
             </div>
@@ -1198,7 +1202,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
                 transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
-                transition: !this._animateScalingTo ? StrCast(this.Document.transition) : this._animateScalingTo < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
+                transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : this._animateScalingTo < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
                 pointerEvents: this.ignorePointerEvents ? "none" : undefined,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
