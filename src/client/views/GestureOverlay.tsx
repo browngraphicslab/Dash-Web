@@ -260,7 +260,7 @@ export default class GestureOverlay extends Touchable {
     handleHandDown = async (e: React.TouchEvent) => {
         this._holdTimer && clearTimeout(this._holdTimer);
 
-        // this chunk of code helps us keep track of which touch events are associated with a hand event
+        // this chunk of code helps us keep track of which touch events ar e associated with a hand event
         // so that if a hand is held down, but a second hand is interacting with dash, the second hand's events
         // won't interfere with the first hand's events.
         const fingers = new Array<React.Touch>();

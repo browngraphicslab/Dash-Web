@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import { trace } from 'mobx';
+import { TraceMobx } from "../fields/util";
 import * as rp from 'request-promise';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
@@ -788,6 +789,7 @@ export class MobileInterface extends React.Component {
     }
 
     onDragOver = (e: React.DragEvent) => {
+        console.log("drag!");
         e.preventDefault();
         e.stopPropagation();
     }
@@ -816,6 +818,8 @@ export class MobileInterface extends React.Component {
     }
 
     render() {
+        // trace();
+        // TraceMobx();
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
                 <SettingsManager />
