@@ -474,7 +474,7 @@ export class CurrentUserUtils {
 
     static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "WORKSPACES", icon: "bars", click: 'openMobileWorkspaces()', backgroundColor: "lightgrey", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
+            { title: "WORKSPACES", icon: "bars", click: 'switchToLibrary()', backgroundColor: "lightgrey", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
             { title: "UPLOAD", icon: "upload", click: 'uploadImageMobile()', backgroundColor: "lightgrey", info: "Upload files from your mobile device so they can be accessed on Dash Web." },
             { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploads()', backgroundColor: "lightgrey", info: "Access the collection of your mobile uploads." },
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey", info: "Use your phone to record, dictate and then upload audio onto Dash Web." },
