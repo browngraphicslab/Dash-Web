@@ -24,6 +24,7 @@ import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } 
 import { SnappingManager } from "../../util/SnappingManager";
 import Measure from "react-measure";
 import { SchemaTable } from "./SchemaTable";
+import { civicinfo } from "googleapis/build/src/apis/civicinfo";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -68,6 +69,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _menuHeight = 0;
     @observable _pointerX = 0;
     @observable _pointerY = 0;
+    @observable _openTypes: boolean = false;
     @computed get menuCoordinates() {
         const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this._pointerX));
         const y = Math.max(0, Math.min(document.body.clientHeight - this._menuHeight, this._pointerY));
@@ -123,7 +125,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.setHeaderIsEditing(this._isOpen);
     }
 
+    @action
     changeColumnType = (type: ColumnType, col: any): void => {
+        this._openTypes = false;
         this.setColumnType(col, type);
     }
 
@@ -175,43 +179,74 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         node && (this._node = node);
     }
 
+    @action
+    typesDropdownChange = (bool: boolean) => {
+        this._openTypes = bool;
+    }
+
+    @action
     renderTypes = (col: any) => {
         if (columnTypes.get(col.heading)) return (null);
 
         const type = col.type;
+
+        const anyType = <div className={"columnMenu-option" + (type === ColumnType.Any ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Any, col)}>
+            <FontAwesomeIcon icon={"align-justify"} size="sm" />
+                Any
+            </div>;
+
+        const numType = <div className={"columnMenu-option" + (type === ColumnType.Number ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Number, col)}>
+            <FontAwesomeIcon icon={"hashtag"} size="sm" />
+                Number
+            </div>;
+
+        const textType = <div className={"columnMenu-option" + (type === ColumnType.String ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.String, col)}>
+            <FontAwesomeIcon icon={"font"} size="sm" />
+            Text
+            </div>;
+
+        const boolType = <div className={"columnMenu-option" + (type === ColumnType.Boolean ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Boolean, col)}>
+            <FontAwesomeIcon icon={"check-square"} size="sm" />
+            Checkbox
+            </div>;
+
+        const listType = <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.List, col)}>
+            <FontAwesomeIcon icon={"list-ul"} size="sm" />
+            List
+            </div>;
+
+        const docType = <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc, col)}>
+            <FontAwesomeIcon icon={"file"} size="sm" />
+            Document
+            </div>;
+
+        const imageType = <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image, col)}>
+            <FontAwesomeIcon icon={"image"} size="sm" />
+            Image
+            </div>;
+
+
+        const allColumnTypes = <div className="columnMenu-types">
+            {anyType}
+            {numType}
+            {textType}
+            {boolType}
+            {listType}
+            {docType}
+            {imageType}
+        </div>;
+
+        const justColType = type === ColumnType.Any ? anyType : type === ColumnType.Number ? numType :
+            type === ColumnType.String ? textType : type === ColumnType.Boolean ? boolType :
+                type === ColumnType.List ? listType : type === ColumnType.Doc ? docType : imageType;
+
         return (
             <div className="collectionSchema-headerMenu-group">
-                <label>Column type:</label>
-                <div className="columnMenu-types">
-                    <div className={"columnMenu-option" + (type === ColumnType.Any ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Any, col)}>
-                        <FontAwesomeIcon icon={"align-justify"} size="sm" />
-                        Any
-                    </div>
-                    <div className={"columnMenu-option" + (type === ColumnType.Number ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Number, col)}>
-                        <FontAwesomeIcon icon={"hashtag"} size="sm" />
-                        Number
-                    </div>
-                    <div className={"columnMenu-option" + (type === ColumnType.String ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.String, col)}>
-                        <FontAwesomeIcon icon={"font"} size="sm" />
-                        Text
-                    </div>
-                    <div className={"columnMenu-option" + (type === ColumnType.Boolean ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Boolean, col)}>
-                        <FontAwesomeIcon icon={"check-square"} size="sm" />
-                        Checkbox
-                    </div>
-                    <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.List, col)}>
-                        <FontAwesomeIcon icon={"list-ul"} size="sm" />
-                        List
-                    </div>
-                    <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc, col)}>
-                        <FontAwesomeIcon icon={"file"} size="sm" />
-                        Document
-                    </div>
-                    <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image, col)}>
-                        <FontAwesomeIcon icon={"image"} size="sm" />
-                        Image
-                    </div>
+                <div onClick={() => this.typesDropdownChange(!this._openTypes)}>
+                    <label>Column type:</label>
+                    <FontAwesomeIcon icon={"caret-down"} size="sm" style={{ float: "right" }} />
                 </div>
+                {this._openTypes ? allColumnTypes : justColType}
             </div >
         );
     }
@@ -288,6 +323,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     openHeader = (col: any, screenx: number, screeny: number) => {
+        console.log("header opening");
         this._col = col;
         this._headerOpen = !this._headerOpen;
         this._pointerX = screenx;
@@ -309,6 +345,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         />;
     }
 
+    @action
     renderContent = (col: any) => {
         return (
             <div className="collectionSchema-header-menuOptions">
@@ -365,7 +402,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         //this.menuCoordinates[1] -= e.screenY / scale;
     }
 
-    @computed get renderMenu() {
+    @action renderMenu() {
         const scale = this.props.ScreenToLocalTransform().Scale;
         return (
             <div className="collectionSchema-header-menu" ref={this.setNode}
@@ -379,7 +416,26 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
                     this._menuWidth = dim[0]; this._menuHeight = dim[1];
                 })}>
-                    {({ measureRef }) => <div ref={measureRef}>{this.renderContent(this._col)}</div>}
+                    {({ measureRef }) => <div ref={measureRef}>
+                        <div className="collectionSchema-header-menuOptions">
+                            <div className="collectionSchema-headerMenu-group">
+                                <label>Key:</label>
+                                {this.renderKeysDropDown(this._col)}
+                            </div>
+                            {false ? <></> :
+                                <>
+                                    {this.renderTypes(this._col)}
+                                    {this.renderSorting(this._col)}
+                                    {this.renderColors(this._col)}
+                                    <div className="collectionSchema-headerMenu-group">
+                                        <button onClick={() => { this.deleteColumn(this._col.heading); }}
+                                        >Delete Column</button>
+                                    </div>
+                                </>
+                            }
+                        </div>
+
+                    </div>}
                 </Measure>
             </div>
         );
@@ -559,6 +615,41 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
+        const scale = this.props.ScreenToLocalTransform().Scale;
+        const menu = <div className="collectionSchema-header-menu" ref={this.setNode}
+            onWheel={e => this.props.active(true) && e.stopPropagation()}
+            onPointerDown={e => this.onHeaderClick(e)}
+            style={{
+                position: "absolute", background: "white",
+                transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)`
+            }}>
+            <Measure offset onResize={action((r: any) => {
+                const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
+                this._menuWidth = dim[0]; this._menuHeight = dim[1];
+            })}>
+                {({ measureRef }) => <div ref={measureRef}>
+                    <div className="collectionSchema-header-menuOptions">
+                        <div className="collectionSchema-headerMenu-group">
+                            <label>Key:</label>
+                            {this.renderKeysDropDown(this._col)}
+                        </div>
+                        {false ? <></> :
+                            <>
+                                {this.renderTypes(this._col)}
+                                {this.renderSorting(this._col)}
+                                {this.renderColors(this._col)}
+                                <div className="collectionSchema-headerMenu-group">
+                                    <button onClick={() => { this.deleteColumn(this._col.heading); }}
+                                    >Delete Column</button>
+                                </div>
+                            </>
+                        }
+                    </div>
+
+                </div>}
+            </Measure>
+        </div>;
+
         return <div className="collectionSchemaView-container"
             style={{
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
@@ -574,7 +665,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
             {this.dividerDragger}
             {!this.previewWidth() ? (null) : this.previewPanel}
-            {this._headerOpen ? this.renderMenu : null}
+            {this._headerOpen ? menu : null}
         </div>;
     }
 }

@@ -265,7 +265,7 @@ button.add-column {
 
     .keys-dropdown {
         position: relative;
-        width: 100%;
+        //width: 100%;
         background-color: white;
 
         input {
@@ -273,6 +273,8 @@ button.add-column {
             padding: 3px;
             height: 28px;
             font-weight: bold;
+            letter-spacing: "2px";
+            text-transform: "uppercase";
 
             &:focus {
                 font-weight: normal;

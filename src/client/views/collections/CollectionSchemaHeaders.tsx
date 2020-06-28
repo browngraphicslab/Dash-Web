@@ -360,7 +360,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const options = keyOptions.map(key => {
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray",
-                maxWidth: this.props.width, overflowX: "hidden"
+                width: this.props.width, overflowX: "hidden"
             }}
                 onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
@@ -369,7 +369,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
             options.push(<div key={""} className="key-option" style={{
                 border: "1px solid lightgray",
-                maxWidth: this.props.width, overflowX: "hidden"
+                width: this.props.width, overflowX: "hidden"
             }}
                 onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
                 Create "{this._searchTerm}" key</div>);
@@ -380,8 +380,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     render() {
         return (
-            <div className="keys-dropdown">
-                <input className="keys-search" style={{ width: this.props.width }}
+            <div className="keys-dropdown" style={{ width: this.props.width }}>
+                <input className="keys-search" style={{ width: this.props.width, maxWidth: "1000" }}
                     ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)}
                     onClick={(e) => {

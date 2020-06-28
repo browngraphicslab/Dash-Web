@@ -186,9 +186,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 existingKeys={this.props.columns.map(c => c.heading)}
                 canAddNew={true}
                 addNew={false}
-                // i think issue is with these two props
                 onSelect={this.props.changeColumns}
                 setIsEditing={this.props.setHeaderIsEditing}
+
+                // try commenting this out
                 width={"100%"}
             />;
 
@@ -208,16 +209,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const sortIcon = col.desc === undefined ? "circle" : col.desc === true ? "caret-down" : "caret-up";
 
-            const menuContent = <div style={{
-                display: "flex", justifyContent: "space-between", width: "90%"
-            }}>
-                <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
-                <div className="keys-dropdown"
-                    style={{ display: "inline", zIndex: 10000 }}>
-                    {keysDropdown}
-                </div>
-            </div>;
-
             const header =
                 <div //className="collectionSchemaView-header"
                     //onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
@@ -226,18 +217,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: col.color, padding: "2px",
                         display: "flex"
                     }}>
-
-                    <div style={{
-                        display: "flex", justifyContent: "space-between", width: "90%"
-                    }}>
-                        <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} /></div>
+                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
                     <div className="keys-dropdown"
                         style={{ display: "inline", zIndex: 10000 }}>
                         {keysDropdown}
                     </div>
-
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ paddingRight: "6px" }}>
+                        style={{ paddingRight: "6px", display: "inline" }}>
                         <FontAwesomeIcon icon={sortIcon} size="sm" />
                     </div>
                     <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
