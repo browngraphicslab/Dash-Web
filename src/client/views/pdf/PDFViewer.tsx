@@ -381,7 +381,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
             }
             this._annotationLayer.current.append(div);
-            div.style.backgroundColor = "yellow";
+            div.style.backgroundColor = "#ACCEF7";
             div.style.opacity = "0.5";
             const savedPage = this._savedAnnotations.getValue(page);
             if (savedPage) {
