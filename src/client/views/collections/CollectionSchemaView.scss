@@ -177,6 +177,26 @@
 }
 
 
+.collectionSchema-header-menu {
+    height: 100%;
+    z-index: 100;
+    position: absolute;
+    background:white;
+
+    .collectionSchema-header-toggler {
+        z-index: 100;
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+
+        svg {
+            margin-right: 4px;
+        }
+    }
+}
+
 .collectionSchemaView-header {
     height: 100%;
     color: gray;
@@ -185,24 +205,6 @@
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-
-    .collectionSchema-header-menu {
-        height: 100%;
-        z-index: 100;
-
-        .collectionSchema-header-toggler {
-            z-index: 100;
-            width: 100%;
-            height: 100%;
-            padding: 4px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-
-            svg {
-                margin-right: 4px;
-            }
-        }
-    }
 }
 
 button.add-column {

@@ -26,15 +26,11 @@ import { SnappingManager } from "../../util/SnappingManager";
 import { ComputedField } from "../../../fields/ScriptField";
 import { ImageField } from "../../../fields/URLField";
 import { List } from "../../../fields/List";
-import { LinkBox } from "../nodes/LinkBox";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "../nodes/DocumentIcon";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import ReactDOM from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { DateField } from "../../../fields/DateField";
 const path = require('path');
 
 library.add(faExpand);
