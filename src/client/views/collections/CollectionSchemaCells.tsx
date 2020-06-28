@@ -34,6 +34,7 @@ import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView"
 import ReactDOM from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { DateField } from "../../../fields/DateField";
 const path = require('path');
 
 library.add(faExpand);
@@ -374,15 +375,19 @@ export class CollectionSchemaDateCell extends CollectionSchemaCell {
         docFilters: returnEmptyFilter
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
+    @observable private _date = new Date();
 
+    @action
     handleChange = (date: any) => {
+        this._date = date;
         this.prop.Document[this.prop.fieldKey] = date;
     }
 
     render() {
         return <DatePicker
-            selected={Cast(this.prop.Document[this.prop.fieldKey], Date)}
-            onChange={this.handleChange}
+            selected={this._date}
+            onSelect={date => this.handleChange(date)}
+            onChange={date => this.handleChange(date)}
         />;
     }
 }

@@ -62,14 +62,14 @@
         width: calc(100% - 52px);
         margin-left: 50px;
 
-        z-index: 10000;
+        z-index: 100;
         overflow-y: visible;
 
         &.-header {
             font-size: 12px;
             height: 30px;
             box-shadow: none;
-            z-index: 10000;
+            z-index: 100;
             overflow-y: visible;
         }
 
@@ -180,7 +180,7 @@
 .collectionSchemaView-header {
     height: 100%;
     color: gray;
-    z-index: 10000;
+    z-index: 100;
     overflow-y: visible;
     display: flex;
     justify-content: space-between;
@@ -188,10 +188,10 @@
 
     .collectionSchema-header-menu {
         height: 100%;
-        z-index: 10000;
+        z-index: 100;
 
         .collectionSchema-header-toggler {
-            z-index: 10000;
+            z-index: 100;
             width: 100%;
             height: 100%;
             padding: 4px;
