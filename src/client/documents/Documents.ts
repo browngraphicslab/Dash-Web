@@ -13,22 +13,22 @@ import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { AudioField, ImageField, PdfField, VideoField, WebField, YoutubeField } from "../../fields/URLField";
 import { MessageStore } from "../../server/Message";
 import { OmitKeys, Utils } from "../../Utils";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { DocServer } from "../DocServer";
+import { DocumentManager } from "../util/DocumentManager";
 import { dropActionType } from "../util/DragManager";
+import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { UndoManager } from "../util/UndoManager";
 import { DocumentType } from "./DocumentTypes";
-import { filterData} from "../views/search/SearchBox";
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
 import { SearchItem } from "../views/search/SearchItem";
-import { SearchBox } from "../views/search/SearchBox";
+import { SearchBox, filterData } from "../views/search/SearchBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
 import { ContextMenuProps } from "../views/ContextMenuItem";
-import { ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
+import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth, InkingStroke } from "../views/InkingStroke";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
@@ -41,7 +41,6 @@ import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { PresBox } from "../views/nodes/PresBox";
-import { QueryBox } from "../views/nodes/QueryBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { SliderBox } from "../views/nodes/SliderBox";
@@ -50,9 +49,6 @@ import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { YoutubeBox } from "../apis/youtube/YoutubeBox";
-import { DocumentManager } from "../util/DocumentManager";
-import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -97,7 +93,7 @@ export interface DocumentOptions {
     label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
-    scale?: number;
+    _viewScale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
@@ -173,6 +169,7 @@ export interface DocumentOptions {
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
+    treeViewTruncateTitleWidth?: number;
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -185,7 +182,7 @@ export interface DocumentOptions {
     filterQuery?: filterData,
     linearViewIsExpanded?: boolean; // is linear view expanded
     border?: string; //for searchbox
-    hovercolor?:string;
+    hovercolor?: string;
 }
 
 class EmptyBox {
@@ -233,7 +230,7 @@ export namespace Docs {
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
-                options: { _panX: 0, _panY: 0, scale: 1 } // , _width: 500, _height: 500 }
+                options: { _panX: 0, _panY: 0, _viewScale: 1 } // , _width: 500, _height: 500 }
             }],
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: defaultDataKey },
@@ -307,7 +304,7 @@ export namespace Docs {
                 layout: { view: PresElementBox, dataField: defaultDataKey }
             }],
             [DocumentType.SEARCHITEM, {
-                layout: { view: SearchItem, dataField: defaultDataKey  }
+                layout: { view: SearchItem, dataField: defaultDataKey }
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
@@ -535,6 +532,8 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
+            proto.links = ComputedField.MakeFunction("links(self)");
+
             viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
@@ -633,7 +632,7 @@ export namespace Docs {
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
-                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false,
+                isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
                 removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
@@ -654,13 +653,17 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: string, strokeWidth: string, strokeBezier: string, fillColor: string, arrowStart: string, arrowEnd: string, dash: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
             I.strokeWidth = strokeWidth;
             I.strokeBezier = strokeBezier;
+            I.fillColor = fillColor;
+            I.arrowStart = arrowStart;
+            I.arrowEnd = arrowEnd;
+            I.dash = dash;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -717,6 +720,10 @@ export namespace Docs {
 
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Carousel });
+        }
+
+        export function Carousel3DDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Carousel3D });
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
@@ -886,7 +893,7 @@ export namespace DocUtils {
             created = Docs.Create.AudioDocument((field).url.href, resolved);
             layout = AudioBox.LayoutString;
         } else if (field instanceof InkField) {
-            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), (field).inkData, resolved);
+            created = Docs.Create.InkDocument(ActiveInkColor(), Doc.GetSelectedTool(), ActiveInkWidth(), ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), (field).inkData, resolved);
             layout = InkingStroke.LayoutString;
         } else if (field instanceof List && field[0] instanceof Doc) {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);

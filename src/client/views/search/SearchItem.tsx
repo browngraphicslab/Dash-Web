@@ -93,7 +93,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                     const item = React.createRef<HTMLDivElement>();
                     return <div className="collection" key={doc.col[Id] + doc.target[Id]} ref={item}>
                         <div className="collection-item" onPointerDown={
-                            SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
+                            SetupDrag(item, () => doc.col, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
                             <FontAwesomeIcon icon={faStickyNote} />
                         </div>
                         <a onClick={this.getOnClick(doc)}>{doc.col.title}</a>

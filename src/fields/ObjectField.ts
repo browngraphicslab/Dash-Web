@@ -3,8 +3,8 @@ import { OnUpdate, Parent, Copy, ToScriptString, ToString } from "./FieldSymbols
 import { Scripting } from "../client/util/Scripting";
 
 export abstract class ObjectField {
-    protected [OnUpdate](diff?: any) { }
-    private [Parent]?: RefField | ObjectField;
+    public [OnUpdate](diff?: any) { }
+    public [Parent]?: RefField | ObjectField;
     abstract [Copy](): ObjectField;
 
     abstract [ToScriptString](): string;

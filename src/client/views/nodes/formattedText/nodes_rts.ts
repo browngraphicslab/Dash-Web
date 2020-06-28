@@ -1,7 +1,7 @@
 import React = require("react");
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import ParagraphNodeSpec from "./ParagraphNodeSpec";
+import { ParagraphNodeSpec, toParagraphDOM, getParagraphNodeAttrs } from "./ParagraphNodeSpec";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -32,12 +32,28 @@ export const nodes: { [index: string]: NodeSpec } = {
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
-        content: "block+",
+        content: "block*",
         group: "block",
         defining: true,
         parseDOM: [{ tag: "blockquote" }],
         toDOM() { return blockquoteDOM; }
     },
+
+
+    // blockquote: {
+    //     ...ParagraphNodeSpec,
+    //     defining: true,
+    //     parseDOM: [{
+    //         tag: "blockquote", getAttrs(dom: any) {
+    //             return getParagraphNodeAttrs(dom);
+    //         }
+    //     }],
+    //     toDOM(node: any) {
+    //         const dom = toParagraphDOM(node);
+    //         (dom as any)[0] = 'blockquote';
+    //         return dom;
+    //     },
+    // },
 
     // :: NodeSpec A horizontal rule (`<hr>`).
     horizontal_rule: {
@@ -67,8 +83,8 @@ export const nodes: { [index: string]: NodeSpec } = {
     // nodes by default. Represented as a `<pre>` element with a
     // `<code>` element inside of it.
     code_block: {
-        content: "text*",
-        marks: "",
+        content: "inline*",
+        marks: "_",
         group: "block",
         code: true,
         defining: true,
@@ -286,7 +302,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             mapStyle: { default: "decimal" }, // "decimal", "multi", "bullet"
             visibility: { default: true }
         },
-        content: 'paragraph block*',
+        content: 'paragraph+ | (paragraph ordered_list)',
         parseDOM: [{
             tag: "li", getAttrs(dom: any) {
                 return { mapStyle: dom.getAttribute("data-mapStyle"), bulletStyle: dom.getAttribute("data-bulletStyle") };

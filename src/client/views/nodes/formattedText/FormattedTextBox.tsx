@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { baseKeymap } from "prosemirror-commands";
+import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
@@ -102,6 +102,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";
+    public static PasteOnLoad: ClipboardEvent | undefined;
     public static SelectOnLoadChar = "";
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
@@ -230,7 +231,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     updateTitle = () => {
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.rootDoc.customTitle) {
-            const str = this._editorView.state.doc.textContent;
+            let node = this._editorView.state.doc;
+            while (node.firstChild) node = node.firstChild;
+            const str = node.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
@@ -313,6 +316,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const end = this._editorView.state.doc.nodeSize - 2;
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
+        }
+        if (FormattedTextBox.PasteOnLoad) {
+            const pdfDocId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfOrigin");
+            const pdfRegionId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfRegion");
+            FormattedTextBox.PasteOnLoad = undefined;
+            setTimeout(() => pdfDocId && pdfRegionId && this.addPdfReference(pdfDocId, pdfRegionId, undefined), 10);
         }
     }
     adoptAnnotation = (start: number, end: number, mark: Mark) => {
@@ -463,35 +472,21 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
 
-        const funcs: ContextMenuProps[] = [];
-        this.rootDoc.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        !this.layoutDoc.isTemplateDoc && funcs.push({
-            description: "Convert to use as a style", event: () => {
-                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc);
-                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
-            }, icon: "eye"
-        });
-        this.layoutDoc.isTemplateDoc && funcs.push({
-            description: "Make New Template", event: () => {
-                const title = this.rootDoc.title as string;
-                this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
-                this.rootDoc.title = this.layoutDoc.isTemplateForField as string;
-                this.rootDoc.isTemplateDoc = false;
-                this.rootDoc.isTemplateForField = "";
-                this.rootDoc.layoutKey = "layout";
-                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
-                setTimeout(() => {
-                    this.rootDoc._width = this.layoutDoc._width || 300;  // the width and height are stored on the template, since we're getting rid of the old template
-                    this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
-                    this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
-                }, 10);
-                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
-            }, icon: "eye"
-        });
-        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
-        funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
+        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
 
+        const changeItems: ContextMenuProps[] = [];
+        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
+        DocListCast(noteTypesDoc?.data).forEach(note => {
+            changeItems.push({
+                description: StrCast(note.title), event: undoBatch(() => {
+                    Doc.setNativeView(this.rootDoc);
+                    DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                }), icon: "eye"
+            });
+        });
+        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
+        appearanceItems.push({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
         const uicontrols: ContextMenuProps[] = [];
         uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
@@ -501,7 +496,41 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
         });
 
-        funcs.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+        appearanceItems.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+        this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
+        Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
+        appearanceItems.push({
+            description: "Convert to be a template style", event: () => {
+                if (!this.layoutDoc.isTemplateDoc) {
+                    const title = StrCast(this.rootDoc.title);
+                    this.rootDoc.title = "text";
+                    this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
+                } else {
+                    const title = StrCast(this.rootDoc.title);
+                    this.rootDoc.title = "text";
+                    this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
+                    this.rootDoc.title = this.layoutDoc.isTemplateForField as string;
+                    this.rootDoc.isTemplateDoc = false;
+                    this.rootDoc.isTemplateForField = "";
+                    this.rootDoc.layoutKey = "layout";
+                    this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
+                    setTimeout(() => {
+                        this.rootDoc._autoHeight = this.layoutDoc._autoHeight; // autoHeight, width and height
+                        this.rootDoc._width = this.layoutDoc._width || 300;  // are stored on the template, since we're getting rid of the old template
+                        this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
+                        this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                    }, 10);
+                }
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
+            }, icon: "eye"
+        });
+        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+
+        const funcs: ContextMenuProps[] = [];
+
+        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
+        funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
 
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
@@ -519,21 +548,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         funcs.push({ description: "highlighting...", subitems: highlighting, icon: "hand-point-right" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-        const change = cm.findByDescription("Change Perspective...");
-        const changeItems: ContextMenuProps[] = change && "subitems" in change ? change.subitems : [];
-
-        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
-        DocListCast(noteTypesDoc?.data).forEach(note => {
-            changeItems.push({
-                description: StrCast(note.title), event: undoBatch(() => {
-                    Doc.setNativeView(this.rootDoc);
-                    DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
-                }), icon: "eye"
-            });
-        });
-        changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
-        !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
         this._downX = this._downY = Number.NaN;
     }
 
@@ -635,10 +649,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         };
     }
 
-    makeLinkToSelection(linkId: string, title: string, location: string, targetId: string) {
+    makeLinkToSelection(linkId: string, title: string, location: string, targetId: string, targetHref?: string) {
         const state = this._editorView?.state;
         if (state) {
-            const href = Utils.prepend("/doc/" + linkId);
+            const href = targetHref ?? Utils.prepend("/doc/" + linkId);
             const sel = state.selection;
             const splitter = state.schema.marks.splitter.create({ id: Utils.GenerateGuid() });
             let tr = state.tr.addMark(sel.from, sel.to, splitter);
@@ -646,7 +660,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 if (node.firstChild === null && node.marks.find((m: Mark) => m.type.name === schema.marks.splitter.name)) {
                     const allHrefs = [{ href, title, targetId, linkId }];
                     allHrefs.push(...(node.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
-                    const link = state.schema.marks.link.create({ href, allHrefs, title, location, linkId, targetId });
+                    const link = state.schema.marks.link.create({ allHrefs, title, location, linkId });
                     tr = tr.addMark(pos, pos + node.nodeSize, link);
                 }
             });
@@ -763,7 +777,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                     const marks = [...node.marks];
                     const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
-                    return linkIndex !== -1 && marks[linkIndex].attrs.allRefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
+                    return linkIndex !== -1 && marks[linkIndex].attrs.allHrefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
                 let start = 0;
@@ -894,8 +908,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
         const cbe = event as ClipboardEvent;
-        const pdfDocId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfOrigin");
-        const pdfRegionId = cbe.clipboardData && cbe.clipboardData.getData("dash/pdfRegion");
+        const pdfDocId = cbe.clipboardData?.getData("dash/pdfOrigin");
+        const pdfRegionId = cbe.clipboardData?.getData("dash/pdfRegion");
+        return pdfDocId && pdfRegionId && this.addPdfReference(pdfDocId, pdfRegionId, slice) ? true : false;
+    }
+
+    addPdfReference = (pdfDocId: string, pdfRegionId: string, slice?: Slice) => {
+        const view = this._editorView!;
         if (pdfDocId && pdfRegionId) {
             DocServer.GetRefField(pdfDocId).then(pdfDoc => {
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
@@ -903,17 +922,22 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         setTimeout(async () => {
                             const targetField = Doc.LayoutFieldKey(pdfDoc);
                             const targetAnnotations = await DocListCastAsync(pdfDoc[DataSym][targetField + "-annotations"]);// bcz: better to have the PDF's view handle updating its own annotations
-                            targetAnnotations?.push(pdfRegion);
+                            if (targetAnnotations) targetAnnotations.push(pdfRegion);
+                            else Doc.AddDocToList(pdfDoc[DataSym], targetField + "-annotations", pdfRegion);
                         });
 
                         const link = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: pdfRegion }, "PDF pasted");
                         if (link) {
-                            cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                             const linkId = link[Id];
-                            const frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
-                            slice = new Slice(frag, slice.openStart, slice.openEnd);
-                            const tr = view.state.tr.replaceSelection(slice);
-                            view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                            const quote = view.state.schema.nodes.blockquote.create();
+                            quote.content = addMarkToFrag(slice?.content || view.state.doc.content, (node: Node) => addLinkMark(node, StrCast(pdfDoc.title), linkId));
+                            const newSlice = new Slice(Fragment.from(quote), slice?.openStart || 0, slice?.openEnd || 0);
+                            if (slice) {
+                                view.dispatch(view.state.tr.replaceSelection(newSlice).scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                            } else {
+                                selectAll(view.state, (tx: Transaction) => view.dispatch(tx.replaceSelection(newSlice).scrollIntoView()));
+
+                            }
                         }
                     }
                 });
@@ -935,7 +959,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: Utils.prepend(`/doc/${linkId}`), location: "onRight", title: title, docref: true });
+            const allHrefs = [{ href: Utils.prepend(`/doc/${linkId}`), title, linkId }];
+            const link = view.state.schema.mark(view.state.schema.marks.link, { allHrefs, location: "onRight", title, docref: true });
             marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
@@ -970,12 +995,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            // applyDevTools.applyDevTools(this._editorView);
+            !Doc.UserDoc().noviceMode && applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
                 dispatch(tr.insertText(startupText));
             }
+            (this._editorView as any).TextView = this;
         }
 
         const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
@@ -1049,9 +1075,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
-            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
-            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
-                new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
+            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
@@ -1082,7 +1106,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
                 y = Math.min(bounds.bottom, window.innerHeight - RichTextMenu.Instance.height);
             }
-            RichTextMenu.Instance.jumpTo(x, y);
+            setTimeout(() => window.document.activeElement === this.ProseRef?.children[0] && RichTextMenu.Instance.jumpTo(x, y), 250);
         }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
@@ -1229,6 +1253,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    ondrop = (eve: React.DragEvent) => {
+        eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
+    }
     onscrolled = (ev: React.UIEvent) => {
         this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
     }
@@ -1236,27 +1263,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            scrollHeight = scrollHeight * NumCast(this.layoutDoc.scale, 1);
+            scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc._autoHeight = false;
             }
-            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
+            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight, 0);
             const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
-            if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
-                if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
-                    // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
-                    console.log("Delayed height adjustment...");
-                    setTimeout(() => {
-                        this.rootDoc._height = newHeight;
-                        this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
-                    }, 10);
-                } else {
+            if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
+                // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+                console.log("Delayed height adjustment...");
+                setTimeout(() => {
                     this.rootDoc._height = newHeight;
-                    this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
-                }
+                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
+                }, 10);
+            } else {
+                this.layoutDoc._height = newHeight;
+                this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
             }
         }
     }
@@ -1267,7 +1292,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
-        const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
+        const scale = this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
@@ -1278,15 +1303,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const selPad = this.props.isSelected() ? -10 : 0;
         const selclass = this.props.isSelected() ? "-selected" : "";
         return (
-            <div className={"formattedTextBox-cont"} style={{
-                transform: `scale(${scale})`,
-                transformOrigin: "top left",
-                width: `${100 / scale}%`,
-                height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
-                ...this.styleFromLayoutString(scale)
-            }}>
+            <div className={"formattedTextBox-cont"}
+                style={{
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top left",
+                    width: `${100 / scale}%`,
+                    height: `calc(${100 / scale}% - ${this.props.ChromeHeight?.() || 0}px)`,
+                    ...this.styleFromLayoutString(scale)
+                }}>
                 <div className={`formattedTextBox-cont`} ref={this._ref}
                     style={{
+                        overflow: this.layoutDoc._autoHeight ? "hidden" : undefined,
                         width: "100%",
                         height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
                         background: Doc.UserDoc().renderStyle === "comic" ? "transparent" : this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
@@ -1317,7 +1344,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         }
                     })}
                 >
-                    <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }} onScroll={this.onscrolled} ref={this._scrollRef}>
+                    <div className={`formattedTextBox-outer`} ref={this._scrollRef}
+                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }}
+                        onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
                                 padding: `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,

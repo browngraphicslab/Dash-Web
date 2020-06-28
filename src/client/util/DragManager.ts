@@ -19,8 +19,6 @@ export function SetupDrag(
     docFunc: () => Doc | Promise<Doc> | undefined,
     moveFunc?: DragManager.MoveFunction,
     dropAction?: dropActionType,
-    treeViewId?: string,
-    dontHideOnDrop?: boolean,
     dragStarted?: () => void
 ) {
     const onRowMove = async (e: PointerEvent) => {
@@ -34,8 +32,6 @@ export function SetupDrag(
             const dragData = new DragManager.DocumentDragData([doc]);
             dragData.dropAction = dropAction;
             dragData.moveDocument = moveFunc;
-            dragData.treeViewId = treeViewId;
-            dragData.dontHideOnDrop = dontHideOnDrop;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
             dragStarted?.();
         }
@@ -128,7 +124,7 @@ export namespace DragManager {
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
         dragDivName?: string;
-        treeViewId?: string;
+        treeViewDoc?: Doc;
         dontHideOnDrop?: boolean;
         offset: number[];
         dropAction: dropActionType;
@@ -215,9 +211,11 @@ export namespace DragManager {
                     dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                         docDragData.dropAction === "alias" ? Doc.MakeAlias(d) :
                             docDragData.dropAction === "copy" ? Doc.MakeDelegate(d) : d);
-                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) =>
-                    (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
-                );
+                docDragData.dropAction !== "same" && docDragData.droppedDocuments.forEach((drop: Doc, i: number) => {
+                    const dragProps = Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []);
+                    const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
+                    remProps.map(prop => drop[prop] = undefined);
+                });
                 batch.end();
             }
             return e;
@@ -351,7 +349,7 @@ export namespace DragManager {
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
-                scaleY = rect.height / ele.offsetHeight;
+                scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
             elesCont.left = Math.min(rect.left, elesCont.left);
             elesCont.top = Math.min(rect.top, elesCont.top);
             elesCont.right = Math.max(rect.right, elesCont.right);

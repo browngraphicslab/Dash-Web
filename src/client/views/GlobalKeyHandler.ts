@@ -15,10 +15,11 @@ import { SelectionManager } from "../util/SelectionManager";
 import SharingManager from "../util/SharingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
-import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
 import { DocumentDecorations } from "./DocumentDecorations";
 import { MainView } from "./MainView";
 import { DocumentView } from "./nodes/DocumentView";
+import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
+import PDFMenu from "./pdf/PDFMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -77,6 +78,7 @@ export default class KeyManager {
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
+                DocumentLinksButton.StartLink = undefined;
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);
                 if (main.isPointerDown) {
@@ -262,7 +264,7 @@ export default class KeyManager {
                 }
                 break;
             case "c":
-                if (DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
+                if (!PDFMenu.Instance.Active && DocumentDecorations.Instance.Bounds.r - DocumentDecorations.Instance.Bounds.x > 2) {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
                     const text = `__DashCloneId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");

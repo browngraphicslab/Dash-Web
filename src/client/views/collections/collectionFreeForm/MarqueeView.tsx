@@ -20,8 +20,6 @@ import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { DateField } from "../../../../fields/DateField";
-import { DocServer } from "../../../DocServer";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -260,6 +258,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             e.preventDefault();
         }
     }
+    clearSelection() {
+        if (window.getSelection) { window.getSelection()?.removeAllRanges(); }
+        else if (document.getSelection()) { document.getSelection()?.empty(); }
+    }
 
     setPreviewCursor = action((x: number, y: number, drag: boolean) => {
         if (drag) {
@@ -275,6 +277,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this._downX = x;
             this._downY = y;
             PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            this.clearSelection();
         }
     });
 
@@ -741,7 +744,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         return <div className="marqueeView"
             style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
             onDragOver={e => e.preventDefault()}
-            onPaste={this.paste}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

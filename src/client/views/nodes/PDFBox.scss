@@ -1,7 +1,7 @@
 .pdfBox,
 .pdfBox-interactive {
     display: inline-block;
-    position: absolute;
+    position: relative;
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -14,6 +14,27 @@
          height: 100%;
          z-index: 1;
          pointer-events: none;
+
+         .pdfBox-pageNums {
+            display: flex;
+            flex-direction: row;
+            height: 25px;
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            .pdfBox-overlayButton-fwd, 
+            .pdfBox-overlayButton-back {
+                background: #121721;
+                height: 25px;
+                width: 25px;
+                display: flex;
+                position: relative;
+                align-items: center;
+                justify-content: center;
+                border-radius: 3px;
+                pointer-events: all;
+            }
+         }
 
          .pdfBox-overlayButton {
              border-bottom-left-radius: 50%;
@@ -46,26 +67,6 @@
                 border-radius: 3px;
                 pointer-events: all;
              }
-        }
-        .pdfBox-overlayButton-fwd, 
-        .pdfBox-overlayButton-back {
-            background: #121721;
-            height: 25px;
-            width: 25px;
-            display: flex;
-            position: relative;
-            align-items: center;
-            justify-content: center;
-            border-radius: 3px;
-            pointer-events: all;
-            position: absolute;
-            top: 5;
-        }
-        .pdfBox-overlayButton-fwd {
-            left: 45;
-        }
-        .pdfBox-overlayButton-back {
-            left: 25;
         }
 
          .pdfBox-nextIcon, 

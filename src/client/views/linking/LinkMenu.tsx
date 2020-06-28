@@ -4,12 +4,12 @@ import { DocumentView } from "../nodes/DocumentView";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
 
 library.add(faTrash);
 
@@ -17,16 +17,29 @@ interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
     addDocTab: (document: Doc, where: string) => boolean;
+    location: number[];
 }
 
 @observer
 export class LinkMenu extends React.Component<Props> {
 
     @observable private _editingLink?: Doc;
+    @observable private _linkMenuRef: Opt<HTMLDivElement | null>;
 
+    @action
+    onClick = (e: PointerEvent) => {
+        if (!Array.from(this._linkMenuRef?.getElementsByTagName((e.target as HTMLElement).tagName) || []).includes(e.target as any)) {
+            DocumentLinksButton.EditLink = undefined;
+        }
+    }
     @action
     componentDidMount() {
         this._editingLink = undefined;
+        document.addEventListener("pointerdown", this.onClick);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("pointerdown", this.onClick);
     }
 
     clearAllLinks = () => {
@@ -57,20 +70,11 @@ export class LinkMenu extends React.Component<Props> {
     render() {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
-        if (this._editingLink === undefined) {
-            return (
-                <div className="linkMenu">
-                    {/* <button className="linkEditor-button linkEditor-clearButton" onClick={() => this.clearAllLinks()} title="Clear all links"><FontAwesomeIcon icon="trash" size="sm" /></button> */}
-                    {/* <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input> */}
-                    <div className="linkMenu-list">
-                        {this.renderAllGroups(groups)}
-                    </div>
-                </div>
-            );
-        } else {
-            return (
-                <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)}></LinkEditor>
-            );
-        }
+        return <div className="linkMenu-list" ref={(r) => this._linkMenuRef = r} style={{ left: this.props.location[0], top: this.props.location[1] }}>
+            {!this._editingLink ?
+                this.renderAllGroups(groups) :
+                <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)} />
+            }
+        </div>;
     }
 }

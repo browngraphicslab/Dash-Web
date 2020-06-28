@@ -40,28 +40,41 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     _templateCommand = {
         params: ["target", "source"], title: "=> item view",
         script: "this.target.childLayout = getDocTemplate(this.source?.[0])",
-        immediate: (source: Doc[]) => this.target.childLayout = Doc.getDocTemplate(source?.[0]),
+        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayout = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
         params: ["target", "source"], title: "=> child click view",
         script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
-        immediate: (source: Doc[]) => this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]),
+        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _contentCommand = {
-        params: ["target", "source"], title: "=> content",
+        params: ["target", "source"], title: "=> clear content",
         script: "getProto(this.target).data = copyField(this.source);",
-        immediate: (source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source), // Doc.aliasDocs(source),
+        immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
         initialize: emptyFunction,
     };
     _viewCommand = {
-        params: ["target"], title: "=> saved view",
+        params: ["target"], title: "=> reset view",
         script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;",
-        immediate: (source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; },
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; }),
         initialize: (button: Doc) => { button.restoredPanX = this.target._panX; button.restoredPanY = this.target._panY; button.restoredScale = this.target.scale; },
     };
-    _freeform_commands = [this._contentCommand, this._templateCommand, this._narrativeCommand, this._viewCommand];
+    _clusterCommand = {
+        params: ["target"], title: "=> fit content",
+        script: "this.target._fitToBox = !this.target._fitToBox;",
+        immediate: undoBatch((source: Doc[]) => this.target._fitToBox = !this.target._fitToBox),
+        initialize: emptyFunction
+    };
+    _fitContentCommand = {
+        params: ["target"], title: "=> toggle clusters",
+        script: "this.target.useClusters = !this.target.useClusters;",
+        immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
+        initialize: emptyFunction
+    };
+
+    _freeform_commands = [this._viewCommand, this._fitContentCommand, this._clusterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _schema_commands = [this._templateCommand, this._narrativeCommand];
@@ -75,6 +88,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Freeform: return this._freeform_commands;
             case CollectionViewType.Time: return this._freeform_commands;
             case CollectionViewType.Carousel: return this._freeform_commands;
+            case CollectionViewType.Carousel3D: return this._freeform_commands;
         }
         return [];
     }
@@ -84,6 +98,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @observable private _currentKey: string = "";
 
     componentDidMount = action(() => {
+        this._currentKey = this._currentKey || (this._buttonizableCommands.length ? this._buttonizableCommands[0]?.title : "");
         // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
         switch (this.props.CollectionView.props.Document._chromeStatus) {
             case "disabled":
@@ -200,6 +215,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
@@ -248,7 +264,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
                     { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY));
             return true;
-        }, emptyFunction, emptyFunction);
+        }, emptyFunction, () => {
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate([]));
+        });
     }
 
     @computed get templateChrome() {
@@ -556,6 +574,43 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
                         <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
                     </div>
                 </button>
+            </div>
+        );
+    }
+}
+
+// Enter scroll speed for 3D Carousel 
+@observer
+export class Collection3DCarouselViewChrome extends React.Component<CollectionViewChromeProps> {
+    @computed get scrollSpeed() {
+        return this.props.CollectionView.props.Document._autoScrollSpeed;
+    }
+
+    @action
+    setValue = (value: string) => {
+        const numValue = Number(StrCast(value));
+        if (numValue > 0) {
+            this.props.CollectionView.props.Document._autoScrollSpeed = numValue;
+            return true;
+        }
+        return false;
+    }
+
+    render() {
+        return (
+            <div className="collection3DCarouselViewChrome-cont">
+                <div className="collection3DCarouselViewChrome-scrollSpeed-cont">
+                    <div className="collectionStackingViewChrome-scrollSpeed-label">
+                        AUTOSCROLL SPEED:
+                    </div>
+                    <div className="collection3DCarouselViewChrome-scrollSpeed">
+                        <EditableView
+                            GetValue={() => StrCast(this.scrollSpeed)}
+                            oneLine
+                            SetValue={this.setValue}
+                            contents={this.scrollSpeed ? this.scrollSpeed : 1000} />
+                    </div>
+                </div>
             </div>
         );
     }

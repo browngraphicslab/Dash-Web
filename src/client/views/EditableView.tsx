@@ -31,6 +31,7 @@ export interface EditableProps {
     fontStyle?: string;
     fontSize?: number;
     height?: number | "auto";
+    sizeToContent?: boolean;
     maxHeight?: number;
     display?: string;
     autosuggestProps?: {
@@ -60,13 +61,11 @@ export interface EditableProps {
  */
 @observer
 export class EditableView extends React.Component<EditableProps> {
-    public static loadId = "";
     @observable _editing: boolean = false;
 
     constructor(props: EditableProps) {
         super(props);
         this._editing = this.props.editing ? true : false;
-        EditableView.loadId = "";
     }
 
     // @action
@@ -150,37 +149,44 @@ export class EditableView extends React.Component<EditableProps> {
     @action
     setIsFocused = (value: boolean) => {
         const wasFocused = this._editing;
-        this._editing = value;
+        //this._editing = value;
         return wasFocused !== this._editing;
     }
 
     _ref = React.createRef<HTMLDivElement>();
+    renderEditor() {
+        return this.props.autosuggestProps
+            ? <Autosuggest
+                {...this.props.autosuggestProps.autosuggestProps}
+                inputProps={{
+                    className: "editableView-input",
+                    onKeyDown: this.onKeyDown,
+                    autoFocus: true,
+                    onBlur: e => this.finalizeEdit(e.currentTarget.value, false, true),
+                    onPointerDown: this.stopPropagation,
+                    onClick: this.stopPropagation,
+                    onPointerUp: this.stopPropagation,
+                    value: this.props.autosuggestProps.value,
+                    onChange: this.props.autosuggestProps.onChange
+                }}
+            />
+            : <input className="editableView-input"
+                defaultValue={this.props.GetValue()}
+                onKeyDown={this.onKeyDown}
+                autoFocus={true}
+                onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
+                onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
+                style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20 }}
+                placeholder={this.props.placeholder}
+            />;
+    }
     render() {
         if (this._editing && this.props.GetValue() !== undefined) {
-            return this.props.autosuggestProps
-                ? <Autosuggest
-                    {...this.props.autosuggestProps.autosuggestProps}
-                    inputProps={{
-                        className: "editableView-input",
-                        onKeyDown: this.onKeyDown,
-                        autoFocus: true,
-                        onBlur: e => this.finalizeEdit(e.currentTarget.value, false, true),
-                        onPointerDown: this.stopPropagation,
-                        onClick: this.stopPropagation,
-                        onPointerUp: this.stopPropagation,
-                        value: this.props.autosuggestProps.value,
-                        onChange: this.props.autosuggestProps.onChange
-                    }}
-                />
-                : <input className="editableView-input"
-                    defaultValue={this.props.GetValue()}
-                    onKeyDown={this.onKeyDown}
-                    autoFocus={true}
-                    onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
-                    onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                    style={{ display: this.props.display, fontSize: this.props.fontSize }}
-                    placeholder={this.props.placeholder}
-                />;
+            return this.props.sizeToContent ?
+                <div style={{ display: "grid", minWidth: 100 }}>
+                    <div style={{ display: "inline-block", position: "relative", height: 0, width: "100%", overflow: "hidden" }}>{this.props.GetValue()}</div>
+                    {this.renderEditor()}
+                </div> : this.renderEditor();
         } else {
             this.props.autosuggestProps?.resetValue();
             return (this.props.contents instanceof ObjectField ? (null) :
