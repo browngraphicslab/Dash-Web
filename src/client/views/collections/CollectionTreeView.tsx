@@ -124,7 +124,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     constructor(props: any) {
         super(props);
-        this._editTitleScript = ScriptField.MakeFunction(`setInPlace(self, 'editTitle', '${this._uniqueId}')`);
+        this._editTitleScript = ScriptField.MakeScript(`{setInPlace(self, 'editTitle', '${this._uniqueId}'); selectDoc(self);} `);
         if (Doc.GetT(this.doc, "editTitle", "string", true) === "*") Doc.SetInPlace(this.doc, "editTitle", this._uniqueId, false);
     }
 

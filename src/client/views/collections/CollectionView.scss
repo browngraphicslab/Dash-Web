@@ -11,16 +11,18 @@
     height: 100%;
     overflow: hidden; // bcz: used to be 'auto' which would create scrollbars when there's a floating doc that's not visible. not sure if that's better, but the scrollbars are annoying...
 
-    .collectionTimeView-dragger {
-        background-color: lightgray;
+    .collectionView-filterDragger {
+        background-color: rgb(140, 139, 139);
         height: 40px;
-        width: 20px;
+        width: 10px;
         position: absolute;
-        border-radius: 10px;
         top: 55%;
         border: 1px black solid;
+        border-radius: 0;
+        border-top-left-radius: 20px;
+        border-bottom-left-radius: 20px;
+        border-right: unset;
         z-index: 2;
-        right: -10px;
     }
     .collectionTimeView-treeView {
         display: flex;
@@ -30,6 +32,8 @@
         position: absolute;
         right: 0;
         top: 0;
+        border-left: solid 1px;
+        z-index: 1;
 
         .collectionTimeView-addfacet {
             display: inline-block;
