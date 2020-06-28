@@ -16,7 +16,7 @@ import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./CollectionSchemaView.scss";
 import { CollectionView, Flyout } from "./CollectionView";
-import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../fields/Types";
+import { NumCast, StrCast, BoolCast, FieldValue, Cast, DateCast } from "../../../fields/Types";
 import { Docs } from "../../documents/Documents";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
@@ -32,6 +32,8 @@ import { DocumentIconContainer } from "../nodes/DocumentIcon";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import ReactDOM from "react-dom";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 const path = require('path');
 
 library.add(faExpand);
@@ -225,6 +227,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (type === "list") {
             contents = typeof field === "object" ? doc ? StrCast(field) === "" ? "--" : StrCast(field) : `--${typeof field}--` : `--${typeof field}--`;
         }
+        if (type === "date") {
+            contents = typeof field === "object" ? doc ? StrCast(field) === "" ? "--" : StrCast(field) : `--${typeof field}--` : `--${typeof field}--`;
+        }
 
 
         let className = "collectionSchemaView-cellWrapper";
@@ -337,6 +342,48 @@ export class CollectionSchemaBooleanCell extends CollectionSchemaCell {
 export class CollectionSchemaStringCell extends CollectionSchemaCell {
     render() {
         return this.renderCellWithType("string");
+    }
+}
+
+@observer
+export class CollectionSchemaDateCell extends CollectionSchemaCell {
+    private prop: FieldViewProps = {
+        Document: this.props.rowProps.original,
+        DataDoc: this.props.rowProps.original,
+        LibraryPath: [],
+        dropAction: "alias",
+        bringToFront: emptyFunction,
+        rootSelected: returnFalse,
+        fieldKey: this.props.rowProps.column.id as string,
+        ContainingCollectionView: this.props.CollectionView,
+        ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
+        isSelected: returnFalse,
+        select: emptyFunction,
+        renderDepth: this.props.renderDepth + 1,
+        ScreenToLocalTransform: Transform.Identity,
+        focus: emptyFunction,
+        active: returnFalse,
+        whenActiveChanged: emptyFunction,
+        PanelHeight: returnZero,
+        PanelWidth: returnZero,
+        NativeHeight: returnZero,
+        NativeWidth: returnZero,
+        addDocTab: this.props.addDocTab,
+        pinToPres: this.props.pinToPres,
+        ContentScaling: returnOne,
+        docFilters: returnEmptyFilter
+    };
+    @observable private _field = this.prop.Document[this.prop.fieldKey];
+
+    handleChange = (date: any) => {
+        this.prop.Document[this.prop.fieldKey] = date;
+    }
+
+    render() {
+        return <DatePicker
+            selected={Cast(this.prop.Document[this.prop.fieldKey], Date)}
+            onChange={this.handleChange}
+        />;
     }
 }
 

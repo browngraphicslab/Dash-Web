@@ -19,7 +19,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell } from "./CollectionSchemaCells";
+import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaDateCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
@@ -36,7 +36,8 @@ enum ColumnType {
     Boolean,
     Doc,
     Image,
-    List
+    List,
+    Date
 }
 
 // this map should be used for keys that should have a const type of value
@@ -195,7 +196,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
                 this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
-                    this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" : "align-justify";
+                    this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" :
+                        this.getColumnType(col) === ColumnType.Date ? "calendar" : "align-justify";
 
             const headerText = this._showTitleDropdown ? keysDropdown : <div
                 onClick={this.changeTitleMode}
@@ -270,6 +272,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     if (colType === ColumnType.Doc) return <CollectionSchemaDocCell {...props} />;
                     if (colType === ColumnType.Image) return <CollectionSchemaImageCell {...props} />;
                     if (colType === ColumnType.List) return <CollectionSchemaListCell {...props} />;
+                    if (colType === ColumnType.Date) return <CollectionSchemaDateCell {...props} />;
                     return <CollectionSchemaCell {...props} />;
                 },
                 minWidth: 200,

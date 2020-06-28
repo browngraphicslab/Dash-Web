@@ -37,7 +37,8 @@ export enum ColumnType {
     Boolean,
     Doc,
     Image,
-    List
+    List,
+    Date
 }
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
@@ -225,6 +226,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             Image
             </div>;
 
+        const dateType = <div className={"columnMenu-option" + (type === ColumnType.Date ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Date, col)}>
+            <FontAwesomeIcon icon={"calendar"} size="sm" />
+                Date
+                </div>;
+
 
         const allColumnTypes = <div className="columnMenu-types">
             {anyType}
@@ -234,11 +240,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             {listType}
             {docType}
             {imageType}
+            {dateType}
         </div>;
 
         const justColType = type === ColumnType.Any ? anyType : type === ColumnType.Number ? numType :
             type === ColumnType.String ? textType : type === ColumnType.Boolean ? boolType :
-                type === ColumnType.List ? listType : type === ColumnType.Doc ? docType : imageType;
+                type === ColumnType.List ? listType : type === ColumnType.Doc ? docType :
+                    type === ColumnType.Date ? dateType : imageType;
 
         return (
             <div className="collectionSchema-headerMenu-group">

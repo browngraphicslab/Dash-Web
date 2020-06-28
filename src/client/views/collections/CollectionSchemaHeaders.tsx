@@ -2,7 +2,7 @@ import React = require("react");
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
-import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar } from '@fortawesome/free-solid-svg-icons';
 import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ColumnType } from "./CollectionSchemaView";
@@ -13,7 +13,7 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl);
+library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar);
 
 export interface HeaderProps {
     keyValue: SchemaHeaderField;
@@ -34,7 +34,8 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
             this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" :
-                this.props.keyType === ColumnType.Image ? "image" : this.props.keyType === ColumnType.List ? "list-ul" : "align-justify";
+                this.props.keyType === ColumnType.Image ? "image" : this.props.keyType === ColumnType.List ? "list-ul" : this.props.keyType === ColumnType.Date ? "calendar" :
+                    "align-justify";
         return (
             <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
                 <CollectionSchemaColumnMenu
@@ -182,6 +183,10 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image)}>
                         <FontAwesomeIcon icon={"image"} size="sm" />
                         Image
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Date ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Date)}>
+                        <FontAwesomeIcon icon={"calendar"} size="sm" />
+                        Date
                     </div>
                 </div>
             </div >
