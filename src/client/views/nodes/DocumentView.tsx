@@ -1202,7 +1202,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
                 transform: this._animateScalingTo ? `scale(${this._animateScalingTo})` : undefined,
-                transition: !this._animateScalingTo ? StrCast(this.Document.transition) : this._animateScalingTo < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
+                transition: !this._animateScalingTo ? StrCast(this.Document.dataTransition) : this._animateScalingTo < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
                 pointerEvents: this.ignorePointerEvents ? "none" : undefined,
                 color: StrCast(this.layoutDoc.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",

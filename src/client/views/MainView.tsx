@@ -83,7 +83,7 @@ export class MainView extends React.Component {
 
 
     componentDidMount() {
-        DocServer.setPlaygroundFields(["panTransformType", "transition", "_panX", "_panY", "scale", "_viewType"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType"]); // can play with these fields on someone else's
 
         const tag = document.createElement('script');
 

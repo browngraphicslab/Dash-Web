@@ -170,7 +170,7 @@ export class DocumentManager {
                 const targetDocContextView = getFirstDocView(targetDocContext);
                 targetDocContext._scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
-                    targetDocContext.panTransformType = "Ease";
+                    targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context

@@ -973,7 +973,7 @@ export namespace Doc {
     export function toggleNativeDimensions(layoutDoc: Doc, contentScale: number, panelWidth: number, panelHeight: number) {
         runInAction(() => {
             if (layoutDoc._nativeWidth || layoutDoc._nativeHeight) {
-                layoutDoc.scale = NumCast(layoutDoc.scale, 1) * contentScale;
+                layoutDoc._viewScale = NumCast(layoutDoc._viewScale, 1) * contentScale;
                 layoutDoc._nativeWidth = undefined;
                 layoutDoc._nativeHeight = undefined;
             }

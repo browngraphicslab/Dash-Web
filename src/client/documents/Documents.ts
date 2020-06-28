@@ -92,7 +92,7 @@ export interface DocumentOptions {
     label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
-    scale?: number;
+    _viewScale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
@@ -228,7 +228,7 @@ export namespace Docs {
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: defaultDataKey },
-                options: { _panX: 0, _panY: 0, scale: 1 } // , _width: 500, _height: 500 }
+                options: { _panX: 0, _panY: 0, _viewScale: 1 } // , _width: 500, _height: 500 }
             }],
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: defaultDataKey },
