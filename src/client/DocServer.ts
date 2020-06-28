@@ -31,15 +31,18 @@ export namespace DocServer {
 
     export enum WriteMode {
         Default = 0, //Anything goes
-        Playground = 1,
-        LiveReadonly = 2,
-        LivePlayground = 3,
+        Playground = 1, //Playground (write own/no read)
+        LiveReadonly = 2,//Live Readonly (no write/read others)
+        LivePlayground = 3,//Live Playground (write own/read others)
     }
-
-    export let AclsMode = WriteMode.Default;
-
     const fieldWriteModes: { [field: string]: WriteMode } = {};
     const docsWithUpdates: { [field: string]: Set<Doc> } = {};
+
+    export var PlaygroundFields: string[];
+    export function setPlaygroundFields(livePlayougroundFields: string[]) {
+        DocServer.PlaygroundFields = livePlayougroundFields;
+        livePlayougroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
+    }
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {
         fieldWriteModes[field] = writeMode;

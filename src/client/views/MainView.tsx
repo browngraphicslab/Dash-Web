@@ -81,7 +81,10 @@ export class MainView extends React.Component {
 
     public isPointerDown = false;
 
+
     componentDidMount() {
+        DocServer.setPlaygroundFields(["panTransformType", "transition", "_panX", "_panY", "scale", "_viewType"]); // can play with these fields on someone else's
+
         const tag = document.createElement('script');
 
         const proto = DocServer.GetRefField("rtfProto").then(proto => {
