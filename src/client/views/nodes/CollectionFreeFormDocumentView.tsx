@@ -156,7 +156,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
-                transition: this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
+                transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
                 width: this.props.Document.isInkMask ? 5000 : this.width,
                 height: this.props.Document.isInkMask ? 5000 : this.height,
                 zIndex: this.ZInd,

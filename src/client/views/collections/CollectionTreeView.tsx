@@ -232,7 +232,7 @@ class TreeView extends React.Component<TreeViewProps> {
         const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
     }
-    docTransform = () => this.refTransform(this._dref.current!)
+    docTransform = () => this.refTransform(this._dref.current!);
     getTransform = () => this.refTransform(this._tref.current!);
     docWidth = () => {
         const layoutDoc = this.layoutDoc;
@@ -401,9 +401,9 @@ class TreeView extends React.Component<TreeViewProps> {
         this._docRef.current?.ContentDiv && simulateMouseClick(this._docRef.current.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
     }
     focusOnDoc = (doc: Doc) => DocumentManager.Instance.getFirstDocumentView(doc)?.props.focus(doc, true);
-    contextMenuItems = () => [{ script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }]
+    contextMenuItems = () => [{ script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
     truncateTitleWidth = () => NumCast(this.props.treeViewDoc.treeViewTruncateTitleWidth, 0);
-    showTitleEdit = () => ["*", this._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || "")
+    showTitleEdit = () => ["*", this._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || "");
     /**
      * Renders the EditableView title element for placement into the tree.
      */
