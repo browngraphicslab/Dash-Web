@@ -1,5 +1,5 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes, faAngleLeft, faAngleRight, faAngleDoubleLeft, faAngleDoubleRight, faPause } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -41,6 +41,11 @@ library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
+library.add(faAngleDoubleLeft);
+library.add(faAngleDoubleRight);
+library.add(faAngleLeft);
+library.add(faAngleRight);
+library.add(faPause);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {

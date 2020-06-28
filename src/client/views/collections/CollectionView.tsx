@@ -28,6 +28,7 @@ import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
 import { CollectionCarouselView } from './CollectionCarouselView';
+import { CollectionCarousel3DView } from './CollectionCarousel3DView';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
@@ -66,6 +67,7 @@ export enum CollectionViewType {
     Multirow = "multirow",
     Time = "time",
     Carousel = "carousel",
+    Carousel3D = "3D Carousel",
     Linear = "linear",
     Staff = "staff",
     Map = "map",
@@ -204,6 +206,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
+            case CollectionViewType.Carousel3D: { return (<CollectionCarousel3DView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
@@ -244,6 +247,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Multirow", event: () => func(CollectionViewType.Multirow), icon: "columns" });
         subItems.push({ description: "Masonry", event: () => func(CollectionViewType.Masonry), icon: "columns" });
         subItems.push({ description: "Carousel", event: () => func(CollectionViewType.Carousel), icon: "columns" });
+        subItems.push({ description: "3D Carousel", event: () => func(CollectionViewType.Carousel3D), icon: "columns" });
         subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
