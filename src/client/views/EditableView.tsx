@@ -182,39 +182,11 @@ export class EditableView extends React.Component<EditableProps> {
     }
     render() {
         if (this._editing && this.props.GetValue() !== undefined) {
-<<<<<<< HEAD
-            return this.props.autosuggestProps
-                ? <Autosuggest
-                    {...this.props.autosuggestProps.autosuggestProps}
-                    inputProps={{
-                        className: "editableView-input",
-                        onKeyDown: this.onKeyDown,
-                        autoFocus: true,
-                        onBlur: e => this.finalizeEdit(e.currentTarget.value, false, true),
-                        onPointerDown: this.stopPropagation,
-                        onClick: this.stopPropagation,
-                        onPointerUp: this.stopPropagation,
-                        value: this.props.autosuggestProps.value,
-                        onChange: this.props.autosuggestProps.onChange
-                    }}
-                />
-                :
-                <input className="editableView-input"
-                    defaultValue={this.props.GetValue()}
-                    onKeyDown={this.onKeyDown}
-                    autoFocus={true}
-                    onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
-                    onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                    style={{ display: this.props.display, fontSize: this.props.fontSize }}
-                    placeholder={this.props.placeholder}
-                />;
-=======
             return this.props.sizeToContent ?
                 <div style={{ display: "grid", minWidth: 100 }}>
                     <div style={{ display: "inline-block", position: "relative", height: 0, width: "100%", overflow: "hidden" }}>{this.props.GetValue()}</div>
                     {this.renderEditor()}
                 </div> : this.renderEditor();
->>>>>>> 790cc785a5cad47f0dd274c7f4773eff7d7d9c2e
         } else {
             this.props.autosuggestProps?.resetValue();
             return (this.props.contents instanceof ObjectField ? (null) :
