@@ -380,14 +380,17 @@ export class CollectionSchemaDateCell extends CollectionSchemaCell {
     @action
     handleChange = (date: any) => {
         this._date = date;
-        this.prop.Document[this.prop.fieldKey] = date;
+        this.prop.Document[this.prop.fieldKey] = DateCast(date);
+        this._field = DateCast(date);
     }
 
     render() {
         return <DatePicker
-            selected={this._date}
+            selected={this._field ? DateCast(this.prop.Document[this.prop.fieldKey]).date : this._date}
             onSelect={date => this.handleChange(date)}
             onChange={date => this.handleChange(date)}
+            showTimeSelect
+            dateFormat="Pp"
         />;
     }
 }
