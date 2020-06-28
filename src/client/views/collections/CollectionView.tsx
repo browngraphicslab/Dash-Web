@@ -432,7 +432,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._facetWidth = this.props.PanelWidth() - Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
             return false;
-        }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0));
+        }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
     }
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
@@ -521,7 +521,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
-            <div className="collectionView-facetCont" style={{ height: "100%", position: "absolute", width: this.props.PanelWidth() - this.facetWidth() }}>
+            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
@@ -531,7 +531,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     :
                     ""))}
             {!this.props.isSelected() || this.props.PanelHeight() < 100 || this.props.Document.hideFilterView ? (null) :
-                <div className="collectionTimeView-dragger" title="library View Dragger" onPointerDown={this.onPointerDown} style={{ right: this.facetWidth() - 10 }} />
+                <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
+                    style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }
             {this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);

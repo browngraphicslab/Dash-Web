@@ -1031,9 +1031,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
-            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
-            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
-                new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
+            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
@@ -1227,7 +1225,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc._autoHeight = false;
             }
-            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
+            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight, 0);
             const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
@@ -1235,11 +1233,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 console.log("Delayed height adjustment...");
                 setTimeout(() => {
                     this.rootDoc._height = newHeight;
-                    this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 }, 10);
             } else {
-                this.rootDoc._height = newHeight;
-                this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                this.layoutDoc._height = newHeight;
+                this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
             }
         }
     }
