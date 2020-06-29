@@ -18,6 +18,7 @@ interface DocumentLinksButtonProps {
     View: DocumentView;
     Offset?: number[];
     AlwaysOn?: boolean;
+    InMenu?: boolean;
 }
 @observer
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
@@ -53,7 +54,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable static StartLink: DocumentView | undefined;
     onLinkButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
-            if (doubleTap) {
+            if (doubleTap && !this.props.InMenu) {
                 DocumentLinksButton.StartLink = this.props.View;
             } else {
                 DocumentLinksButton.EditLink = this.props.View;
@@ -85,13 +86,14 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             <div title="Drag(create link) Tap(view links)" ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
                 <div className={"documentLinksButton"} style={{ backgroundColor: DocumentLinksButton.StartLink ? "transparent" : "" }}
                     onPointerDown={this.onLinkButtonDown}
-                    onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
-                    onPointerEnter={action(e => links.length && (LinkDocPreview.LinkInfo = {
-                        addDocTab: this.props.View.props.addDocTab,
-                        linkSrc: this.props.View.props.Document,
-                        linkDoc: links[0],
-                        Location: [e.clientX, e.clientY + 20]
-                    }))} >
+                // onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+                // onPointerEnter={action(e => links.length && (LinkDocPreview.LinkInfo = {
+                //     addDocTab: this.props.View.props.addDocTab,
+                //     linkSrc: this.props.View.props.Document,
+                //     linkDoc: links[0],
+                //     Location: [e.clientX, e.clientY + 20]
+                // }))} 
+                >
                     {links.length ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
                 </div>
                 {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"} onPointerDown={this.completeLink} /> : (null)}
