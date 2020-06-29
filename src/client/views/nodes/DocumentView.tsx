@@ -749,7 +749,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         optionItems.push({ description: "Toggle Show Each Link Dot", event: () => this.layoutDoc.showLinks = !this.layoutDoc.showLinks, icon: "eye" });
-        !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+        !options && cm?.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
         const existingOnClick = cm?.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -767,7 +767,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
             funcs.push({ description: "Drag a Copy", icon: "edit", event: () => this.Document.dragFactory && (this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')) });
             funcs.push({ description: "Drag Document", icon: "edit", event: () => this.layoutDoc.onDragStart = undefined });
-            cm.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
+            cm?.addItem({ description: "OnDrag...", subitems: funcs, icon: "asterisk" });
         }
 
         const more = cm?.findByDescription("More...");
@@ -806,7 +806,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
         helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
         helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
-        cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
+        cm?.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
 
         const existingAcls = cm?.findByDescription("Privacy...");
         const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];

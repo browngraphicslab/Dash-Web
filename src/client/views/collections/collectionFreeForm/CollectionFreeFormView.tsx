@@ -1214,7 +1214,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         appearanceItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         appearanceItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
-        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+        !appearance && ContextMenu.Instance?.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = ContextMenu.Instance?.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];

@@ -518,7 +518,6 @@ export class MobileInterface extends React.Component {
     inkMenu = () => {
         if (this._activeDoc._viewType === "docking") {
             if (this._ink) {
-                console.log("here");
                 return <div className="colorSelector">
                     <InkOptionsMenu />
                 </div>;
