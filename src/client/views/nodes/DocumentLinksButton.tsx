@@ -95,7 +95,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 //     Location: [e.clientX, e.clientY + 20]
                 // }))} 
                 >
-                    {links.length ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
+                    {links.length && !!!this.props.InMenu ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
                 </div>
                 {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"} onPointerDown={this.completeLink} /> : (null)}
                 {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-startLink"} /> : (null)}

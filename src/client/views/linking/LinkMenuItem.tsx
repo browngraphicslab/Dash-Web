@@ -13,6 +13,8 @@ import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
 import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
+import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
+import { LinkDocPreview } from '../nodes/LinkDocPreview';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -124,7 +126,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         e.stopPropagation();
     }
 
+    @action
     onContextMenu = (e: React.MouseEvent) => {
+        DocumentLinksButton.EditLink = undefined;
         e.preventDefault();
         ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
@@ -132,6 +136,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @action.bound
     async followDefault() {
+        DocumentLinksButton.EditLink = undefined;
         DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
     }
 
@@ -139,6 +144,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         //this.props.showLinks();
+        DocumentLinksButton.EditLink = undefined;
     }
 
     render() {
@@ -148,14 +154,23 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
-                    <div ref={this._drag} className="linkMenu-name" title="drag to view target. click to customize." onPointerDown={this.onLinkButtonDown}>
+                    <div ref={this._drag} className="linkMenu-name" title="drag to view target. click to customize."
+                        onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+                        onPointerEnter={action(e => this.props.linkDoc && (LinkDocPreview.LinkInfo = {
+                            addDocTab: this.props.addDocTab,
+                            linkSrc: this.props.sourceDoc,
+                            linkDoc: this.props.linkDoc,
+                            Location: [e.clientX, e.clientY + 20]
+                        }))}
+                        onPointerDown={this.onLinkButtonDown}>
                         <p >{StrCast(this.props.destinationDoc.title)}</p>
                         <div className="linkMenu-item-buttons">
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
                             {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div> */}
-                            <div title="Delete link" className="button" ref={this._editRef} onPointerDown={this.deleteLink}><FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
+                            <div title="Delete link" className="button" ref={this._editRef} onPointerDown={this.deleteLink}>
+                                <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}>
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
                             </div>
