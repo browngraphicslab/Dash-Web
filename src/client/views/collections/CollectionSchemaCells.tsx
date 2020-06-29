@@ -345,15 +345,23 @@ export class CollectionSchemaStringCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaDateCell extends CollectionSchemaCell {
-    @observable private _date: Date = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : new Date();
+    @observable private _date: Date = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date :
+        this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof Date ? this.props.rowProps.original[this.props.rowProps.column.id as string] : new Date();
 
     @action
     handleChange = (date: any) => {
+        console.log(date);
         this._date = date;
-        const script = CompileScript(date.toString(), { requiredType: "Date", addReturn: true, params: { this: Doc.name } });
-        if (script.compiled) {
-            this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
-        }
+        // const script = CompileScript(date.toString(), { requiredType: "Date", addReturn: true, params: { this: Doc.name } });
+        // if (script.compiled) {
+        //     console.log("scripting");
+        //     this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
+        // } else {
+        console.log(DateCast(date));
+        // ^ DateCast is always undefined for some reason, but that is what the field should be set to
+        this._document[this.props.rowProps.column.id as string] = date as Date;
+        console.log(this._document[this.props.rowProps.column.id as string]);
+        //}
     }
 
     render() {
@@ -420,8 +428,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
             console.log(results.result);
             this._doc = results.result;
-            this.prop.Document[this.prop.fieldKey] = results.result;
-            this.prop.Document[this.prop.fieldKey] = results.result;
+            this._document[this.prop.fieldKey] = results.result;
             this._docTitle = this._doc?.title;
 
             return true;
@@ -438,7 +445,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
     onOpenClick = () => {
         this._preview = false;
         if (this._doc) {
-            this.prop.addDocTab(this._doc, "onRight");
+            this.props.addDocTab(this._doc, "onRight");
             return true;
         }
         return false;
