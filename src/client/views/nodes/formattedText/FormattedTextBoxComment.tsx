@@ -177,11 +177,12 @@ export class FormattedTextBoxComment {
         // this checks if the selection is a hyperlink.  If so, it displays the target doc's text for internal links, and the url of the target for external links. 
         if (set === "none" && state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findLinkMark);
-            const naft = findEndOfMark(state.selection.$from, view, findLinkMark);
+            const naft = findEndOfMark(state.selection.$from, view, findLinkMark) || nbef;
             let child: any = null;
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
-            const mark = child && findLinkMark(child.marks);
-            const href = mark?.attrs.allHrefs.find((item: { href: string }) => item.href)?.href || forceUrl;
+            child = child || (nbef && state.selection.$from.nodeBefore);
+            const mark = child ? findLinkMark(child.marks) : undefined;
+            const href = (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allHrefs.find((item: { href: string }) => item.href)?.href || forceUrl;
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;

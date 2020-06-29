@@ -1,7 +1,7 @@
 .pdfBox,
 .pdfBox-interactive {
     display: inline-block;
-    position: absolute;
+    position: relative;
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -202,7 +202,7 @@
 }
 
 .pdfBox {
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         .textLayer {
             span {
                 user-select: none;
@@ -213,8 +213,7 @@
 
 .pdfBox-interactive {
     pointer-events: all;
-
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         .textLayer {
             span {
                 user-select: text;

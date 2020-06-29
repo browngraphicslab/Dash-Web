@@ -1,7 +1,6 @@
 @import "../../globalCssVariables";
 
-.collectionfreeformview-none,
-.collectionfreeformview-ease {
+.collectionfreeformview-none {
     position: inherit;
     top: 0;
     left: 0;
@@ -20,10 +19,6 @@
             pointer-events: all;
         }
     }
-}
-
-.collectionfreeformview-ease {
-    transition: transform 500ms;
 }
 
 .collectionfreeformview-none {

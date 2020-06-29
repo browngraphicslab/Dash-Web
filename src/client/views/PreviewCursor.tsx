@@ -9,6 +9,7 @@ import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
 import { undoBatch } from '../util/UndoManager';
 import { NumCast } from '../../fields/Types';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -81,6 +82,7 @@ export class PreviewCursor extends React.Component<{}> {
                     e.stopPropagation();
                 } else {
                     // creates text document
+                    FormattedTextBox.PasteOnLoad = e;
                     undoBatch(() => PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
                         _width: 500,
                         limitHeight: 400,

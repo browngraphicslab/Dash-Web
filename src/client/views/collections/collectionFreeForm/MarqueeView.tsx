@@ -20,8 +20,6 @@ import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { DateField } from "../../../../fields/DateField";
-import { DocServer } from "../../../DocServer";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -260,6 +258,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             e.preventDefault();
         }
     }
+    clearSelection() {
+        if (window.getSelection) { window.getSelection()?.removeAllRanges(); }
+        else if (document.getSelection()) { document.getSelection()?.empty(); }
+    }
 
     setPreviewCursor = action((x: number, y: number, drag: boolean) => {
         if (drag) {
@@ -275,6 +277,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this._downX = x;
             this._downY = y;
             PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            this.clearSelection();
         }
     });
 
@@ -349,7 +352,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined,
             _width: bounds.width,
             _height: bounds.height,
-            _LODdisable: true,
             title: "a nested collection",
         });
         selected.forEach(d => d.context = newCollection);

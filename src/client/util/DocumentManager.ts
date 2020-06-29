@@ -130,7 +130,7 @@ export class DocumentManager {
         willZoom: boolean,     // whether to zoom doc to take up most of screen
         createViewFunc = DocumentManager.addRightSplit, // how to create a view of the doc if it doesn't exist
         docContext?: Doc,  // context to load that should contain the target
-        linkId?: string,   // link that's being followed
+        linkDoc?: Doc,   // link that's being followed
         closeContextIfNotFound: boolean = false, // after opening a context where the document should be, this determines whether the context should be closed if the Doc isn't actually there
         originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
         finished?: () => void
@@ -140,7 +140,7 @@ export class DocumentManager {
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             if (finalDocView) {
-                finalDocView.layoutDoc.scrollToLinkID = linkId;
+                finalDocView.layoutDoc.scrollToLinkID = linkDoc?.[Id];
                 Doc.linkFollowHighlight(finalDocView.props.Document);
             }
         };
@@ -170,7 +170,7 @@ export class DocumentManager {
                 const targetDocContextView = getFirstDocView(targetDocContext);
                 targetDocContext._scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
-                    targetDocContext.panTransformType = "Ease";
+                    targetDocContext._viewTransition = "transform 500ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
@@ -195,7 +195,7 @@ export class DocumentManager {
                         const finalDocView = getFirstDocView(targetDoc);
                         const finalDocContextView = getFirstDocView(targetDocContext);
                         setTimeout(() =>  // if not, wait a bit to see if the context can be loaded (e.g., a PDF). wait interval heurisitic tries to guess how we're animating based on what's just become visible
-                            this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkId, true, undefined, finished), // pass true this time for closeContextIfNotFound
+                            this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkDoc, true, undefined, finished), // pass true this time for closeContextIfNotFound
                             finalDocView ? 0 : finalDocContextView ? 250 : 2000); // so call jump to doc again and if the doc isn't found, it will be created.
                     }, 0);
                 }
@@ -224,7 +224,7 @@ export class DocumentManager {
                 containerDoc.currentTimecode = targetTimecode;
                 const targetContext = await target?.context as Doc;
                 const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc[Id], undefined, doc, finished);
+                DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
             } else {
                 finished?.();
             }

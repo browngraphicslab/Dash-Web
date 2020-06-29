@@ -91,14 +91,13 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "zIndex": 2,
             "libraryBrush": False,
             "_viewType": viewType,
-            "_LODdisable": True
         },
         "__type": "Doc"
     }
 
     fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
-    fields["schemaColumns"] = listify(display_fields)
+    fields["_columnHeaders"] = listify(display_fields)
     fields["author"] = "Bill Buxton"
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,

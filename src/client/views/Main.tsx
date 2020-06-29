@@ -6,12 +6,14 @@ import * as React from 'react';
 import { DocServer } from "../DocServer";
 import { AssignAllExtensions } from "../../extensions/General/Extensions";
 import { Networking } from "../Network";
+import { CollectionView } from "./collections/CollectionView";
 
 AssignAllExtensions();
 
 export let resolvedPorts: { server: number, socket: number };
 
 (async () => {
+    window.location.search.includes("safe") && CollectionView.SetSafeMode(true);
     const info = await CurrentUserUtils.loadCurrentUser();
     resolvedPorts = JSON.parse(await Networking.FetchFromServer("/resolvedPorts"));
     DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, info.email);
