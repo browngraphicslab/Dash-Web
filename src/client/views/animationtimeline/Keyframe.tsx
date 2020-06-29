@@ -386,9 +386,10 @@ export class Keyframe extends React.Component<IProps> {
             <input className="timeline-menu-input" ref={inputRef} defaultValue={String(kf[fieldKey])}
                 onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === "Enter" || e.key === "Tab") {
-                        kf[fieldKey] = Number(e.currentTarget.value); // need to error check input values
-                        // how to apply field values if bar is on the current kf?
+                        // kf[fieldKey] = Number(e.currentTarget.value); 
+                        KeyValueBox.SetField(kf, fieldKey, e.currentTarget.value);
                         e.currentTarget.blur();
+                        // need to apply values if bar is at the current keyframe
                     }
                 }}
                 onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
@@ -402,30 +403,6 @@ export class Keyframe extends React.Component<IProps> {
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Remove Region", () =>
             Cast(this.props.node.regions, listSpec(Doc))?.splice(this.regions.indexOf(this.props.RegionData), 1)),
-            // TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
-            //     runInAction(() => {
-            //         let cannotMove: boolean = false;
-            //         if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position) {
-            //             cannotMove = true;
-            //         }
-            //         if (!cannotMove) {
-            //             this.regiondata.fadeIn = parseInt(val, 10);
-            //             this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
-            //         }
-            //     });
-            // }),
-            // TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {
-            //     runInAction(() => {
-            //         let cannotMove: boolean = false;
-            //         if (val < 0 || val > this.regiondata.position + this.regiondata.duration - NumCast(this.keyframes[this.keyframes.length - 3].time)) {
-            //             cannotMove = true;
-            //         }
-            //         if (!cannotMove) {
-            //             this.regiondata.fadeOut = parseInt(val, 10);
-            //             this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - val;
-            //         }
-            //     });
-            // }),
             TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {
                 runInAction(() => {
                     const prevPosition = this.regiondata.position;
