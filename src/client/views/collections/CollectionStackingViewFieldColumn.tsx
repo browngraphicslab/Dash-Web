@@ -362,7 +362,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
                 {
                     this.collapsed ? (null) :
-                        <div>
+                        <div style={{ marginTop: 5 }}>
                             <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                                 style={{
                                     padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,

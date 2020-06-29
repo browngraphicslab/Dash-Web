@@ -208,7 +208,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
 
-        @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;

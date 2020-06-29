@@ -1,10 +1,15 @@
 @import "../views/globalCssVariables";
 
-.settings-interface {
+.group-interface {
     background-color: whitesmoke !important;
     color: grey;
     width: 450px;
     height: 300px;
+
+    .dialogue-box {
+        width: 450;
+        height: 300;
+    }
 
     button {
         background: $lighter-alt-accent;
@@ -22,15 +27,19 @@
     }
 }
 
-.settings-interface {
+.group-interface {
     display: flex;
     flex-direction: column;
+
+    .overlay {
+        transform: translate(-20px, -20px);
+        border-radius: 10px;
+    }
 
     button {
         width: 100%;
         align-self: center;
         background: $darker-alt-accent;
-        margin-top: 4px;
     }
 
     .delete-button {
@@ -42,32 +51,66 @@
         right: 1em;
         top: 1em;
         cursor: pointer;
+        z-index: 999;
     }
 
-    .settings-heading {
+    .group-heading {
         letter-spacing: .5em;
     }
 
 
-    .settings-body {
+    .group-body {
         display: flex;
         justify-content: space-between;
+        max-height: 80%;
 
-        .settings-type {
+        .group-create {
             display: flex;
             flex-direction: column;
             flex-basis: 30%;
+            margin-left: 5px;
+
+            input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
+                min-width: 100%;
+                margin: 4px 0 4px 0;
+            }
 
         }
 
-        .settings-content {
+        .group-content {
             padding-left: 1em;
             padding-right: 1em;
-            display: flex;
-            flex-direction: column;
-            flex-basis: 70%;
             justify-content: space-around;
             text-align: left;
+
+            overflow-y: auto;
+            width: 100%;
+
+            .group-row {
+                display: flex;
+                position: relative;
+                margin-bottom: 5px;
+                min-height: 40px;
+                border: 1px solid;
+                border-radius: 10px;
+                align-items: center;
+
+                .group-name {
+                    position: relative;
+                    max-width: 65%;
+                    left: 10;
+                }
+
+                button {
+                    position: absolute;
+                    width: 30%;
+                    right: 2;
+                    margin-top: 0;
+                }
+            }
 
             ::placeholder {
                 color: $intermediate-color;
@@ -81,23 +124,7 @@
                 margin: 2px 0;
             }
 
-            .error-text {
-                color: #C40233;
-            }
-
-            .success-text {
-                color: #009F6B;
-            }
-
-            p {
-                padding: 0 0 .1em .2em;
-            }
-
         }
-    }
-
-    .focus-span {
-        text-decoration: underline;
     }
 
     h1 {
@@ -105,33 +132,5 @@
         text-transform: uppercase;
         letter-spacing: 2px;
         font-size: 120%;
-    }
-
-    .container {
-        display: block;
-        position: relative;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        font-size: 22px;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        width: 700px;
-        min-width: 700px;
-        max-width: 700px;
-        text-align: left;
-        font-style: normal;
-        font-size: 15;
-        font-weight: normal;
-        padding: 0;
-
-        .padding {
-            padding: 0 0 0 20px;
-            color: black;
-        }
-
-
-
     }
 }

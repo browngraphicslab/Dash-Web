@@ -1,13 +1,75 @@
+@import "../views/globalCssVariables";
+
 .sharing-interface {
     display: flex;
     flex-direction: column;
+    width: 730px;
+
+    .dialogue-box {
+        width: 450;
+        height: 300;
+    }
+
+    .overlay {
+        transform: translate(-20px, -20px);
+    }
+
+    .sharing-contents {
+        display: flex;
+
+        button {
+            background: $darker-alt-accent;
+            outline: none;
+            border-radius: 5px;
+            border: 0px;
+            color: #fcfbf7;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 75%;
+            padding: 0 10;
+            margin: 0 5;
+            transition: transform 0.2s;
+            height: 25;
+        }
+
+        .individual-container,
+        .group-container {
+            width: 50%;
+
+            .share-groups,
+            .share-individual {
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+
+            .groups-list,
+            .users-list {
+                font-style: italic;
+                background: white;
+                border: 1px solid black;
+                padding-left: 10px;
+                padding-right: 10px;
+                overflow-y: scroll;
+                overflow-x: hidden;
+                text-align: left;
+                display: flex;
+                align-content: center;
+                align-items: center;
+                text-align: center;
+                justify-content: center;
+                color: red;
+                height: 150px;
+                margin: 0 2;
+            }
+        }
+    }
 
     .focus-span {
         text-decoration: underline;
     }
 
     p {
-        font-size: 20px;
+        font-size: 15px;
         text-align: left;
         font-style: italic;
         padding: 0;
@@ -36,33 +98,10 @@
         }
     }
 
-    .share-individual {
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-
-    .users-list {
-        font-style: italic;
-        background: white;
-        border: 1px solid black;
-        padding-left: 10px;
-        padding-right: 10px;
-        max-height: 200px;
-        overflow: scroll;
-        height: -webkit-fill-available;
-        text-align: left;
-        display: flex;
-        align-content: center;
-        align-items: center;
-        text-align: center;
-        justify-content: center;
-        color: red;
-    }
-
     .container {
-        display: block;
+        display: flex;
         position: relative;
-        margin-top: 10px;
+        margin-top: 5px;
         margin-bottom: 10px;
         font-size: 22px;
         -webkit-user-select: none;
@@ -74,18 +113,27 @@
         max-width: 700px;
         text-align: left;
         font-style: normal;
-        font-size: 15;
+        font-size: 14;
         font-weight: normal;
         padding: 0;
+        align-items: baseline;
 
         .padding {
-            padding: 0 0 0 20px;
+            padding: 0 10px 0 0;
             color: black;
         }
 
         .permissions-dropdown {
             outline: none;
+            height: 25;
         }
+
+        .edit-actions {
+            display: flex;
+            position: absolute;
+            right: 51.5%;
+        }
+
     }
 
     .no-users {

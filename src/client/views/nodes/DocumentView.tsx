@@ -689,7 +689,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
+    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly" | "write") => {
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
             if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
@@ -699,7 +699,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @undoBatch
     @action
-    testAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
+    testAcl = (acl: "readOnly" | "addOnly" | "ownerOnly" | "write") => {
         this.dataDoc.author = this.props.Document.author = "ADMIN";
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
@@ -811,6 +811,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         aclItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Editable", event: () => this.setAcl("write"), icon: "concierge-bell" });
         aclItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
         aclItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
         !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
