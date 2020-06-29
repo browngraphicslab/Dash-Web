@@ -62,7 +62,7 @@ export interface DocumentOptions {
     _dimUnit?: string; // "px" or "*" (default = "*")
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
-    _LODdisable?: boolean;
+    _freeformLOD?: boolean; // whether to use LOD to render a freeform document
     _showTitleHover?: string; // 
     _showTitle?: string; // which field to display in the title area.  leave empty to have no title
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
@@ -99,7 +99,7 @@ export interface DocumentOptions {
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     hideFilterView?: boolean; // whether to hide the filter popout on collections
-    hideHeadings?: boolean; // whether stacking view column headings should be hidden
+    _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
@@ -119,7 +119,7 @@ export interface DocumentOptions {
     defaultBackgroundColor?: string;
     isBackground?: boolean;
     isLinkButton?: boolean;
-    columnWidth?: number;
+    _columnWidth?: number;
     _fontSize?: number;
     _fontFamily?: string;
     curPage?: number;
@@ -137,7 +137,8 @@ export interface DocumentOptions {
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
-    schemaColumns?: List<SchemaHeaderField>;
+    _columnHeaders?: List<SchemaHeaderField>; // headers for stacking views
+    _schemaHeaders?: List<SchemaHeaderField>; // headers for schema view
     dockingConfig?: string;
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
@@ -428,8 +429,7 @@ export namespace Docs {
             const parent = TreeDocument([loading], {
                 title: "The Buxton Collection",
                 _width: 400,
-                _height: 400,
-                _LODdisable: true
+                _height: 400
             });
             const parentProto = Doc.GetProto(parent);
             const { _socket } = DocServer;
@@ -465,7 +465,7 @@ export namespace Docs {
                         return imageDoc;
                     });
                     // the main document we create
-                    const doc = StackingDocument(deviceImages, { title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
+                    const doc = StackingDocument(deviceImages, { title, hero: new ImageField(constructed[0].url) });
                     doc.nameAliases = new List<string>([title.toLowerCase()]);
                     // add the parsed attributes to this main document
                     Doc.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
@@ -698,15 +698,15 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Freeform }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Linear }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", ...options, _viewType: CollectionViewType.Linear }, id);
         }
 
         export function MapDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
@@ -714,31 +714,35 @@ export namespace Docs {
         }
 
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Carousel });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Carousel });
         }
 
-        export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns.length ? schemaColumns : [new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Schema });
+        export function Carousel3DDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Carousel3D });
+        }
+
+        export function SchemaDocument(schemaHeaders: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", _schemaHeaders: schemaHeaders.length ? new List(schemaHeaders) : undefined, ...options, _viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Tree }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Stacking }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Stacking }, id);
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Multicolumn });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Multicolumn });
         }
         export function MultirowDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Multirow });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Multirow });
         }
 
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Masonry });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Masonry });
         }
 
         export function LabelDocument(options?: DocumentOptions) {
@@ -1050,7 +1054,7 @@ export namespace DocUtils {
             });
         });
         if (x !== undefined && y !== undefined) {
-            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100 });
             newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
             newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
             newCollection._width = newCollection._height = 110;

@@ -293,7 +293,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         let minY = Number.MAX_VALUE;
         if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             const anno = this._savedAnnotations.values()[0][0];
-            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, _LODdisable: true, title: "Annotation on " + this.Document.title });
+            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
@@ -381,7 +381,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
             }
             this._annotationLayer.current.append(div);
-            div.style.backgroundColor = "yellow";
+            div.style.backgroundColor = "#ACCEF7";
             div.style.opacity = "0.5";
             const savedPage = this._savedAnnotations.getValue(page);
             if (savedPage) {
@@ -497,7 +497,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     if (rect.width !== this._mainCont.current.clientWidth &&
                         (i === 0 || !intersectRect(clientRects[i], clientRects[i - 1]))) {
                         const annoBox = document.createElement("div");
-                        annoBox.className = "pdfViewer-annotationBox";
+                        annoBox.className = "pdfViewerDash-annotationBox";
                         // transforms the positions from screen onto the pdf div
                         annoBox.style.top = ((rect.top - boundingRect.top) * scaleX / this._zoomed + this._mainCont.current.scrollTop).toString();
                         annoBox.style.left = ((rect.left - boundingRect.left) * scaleX / this._zoomed).toString();
@@ -524,7 +524,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._savedAnnotations.clear();
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
-                const marquees = this._mainCont.current!.getElementsByClassName("pdfViewer-dragAnnotationBox");
+                const marquees = this._mainCont.current!.getElementsByClassName("pdfViewerDash-dragAnnotationBox");
                 if (marquees && marquees.length) { // copy the marquee and convert it to a permanent annotation. 
                     const style = (marquees[0] as HTMLDivElement).style;
                     const copy = document.createElement("div");
@@ -535,7 +535,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                     copy.style.border = style.border;
                     copy.style.opacity = style.opacity;
                     (copy as any).marqueeing = true;
-                    copy.className = "pdfViewer-annotationBox";
+                    copy.className = "pdfViewerDash-annotationBox";
                     this.createAnnotation(copy, this.getPageFromScroll(this._marqueeY));
                 }
 
@@ -653,7 +653,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @computed get annotationLayer() {
         TraceMobx();
-        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
+        return <div className="pdfViewerDash-annotationLayer" style={{ height: NumCast(this.Document._nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map(anno =>
                 <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)
             }
@@ -663,7 +663,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewer-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
             style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
@@ -695,13 +695,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         </div>;
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewer-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
+        return <div className={"pdfViewerDash-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get standinViews() {
         return <>
             {this._showCover ? this.getCoverImage() : (null)}
-            {this._showWaiting ? <img className="pdfViewer-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
+            {this._showWaiting ? <img className="pdfViewerDash-waiting" key="waiting" src={"/assets/loading.gif"} /> : (null)}
         </>;
     }
     marqueeWidth = () => this._marqueeWidth;
@@ -713,7 +713,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={"pdfViewer" + (this.active() ? "-interactive" : "")} ref={this._mainCont}
+        return <div className={"pdfViewerDash" + (this.active() ? "-interactive" : "")} ref={this._mainCont}
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,
@@ -741,7 +741,7 @@ interface PdfViewerMarqueeProps {
 @observer
 class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
     render() {
-        return !this.props.isMarqueeing() ? (null) : <div className="pdfViewer-dragAnnotationBox"
+        return !this.props.isMarqueeing() ? (null) : <div className="pdfViewerDash-dragAnnotationBox"
             style={{
                 left: `${this.props.x()}px`, top: `${this.props.y()}px`,
                 width: `${this.props.width()}px`, height: `${this.props.height()}px`,

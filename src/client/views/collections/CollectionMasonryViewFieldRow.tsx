@@ -111,8 +111,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const castedValue = this.getValue(value);
         if (castedValue) {
-            if (this.props.parent.sectionHeaders) {
-                if (this.props.parent.sectionHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
+            if (this.props.parent.columnHeaders) {
+                if (this.props.parent.columnHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
                     return false;
                 }
             }
@@ -151,9 +151,9 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         this.props.docList.forEach(d => d[key] = undefined);
-        if (this.props.parent.sectionHeaders && this.props.headingObject) {
-            const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
-            this.props.parent.sectionHeaders.splice(index, 1);
+        if (this.props.parent.columnHeaders && this.props.headingObject) {
+            const index = this.props.parent.columnHeaders.indexOf(this.props.headingObject);
+            this.props.parent.columnHeaders.splice(index, 1);
         }
     }));
 

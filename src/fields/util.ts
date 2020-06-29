@@ -108,7 +108,7 @@ export function OVERRIDE_ACL(val: boolean) {
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
-    "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
+    "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
     if (target[AclSym] && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return true;

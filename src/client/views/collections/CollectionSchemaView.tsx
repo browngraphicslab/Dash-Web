@@ -11,6 +11,7 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
@@ -23,7 +24,7 @@ import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } 
 import { SnappingManager } from "../../util/SnappingManager";
 import Measure from "react-measure";
 import { SchemaTable } from "./SchemaTable";
-import { TraceMobx } from "../../../fields/util";
+import { civicinfo } from "googleapis/build/src/apis/civicinfo";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -184,6 +185,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._openTypes = bool;
     }
 
+    @action
     renderTypes = (col: any) => {
         if (columnTypes.get(col.heading)) return (null);
 
@@ -351,6 +353,29 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         />;
     }
 
+    @action
+    renderContent = (col: any) => {
+        return (
+            <div className="collectionSchema-header-menuOptions">
+                <div className="collectionSchema-headerMenu-group">
+                    <label>Key:</label>
+                    {this.renderKeysDropDown(col)}
+                </div>
+                {false ? <></> :
+                    <>
+                        {this.renderTypes(col)}
+                        {this.renderSorting(col)}
+                        {this.renderColors(col)}
+                        <div className="collectionSchema-headerMenu-group">
+                            <button onClick={() => { this.deleteColumn(col.heading); }}
+                            >Delete Column</button>
+                        </div>
+                    </>
+                }
+            </div>
+        );
+    }
+
     @undoBatch
     @action
     deleteColumn = (key: string) => {
@@ -385,22 +410,45 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         //this.menuCoordinates[1] -= e.screenY / scale;
     }
 
-    @computed get renderMenuContent() {
-        TraceMobx();
-        return <div className="collectionSchema-header-menuOptions">
-            <div className="collectionSchema-headerMenu-group">
-                <label>Key:</label>
-                {this.renderKeysDropDown(this._col)}
+    @action renderMenu() {
+        const scale = this.props.ScreenToLocalTransform().Scale;
+        return (
+            <div className="collectionSchema-header-menu" ref={this.setNode}
+                onWheel={e => this.props.active(true) && e.stopPropagation()}
+                onPointerDown={e => this.onHeaderClick(e)}
+                style={{
+                    position: "absolute", background: "white",
+                    transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)`
+                }}>
+                <Measure offset onResize={action((r: any) => {
+                    const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
+                    this._menuWidth = dim[0]; this._menuHeight = dim[1];
+                })}>
+                    {({ measureRef }) => <div ref={measureRef}>
+                        <div className="collectionSchema-header-menuOptions">
+                            <div className="collectionSchema-headerMenu-group">
+                                <label>Key:</label>
+                                {this.renderKeysDropDown(this._col)}
+                            </div>
+                            {false ? <></> :
+                                <>
+                                    {this.renderTypes(this._col)}
+                                    {this.renderSorting(this._col)}
+                                    {this.renderColors(this._col)}
+                                    <div className="collectionSchema-headerMenu-group">
+                                        <button onClick={() => { this.deleteColumn(this._col.heading); }}
+                                        >Delete Column</button>
+                                    </div>
+                                </>
+                            }
+                        </div>
+
+                    </div>}
+                </Measure>
             </div>
-            {this.renderTypes(this._col)}
-            {this.renderSorting(this._col)}
-            {this.renderColors(this._col)}
-            <div className="collectionSchema-headerMenu-group">
-                <button onClick={() => { this.deleteColumn(this._col.heading); }}
-                >Delete Column</button>
-            </div>
-        </div>;
+        );
     }
+
     private createTarget = (ele: HTMLDivElement) => {
         this._previewCont = ele;
         super.CreateDropTarget(ele);
@@ -575,18 +623,38 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        TraceMobx();
-        const menuContent = this.renderMenuContent;
         const scale = this.props.ScreenToLocalTransform().Scale;
         const menu = <div className="collectionSchema-header-menu" ref={this.setNode}
             onWheel={e => this.props.active(true) && e.stopPropagation()}
             onPointerDown={e => this.onHeaderClick(e)}
-            style={{ transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)` }}>
+            style={{
+                position: "absolute", background: "white",
+                transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)`
+            }}>
             <Measure offset onResize={action((r: any) => {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
                 this._menuWidth = dim[0]; this._menuHeight = dim[1];
             })}>
-                {({ measureRef }) => <div ref={measureRef}> {menuContent} </div>}
+                {({ measureRef }) => <div ref={measureRef}>
+                    <div className="collectionSchema-header-menuOptions">
+                        <div className="collectionSchema-headerMenu-group">
+                            <label>Key:</label>
+                            {this.renderKeysDropDown(this._col)}
+                        </div>
+                        {false ? <></> :
+                            <>
+                                {this.renderTypes(this._col)}
+                                {this.renderSorting(this._col)}
+                                {this.renderColors(this._col)}
+                                <div className="collectionSchema-headerMenu-group">
+                                    <button onClick={() => { this.deleteColumn(this._col.heading); }}
+                                    >Delete Column</button>
+                                </div>
+                            </>
+                        }
+                    </div>
+
+                </div>}
             </Measure>
         </div>;
 
