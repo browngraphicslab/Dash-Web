@@ -31,6 +31,7 @@ import { DocumentIconContainer } from "../nodes/DocumentIcon";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { DateField } from "../../../fields/DateField";
 const path = require('path');
 
 library.add(faExpand);
@@ -344,49 +345,22 @@ export class CollectionSchemaStringCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaDateCell extends CollectionSchemaCell {
-    private prop: FieldViewProps = {
-        Document: this.props.rowProps.original,
-        DataDoc: this.props.rowProps.original,
-        LibraryPath: [],
-        dropAction: "alias",
-        bringToFront: emptyFunction,
-        rootSelected: returnFalse,
-        fieldKey: this.props.rowProps.column.id as string,
-        ContainingCollectionView: this.props.CollectionView,
-        ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
-        isSelected: returnFalse,
-        select: emptyFunction,
-        renderDepth: this.props.renderDepth + 1,
-        ScreenToLocalTransform: Transform.Identity,
-        focus: emptyFunction,
-        active: returnFalse,
-        whenActiveChanged: emptyFunction,
-        PanelHeight: returnZero,
-        PanelWidth: returnZero,
-        NativeHeight: returnZero,
-        NativeWidth: returnZero,
-        addDocTab: this.props.addDocTab,
-        pinToPres: this.props.pinToPres,
-        ContentScaling: returnOne,
-        docFilters: returnEmptyFilter
-    };
-    @observable private _field = this.prop.Document[this.prop.fieldKey];
-    @observable private _date = new Date();
+    @observable private _date: Date = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : new Date();
 
     @action
     handleChange = (date: any) => {
         this._date = date;
-        this.prop.Document[this.prop.fieldKey] = DateCast(date);
-        this._field = DateCast(date);
+        const script = CompileScript(date.toString(), { requiredType: "Date", addReturn: true, params: { this: Doc.name } });
+        if (script.compiled) {
+            this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
+        }
     }
 
     render() {
         return <DatePicker
-            selected={this._field ? DateCast(this.prop.Document[this.prop.fieldKey]).date : this._date}
+            selected={this._date}
             onSelect={date => this.handleChange(date)}
             onChange={date => this.handleChange(date)}
-            showTimeSelect
-            dateFormat="Pp"
         />;
     }
 }

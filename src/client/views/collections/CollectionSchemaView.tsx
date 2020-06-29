@@ -22,7 +22,7 @@ import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView"
 import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
 import { SnappingManager } from "../../util/SnappingManager";
 import Measure from "react-measure";
-import { SchemaTable } from "./SchemaTable"
+import { SchemaTable } from "./SchemaTable";
 import { TraceMobx } from "../../../fields/util";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
