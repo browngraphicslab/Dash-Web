@@ -129,6 +129,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action
     onContextMenu = (e: React.MouseEvent) => {
         DocumentLinksButton.EditLink = undefined;
+        LinkDocPreview.LinkInfo = undefined;
         e.preventDefault();
         ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
@@ -137,6 +138,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action.bound
     async followDefault() {
         DocumentLinksButton.EditLink = undefined;
+        LinkDocPreview.LinkInfo = undefined;
         DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
     }
 
@@ -144,6 +146,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         //this.props.showLinks();
+        LinkDocPreview.LinkInfo = undefined;
         DocumentLinksButton.EditLink = undefined;
     }
 
