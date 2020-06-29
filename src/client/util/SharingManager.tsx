@@ -169,6 +169,19 @@ export default class SharingManager extends React.Component<{}> {
         permissions[StrCast(group ? group.groupName : Doc.CurrentUserEmail)] = parseInt(HierarchyMapping.get(state)!);
         const max = Math.max(...Object.values(permissions));
 
+        // let max = 0;
+        // const keys: string[] = [];
+        // for (const [key, value] of Object.entries(permissions)) {
+        //     if (value === max && max !== 0) {
+        //         keys.push(key);
+        //     }
+        //     else if (value > max) {
+        //         keys.splice(0, keys.length);
+        //         keys.push(key);
+        //         max = value;
+        //     }
+        // }
+
         switch (max) {
             case 0:
                 if (metadata) {
@@ -187,6 +200,7 @@ export default class SharingManager extends React.Component<{}> {
                     manager[key] = metadata;
                 }
                 metadata.permissions = JSON.stringify(permissions);
+                // metadata.usersShared = JSON.stringify(keys);
                 break;
         }
 
@@ -271,6 +285,9 @@ export default class SharingManager extends React.Component<{}> {
     private get sharingInterface() {
         const existOtherUsers = this.users.length > 0;
         const existGroups = this.groups.length > 0;
+
+        // const manager = this.sharingDoc!;
+
         return (
             <div className={"sharing-interface"}>
                 {this.groupToView ?
@@ -279,7 +296,6 @@ export default class SharingManager extends React.Component<{}> {
                         onCloseButtonClick={action(() => this.groupToView = undefined)}
                     /> :
                     null}
-
                 <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
                 {!this.linkVisible ? (null) :
                     <div className={"link-container"}>
@@ -315,16 +331,24 @@ export default class SharingManager extends React.Component<{}> {
                         <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
                         <div className={"users-list"} style={{ display: existOtherUsers ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
                             {!existOtherUsers ? "There are no other users in your database." :
-                                this.users.map(({ user, notificationDoc }) => {
+                                this.users.map(({ user, notificationDoc }) => { // can't use async here
                                     const userKey = user.userDocumentId;
                                     const permissions = this.computePermissions(userKey);
                                     const color = ColorMapping.get(permissions);
+
+                                    // console.log(manager);
+                                    // const metadata = manager[userKey] as Doc;
+                                    // const usersShared = StrCast(metadata?.usersShared, "");
+                                    // console.log(usersShared)
+
+
                                     return (
                                         <div
                                             key={userKey}
                                             className={"container"}
                                         >
                                             <span className={"padding"}>{user.email}</span>
+                                            {/* <div className={"shared-by"}>{usersShared}</div> */}
                                             <div className="edit-actions">
                                                 <select
                                                     className={"permissions-dropdown"}
@@ -380,6 +404,7 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     render() {
+        // console.log(this.sharingDoc);
         return (
             <MainViewModal
                 contents={this.sharingInterface}

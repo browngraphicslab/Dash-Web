@@ -119,7 +119,7 @@ export default class GroupManager extends React.Component<{}> {
      */
     getAllGroupsCopy(): Doc[] {
         return this.getAllGroups().map(({ groupName, owners, members }) =>
-            Doc.assign(new Doc, { groupName: (groupName as string), owners: (owners as string), members: (members as string) })
+            Doc.assign(new Doc, { groupName: (StrCast(groupName)), owners: (StrCast(owners)), members: (StrCast(members)) })
         );
     }
 
