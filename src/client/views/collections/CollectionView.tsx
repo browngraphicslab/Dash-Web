@@ -207,8 +207,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Carousel3D: { return (<CollectionCarousel3DView key="collview" {...props} />); }
-            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
-            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
+            case CollectionViewType.Stacking: { this.props.Document._columnsStack = true; return (<CollectionStackingView key="collview" {...props} />); }
+            case CollectionViewType.Masonry: { this.props.Document._columnsStack = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
             case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
             case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
@@ -360,7 +360,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const facets = new Set<string>();
         this.childDocs.filter(child => child).forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
-        return Array.from(facets);
+        return Array.from(facets).filter(f => !f.startsWith("_") && !["proto", "zIndex", "isPrototype", "context", "text-noTemplate"].includes(f)).sort();
     }
 
     /**
@@ -534,7 +534,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {!this.props.isSelected() || this.props.PanelHeight() < 100 || this.props.Document.hideFilterView ? (null) :
+            {(!this.props.isSelected() || this.props.Document.hideFilterView) && !this.props.Document.forceActive ? (null) :
                 <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
                     style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }

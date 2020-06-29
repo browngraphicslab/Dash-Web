@@ -406,7 +406,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     @observable private _currentKey: string = "";
     @observable private suggestions: string[] = [];
 
-    @computed private get descending() { return BoolCast(this.props.CollectionView.props.Document.stackingHeadersSortDescending); }
+    @computed private get descending() { return StrCast(this.props.CollectionView.props.Document._columnsSort) === "descending"; }
     @computed get pivotField() { return StrCast(this.props.CollectionView.props.Document._pivotField); }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
@@ -450,7 +450,11 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
         return true;
     }
 
-    @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
+    @action toggleSort = () => {
+        this.props.CollectionView.props.Document._columnsSort =
+        this.props.CollectionView.props.Document._columnsSort === "descending" ? "ascending" :
+            this.props.CollectionView.props.Document._columnsSort === "ascending" ? undefined : "descending";
+    };
     @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {

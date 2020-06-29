@@ -206,7 +206,6 @@ export class MainView extends React.Component {
             _width: this._panelWidth * .7,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
-            _LODdisable: true
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
@@ -355,15 +354,6 @@ export class MainView extends React.Component {
     }
 
     @action
-    pointerOverDragger = () => {
-        // if (this.flyoutWidth === 0) {
-        //     this.flyoutWidth = 250;
-        //     this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
-        //     this._flyoutTranslate = false;
-        // }
-    }
-
-    @action
     pointerLeaveDragger = () => {
         if (!this._flyoutTranslate) {
             this.flyoutWidth = 0;
@@ -375,13 +365,13 @@ export class MainView extends React.Component {
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
         Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
-        this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
+        this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
     }
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
             this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
-            this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
+            this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -470,7 +460,7 @@ export class MainView extends React.Component {
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-                        <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
+                        <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
                             style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
                             <span title="library View Dragger" style={{
                                 width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
@@ -497,7 +487,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
-        MainView.Instance.sidebarButtonsDoc.columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
+        MainView.Instance.sidebarButtonsDoc._columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
     });
 
     @computed get expandButton() {
