@@ -53,10 +53,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @observable static StartLink: DocumentView | undefined;
     onLinkButtonDown = (e: React.PointerEvent): void => {
+
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
-            if (doubleTap && !this.props.InMenu) {
+            if (doubleTap) {
                 DocumentLinksButton.StartLink = this.props.View;
-            } else {
+            } else if (!!!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
                 DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
             }

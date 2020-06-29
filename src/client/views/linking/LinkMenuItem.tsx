@@ -135,6 +135,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
     }
 
+    @action
+    deleteLink = (): void => {
+        LinkManager.Instance.deleteLink(this.props.linkDoc);
+        //this.props.showLinks();
+    }
+
     render() {
         const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
         const canExpand = keys ? keys.length > 0 : false;
@@ -147,7 +153,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         <div className="linkMenu-item-buttons">
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
-                            <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
+
+                            {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div> */}
+                            <div title="Delete link" className="button" ref={this._editRef} onPointerDown={this.deleteLink}><FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}>
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
                             </div>
