@@ -78,10 +78,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @computed get columns() {
-        return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
+        return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
     }
     set columns(columns: SchemaHeaderField[]) {
-        this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns);
+        this.props.Document._schemaHeaders = new List<SchemaHeaderField>(columns);
     }
 
     get documentKeys() {
