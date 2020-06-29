@@ -19,8 +19,6 @@ export function SetupDrag(
     docFunc: () => Doc | Promise<Doc> | undefined,
     moveFunc?: DragManager.MoveFunction,
     dropAction?: dropActionType,
-    treeViewId?: string,
-    dontHideOnDrop?: boolean,
     dragStarted?: () => void
 ) {
     const onRowMove = async (e: PointerEvent) => {
@@ -34,8 +32,6 @@ export function SetupDrag(
             const dragData = new DragManager.DocumentDragData([doc]);
             dragData.dropAction = dropAction;
             dragData.moveDocument = moveFunc;
-            dragData.treeViewId = treeViewId;
-            dragData.dontHideOnDrop = dontHideOnDrop;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
             dragStarted?.();
         }
@@ -128,7 +124,7 @@ export namespace DragManager {
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
         dragDivName?: string;
-        treeViewId?: string;
+        treeViewDoc?: Doc;
         dontHideOnDrop?: boolean;
         offset: number[];
         dropAction: dropActionType;

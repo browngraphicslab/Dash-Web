@@ -878,7 +878,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         setTimeout(async () => {
                             const targetField = Doc.LayoutFieldKey(pdfDoc);
                             const targetAnnotations = await DocListCastAsync(pdfDoc[DataSym][targetField + "-annotations"]);// bcz: better to have the PDF's view handle updating its own annotations
-                            targetAnnotations?.push(pdfRegion);
+                            if (targetAnnotations) targetAnnotations.push(pdfRegion);
+                            else Doc.AddDocToList(pdfDoc[DataSym], targetField + "-annotations", pdfRegion);
                         });
 
                         const link = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: pdfRegion }, "PDF pasted");
@@ -1030,9 +1031,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
             const pcords = editor.posAtCoords({ left: e.clientX, top: e.clientY });
-            const node = pcords && editor.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
-            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(node && pcords ?
-                new NodeSelection(editor.state.doc.resolve(pcords.pos)) : new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
+            !this.props.isSelected(true) && editor.dispatch(editor.state.tr.setSelection(new TextSelection(editor.state.doc.resolve(pcords?.pos || 0))));
             FormattedTextBoxComment.update(editor, undefined, (e.target as any)?.className === "prosemirror-dropdownlink" ? (e.target as any).href : "");
         }
         (e.nativeEvent as any).formattedHandled = true;
@@ -1220,13 +1219,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
         if (this.props.renderDepth && this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
-            scrollHeight = scrollHeight * NumCast(this.layoutDoc.scale, 1);
+            scrollHeight = scrollHeight * NumCast(this.layoutDoc._viewScale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc._autoHeight = false;
             }
-            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
+            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.layoutDoc._nativeHeight, 0);
             const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
@@ -1234,11 +1233,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 console.log("Delayed height adjustment...");
                 setTimeout(() => {
                     this.rootDoc._height = newHeight;
-                    this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
                 }, 10);
             } else {
-                this.rootDoc._height = newHeight;
-                this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                this.layoutDoc._height = newHeight;
+                this.layoutDoc._nativeHeight = nh ? scrollHeight : undefined;
             }
         }
     }
@@ -1249,7 +1248,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
-        const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
+        const scale = this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
         if (this.props.isSelected()) {

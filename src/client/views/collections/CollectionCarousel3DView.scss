@@ -1,0 +1,107 @@
+.collectionCarousel3DView-outer {
+    height: 100%;
+    position: relative;
+    background-color: white;
+}
+
+.carousel-wrapper {
+    display: flex;
+    position: absolute;
+    top: 15%;
+    align-items: center;
+    transition: transform 0.3s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+
+    .collectionCarousel3DView-item,
+    .collectionCarousel3DView-item-active {
+        flex: 1;
+        transition: opacity 0.3s linear, transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+        pointer-events: none;
+    }
+
+    .collectionCarousel3DView-item-active {
+        pointer-events: unset;
+    }
+}
+
+.dot-bar {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    bottom: 5%;
+    width: 100%;
+
+    .dot,
+    .dot-active {
+        height: 10px;
+        width: 10px;
+        border-radius: 50%;
+        margin: 3px;
+        display: inline-block;
+        background-color: lightgrey;
+        cursor: pointer;
+    }
+
+    .dot-active {
+        background-color: grey;
+    }
+}
+
+.carousel3DView-back,
+.carousel3DView-fwd,
+.carousel3DView-back-scroll,
+.carousel3DView-fwd-scroll,
+.carousel3DView-back-scroll-hidden,
+.carousel3DView-fwd-scroll-hidden {
+    position: absolute;
+    display: flex;
+    width: 30;
+    height: 30;
+    align-items: center;
+    border-radius: 5px;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.46);
+    cursor: pointer;
+}
+
+.carousel3DView-fwd,
+.carousel3DView-back {
+    top: 50%;
+}
+
+.carousel3DView-fwd-scroll,
+.carousel3DView-back-scroll,
+.carousel3DView-fwd-scroll-hidden,
+.carousel3DView-back-scroll-hidden {
+    top: calc(50% - 30px);
+}
+
+.carousel3DView-fwd,
+.carousel3DView-fwd-scroll,
+.carousel3DView-fwd-scroll-hidden {
+    right: 0;
+}
+
+.carousel3DView-back,
+.carousel3DView-back-scroll,
+.carousel3DView-back-scroll-hidden {
+    left: 0;
+}
+
+.carousel3DView-fwd-scroll-hidden,
+.carousel3DView-back-scroll-hidden {
+    opacity: 0;
+    transition: opacity 0.5s linear;
+    pointer-events: none;
+}
+
+.carousel3DView-fwd-scroll,
+.carousel3DView-back-scroll {
+    opacity: 1;
+}
+
+.carousel3DView-back:hover,
+.carousel3DView-fwd:hover,
+.carousel3DView-back-scroll:hover,
+.carousel3DView-fwd-scroll:hover {
+    background: lightgray;
+}

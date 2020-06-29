@@ -240,10 +240,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
 
     @computed get columns() {
-        return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
+        return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
     }
     set columns(columns: SchemaHeaderField[]) {
-        this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns);
+        this.props.Document._schemaHeaders = new List<SchemaHeaderField>(columns);
     }
 
     @computed get childDocs() {
@@ -375,10 +375,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     constructor(props: SchemaTableProps) {
         super(props);
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
-        const oldSchemaColumns = Cast(this.props.Document.schemaColumns, listSpec("string"), []);
-        if (oldSchemaColumns && oldSchemaColumns.length && typeof oldSchemaColumns[0] !== "object") {
-            const newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
-            this.props.Document.schemaColumns = new List<SchemaHeaderField>(newSchemaColumns);
+        const oldSchemaHeaders = Cast(this.props.Document._schemaHeaders, listSpec("string"), []);
+        if (oldSchemaHeaders?.length && typeof oldSchemaHeaders[0] !== "object") {
+            const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
+            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
+        } else if (this.props.Document._schemaHeaders === undefined) {
+            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb")]);
         }
     }
 
@@ -740,7 +742,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 if(col === undefined) {
                     return (doc as any)[key][row + ${row}];
                 }
-                return (doc as any)[key][row + ${row}][(doc as any).schemaColumns[col + ${col}].heading];
+                return (doc as any)[key][row + ${row}][(doc as any)._schemaHeaders[col + ${col}].heading];
             }
             return ${script}`;
         const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: false, transformer: this.createTransformer(row, col) });

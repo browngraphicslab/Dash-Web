@@ -5,7 +5,7 @@ import {
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faQuoteLeft, faSortAmountDown
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -82,7 +82,10 @@ export class MainView extends React.Component {
 
     public isPointerDown = false;
 
+
     componentDidMount() {
+        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType"]); // can play with these fields on someone else's
+
         const tag = document.createElement('script');
 
         const proto = DocServer.GetRefField("rtfProto").then(proto => {
@@ -139,7 +142,7 @@ export class MainView extends React.Component {
             faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
             faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
-            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faQuoteLeft, faSortAmountDown);
+            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -204,7 +207,6 @@ export class MainView extends React.Component {
             _width: this._panelWidth * .7,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
-            _LODdisable: true
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
@@ -353,15 +355,6 @@ export class MainView extends React.Component {
     }
 
     @action
-    pointerOverDragger = () => {
-        // if (this.flyoutWidth === 0) {
-        //     this.flyoutWidth = 250;
-        //     this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
-        //     this._flyoutTranslate = false;
-        // }
-    }
-
-    @action
     pointerLeaveDragger = () => {
         if (!this._flyoutTranslate) {
             this.flyoutWidth = 0;
@@ -373,13 +366,13 @@ export class MainView extends React.Component {
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
         Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
-        this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30;
+        this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
     }
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
             this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
-            this.flyoutWidth && (this.sidebarButtonsDoc.columnWidth = this.flyoutWidth / 3 - 30);
+            this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -473,7 +466,7 @@ export class MainView extends React.Component {
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-                        <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
+                        <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
                             style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
                             <span title="library View Dragger" style={{
                                 width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
@@ -500,7 +493,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
-        MainView.Instance.sidebarButtonsDoc.columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
+        MainView.Instance.sidebarButtonsDoc._columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
     });
 
     @computed get expandButton() {
@@ -575,8 +568,32 @@ export class MainView extends React.Component {
         </div>;
     }
 
+    @computed get inkResources() {
+        return <svg width={0} height={0}>
+            <defs>
+                <filter id="inkSelectionHalo">
+                    <feColorMatrix type="matrix"
+                        result="color"
+                        values="1 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 1 0">
+                    </feColorMatrix>
+                    <feGaussianBlur in="color" stdDeviation="4" result="blur"></feGaussianBlur>
+                    <feOffset in="blur" dx="0" dy="0" result="offset"></feOffset>
+                    <feMerge>
+                        <feMergeNode in="bg"></feMergeNode>
+                        <feMergeNode in="offset"></feMergeNode>
+                        <feMergeNode in="SourceGraphic"></feMergeNode>
+                    </feMerge>
+                </filter>
+            </defs>
+        </svg>;
+    }
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
+            {this.inkResources}
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />

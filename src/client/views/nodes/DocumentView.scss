@@ -42,6 +42,17 @@
             width:10px !important;
         }
     }
+    .documentView-treeView {
+        max-height: 1.5em;
+        text-overflow: ellipsis;
+        display: inline-block;
+        white-space: pre;
+        width: 100%;
+        overflow: hidden;
+        > .documentView-node {
+            position: absolute;
+        }
+    }
 
     .documentView-lock {
         width: 20; 

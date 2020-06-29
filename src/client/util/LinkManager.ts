@@ -63,6 +63,9 @@ export class LinkManager {
             const protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
             return protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor);
         });
+        DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).map(anno => {
+            related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
+        });
         return related;
     }
 
