@@ -4,8 +4,8 @@ import "./Timeline.scss";
 import "../globalCssVariables.scss";
 import { observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, computed, runInAction, trace } from "mobx";
-import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../fields/Doc";
-import { Cast, NumCast, BoolCast } from "../../../fields/Types";
+import { Doc, DocListCast, DocListCastAsync, Opt, Field } from "../../../fields/Doc";
+import { Cast, NumCast, BoolCast, StrCast } from "../../../fields/Types";
 import { List } from "../../../fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../fields/Schema";
 import { Transform } from "../../util/Transform";
@@ -13,6 +13,9 @@ import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { emptyPath, Utils, numberRange } from "../../../Utils";
+import { EditableView } from "../EditableView";
+import { KeyValueBox } from "../nodes/KeyValueBox";
+import { Track } from "../nodes/SliderBox-components";
 
 /**
  * Useful static functions that you can use. Mostly for logic, but you can also add UI logic here also 
@@ -107,8 +110,6 @@ export const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
     duration: defaultSpec("number", 0),
     keyframes: listSpec(Doc),
-    // fadeIn: defaultSpec("number", 0),
-    // fadeOut: defaultSpec("number", 0),
     functions: listSpec(Doc),
     hasData: defaultSpec("boolean", false)
 });
@@ -124,8 +125,8 @@ interface IProps {
     time: number;
     currentBarX: number;
     changeCurrentBarX: (x: number) => void;
-    transform: Transform;
     makeKeyData: (region: RegionData, pos: number, kftype: KeyframeFunc.KeyframeType) => Doc;
+    transform: Transform;
     defaultTrackedFields: string[];
 }
 
@@ -368,17 +369,29 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
     }
 
-    makeCheckbox = (kf: Doc, field: string) => {
-        const fieldTracked: string = field + "Tracked";
+    makeCheckbox = (kf: Doc, fieldKey: string) => {
+        const fieldTracked: string = fieldKey + "Tracked";
+        const checkboxRef = React.createRef<HTMLInputElement>();
         const inputRef = React.createRef<HTMLInputElement>();
+        console.log(fieldKey, String(kf[fieldKey]));
+
         return <div key={Utils.GenerateGuid()} className="timeline-menu-item">
-            <input type="checkbox" className="timeline-menu-checkbox" ref={inputRef}
+            <input type="checkbox" className="timeline-menu-checkbox" ref={checkboxRef}
                 defaultChecked={BoolCast(kf[fieldTracked], true)} // all fields should be tracked by default, so default BoolCast to true when fieldTracked is undefined
                 onChange={action(e => {
                     e.stopPropagation();
                     kf[fieldTracked] = BoolCast(kf[fieldTracked], true) ? false : true;
                 })} />
-            {field}
+            {fieldKey}
+            <input className="timeline-menu-input" ref={inputRef} defaultValue={String(kf[fieldKey])}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Enter" || e.key === "Tab") {
+                        kf[fieldKey] = Number(e.currentTarget.value); // need to error check input values
+                        // how to apply field values if bar is on the current kf?
+                        e.currentTarget.blur();
+                    }
+                }}
+                onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
         </div>;
     }
 

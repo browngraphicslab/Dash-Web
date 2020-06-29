@@ -219,10 +219,11 @@ export class Track extends React.Component<IProps> {
      */
     @action
     private applyKeys = async (kf: Doc) => {
+        console.log("APPLY KEYS");
         this.defaultTrackedFields.forEach(key => {
             if (!kf[key]) {
                 this.props.node[key] = undefined;
-            } else if (BoolCast(kf[key + "Tracked"], true)) { // prob needs fixing for diff scenarios // when first initialized fieldTracked is undefined, so default to true 
+            } else if (BoolCast(kf[key + "Tracked"], true)) { // when first initialized fieldTracked is undefined, so default to true 
                 const stored = kf[key];
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
             }
@@ -238,7 +239,9 @@ export class Track extends React.Component<IProps> {
         let currentkf: (Doc | undefined) = undefined;
         const keyframes = DocListCast(region.keyframes!);
         keyframes.forEach((kf) => {
-            if (NumCast(kf.time) === Math.round(this.time)) currentkf = kf;
+            if (NumCast(kf.time) === Math.round(this.time)) {
+                currentkf = kf;
+            }
         });
         return currentkf;
     }
@@ -319,12 +322,11 @@ export class Track extends React.Component<IProps> {
         newKeyFrame.type = type;
         this.copyDocDataToKeyFrame(newKeyFrame);
         //assuming there are already keyframes (for keeping keyframes in order, sorted by time)
-        if (trackKeyFrames.length === 0) { regiondata.keyframes!.push(newKeyFrame); console.log("added, only keyframe"); }
+        if (trackKeyFrames.length === 0) { regiondata.keyframes!.push(newKeyFrame); }
         trackKeyFrames.map(kf => NumCast(kf.time)).forEach((kfTime, index) => {
             if (index === 0 && time < kfTime) { // if newKeyFrame is leftmost keyframe
                 regiondata.keyframes!.unshift(newKeyFrame);
             } else if ((index === trackKeyFrames.length - 1 && kfTime < time) || (kfTime < time && time < NumCast(trackKeyFrames[index + 1].time))) { // if newKeyFrame is rightmost keyframe, or in between keyframes
-                console.log("added to index ", index);
                 regiondata.keyframes!.splice(index + 1, 0, newKeyFrame);
             }
         });
@@ -333,7 +335,6 @@ export class Track extends React.Component<IProps> {
 
     @action
     copyDocDataToKeyFrame = (doc: Doc, ) => {
-        console.log("copyDocDataToKeyFrame");
         this.defaultTrackedFields.map(key => {
             const fieldTracked = BoolCast(doc[key + "Tracked"], true); // when first initialized `{field}Tracked` is undefined, so default to true 
             if (fieldTracked) {

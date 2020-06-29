@@ -150,10 +150,11 @@ export class MainView extends React.Component {
         this.isPointerDown = true;
         AudioBox.Enabled = true;
         const targets = document.elementsFromPoint(e.x, e.y);
+        const targetClassName = targets[0].className.toString();
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
         }
-        if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input" && targets[0].className.toString() !== "timeline-menu-checkbox")) {
+        if (targets && (targets.length && targetClassName !== "timeline-menu-desc" && targetClassName !== "timeline-menu-item" && targetClassName !== "timeline-menu-input" && targetClassName !== "timeline-menu-checkbox")) {
             TimelineMenu.Instance.closeMenu();
         }
     });
