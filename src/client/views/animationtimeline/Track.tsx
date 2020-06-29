@@ -10,7 +10,6 @@ import { Cast, NumCast, BoolCast } from "../../../fields/Types";
 import { Transform } from "../../util/Transform";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import "./Track.scss";
-import { primitive } from "serializr";
 
 interface IProps {
     node: Doc;
@@ -208,6 +207,8 @@ export class Track extends React.Component<IProps> {
                 this.saveStateRegion = regiondata;
             } else if (leftkf && rightkf) {
                 await this.interpolate(leftkf, rightkf);
+            } else if (rightkf) { // haven't reached first keyframe yet
+                await this.applyKeys(rightkf); // set all fields to the first keyframe's data
             }
         }
     }
@@ -290,12 +291,12 @@ export class Track extends React.Component<IProps> {
     @action
     createRegion = (time: number) => {
         if (this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
-            const regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
+            const regiondata = KeyframeFunc.defaultRegion(); //create regiondata
 
             regiondata.position = time; //set position
             const rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
 
-            if (rightRegion && rightRegion.position - regiondata.position <= 4000) { //edge case when there is less than default 4000 duration space between this and right region
+            if (rightRegion && rightRegion.position - regiondata.position <= 6000) { //edge case when there is less than default 4000 duration space between this and right region
                 regiondata.duration = rightRegion.position - regiondata.position;
             }
             if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= 0)) {
@@ -309,7 +310,6 @@ export class Track extends React.Component<IProps> {
 
     @action
     makeKeyData = (regiondata: RegionData, time: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        console.log("MAKEKEYDATA");
         const trackKeyFrames = DocListCast(regiondata.keyframes);
         const existingkf = trackKeyFrames.find(TK => TK.time === time);
         if (existingkf) return existingkf;

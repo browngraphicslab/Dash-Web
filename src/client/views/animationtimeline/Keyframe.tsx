@@ -81,9 +81,9 @@ export namespace KeyframeFunc {
         return rightKf;
     };
 
-    export const defaultKeyframe = () => {
+    export const defaultRegion = () => {
         const regiondata = new Doc(); //creating regiondata in MILI
-        regiondata.duration = 4000;
+        regiondata.duration = 6000;
         regiondata.position = 0;
         regiondata.functions = new List<Doc>();
         regiondata.hasData = false;
@@ -363,17 +363,6 @@ export class Keyframe extends React.Component<IProps> {
                 (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
                 this.forceUpdate();
             })),
-            // TimelineMenu.Instance.addItem("input", "Move", action((val) => {
-            //     let cannotMove: boolean = false;
-            //     const kfIndex: number = this.keyframes.indexOf(kf);
-            //     if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
-            //         cannotMove = true;
-            //     }
-            //     if (!cannotMove) {
-            //         this.keyframes[kfIndex].time = parseInt(val, 10);
-            //         this.keyframes[1].time = this.regiondata.position;
-            //     }
-            // })),
             TimelineMenu.Instance.addCheckbox(this.props.defaultTrackedFields.map(field => this.makeCheckbox(kf, field))); //make checkbox for each tracked field //integrate w addItem later
         TimelineMenu.Instance.addMenu("Keyframe");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
@@ -381,8 +370,9 @@ export class Keyframe extends React.Component<IProps> {
 
     makeCheckbox = (kf: Doc, field: string) => {
         const fieldTracked: string = field + "Tracked";
-        return <div className="timeline-menu-item">
-            <input type="checkbox" key={Utils.GenerateGuid()} className="timeline-menu-checkbox"
+        const inputRef = React.createRef<HTMLInputElement>();
+        return <div key={Utils.GenerateGuid()} className="timeline-menu-item">
+            <input type="checkbox" className="timeline-menu-checkbox" ref={inputRef}
                 defaultChecked={BoolCast(kf[fieldTracked], true)} // all fields should be tracked by default, so default BoolCast to true when fieldTracked is undefined
                 onChange={action(e => {
                     e.stopPropagation();
