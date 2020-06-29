@@ -77,6 +77,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.ScreenToLocalTransform().transformPoint(x, y);
     }
 
+    @observable scale = this.props.ScreenToLocalTransform().Scale;
+
     @computed get columns() {
         return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
     }
@@ -576,16 +578,29 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns = columns;
     }
 
+    onZoomMenu = (e: React.WheelEvent) => {
+        this.props.active(true) && e.stopPropagation();
+        if (this.menuCoordinates[0] > e.screenX) {
+            this.menuCoordinates[0] -= e.screenX //* this.scale;
+        } else {
+            this.menuCoordinates[0] += e.screenX //* this.scale;
+        }
+        if (this.menuCoordinates[1] > e.screenY) {
+            this.menuCoordinates[1] -= e.screenY //* this.scale;
+        } else {
+            this.menuCoordinates[1] += e.screenY //* this.scale;
+        }
+    }
+
     render() {
         TraceMobx();
         const menuContent = this.renderMenuContent;
-        const scale = this.props.ScreenToLocalTransform().Scale;
         const menu = <div className="collectionSchema-header-menu" ref={this.setNode}
-            onWheel={e => this.props.active(true) && e.stopPropagation()}
+            onWheel={e => this.onZoomMenu(e)}
             onPointerDown={e => this.onHeaderClick(e)}
             style={{
-                position: "absolute", background: "white",
-                transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)`
+                position: "fixed", background: "white",
+                transform: `translate(${this.menuCoordinates[0] / this.scale}px, ${this.menuCoordinates[1] / this.scale}px)`
             }}>
             <Measure offset onResize={action((r: any) => {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
