@@ -46,15 +46,8 @@
 
 @media only screen and (max-device-width: 480px) {
     .antimodeMenu-cont {
-        position: absolute;
-        z-index: 10000;
         height: 100px;
         width: 100vw;
-        background: #323232;
-        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
-        border-radius: 0px 6px 6px 6px;
-        // overflow: hidden;    
-        display: flex;
 
         &.with-rows {
             flex-direction: column-reverse;
@@ -78,15 +71,6 @@
 
         .antimodeMenu-button:hover {
             background-color: #121212;
-        }
-
-        .antimodeMenu-dragger {
-            height: 100%;
-            transition: width .2s;
-            background-image: url("https://logodix.com/logo/1020374.png");
-            background-size: 90% 100%;
-            background-repeat: no-repeat;
-            background-position: left center;
         }
     }
 }

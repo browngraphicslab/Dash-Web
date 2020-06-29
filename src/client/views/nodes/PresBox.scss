@@ -81,6 +81,7 @@
     }
 }
 
+// CSS adjusted for mobile devices
 @media only screen and (max-device-width: 480px) {
     .presBox-cont .presBox-buttons {
         position: absolute;
@@ -92,37 +93,33 @@
         z-index: 2;
         align-items: center;
         background: rgba(0, 0, 0, 0);
-        padding-top: 5px;
-        padding-bottom: 5px;
         display: inline-flex;
+
+        .presBox-button {
+            margin-top: 5%;
+            height: 250;
+            width: 300;
+            font-size: 100;
+            display: flex;
+            align-items: center;
+            background: #323232;
+            color: white;
+        }
+
+        .presBox-viewPicker {
+            top: -70;
+            left: 2.5%;
+            height: 50;
+            width: 95%;
+            font-size: 30px;
+            position: absolute;
+            min-width: 50px;
+        }
     }
 
     .presBox-cont .presBox-listCont {
-        position: absolute;
         top: 50;
         height: calc(100% - 80px);
-        width: 100%;
-    }
-
-    .presBox-cont .presBox-buttons .presBox-button {
-        margin-top: 5%;
-        height: 250;
-        width: 300;
-        font-size: 100;
-        display: flex;
-        align-items: center;
-        background: 323232;
-        color: white;
-    }
-
-    .presBox-cont .presBox-buttons .presBox-viewPicker {
-        top: -70;
-        left: 2.5%;
-        height: 50;
-        width: 95%;
-        font-size: 30px;
-        position: absolute;
-        min-width: 50px;
     }
 
     .input,

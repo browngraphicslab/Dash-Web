@@ -175,7 +175,8 @@
         }
 
         .collectionStackingViewChrome-cont,
-        .collectionTreeViewChrome-cont {
+        .collectionTreeViewChrome-cont,
+        .collection3DCarouselViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
@@ -240,21 +241,24 @@
 
 
         .collectionStackingViewChrome-pivotField-cont,
-        .collectionTreeViewChrome-pivotField-cont {
+        .collectionTreeViewChrome-pivotField-cont,
+        .collection3DCarouselViewChrome-scrollSpeed-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
             .collectionStackingViewChrome-pivotField-label,
-            .collectionTreeViewChrome-pivotField-label {
+            .collectionTreeViewChrome-pivotField-label,
+            .collection3DCarouselViewChrome-scrollSpeed-label {
                 vertical-align: center;
                 padding-left: 10px;
                 margin: auto;
             }
 
             .collectionStackingViewChrome-pivotField,
-            .collectionTreeViewChrome-pivotField {
+            .collectionTreeViewChrome-pivotField,
+            .collection3DCarouselViewChrome-scrollSpeed {
                 color: white;
                 width: 100%;
                 min-width: 100px;
@@ -268,7 +272,7 @@
                 .editableView-container-editing {
                     margin: auto;
                     border: 0px;
-                    color: grey;
+                    color: grey !important;
                     text-align: center;
                     letter-spacing: 2px;
                     outline-color: black;
@@ -284,7 +288,8 @@
         }
 
         .collectionStackingViewChrome-pivotField:hover,
-        .collectionTreeViewChrome-pivotField:hover {
+        .collectionTreeViewChrome-pivotField:hover,
+        .collection3DCarouselViewChrome-scrollSpeed:hover {
             cursor: text;
         }
 

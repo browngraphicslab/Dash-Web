@@ -1,7 +1,7 @@
 .pdfBox,
 .pdfBox-interactive {
     display: inline-block;
-    position: absolute;
+    position: relative;
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -11,18 +11,19 @@
 
     .pdfBox-ui {
         position: absolute;
-         width: 100%;
-         height: 100%;
-         z-index: 1;
-         pointer-events: none;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        pointer-events: none;
 
-         .pdfBox-pageNums {
+        .pdfBox-pageNums {
             display: flex;
             flex-direction: row;
             height: 25px;
             position: absolute;
             left: 5px;
             top: 5px;
+
             .pdfBox-overlayButton-fwd,
             .pdfBox-overlayButton-back {
                 background: #121721;
@@ -35,29 +36,29 @@
                 border-radius: 3px;
                 pointer-events: all;
             }
-         }
+        }
 
-         .pdfBox-overlayButton {
-             border-bottom-left-radius: 50%;
-             display: flex;
-             justify-content: space-evenly;
-             align-items: center;
-             height: 20px;
-             background: none;
-             padding: 0;
-             position: absolute;
-             pointer-events: all;
+        .pdfBox-overlayButton {
+            border-bottom-left-radius: 50%;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            height: 20px;
+            background: none;
+            padding: 0;
+            position: absolute;
+            pointer-events: all;
 
-             .pdfBox-overlayButton-arrow {
-                 width: 0;
-                 height: 0;
-                 border-top: 10px solid transparent;
-                 border-bottom: 10px solid transparent;
-                 border-right: 15px solid #121721;
-                 transition: all 0.5s;
-             }
+            .pdfBox-overlayButton-arrow {
+                width: 0;
+                height: 0;
+                border-top: 10px solid transparent;
+                border-bottom: 10px solid transparent;
+                border-right: 15px solid #121721;
+                transition: all 0.5s;
+            }
 
-             .pdfBox-overlayButton-iconCont {
+            .pdfBox-overlayButton-iconCont {
                 background: #121721;
                 height: 20px;
                 width: 25px;
@@ -201,7 +202,7 @@
 }
 
 .pdfBox {
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         .textLayer {
             span {
                 user-select: none;
@@ -212,8 +213,7 @@
 
 .pdfBox-interactive {
     pointer-events: all;
-
-    .pdfViewer-text {
+    .pdfViewerDash-text {
         .textLayer {
             span {
                 user-select: text;
@@ -222,120 +222,60 @@
     }
 }
 
+// CSS adjusted for mobile devices
 @media only screen and (max-device-width: 480px) {
 
     .pdfBox .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsButton,
     .pdfBox-interactive .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsButton {
-        border-bottom-left-radius: 50%;
-        display: flex;
-        justify-content: space-evenly;
-        align-items: center;
         height: 60px;
-        background: none;
-        padding: 0;
+
+        .pdfBox-settingsButton-iconCont {
+            height: 60px;
+            width: 75px;
+            font-size: 30px;
+        }
+
+        .pdfBox-settingsButton-arrow {
+            height: 60;
+            border-top: 30px solid transparent;
+            border-bottom: 30px solid transparent;
+            border-right: 30px solid #121721;
+        }
     }
 
-    .pdfBox .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsButton .pdfBox-settingsButton-iconCont,
-    .pdfBox-interactive .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsButton .pdfBox-settingsButton-iconCont {
-        background: #121721;
-        height: 60px;
-        width: 75px;
-        font-size: 30px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-left: -2px;
-        border-radius: 3px;
-    }
+
 
     .pdfBox .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsFlyout,
     .pdfBox-interactive .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsFlyout {
-        position: absolute;
-        background: #323232;
-        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
-        right: 20px;
-        border-radius: 7px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
         font-size: 30px;
-        transition: all 0.5s;
     }
 
-    .pdfBox .pdfBox-ui .pdfBox-settingsCont,
-    .pdfBox-interactive .pdfBox-ui .pdfBox-settingsCont {
-        position: absolute;
-        right: 0;
-        top: 3;
-        pointer-events: all;
-    }
 
-    .pdfBox .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsButton .pdfBox-settingsButton-arrow,
-    .pdfBox-interactive .pdfBox-ui .pdfBox-settingsCont .pdfBox-settingsButton .pdfBox-settingsButton-arrow {
-        width: 0;
-        height: 60;
-        border-top: 30px solid transparent;
-        border-bottom: 30px solid transparent;
-        border-right: 30px solid #121721;
-        transition: all 0.5s;
-    }
-
-    .pdfBox .pdfBox-ui .pdfBox-overlayButton .pdfBox-overlayButton-iconCont,
-    .pdfBox-interactive .pdfBox-ui .pdfBox-overlayButton .pdfBox-overlayButton-iconCont {
-        background: #121721;
-        height: 60px;
-        width: 75px;
-        display: flex;
-        font-size: 30;
-        position: relative;
-        align-items: center;
-        justify-content: center;
-        border-radius: 3px;
-        pointer-events: all;
-    }
-
-    .pdfBox .pdfBox-ui .pdfBox-overlayButton .pdfBox-overlayButton-arrow,
-    .pdfBox-interactive .pdfBox-ui .pdfBox-overlayButton .pdfBox-overlayButton-arrow {
-        width: 0;
-        height: 0;
-        border-top: 30px solid transparent;
-        border-bottom: 30px solid transparent;
-        border-right: 30px solid #121721;
-        transition: all 0.5s;
-    }
 
     .pdfBox .pdfBox-ui .pdfBox-overlayCont,
     .pdfBox-interactive .pdfBox-ui .pdfBox-overlayCont {
-        position: absolute;
-        width: calc(100% - 40px);
         height: 60px;
-        background: #121721;
-        bottom: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-        transition: left .5s;
-        pointer-events: all;
+
+        .pdfBox-searchBar {
+            font-size: 40px;
+        }
     }
 
     .pdfBox .pdfBox-ui .pdfBox-overlayButton,
     .pdfBox-interactive .pdfBox-ui .pdfBox-overlayButton {
-        border-bottom-left-radius: 50%;
-        display: flex;
-        justify-content: space-evenly;
-        align-items: center;
         height: 60px;
-        background: none;
-        padding: 0;
-        position: absolute;
-        pointer-events: all;
-    }
 
-    .pdfBox .pdfBox-ui .pdfBox-overlayCont .pdfBox-searchBar,
-    .pdfBox-interactive .pdfBox-ui .pdfBox-overlayCont .pdfBox-searchBar {
-        width: 70%;
-        font-size: 40px;
+        .pdfBox-overlayButton-iconCont {
+            height: 60px;
+            width: 75px;
+            font-size: 30;
+        }
+
+        .pdfBox-overlayButton-arrow {
+            border-top: 30px solid transparent;
+            border-bottom: 30px solid transparent;
+            border-right: 30px solid #121721;
+        }
     }
 
     button.pdfBox-search {
@@ -348,17 +288,8 @@
     .pdfBox .pdfBox-ui .pdfBox-prevIcon,
     .pdfBox-interactive .pdfBox-ui .pdfBox-nextIcon,
     .pdfBox-interactive .pdfBox-ui .pdfBox-prevIcon {
-        background: #121721;
         height: 50px;
         width: 50px;
         font-size: 30px;
-        display: flex;
-        position: relative;
-        align-items: center;
-        justify-content: center;
-        border-radius: 3px;
-        pointer-events: all;
-        padding: 0px;
     }
-
 }

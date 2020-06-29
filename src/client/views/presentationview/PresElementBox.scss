@@ -109,89 +109,42 @@
 @media only screen and (max-device-width: 480px) {
     .presElementBox-buttons {
         display: inline-flex;
-        position: relative;
-        width: 100%;
-    }
-
-    .presElementBox-item {
-        display: inline-flex;
-        overflow: hidden;
-    }
-
-    .presElementBox-buttons .presElementBox-interaction {
-        color: gray;
-        float: left;
-        padding: 0px;
-        width: 50;
-        height: 50;
-    }
-
-    .presElementBox-buttons .presElementBox-interaction-selected {
-        color: white;
-        float: left;
-        padding: 0px;
-        width: 50;
-        height: 50;
-        border: solid 1px darkgray;
-    }
-
-    .presElementBox-closeIcon {
-        border-radius: 20px;
-        transform: scale(1.5);
-        position: absolute;
-        right: 10;
-        top: 10;
-        padding: 8px;
-    }
-
-    .presElementBox-buttons {
-        display: inline-flex;
         position: absolute;
         top: 0;
         right: 0;
         z-index: 3;
         width: 50%;
+
+        .presElementBox-interaction {
+            width: 50;
+            height: 50;
+        }
+
+        .presElementBox-interaction-selected {
+            width: 50;
+            height: 50;
+        }
+    }
+
+    .presElementBox-item {
+        display: inline-flex;
+        overflow: hidden;
+    }
+
+    .presElementBox-closeIcon {
+        transform: scale(1.5);
+        right: 10;
+        top: 10;
     }
 
     .presElementBox-name {
         font-size: 30px;
-        position: absolute;
-        display: inline-block;
         top: 10px;
         z-index: 3;
         width: 50%;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: pre;
-    }
-
-    .presElementBox-item {
-        display: inline-block;
-        background-color: #eeeeee;
-        pointer-events: all;
-        width: 100%;
-        min-height: 100%;
-        height: max-content;
-        outline-color: maroon;
-        outline-style: dashed;
-        border-radius: 6px;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        transition: all .1s;
-        padding: 0px;
-        padding-bottom: 3px;
     }
 
     .presElementBox-embedded {
-        position: relative;
-        display: flex;
         transform: translate(0, 90px) scale(1.5);
-        width: auto;
-        justify-content: center;
-        margin: auto;
     }
 }
