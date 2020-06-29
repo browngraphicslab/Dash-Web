@@ -271,7 +271,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     }
                                     const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
                                     const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
-                                    const val = cscript !== undefined ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` :
+                                    const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
                                         Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
                                     return val;
                                 }
