@@ -1,4 +1,4 @@
-import { chainCommands, exitCode, joinDown, joinUp, lift, selectParentNode, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn, newlineInCode } from "prosemirror-commands";
+import { chainCommands, exitCode, joinDown, joinUp, lift, deleteSelection, joinBackward, selectNodeBackward, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn, newlineInCode } from "prosemirror-commands";
 import { liftTarget } from "prosemirror-transform";
 import { redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
@@ -12,6 +12,7 @@ import { Doc, DataSym } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Docs } from "../../../documents/Documents";
+import { update } from "lodash";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -43,7 +44,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
 
     //History commands
     bind("Mod-z", undo);
-    bind("Backspace", undoInputRule);
     bind("Shift-Mod-z", redo);
     !mac && bind("Mod-y", redo);
 
@@ -175,6 +175,25 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         }
     });
 
+    // backspace = chainCommands(deleteSelection, joinBackward, selectNodeBackward);
+    bind("Backspace", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        if (!deleteSelection(state, (tx: Transaction<Schema<any, any>>) => {
+            dispatch(updateBullets(tx, schema));
+        })) {
+            if (!joinBackward(state, (tx: Transaction<Schema<any, any>>) => {
+                dispatch(updateBullets(tx, schema));
+            })) {
+                if (!selectNodeBackward(state, (tx: Transaction<Schema<any, any>>) => {
+                    dispatch(updateBullets(tx, schema));
+                })) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    });
+
+    //newlineInCode, createParagraphNear, liftEmptyBlock, splitBlock
     //command to break line
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
         if (addTextOnRight(false)) return true;
@@ -190,7 +209,12 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         const cr = state.selection.$from.node().textContent.endsWith("\n");
         if (cr || !newlineInCode(state, dispatch)) {
-            if (!splitListItem(schema.nodes.list_item)(state, dispatch)) {
+            if (!splitListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
+                const tx3 = updateBullets(tx2, schema);
+                marks && tx3.ensureMarks([...marks]);
+                marks && tx3.setStoredMarks([...marks]);
+                dispatch(tx3);
+            })) {
                 if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                     splitMetadata(marks, tx3);
                     if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {

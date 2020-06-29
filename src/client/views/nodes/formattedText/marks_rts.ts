@@ -38,7 +38,7 @@ export const marks: { [index: string]: MarkSpec } = {
             const targetids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
             const linkids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
             return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, href: node.attrs.allHrefs[0].href, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
                 node.attrs.allHrefs.length === 1 ?
                     ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allHrefs[0].href }, 0] :
                     ["div", { class: "prosemirror-anchor" },

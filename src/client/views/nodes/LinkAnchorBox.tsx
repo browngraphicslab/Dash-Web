@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
 import { Id } from "../../../fields/FieldSymbols";
+import { LinkDocPreview } from "./LinkDocPreview";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -114,8 +115,9 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
 
     render() {
         TraceMobx();
-        const x = this.props.PanelWidth() > 1 ? NumCast(this.rootDoc[this.fieldKey + "_x"], 100) : 0;
-        const y = this.props.PanelWidth() > 1 ? NumCast(this.rootDoc[this.fieldKey + "_y"], 100) : 0;
+        const small = this.props.PanelWidth() <= 1; // this happens when rendered in a treeView
+        const x = NumCast(this.rootDoc[this.fieldKey + "_x"], 100);
+        const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
         const c = StrCast(this.layoutDoc._backgroundColor, StrCast(this.layoutDoc.backgroundColor, StrCast(this.dataDoc.backgroundColor, "lightBlue"))); // note this is not where the typical lightBlue default color comes from.  See Documents.Create.LinkDocument()
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
@@ -130,13 +132,19 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 </div>}
             </div>
         );
-        const small = this.props.PanelWidth() <= 1;
         return <div className={`linkAnchorBox-cont${small ? "-small" : ""} ${this.rootDoc[Id]}`}
+            onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+            onPointerEnter={action(e => LinkDocPreview.LinkInfo = {
+                addDocTab: this.props.addDocTab,
+                linkSrc: this.props.ContainingCollectionDoc!,
+                linkDoc: this.rootDoc,
+                Location: [e.clientX, e.clientY + 20]
+            })}
             onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
-                left: !small ? `calc(${x}% - 7.5px)` : undefined,
-                top: !small ? `calc(${y}% - 7.5px)` : undefined,
+                left: `calc(${x}% - ${small ? 2.5 : 7.5}px)`,
+                top: `calc(${y}% - ${small ? 2.5 : 7.5}px)`,
                 transform: `scale(${anchorScale / this.props.ContentScaling()})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :

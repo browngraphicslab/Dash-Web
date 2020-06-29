@@ -82,8 +82,6 @@
     text-overflow: ellipsis;
     white-space: pre-wrap;
     min-width: 10px;
-    // width:100%;//width: max-content;
-
 }
 
 .treeViewItem-openRight {
@@ -100,6 +98,7 @@
     border-left: dashed 1px #00000042;
 }
 
+.treeViewItem-header-editing,
 .treeViewItem-header {
     border: transparent 1px solid;
     display: flex;

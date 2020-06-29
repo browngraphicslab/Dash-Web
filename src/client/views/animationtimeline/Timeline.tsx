@@ -287,13 +287,13 @@ export class Timeline extends React.Component<FieldViewProps> {
     resetView(doc: Doc) {
         doc._panX = doc._customOriginX ?? 0;
         doc._panY = doc._customOriginY ?? 0;
-        doc.scale = doc._customOriginScale ?? 1;
+        doc._viewScale = doc._customOriginScale ?? 1;
     }
 
     setView(doc: Doc) {
         doc._customOriginX = doc._panX;
         doc._customOriginY = doc._panY;
-        doc._customOriginScale = doc.scale;
+        doc._customOriginScale = doc._viewScale;
     }
     /**
      * zooming mechanism (increment and spacing changes)

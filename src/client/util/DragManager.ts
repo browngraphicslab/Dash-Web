@@ -19,8 +19,6 @@ export function SetupDrag(
     docFunc: () => Doc | Promise<Doc> | undefined,
     moveFunc?: DragManager.MoveFunction,
     dropAction?: dropActionType,
-    treeViewId?: string,
-    dontHideOnDrop?: boolean,
     dragStarted?: () => void
 ) {
     const onRowMove = async (e: PointerEvent) => {
@@ -34,8 +32,6 @@ export function SetupDrag(
             const dragData = new DragManager.DocumentDragData([doc]);
             dragData.dropAction = dropAction;
             dragData.moveDocument = moveFunc;
-            dragData.treeViewId = treeViewId;
-            dragData.dontHideOnDrop = dontHideOnDrop;
             DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
             dragStarted?.();
         }
@@ -128,7 +124,7 @@ export namespace DragManager {
         draggedDocuments: Doc[];
         droppedDocuments: Doc[];
         dragDivName?: string;
-        treeViewId?: string;
+        treeViewDoc?: Doc;
         dontHideOnDrop?: boolean;
         offset: number[];
         dropAction: dropActionType;
@@ -206,7 +202,6 @@ export namespace DragManager {
             dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
             return dropDoc;
         };
-        const batch = UndoManager.StartBatch("dragging");
         const finishDrag = (e: DragCompleteEvent) => {
             const docDragData = e.docDragData;
             if (docDragData && !docDragData.droppedDocuments.length) {
@@ -220,7 +215,6 @@ export namespace DragManager {
                     const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
                     remProps.map(prop => drop[prop] = undefined);
                 });
-                batch.end();
             }
             return e;
         };
@@ -319,6 +313,7 @@ export namespace DragManager {
     export let docsBeingDragged: Doc[] = [];
     export let CanEmbed = false;
     export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
+        const batch = UndoManager.StartBatch("dragging");
         eles = eles.filter(e => e);
         CanEmbed = false;
         if (!dragDiv) {
@@ -353,7 +348,7 @@ export namespace DragManager {
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
-                scaleY = rect.height / ele.offsetHeight;
+                scaleY = ele.offsetHeight ? rect.height / ele.offsetHeight : scaleX;
             elesCont.left = Math.min(rect.left, elesCont.left);
             elesCont.top = Math.min(rect.top, elesCont.top);
             elesCont.right = Math.max(rect.right, elesCont.right);
@@ -453,6 +448,7 @@ export namespace DragManager {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             SnappingManager.clearSnapLines();
+            batch.end();
         });
 
         AbortDrag = () => {
