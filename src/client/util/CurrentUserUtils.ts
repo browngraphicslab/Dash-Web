@@ -654,7 +654,7 @@ export class CurrentUserUtils {
 
         // Finally, setup the list of buttons to display in the sidebar
         if (doc["tabs-buttons"] === undefined) {
-            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([searchBtn, libraryBtn, toolsBtn], {
+            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
                 _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
                 title: "sidebar btn row stack", backgroundColor: "dimGray",
             }));
