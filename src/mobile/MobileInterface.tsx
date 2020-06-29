@@ -9,7 +9,7 @@ import {
     faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, reaction } from 'mobx';
+import { action, computed, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
@@ -464,20 +464,6 @@ export class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
-    // Button for uploading mobile audio
-    uploadAudioButton = () => {
-        if (this._activeDoc.type === "audio") {
-            return <div className="docButton"
-                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
-                style={{ backgroundColor: "black", color: "white" }}
-            // onClick={this.uploadAudio}
-            >
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
-                />
-            </div>;
-        }
-    }
-
     // Button for switching between pen and ink mode
     @action
     onSwitchInking = () => {
@@ -506,8 +492,8 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // uses UndoManager and handles the color change opacity change if CanUndo is true
-    @computed get undo = () => {
+    // DocButton that uses UndoManager and handles the opacity change if CanUndo is true
+    @computed get undo() {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
@@ -524,8 +510,8 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // uses UndoManager and handles the color change opacity change if CanRedo is true
-    @computed get redo = () => {
+    // DocButton that uses UndoManager and handles the opacity change if CanRedo is true
+    @computed get redo() {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
@@ -542,7 +528,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Button for switching into ink mode
+    // DocButton for switching into ink mode
     @computed get drawInk() {
         if (this._activeDoc._viewType === "docking") {
             return (
@@ -558,24 +544,20 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Mobile doc button for uploading
-    upload = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
-            return (
-                <>
-                    <div className="docButton"
-                        id="uploadButton"
-                        title={"uploadFile"}
-                        style={{ backgroundColor: "white", color: "black" }}
-                        onClick={this.toggleUpload}>
-                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
-                        />
-                    </div>
-                </>);
+    // DocButton: Button that appears on the bottom of the screen to initiate image upload
+    uploadImageButton = () => {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
+            return <div className="docButton"
+                id="imageButton"
+                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
+                onClick={this.toggleUpload}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
+                />
+            </div>;
         }
     }
 
-    // Button to download images on the mobile
+    // DocButton to download images on the mobile
     downloadDocument = () => {
         if (this._activeDoc.type === "image" || this._activeDoc.type === "pdf" || this._activeDoc.type === "video") {
             const url = this._activeDoc["data-path"]?.toString();
@@ -591,7 +573,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    // Button for pinning images to presentation
+    // DocButton for pinning images to presentation
     pinToPresentation = () => {
         // Only making button available if it is an image
         if (!(this._activeDoc.type === "collection" || this._activeDoc.type === "presentation")) {
@@ -725,19 +707,6 @@ export class MobileInterface extends React.Component {
     onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-    }
-
-    // Button that appears on the bottom of the screen to initiate image upload
-    uploadImageButton = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
-            return <div className="docButton"
-                id="imageButton"
-                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
-                onClick={this.toggleUpload}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
-                />
-            </div>;
-        }
     }
 
     /**
