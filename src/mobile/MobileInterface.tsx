@@ -35,6 +35,7 @@ import { AudioUpload } from "./AudioUpload";
 import { Cast, FieldValue } from '../fields/Types';
 import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
 import { AudioBox } from "../client/views/nodes/AudioBox";
+import { Compute } from "google-auth-library";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -178,7 +179,7 @@ export class MobileInterface extends React.Component {
     /**
      * DocumentView for graphic display of all documents
      */
-    displayWorkspaces = () => {
+    @computed get displayWorkspaces() {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
             return (
@@ -244,7 +245,7 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Called when an item in the library is clicked and should 
+     * Called when an item in the library is clicked and should
      * be opened (open icon on RHS of all menu items)
      * @param doc doc to be opened
      */
@@ -506,7 +507,7 @@ export class MobileInterface extends React.Component {
     }
 
     // uses UndoManager and handles the color change opacity change if CanUndo is true
-    undo = () => {
+    @computed get undo = () => {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
@@ -524,7 +525,7 @@ export class MobileInterface extends React.Component {
     }
 
     // uses UndoManager and handles the color change opacity change if CanRedo is true
-    redo = () => {
+    @computed get redo = () => {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
@@ -542,7 +543,7 @@ export class MobileInterface extends React.Component {
     }
 
     // Button for switching into ink mode
-    drawInk = () => {
+    @computed get drawInk() {
         if (this._activeDoc._viewType === "docking") {
             return (
                 <>
@@ -751,6 +752,7 @@ export class MobileInterface extends React.Component {
     }
 
     render() {
+        trace();
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
                 <SettingsManager />
@@ -767,12 +769,12 @@ export class MobileInterface extends React.Component {
                     <div className="docButtonContainer">
                         {this.pinToPresentation()}
                         {this.downloadDocument()}
-                        {this.undo()}
-                        {this.drawInk()}
-                        {this.redo()}
+                        {this.undo}
+                        {this.drawInk}
+                        {this.redo}
                         {this.uploadImageButton()}
                     </div>
-                    {this.displayWorkspaces()}
+                    {this.displayWorkspaces}
                     {this.renderDefaultContent()}
                 </GestureOverlay>
                 {this.displayRadialMenu()}
