@@ -45,6 +45,7 @@ import { Cast, FieldValue } from '../fields/Types';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { InkingStroke } from '../client/views/InkingStroke';
 import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
+import { Compute } from "google-auth-library";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -195,7 +196,7 @@ export class MobileInterface extends React.Component {
     /**
      * DocumentView for graphic display of all documents
      */
-    displayWorkspaces = () => {
+    @computed get displayWorkspaces() {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
             return (
@@ -527,7 +528,7 @@ export class MobileInterface extends React.Component {
     }
 
 
-    undo = () => {
+    @computed get undo() {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
@@ -544,7 +545,7 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    redo = () => {
+    @computed get redo() {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
@@ -562,7 +563,7 @@ export class MobileInterface extends React.Component {
     }
 
     // Button for switching into ink mode
-    drawInk = () => {
+    @computed get drawInk() {
         if (this._activeDoc._viewType === "docking") {
             return (
                 <>
@@ -812,6 +813,7 @@ export class MobileInterface extends React.Component {
     }
 
     render() {
+        trace();
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
                 <SettingsManager />
@@ -828,14 +830,14 @@ export class MobileInterface extends React.Component {
                     <div className="docButtonContainer">
                         {this.pinToPresentation()}
                         {this.downloadDocument()}
-                        {this.undo()}
-                        {this.drawInk()}
-                        {this.redo()}
+                        {this.undo}
+                        {this.drawInk}
+                        {this.redo}
                         {/* {this.upload()} */}
                         {this.uploadImageButton()}
                         {/* {this.uploadAudioButton()} */}
                     </div>
-                    {this.displayWorkspaces()}
+                    {this.displayWorkspaces}
                     {this.renderDefaultContent()}
                 </GestureOverlay>
                 {this.displayRadialMenu()}
