@@ -186,18 +186,12 @@
 
     .audiobox-container .audiobox-record,
     .audiobox-container-interactive .audiobox-record {
-        pointer-events: all;
         font-size: 3em;
-        width: 100%;
-        height: 100%;
-        position: relative;
-        pointer-events: none;
     }
 
     .audiobox-container .audiobox-controls .audiobox-player .audiobox-playhead,
     .audiobox-container .audiobox-controls .audiobox-player .audiobox-dictation,
-    .audiobox-container-interactive .audiobox-controls .audiobox-player .audiobox-playhead,
-    .audiobox-container-interactive .audiobox-controls .audiobox-player .audiobox-dictation {
+    .audiobox-container-interactive .audiobox-controls .audiobox-player .audiobox-playhead {
         width: 70px;
     }
 }

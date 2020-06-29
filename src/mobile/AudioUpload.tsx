@@ -1,18 +1,12 @@
-import * as ReactDOM from 'react-dom';
-import * as rp from 'request-promise';
 import { Docs } from '../client/documents/Documents';
 import "./ImageUpload.scss";
 import React = require('react');
-import { DocServer } from '../client/DocServer';
 import { observer } from 'mobx-react';
 import { observable, action, computed } from 'mobx';
 import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter } from '../Utils';
-import { Networking } from '../client/Network';
 import { Doc, Opt } from '../fields/Doc';
 import { Cast, FieldValue } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
-import { List } from '../fields/List';
-import { Scripting } from '../client/util/Scripting';
 import MainViewModal from '../client/views/MainViewModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { nullAudio } from '../fields/URLField';
@@ -23,40 +17,56 @@ import { DictationOverlay } from '../client/views/DictationOverlay';
 import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
 import { ContextMenu } from '../client/views/ContextMenu';
 
-export interface ImageUploadProps {
-    Document: Doc;
-}
-
-// const onPointerDown = (e: React.TouchEvent) => {
-//     let imgInput = document.getElementById("input_image_file");
-//     if (imgInput) {
-//         imgInput.click();
-//     }
-// }
-const inputRef = React.createRef<HTMLInputElement>();
-
 @observer
 export class AudioUpload extends React.Component {
-    @observable error: string = "";
-    @observable status: string = "";
-    @observable nm: string = "Choose files";
-    @observable process: string = "";
-    @observable public _audioCol: Doc = FieldValue(Cast(Docs.Create.FreeformDocument([Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio", _width: 500, _height: 100 }), Doc) as Doc], { title: "mobile audio", _fitToBox: true, boxShadow: "0 0" }), Doc)) as Doc;
+    @observable public _audioCol: Doc = FieldValue(Cast(Docs.Create.FreeformDocument([Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio", _width: 500, _height: 100 }), Doc) as Doc], { title: "mobile audio", _width: 300, _height: 300, _fitToBox: true, boxShadow: "0 0" }), Doc)) as Doc;
 
-
+    /**
+     * Handles the onclick functionality for the 'Restart' button
+     * Resets the document to its default view
+     */
     @action
     clearUpload = () => {
         for (let i = 1; i < 8; i++) {
             this.setOpacity(i, "0.2");
         }
-        this._audioCol = FieldValue(Cast(Docs.Create.FreeformDocument([Cast(Docs.Create.AudioDocument(nullAudio, { title: "mobile audio", _width: 500, _height: 100 }), Doc) as Doc], { title: "mobile audio", _fitToBox: true, boxShadow: "0 0" }), Doc)) as Doc;
+        this._audioCol = FieldValue(Cast(
+            Docs.Create.FreeformDocument(
+                [Cast(Docs.Create.AudioDocument(nullAudio, {
+                    title: "mobile audio",
+                    _width: 500,
+                    _height: 100
+                }), Doc) as Doc], { title: "mobile audio", _width: 300, _height: 300, _fitToBox: true, boxShadow: "0 0" }), Doc)) as Doc;
     }
 
+    /** 
+     * Handles the onClick of the 'Close' button
+     * Reset upload interface and toggle audio
+     */
     closeUpload = () => {
         this.clearUpload();
         MobileInterface.Instance.toggleAudio();
     }
 
+    /**
+     * Handles the on click of the 'Upload' button.
+     * Pushing the audio doc onto Dash Web through the right side bar
+     */
+    uploadAudio = () => {
+        const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        const audioDoc = this._audioCol;
+        const data = Cast(audioRightSidebar.data, listSpec(Doc));
+        for (let i = 1; i < 8; i++) {
+            setTimeout(() => this.setOpacity(i, "1"), i * 200);
+        }
+        if (data) {
+            data.push(audioDoc);
+        }
+        // Resets uploader after 3 seconds
+        setTimeout(this.clearUpload, 3000);
+    }
+
+    // Returns the upload audio menu
     private get uploadInterface() {
         return (
             <>
@@ -114,28 +124,12 @@ export class AudioUpload extends React.Component {
         );
     }
 
-    setOpacity = (i: number, o: string) => {
-        const slab = document.getElementById("slab0" + i);
+    // Handles the setting of the loading bar
+    setOpacity = (index: number, opacity: string) => {
+        const slab = document.getElementById("slab0" + index);
         if (slab) {
-            console.log(slab?.id);
-            slab.style.opacity = o;
+            slab.style.opacity = opacity;
         }
-    }
-
-    // Pushing the audio doc onto Dash Web through the right side bar
-    uploadAudio = () => {
-        console.log("uploading");
-        const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-        const audioDoc = this._audioCol;
-        const data = Cast(audioRightSidebar.data, listSpec(Doc));
-        for (let i = 1; i < 8; i++) {
-            setTimeout(() => this.setOpacity(i, "1"), i * 200);
-        }
-        if (data) {
-            data.push(audioDoc);
-        }
-
-        setTimeout(this.clearUpload, 3000);
     }
 
     @observable private dialogueBoxOpacity = 1;

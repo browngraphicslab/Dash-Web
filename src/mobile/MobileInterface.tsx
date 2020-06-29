@@ -11,42 +11,30 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
-import { trace } from 'mobx';
-import * as rp from 'request-promise';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
-import { DocServer } from '../client/DocServer';
 import { Docs, DocumentOptions } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { Transform } from '../client/util/Transform';
 import "./MobileInterface.scss";
-import "./MobileMenu.scss";
-import "./MobileHome.scss";
 import "./ImageUpload.scss";
 import "./AudioUpload.scss";
-import { DocumentManager } from '../client/util/DocumentManager';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
 import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
 import { InkTool } from '../fields/InkField';
-import { listSpec } from '../fields/Schema';
-import { nullAudio } from '../fields/URLField';
 import GestureOverlay from "../client/views/GestureOverlay";
 import { ScriptField } from "../fields/ScriptField";
 import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
 import { RadialMenu } from "../client/views/nodes/RadialMenu";
-import { UndoManager, undoBatch } from "../client/util/UndoManager";
-import { MainView } from "../client/views/MainView";
+import { UndoManager } from "../client/util/UndoManager";
 import { List } from "../fields/List";
 import { AudioUpload } from "./AudioUpload";
 import { Cast, FieldValue } from '../fields/Types';
-import { CollectionView } from '../client/views/collections/CollectionView';
-import { InkingStroke } from '../client/views/InkingStroke';
 import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
 import { AudioBox } from "../client/views/nodes/AudioBox";
-import { FormattedTextBox } from "../client/views/nodes/formattedText/FormattedTextBox";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -82,22 +70,15 @@ export class MobileInterface extends React.Component {
 
     @action
     componentDidMount = () => {
-        // Doc.UserDoc().activeMobile = this._homeDoc;
+        // if the home menu is in list view -> adjust the menu toggle appropriately
         this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
-        Doc.SetSelectedTool(InkTool.None);
-        Doc.UserDoc().activeMobile = this._homeDoc;
+        Doc.SetSelectedTool(InkTool.None); // ink should intially be set to none
+        Doc.UserDoc().activeMobile = this._homeDoc; // active mobile set to home
         AudioBox.Enabled = true;
 
+        // remove double click to avoid mobile zoom in
         document.removeEventListener("dblclick", this.onReactDoubleClick);
         document.addEventListener("dblclick", this.onReactDoubleClick);
-        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on 
-            const id = FormattedTextBox.GetDocFromUrl(e.detail);
-            DocServer.GetRefField(id).then(doc => {
-                if (doc instanceof Doc) {
-                    DocumentManager.Instance.jumpToDocument(doc, false, undefined);
-                }
-            });
-        });
     }
 
     @action
@@ -123,6 +104,8 @@ export class MobileInterface extends React.Component {
         onSwitch && onSwitch();
 
         this.renderView = renderView;
+        // Ensures that switching to home is not registed
+        UndoManager.undoStack.length = 0;
     }
 
     // For toggling the hamburger menu
@@ -144,16 +127,18 @@ export class MobileInterface extends React.Component {
      */
     back = () => {
         const header = document.getElementById("header") as HTMLElement;
-        const doc = Cast(this._parents.pop(), Doc) as Doc;
-
+        const doc = Cast(this._parents.pop(), Doc) as Doc; // Parent document
+        // Case 1: Parent document is 'workspaces'
         if (doc === Cast(this._library, Doc) as Doc) {
             this._child = null;
             this.switchCurrentView(this._library);
+            // Case 2: Parent document is the 'home' menu (root node)
         } else if (doc === Cast(this._homeDoc, Doc) as Doc) {
             this._homeMenu = true;
             this._parents = [];
             this._child = null;
             this.switchCurrentView(this._homeDoc);
+            // Case 3: Parent document is any document
         } else {
             if (doc) {
                 this._child = doc;
@@ -162,11 +147,11 @@ export class MobileInterface extends React.Component {
                 header.textContent = String(doc.title);
             }
         }
-        this._ink = false;
+        this._ink = false; // turns ink off
     }
 
     /**
-     * Return 'Home", which implies returning to 'Home' buttons
+     * Return 'Home", which implies returning to 'Home' menu buttons
      */
     returnHome = () => {
         if (!this._homeMenu || this.sidebarActive) {
@@ -258,11 +243,16 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    /**
+     * Called when an item in the library is clicked and should 
+     * be opened (open icon on RHS of all menu items)
+     * @param doc doc to be opened
+     */
     openFromSidebar = (doc: Doc) => {
         this._parents.push(this._activeDoc);
         this.switchCurrentView(doc);
         this._homeMenu = false;
-        this._child = doc; //?
+        this._child = doc;
         this.toggleSidebar();
     }
 
@@ -378,12 +368,12 @@ export class MobileInterface extends React.Component {
                 </div>
             );
         }
-
+        // stores workspace documents as 'workspaces' variable
         let workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         if (this._child) {
             workspaces = this._child;
         }
-
+        // returns a list of navbar buttons as 'buttons'
         const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
             if (doc.type !== "ink") {
                 return (
@@ -445,7 +435,7 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Handles the Create New Workspace button in the menu (taken from MainView.tsx)
+     * Handles the 'Create New Workspace' button in the menu (taken from MainView.tsx)
      */
     @action
     createNewWorkspace = async (id?: string) => {
@@ -467,7 +457,6 @@ export class MobileInterface extends React.Component {
         workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
 
         Doc.AddDocToList(workspaces, "data", workspaceDoc);
-        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
     }
 
     stop = (e: React.MouseEvent) => {
@@ -508,7 +497,6 @@ export class MobileInterface extends React.Component {
     inkMenu = () => {
         if (this._activeDoc._viewType === "docking") {
             if (this._ink) {
-                console.log("here");
                 return <div className="colorSelector">
                     <InkOptionsMenu />
                 </div>;
@@ -517,9 +505,9 @@ export class MobileInterface extends React.Component {
         }
     }
 
-
+    // uses UndoManager and handles the color change opacity change if CanUndo is true
     undo = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
@@ -535,8 +523,9 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    // uses UndoManager and handles the color change opacity change if CanRedo is true
     redo = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc.title !== "WORKSPACES") {
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
             return (<>
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
@@ -576,6 +565,7 @@ export class MobileInterface extends React.Component {
                     <div className="docButton"
                         id="uploadButton"
                         title={"uploadFile"}
+                        style={{ backgroundColor: "white", color: "black" }}
                         onClick={this.toggleUpload}>
                         <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
                         />
@@ -593,7 +583,6 @@ export class MobileInterface extends React.Component {
                 style={{ backgroundColor: "white", color: "black" }}
                 onClick={e => {
                     window.open(url);
-                    console.log(url);
                 }}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="download"
                 />
@@ -647,18 +636,13 @@ export class MobileInterface extends React.Component {
             this._homeDoc._viewType = "masonry";
             this._homeDoc.columnWidth = 300;
             const menuButtons = DocListCast(this._homeDoc.data);
-            console.log('hello');
             menuButtons.map((doc: Doc, index: any) => {
-                console.log(index);
                 const buttonData = DocListCast(doc.data);
                 buttonData[1]._nativeWidth = 0.1;
                 buttonData[1]._width = 0.1;
                 buttonData[1]._dimMagnitude = 0;
                 buttonData[1]._opacity = 0;
-                console.log(buttonData);
-                console.log(doc._nativeWidth);
                 doc._nativeWidth = 400;
-                console.log(doc._nativeWidth);
             });
         }
     }
@@ -670,22 +654,18 @@ export class MobileInterface extends React.Component {
             this._homeDoc._viewType = "stacking";
             this.menuListView = true;
             const menuButtons = DocListCast(this._homeDoc.data);
-            console.log('hello');
             menuButtons.map((doc: Doc, index: any) => {
                 const buttonData = DocListCast(doc.data);
                 buttonData[1]._nativeWidth = 450;
                 buttonData[1]._dimMagnitude = 2;
                 buttonData[1]._opacity = 1;
-                console.log(doc._nativeWidth);
                 doc._nativeWidth = 900;
-                console.log(doc._nativeWidth);
             });
         }
     }
 
     // For setting up the presentation document for the home menu
     setupDefaultPresentation = () => {
-
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {
@@ -698,10 +678,11 @@ export class MobileInterface extends React.Component {
     @action
     toggleUpload = () => this.imageUploadActive = !this.imageUploadActive
 
-    // For toggling image upload pop up
+    // For toggling audio record and dictate pop up
     @action
     toggleAudio = () => this.audioUploadActive = !this.audioUploadActive
 
+    // Button for toggling the upload pop up in a collection
     @action
     toggleUploadInCollection = () => {
         const button = document.getElementById("imageButton") as HTMLElement;
@@ -719,12 +700,6 @@ export class MobileInterface extends React.Component {
 
     // Returns the image upload pop up
     uploadImage = () => {
-        if (this.imageUploadActive) {
-            console.log("active");
-        } else if (!this.imageUploadActive) {
-
-        }
-
         let doc;
         let toggle;
         if (this._homeMenu === false) {
@@ -739,6 +714,7 @@ export class MobileInterface extends React.Component {
         );
     }
 
+    // Radial menu can only be used if it is a colleciton and it is not a homeDoc
     displayRadialMenu = () => {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
             return <RadialMenu />;
@@ -750,6 +726,7 @@ export class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
+    // Button that appears on the bottom of the screen to initiate image upload
     uploadImageButton = () => {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
             return <div className="docButton"
@@ -762,6 +739,11 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    /**
+     * MENU BUTTON
+     * Switch view from mobile menu to access the mobile uploads
+     * Global function name: openMobileUploads()
+     */
     switchToMobileUploads = () => {
         const mobileUpload = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
         this.switchCurrentView(mobileUpload);
@@ -800,14 +782,20 @@ export class MobileInterface extends React.Component {
 }
 
 
+//Global functions for mobile menu
+Scripting.addGlobal(function switchToMobileLibrary() { return MobileInterface.Instance.switchToLibrary(); },
+    "opens the library to navigate through workspaces on Dash Mobile");
+Scripting.addGlobal(function openMobileUploads() { return MobileInterface.Instance.toggleUpload(); },
+    "opens the upload files menu for Dash Mobile");
+Scripting.addGlobal(function switchToMobileUploadCollection() { return MobileInterface.Instance.switchToMobileUploads(); },
+    "opens the mobile uploads collection on Dash Mobile");
+Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.toggleAudio(); },
+    "opens the record and dictate menu on Dash Mobile");
+Scripting.addGlobal(function switchToMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); },
+    "opens the presentation on Dash Mobile");
+Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); },
+    "opens settings on Dash Mobile");
 
+// Other global functions for mobile
 Scripting.addGlobal(function switchMobileView(doc: Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); },
-    "changes the active document displayed on the mobile, (doc: any)");
-Scripting.addGlobal(function openMobilePresentation() { return MobileInterface.Instance.setupDefaultPresentation(); },
-    "opens the presentation on mobile");
-Scripting.addGlobal(function toggleMobileSidebar() { return MobileInterface.Instance.toggleSidebar(); });
-Scripting.addGlobal(function openMobileAudio() { return MobileInterface.Instance.toggleAudio(); });
-Scripting.addGlobal(function openMobileSettings() { return SettingsManager.Instance.open(); });
-Scripting.addGlobal(function uploadImageMobile() { return MobileInterface.Instance.toggleUpload(); });
-Scripting.addGlobal(function switchToMobileUploads() { return MobileInterface.Instance.switchToMobileUploads(); });
-Scripting.addGlobal(function switchToMobileLibrary() { return MobileInterface.Instance.switchToLibrary(); });
+    "changes the active document displayed on the Dash Mobile", "(doc: any)");
