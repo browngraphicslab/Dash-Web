@@ -24,7 +24,7 @@ import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } 
 import { SnappingManager } from "../../util/SnappingManager";
 import Measure from "react-measure";
 import { SchemaTable } from "./SchemaTable";
-import { civicinfo } from "googleapis/build/src/apis/civicinfo";
+import { TraceMobx } from "../../../fields/util";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -185,7 +185,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._openTypes = bool;
     }
 
-    @action
     renderTypes = (col: any) => {
         if (columnTypes.get(col.heading)) return (null);
 
@@ -353,29 +352,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         />;
     }
 
-    @action
-    renderContent = (col: any) => {
-        return (
-            <div className="collectionSchema-header-menuOptions">
-                <div className="collectionSchema-headerMenu-group">
-                    <label>Key:</label>
-                    {this.renderKeysDropDown(col)}
-                </div>
-                {false ? <></> :
-                    <>
-                        {this.renderTypes(col)}
-                        {this.renderSorting(col)}
-                        {this.renderColors(col)}
-                        <div className="collectionSchema-headerMenu-group">
-                            <button onClick={() => { this.deleteColumn(col.heading); }}
-                            >Delete Column</button>
-                        </div>
-                    </>
-                }
-            </div>
-        );
-    }
-
     @undoBatch
     @action
     deleteColumn = (key: string) => {
@@ -410,43 +386,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         //this.menuCoordinates[1] -= e.screenY / scale;
     }
 
-    @action renderMenu() {
-        const scale = this.props.ScreenToLocalTransform().Scale;
-        return (
-            <div className="collectionSchema-header-menu" ref={this.setNode}
-                onWheel={e => this.props.active(true) && e.stopPropagation()}
-                onPointerDown={e => this.onHeaderClick(e)}
-                style={{
-                    position: "absolute", background: "white",
-                    transform: `translate(${this.menuCoordinates[0] * scale}px, ${this.menuCoordinates[1] / scale}px)`
-                }}>
-                <Measure offset onResize={action((r: any) => {
-                    const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
-                    this._menuWidth = dim[0]; this._menuHeight = dim[1];
-                })}>
-                    {({ measureRef }) => <div ref={measureRef}>
-                        <div className="collectionSchema-header-menuOptions">
-                            <div className="collectionSchema-headerMenu-group">
-                                <label>Key:</label>
-                                {this.renderKeysDropDown(this._col)}
-                            </div>
-                            {false ? <></> :
-                                <>
-                                    {this.renderTypes(this._col)}
-                                    {this.renderSorting(this._col)}
-                                    {this.renderColors(this._col)}
-                                    <div className="collectionSchema-headerMenu-group">
-                                        <button onClick={() => { this.deleteColumn(this._col.heading); }}
-                                        >Delete Column</button>
-                                    </div>
-                                </>
-                            }
-                        </div>
-
-                    </div>}
-                </Measure>
+    @computed get renderMenuContent() {
+        TraceMobx();
+        return <div className="collectionSchema-header-menuOptions">
+            <div className="collectionSchema-headerMenu-group">
+                <label>Key:</label>
+                {this.renderKeysDropDown(this._col)}
             </div>
-        );
+            {this.renderTypes(this._col)}
+            {this.renderSorting(this._col)}
+            {this.renderColors(this._col)}
+            <div className="collectionSchema-headerMenu-group">
+                <button onClick={() => { this.deleteColumn(this._col.heading); }}
+                >Delete Column</button>
+            </div>
+        </div>;
     }
 
     private createTarget = (ele: HTMLDivElement) => {
@@ -623,6 +577,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
+        TraceMobx();
+        const menuContent = this.renderMenuContent;
         const scale = this.props.ScreenToLocalTransform().Scale;
         const menu = <div className="collectionSchema-header-menu" ref={this.setNode}
             onWheel={e => this.props.active(true) && e.stopPropagation()}
@@ -635,26 +591,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
                 this._menuWidth = dim[0]; this._menuHeight = dim[1];
             })}>
-                {({ measureRef }) => <div ref={measureRef}>
-                    <div className="collectionSchema-header-menuOptions">
-                        <div className="collectionSchema-headerMenu-group">
-                            <label>Key:</label>
-                            {this.renderKeysDropDown(this._col)}
-                        </div>
-                        {false ? <></> :
-                            <>
-                                {this.renderTypes(this._col)}
-                                {this.renderSorting(this._col)}
-                                {this.renderColors(this._col)}
-                                <div className="collectionSchema-headerMenu-group">
-                                    <button onClick={() => { this.deleteColumn(this._col.heading); }}
-                                    >Delete Column</button>
-                                </div>
-                            </>
-                        }
-                    </div>
-
-                </div>}
+                {({ measureRef }) => <div ref={measureRef}> {menuContent} </div>}
             </Measure>
         </div>;
 

@@ -16,6 +16,7 @@
         height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
         overflow: visible;
+        z-index: 9001;
 
         .collectionViewBaseChrome {
             display: flex;
