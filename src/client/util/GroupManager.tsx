@@ -1,5 +1,5 @@
 import * as React from "react";
-import { observable, action, runInAction, computed, Lambda, reaction } from "mobx";
+import { observable, action, runInAction, computed } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
@@ -13,10 +13,11 @@ import * as RequestPromise from "request-promise";
 import Select from 'react-select';
 import "./GroupManager.scss";
 import { StrCast } from "../../fields/Types";
+import GroupMemberView from "./GroupMemberView";
 
 library.add(fa.faWindowClose);
 
-interface UserOptions {
+export interface UserOptions {
     label: string;
     value: string;
 }
@@ -25,12 +26,12 @@ interface UserOptions {
 export default class GroupManager extends React.Component<{}> {
 
     static Instance: GroupManager;
-    @observable private isOpen: boolean = false; // whether the GroupManager is to be displayed or not.
+    @observable isOpen: boolean = false; // whether the GroupManager is to be displayed or not.
     @observable private dialogueBoxOpacity: number = 1; // opacity of the dialogue box div of the MainViewModal.
     @observable private overlayOpacity: number = 0.4; // opacity of the overlay div of the MainViewModal.
     @observable private users: string[] = []; // list of users populated from the database.
     @observable private selectedUsers: UserOptions[] | null = null; // list of users selected in the "Select users" dropdown.
-    @observable private currentGroup: Opt<Doc>; // the currently selected group.
+    @observable currentGroup: Opt<Doc>; // the currently selected group.
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
 
     constructor(props: Readonly<{}>) {
@@ -144,7 +145,7 @@ export default class GroupManager extends React.Component<{}> {
      * @param groupName 
      * @param memberEmails 
      */
-    createGroupDoc(groupName: string, memberEmails: string[]) {
+    createGroupDoc(groupName: string, memberEmails: string[] = []) {
         const groupDoc = new Doc;
         groupDoc.groupName = groupName;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
@@ -235,15 +236,11 @@ export default class GroupManager extends React.Component<{}> {
             alert("Please enter a group name");
             return;
         }
-        if (!this.selectedUsers) {
-            alert("Please select users");
-            return;
-        }
         if (this.getAllGroups().find(group => group.groupName === this.inputRef.current!.value)) { // why do I need a null check here?
             alert("Please select a unique group name");
             return;
         }
-        this.createGroupDoc(this.inputRef.current.value, this.selectedUsers.map(user => user.value));
+        this.createGroupDoc(this.inputRef.current.value, this.selectedUsers?.map(user => user.value));
         this.selectedUsers = null;
         this.inputRef.current.value = "";
     }
@@ -300,13 +297,19 @@ export default class GroupManager extends React.Component<{}> {
     private get groupInterface() {
         return (
             <div className="group-interface">
-                <MainViewModal
+                {/* <MainViewModal
                     contents={this.editingInterface}
                     isDisplayed={this.currentGroup ? true : false}
                     interactive={true}
                     dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
                     overlayDisplayedOpacity={this.overlayOpacity}
-                />
+                /> */}
+                {this.currentGroup ?
+                    <GroupMemberView
+                        group={this.currentGroup}
+                        onCloseButtonClick={() => this.currentGroup = undefined}
+                    />
+                    : null}
                 <div className="group-heading">
                     <h1>Groups</h1>
                     <div className={"close-button"} onClick={this.close}>

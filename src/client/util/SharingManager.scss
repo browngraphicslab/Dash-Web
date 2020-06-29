@@ -1,10 +1,32 @@
+@import "../views/globalCssVariables";
+
 .sharing-interface {
     display: flex;
     flex-direction: column;
     width: 730px;
 
+    .dialogue-box {
+        width: 450;
+        height: 300;
+    }
+
     .sharing-contents {
         display: flex;
+
+        button {
+            background: $darker-alt-accent;
+            outline: none;
+            border-radius: 5px;
+            border: 0px;
+            color: #fcfbf7;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 75%;
+            padding: 0 10;
+            margin: 0 5;
+            transition: transform 0.2s;
+            height: 25;
+        }
 
         .individual-container,
         .group-container {
@@ -72,12 +94,10 @@
         }
     }
 
-
-
     .container {
-        display: block;
+        display: flex;
         position: relative;
-        margin-top: 10px;
+        margin-top: 5px;
         margin-bottom: 10px;
         font-size: 22px;
         -webkit-user-select: none;
@@ -92,15 +112,24 @@
         font-size: 14;
         font-weight: normal;
         padding: 0;
+        align-items: baseline;
 
         .padding {
-            padding: 0 0 0 10px;
+            padding: 0 10px 0 0;
             color: black;
         }
 
         .permissions-dropdown {
             outline: none;
+            height: 25;
         }
+
+        .edit-actions {
+            display: flex;
+            position: absolute;
+            right: 51.5%;
+        }
+
     }
 
     .no-users {

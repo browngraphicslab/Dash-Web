@@ -18,6 +18,7 @@ import { DocumentManager } from "./DocumentManager";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DictationOverlay } from "../views/DictationOverlay";
 import GroupManager from "./GroupManager";
+import GroupMemberView from "./GroupMemberView";
 
 library.add(fa.faCopy);
 
@@ -75,6 +76,7 @@ export default class SharingManager extends React.Component<{}> {
     @observable private copied = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
+    @observable private groupToView: Opt<Doc>;
 
     private get linkVisible() {
         return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -266,12 +268,18 @@ export default class SharingManager extends React.Component<{}> {
         return StrCast(metadata instanceof Doc ? metadata.maxPermission : metadata, SharingPermissions.None);
     }
 
-
     private get sharingInterface() {
         const existOtherUsers = this.users.length > 0;
         const existGroups = this.groups.length > 0;
         return (
             <div className={"sharing-interface"}>
+                {this.groupToView ?
+                    <GroupMemberView
+                        group={this.groupToView}
+                        onCloseButtonClick={action(() => this.groupToView = undefined)}
+                    /> :
+                    null}
+
                 <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
                 {!this.linkVisible ? (null) :
                     <div className={"link-container"}>
@@ -316,15 +324,17 @@ export default class SharingManager extends React.Component<{}> {
                                             key={userKey}
                                             className={"container"}
                                         >
-                                            <select
-                                                className={"permissions-dropdown"}
-                                                value={permissions}
-                                                style={{ color, borderColor: color }}
-                                                onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value, undefined)}
-                                            >
-                                                {this.sharingOptions}
-                                            </select>
                                             <span className={"padding"}>{user.email}</span>
+                                            <div className="edit-actions">
+                                                <select
+                                                    className={"permissions-dropdown"}
+                                                    value={permissions}
+                                                    style={{ color, borderColor: color }}
+                                                    onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value, undefined)}
+                                                >
+                                                    {this.sharingOptions}
+                                                </select>
+                                            </div>
                                         </div>
                                     );
                                 })
@@ -343,15 +353,18 @@ export default class SharingManager extends React.Component<{}> {
                                             key={StrCast(group.groupName)}
                                             className={"container"}
                                         >
-                                            <select
-                                                className={"permissions-dropdown"}
-                                                value={permissions}
-                                                style={{ color, borderColor: color }}
-                                                onChange={e => this.setInternalGroupSharing(group, e.currentTarget.value)}
-                                            >
-                                                {this.sharingOptions}
-                                            </select>
                                             <span className={"padding"}>{group.groupName}</span>
+                                            <div className="edit-actions">
+                                                <select
+                                                    className={"permissions-dropdown"}
+                                                    value={permissions}
+                                                    style={{ color, borderColor: color }}
+                                                    onChange={e => this.setInternalGroupSharing(group, e.currentTarget.value)}
+                                                >
+                                                    {this.sharingOptions}
+                                                </select>
+                                                <button onClick={action(() => this.groupToView = group)}>Edit</button>
+                                            </div>
                                         </div>
                                     );
                                 })
