@@ -18,7 +18,7 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Ty
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyFilter } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
@@ -139,7 +139,21 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             } else if (this.dataDoc[AclSym] === AclAddonly) {
                 added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
             } else {
-                added.map(doc => doc.context = this.props.Document);
+                added.map(doc => {
+                    const context = Cast(doc.context, Doc, null);
+                    if (context && (context?.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+                        const pushpin = Docs.Create.FreeformDocument([], {
+                            title: "pushpin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null),
+                            _width: 10, _height: 10, _backgroundColor: "red", isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                        });
+                        Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+                        DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin");
+                        const first = DocListCast(pushpin.links).find(d => d instanceof Doc);
+                        first && (first.hidden = true);
+                        doc.displayTimecode = undefined;
+                    }
+                    doc.context = this.props.Document;
+                });
                 added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
                 targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
                 targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));

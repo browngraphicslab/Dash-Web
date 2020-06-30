@@ -28,7 +28,7 @@ export class LinkMenu extends React.Component<Props> {
 
     @action
     onClick = (e: PointerEvent) => {
-        if (this._linkMenuRef && !Array.from(this._linkMenuRef?.getElementsByTagName((e.target as HTMLElement).tagName) || []).includes(e.target as any)) {
+        if (this._linkMenuRef?.contains(e.target as any)) {
             DocumentLinksButton.EditLink = undefined;
         }
 

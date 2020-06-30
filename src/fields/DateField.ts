@@ -29,6 +29,10 @@ export class DateField extends ObjectField {
     [ToString]() {
         return this.date.toISOString();
     }
+
+    getDate() {
+        return this.date;
+    }
 }
 
 Scripting.addGlobal(function d(...dateArgs: any[]) {
