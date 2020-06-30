@@ -19,6 +19,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Networking } from "../../Network";
+import { SnappingManager } from "../../util/SnappingManager";
 const path = require('path');
 
 export const timeSchema = createSchema({
@@ -272,10 +273,9 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._reactionDisposer?.();
             this._youtubeReactionDisposer?.();
             this._reactionDisposer = reaction(() => this.layoutDoc.currentTimecode, () => !this._playing && this.Seek((this.layoutDoc.currentTimecode || 0)));
-            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, Doc.GetSelectedTool()], () => {
-                const interactive = Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
-                iframe.style.pointerEvents = interactive ? "all" : "none";
-            }, { fireImmediately: true });
+            this._youtubeReactionDisposer = reaction(
+                () => Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
+                (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
         };
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
             events: {
