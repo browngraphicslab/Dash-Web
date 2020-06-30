@@ -296,7 +296,7 @@ export default class SharingManager extends React.Component<{}> {
                         onCloseButtonClick={action(() => this.groupToView = undefined)}
                     /> :
                     null}
-                <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
+                {/* <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
                 {!this.linkVisible ? (null) :
                     <div className={"link-container"}>
                         <div className={"link-box"} onClick={this.copy}>{this.sharingUrl}</div>
@@ -325,10 +325,10 @@ export default class SharingManager extends React.Component<{}> {
                         {this.sharingOptions}
                     </select>
                 </div>
-                <div className={"hr-substitute"} />
+                <div className={"hr-substitute"} /> */}
                 <div className="sharing-contents">
                     <div className={"individual-container"}>
-                        <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
+                        <p className={"share-individual"}>Privately share {this.focusOn(StrCast(this.targetDoc?.title, "this document"))} with an individual...</p>
                         <div className={"users-list"} style={{ display: existOtherUsers ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
                             {!existOtherUsers ? "There are no other users in your database." :
                                 this.users.map(({ user, notificationDoc }) => { // can't use async here
@@ -366,7 +366,7 @@ export default class SharingManager extends React.Component<{}> {
                         </div>
                     </div>
                     <div className={"group-container"}>
-                        <p className={"share-groups"}>Privately share {this.focusOn("this document")} with a group...</p>
+                        <p className={"share-groups"}>Privately share {this.focusOn(StrCast(this.targetDoc?.title, "this document"))} with a group...</p>
                         <div className={"groups-list"} style={{ display: existGroups ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
                             {!existGroups ? "There are no groups in your database." :
                                 this.groups.map(group => {
