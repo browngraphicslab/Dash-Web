@@ -137,6 +137,7 @@ export interface MovableRowProps {
     textWrapRow: (doc: Doc) => void;
     rowWrapped: boolean;
     dropAction: string;
+    addDocTab: any;
 }
 
 export class MovableRow extends React.Component<MovableRowProps> {
@@ -232,6 +233,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
                         <div className="row-dragger">
                             <div className="row-option" onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
                             <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
+                            <div className="row-option" onClick={() => this.props.addDocTab(this.props.rowInfo.original, "onRight")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
                         </div>
                         {children}
                     </ReactTableDefaults.TrComponent>

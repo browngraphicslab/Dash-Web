@@ -414,7 +414,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view.LayoutString(layout.dataField);
+            options.layout = layout.view?.LayoutString(layout.dataField);
             const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;

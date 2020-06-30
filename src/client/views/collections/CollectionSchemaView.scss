@@ -62,10 +62,15 @@
         width: calc(100% - 52px);
         margin-left: 50px;
 
+        z-index: 100;
+        overflow-y: visible;
+
         &.-header {
             font-size: 12px;
             height: 30px;
             box-shadow: none;
+            z-index: 100;
+            overflow-y: visible;
         }
 
         .rt-resizable-header-content {
@@ -172,25 +177,34 @@
 }
 
 
+.collectionSchema-header-menu {
+    height: 100%;
+    z-index: 100;
+    position: absolute;
+    background:white;
+
+    .collectionSchema-header-toggler {
+        z-index: 100;
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+
+        svg {
+            margin-right: 4px;
+        }
+    }
+}
+
 .collectionSchemaView-header {
     height: 100%;
     color: gray;
-
-    .collectionSchema-header-menu {
-        height: 100%;
-
-        .collectionSchema-header-toggler {
-            width: 100%;
-            height: 100%;
-            padding: 4px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-
-            svg {
-                margin-right: 4px;
-            }
-        }
-    }
+    z-index: 100;
+    overflow-y: visible;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 button.add-column {
@@ -253,13 +267,16 @@ button.add-column {
 
     .keys-dropdown {
         position: relative;
-        width: 100%;
+        //width: 100%;
+        background-color: white;
 
         input {
             border: 2px solid $light-color-secondary;
             padding: 3px;
             height: 28px;
             font-weight: bold;
+            letter-spacing: "2px";
+            text-transform: "uppercase";
 
             &:focus {
                 font-weight: normal;
@@ -273,11 +290,14 @@ button.add-column {
             position: absolute;
             top: 28px;
             box-shadow: 0 10px 16px rgba(0, 0, 0, 0.1);
+            background-color: white;
 
             .key-option {
-                background-color: $light-color;
+                //background-color: $light-color;
+                background-color: white;
                 border: 1px solid lightgray;
                 padding: 2px 3px;
+                overflow-x: hidden;
 
                 &:not(:first-child) {
                     border-top: 0;
@@ -412,6 +432,56 @@ button.add-column {
     &:hover .collectionSchemaView-cellContents-docExpander {
         display: block;
     }
+
+
+    .collectionSchemaView-cellContents-document {
+        display: inline-block;
+    }
+
+    .collectionSchemaView-cellContents-docButton {
+        float: right;
+        width: "15px";
+        height: "15px";
+    }
+
+    .collectionSchemaView-dropdownWrapper {
+
+        border: grey;
+        border-style: solid;
+        border-width: 1px;
+        height: 100%;
+
+        .collectionSchemaView-dropdownButton {
+
+            //display: inline-block;
+            float: left;
+            height: 100%;
+
+
+        }
+
+        .collectionSchemaView-dropdownText {
+            display: inline-block;
+            //float: right;
+            height: 100%;
+            display: "flex";
+            font-size: 13;
+            justify-content: "center";
+            align-items: "center";
+        }
+
+    }
+
+    .collectionSchemaView-dropdownContainer {
+        position: absolute;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        box-shadow: 0 16px 24px 2px rgba(0, 0, 0, 0.14);
+
+        .collectionSchemaView-dropdownOption:hover {
+            background-color: rgba(0, 0, 0, 0.14);
+            cursor: pointer;
+        }
+    }
 }
 
 .collectionSchemaView-cellContents-docExpander {
@@ -422,10 +492,15 @@ button.add-column {
     top: 0;
     right: 0;
     background-color: lightgray;
+
 }
 
 .doc-drag-over {
     background-color: red;
+}
+
+.collectionSchemaView-toolbar {
+    z-index: 100;
 }
 
 .collectionSchemaView-toolbar {

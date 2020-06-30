@@ -2,7 +2,7 @@ import React = require("react");
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
-import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar } from '@fortawesome/free-solid-svg-icons';
 import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ColumnType } from "./CollectionSchemaView";
@@ -13,7 +13,7 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
+library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar);
 
 export interface HeaderProps {
     keyValue: SchemaHeaderField;
@@ -33,7 +33,9 @@ export interface HeaderProps {
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
+            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" :
+                this.props.keyType === ColumnType.Image ? "image" : this.props.keyType === ColumnType.List ? "list-ul" : this.props.keyType === ColumnType.Date ? "calendar" :
+                    "align-justify";
         return (
             <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
                 <CollectionSchemaColumnMenu
@@ -71,6 +73,16 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
         );
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 export interface ColumnMenuProps {
     columnField: SchemaHeaderField;
@@ -160,9 +172,21 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
                         Checkbox
                     </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.List ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.List)}>
+                        <FontAwesomeIcon icon={"list-ul"} size="sm" />
+                        List
+                    </div>
                     <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc)}>
                         <FontAwesomeIcon icon={"file"} size="sm" />
                         Document
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Image ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Image)}>
+                        <FontAwesomeIcon icon={"image"} size="sm" />
+                        Image
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Date ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Date)}>
+                        <FontAwesomeIcon icon={"calendar"} size="sm" />
+                        Date
                     </div>
                 </div>
             </div >
@@ -258,7 +282,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 }
 
 
-interface KeysDropdownProps {
+export interface KeysDropdownProps {
     keyValue: string;
     possibleKeys: string[];
     existingKeys: string[];
@@ -266,9 +290,10 @@ interface KeysDropdownProps {
     addNew: boolean;
     onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
     setIsEditing: (isEditing: boolean) => void;
+    width?: string;
 }
 @observer
-class KeysDropdown extends React.Component<KeysDropdownProps> {
+export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable private _key: string = this.props.keyValue;
     @observable private _searchTerm: string = this.props.keyValue;
     @observable private _isOpen: boolean = false;
@@ -331,17 +356,26 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     renderOptions = (): JSX.Element[] | JSX.Element => {
         if (!this._isOpen) return <></>;
 
-        const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
+
+        const keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
         const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
         const options = keyOptions.map(key => {
-            return <div key={key} className="key-option" onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
+            return <div key={key} className="key-option" style={{
+                border: "1px solid lightgray",
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+            }}
+                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
         if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
-            options.push(<div key={""} className="key-option"
+            options.push(<div key={""} className="key-option" style={{
+                border: "1px solid lightgray",
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+            }}
                 onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
                 Create "{this._searchTerm}" key</div>);
         }
@@ -351,10 +385,19 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     render() {
         return (
-            <div className="keys-dropdown">
-                <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
-                    onChange={e => this.onChange(e.target.value)} onFocus={this.onFocus} onBlur={this.onBlur}></input>
-                <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
+            <div className="keys-dropdown" style={{ width: this.props.width, maxWidth: this.props.width, overflowX: "hidden" }}>
+                <input className="keys-search" //style={{ width: this.props.width, maxWidth: "1000" }}
+                    ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
+                    onChange={e => this.onChange(e.target.value)}
+                    onClick={(e) => {
+                        //this._inputRef.current!.select();
+                        e.stopPropagation();
+                    }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
+                <div className="keys-options-wrapper" style={{
+                    backgroundColor: "white",
+                    width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+                }}
+                    onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this.renderOptions()}
                 </div>
             </div >
