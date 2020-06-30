@@ -48,6 +48,7 @@ import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { UndoManager } from '../../util/UndoManager';
 import { RichTextField } from '../../../fields/RichTextField';
+import { TextField } from '../../util/ProsemirrorCopy/prompt';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -359,7 +360,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
     @computed get _allFacets() {
         TraceMobx();
-        const facets = new Set<string>();
+        const facets = new Set<string>(["type", "text", "data", "author", "ACL"]);
         this.childDocs.filter(child => child).forEach(child => child && Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
         return Array.from(facets).filter(f => !f.startsWith("_") && !["proto", "zIndex", "isPrototype", "context", "text-noTemplate"].includes(f)).sort();
@@ -392,8 +393,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             var rtfields = 0;
             const facetValues = Array.from(allCollectionDocs.reduce((set, child) => {
                 const field = child[facetHeader] as Field;
-                if (field instanceof RichTextField) rtfields++;
-                return set.add(Field.toString(field));
+                const fieldStr = Field.toString(field);
+                if (field instanceof RichTextField || (typeof (field) === "string" && fieldStr.split(" ").length > 2)) rtfields++;
+                return set.add(fieldStr);
             }, new Set<string>()));
 
             let nonNumbers = 0;
@@ -408,13 +410,14 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 }
             });
             let newFacet: Opt<Doc>;
-            if (rtfields / allCollectionDocs.length > 0.1) {
-                newFacet = Docs.Create.TextDocument("", { _width: 200, _height: 30, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
+            if (facetHeader === "text" || rtfields / allCollectionDocs.length > 0.1) {
+                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet.target = this.props.Document;
+                newFacet._textBoxPadding = 4;
                 const scriptText = `setDocFilter(this.target, "${facetHeader}", text, "match")`;
                 newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
-            } else if (nonNumbers / allCollectionDocs.length < .1) {
+            } else if (nonNumbers / facetValues.length < .1) {
                 newFacet = Docs.Create.SliderDocument({ title: facetHeader, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);

@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt } from "../../../fields/Doc";
+import { Doc, Opt, Field } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -138,7 +138,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const facet = filterFacets[facetKey];
                     const satisfiesFacet = Object.keys(facet).some(value => {
                         if (facet[value] === "match") {
-                            return d[facetKey] === undefined || Cast(d[facetKey], RichTextField)?.Text.includes(value);
+                            return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
                         }
                         return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
                     });
@@ -475,5 +475,5 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
-import { SelectionManager } from "../../util/SelectionManager"; import { RichTextField } from "../../../fields/RichTextField";
+import { SelectionManager } from "../../util/SelectionManager";
 

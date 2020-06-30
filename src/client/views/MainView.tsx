@@ -383,7 +383,8 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
+    sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
         const sidebarContent = this.userDoc?.["tabs-panelContainer"];
@@ -402,7 +403,7 @@ export class MainView extends React.Component {
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
                     onClick={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
+                    ScreenToLocalTransform={this.sidebarScreenToLocal}
                     ContentScaling={returnOne}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
