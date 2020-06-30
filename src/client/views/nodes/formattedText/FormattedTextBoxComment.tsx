@@ -73,6 +73,8 @@ export class FormattedTextBoxComment {
     static targetDoc: Doc | undefined;
     static _editRef = React.createRef<HTMLDivElement>();
 
+    static openDoc: any;
+
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
             const root = document.getElementById("root");
@@ -99,6 +101,7 @@ export class FormattedTextBoxComment {
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
                     if (FormattedTextBoxComment.linkDoc.author) {
                         if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
+                            FormattedTextBoxComment.openDoc = textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                             textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                         } else {
                             DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
@@ -119,6 +122,7 @@ export class FormattedTextBoxComment {
 
     @action
     public static deleteLink = (): void => {
+        console.log(FormattedTextBoxComment.linkDoc);
         FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
         //this.props.showLinks();
         LinkDocPreview.LinkInfo = undefined;
@@ -139,7 +143,7 @@ export class FormattedTextBoxComment {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
         FormattedTextBoxComment.targetDoc ? DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, FormattedTextBoxComment.targetDoc,
-            doc => MainView.addDocTabFunc(doc, "onRight"), false) : null;
+            doc => FormattedTextBoxComment, false) : null;
     }
 
     public static Hide() {

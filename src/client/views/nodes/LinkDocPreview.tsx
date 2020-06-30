@@ -98,45 +98,46 @@ export class LinkDocPreview extends React.Component<Props> {
                     {this._toolTipText}
                 </div>
             </div> :
-            <div style={{
-                border: "6px solid white",
-            }}>
-                <div style={{ backgroundColor: "white" }}> {this._targetDoc.title}
-                    <div className="wrapper" style={{ float: "right" }}>
-                        <div title="Delete link" className="button" style={{ display: "inline" }} ref={this._editRef} onPointerDown={this.deleteLink}>
-                            <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
-                        <div title="Follow link" className="button" style={{ display: "inline" }} onClick={this.followDefault} onContextMenu={this.onContextMenu}>
-                            <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
-                        </div>
-                    </div>
-                </div>
-                <ContentFittingDocumentView
-                    Document={this._targetDoc}
-                    LibraryPath={emptyPath}
-                    fitToBox={true}
-                    backgroundColor={this.props.backgroundColor}
-                    moveDocument={returnFalse}
-                    rootSelected={returnFalse}
-                    ScreenToLocalTransform={Transform.Identity}
-                    parentActive={returnFalse}
-                    addDocument={returnFalse}
-                    removeDocument={returnFalse}
-                    addDocTab={returnFalse}
-                    pinToPres={returnFalse}
-                    dontRegisterView={true}
-                    docFilters={returnEmptyFilter}
-                    ContainingCollectionDoc={undefined}
-                    ContainingCollectionView={undefined}
-                    renderDepth={0}
-                    PanelWidth={this.width}
-                    PanelHeight={this.height}
-                    focus={emptyFunction}
-                    whenActiveChanged={returnFalse}
-                    bringToFront={returnFalse}
-                    ContentScaling={returnOne}
-                    NativeWidth={returnZero}
-                    NativeHeight={returnZero}
-                /></div>;
+            // <div style={{
+            //     border: "6px solid white",
+            // }}>
+            //     <div style={{ backgroundColor: "white" }}> {this._targetDoc.title}
+            //         <div className="wrapper" style={{ float: "right" }}>
+            //             <div title="Delete link" className="button" style={{ display: "inline" }} ref={this._editRef} onPointerDown={this.deleteLink}>
+            //                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
+            //             <div title="Follow link" className="button" style={{ display: "inline" }} onClick={this.followDefault} onContextMenu={this.onContextMenu}>
+            //                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
+            //             </div>
+            //         </div>
+            //     </div>
+            <ContentFittingDocumentView
+                Document={this._targetDoc}
+                LibraryPath={emptyPath}
+                fitToBox={true}
+                backgroundColor={this.props.backgroundColor}
+                moveDocument={returnFalse}
+                rootSelected={returnFalse}
+                ScreenToLocalTransform={Transform.Identity}
+                parentActive={returnFalse}
+                addDocument={returnFalse}
+                removeDocument={returnFalse}
+                addDocTab={returnFalse}
+                pinToPres={returnFalse}
+                dontRegisterView={true}
+                docFilters={returnEmptyFilter}
+                ContainingCollectionDoc={undefined}
+                ContainingCollectionView={undefined}
+                renderDepth={0}
+                PanelWidth={this.width}
+                PanelHeight={this.height}
+                focus={emptyFunction}
+                whenActiveChanged={returnFalse}
+                bringToFront={returnFalse}
+                ContentScaling={returnOne}
+                NativeWidth={returnZero}
+                NativeHeight={returnZero}
+            />;
+        //</div>;
     }
 
     render() {
