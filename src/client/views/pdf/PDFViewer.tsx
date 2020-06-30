@@ -114,8 +114,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _downX: number = 0;
     private _downY: number = 0;
     private _coverPath: any;
+    private _lastSearch = false;
     private _viewerIsSetup = false;
-    private _lastSearch: string = "";
 
     @computed get allAnnotations() {
         return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).
@@ -149,16 +149,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
-        this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
-            if (search) {
-                this.search(Doc.SearchQuery(), true);
-                this._lastSearch = Doc.SearchQuery();
-            }
-            else {
-                setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
-                this._lastSearch && (this._lastSearch = "mxytzlaf");
-            }
-        }, { fireImmediately: true });
+        this._searchReactionDisposer = reaction(() => this.Document.searchMatch,
+            m => {
+                if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), true);
+                else !(this._lastSearch = false) && setTimeout(() => !this._lastSearch && this.search("", false, true), 200);
+            }, { fireImmediately: true });
 
         this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
             selected => {
@@ -395,11 +390,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     @action
-    search = (searchString: string, fwd: boolean) => {
-        if (!searchString) {
+    search = (searchString: string, fwd: boolean, clear: boolean = false) => {
+        if (clear) {
+            this._pdfViewer.findController.executeCommand('reset', {});
+        } else if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
-        }
-        else if (this._pdfViewer.pageViewsReady) {
+        } else if (this._pdfViewer.pageViewsReady) {
             this._pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: !fwd,
