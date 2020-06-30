@@ -107,12 +107,18 @@ export class MobileInterface extends React.Component {
         this.renderView = renderView;
         // Ensures that switching to home is not registed
         UndoManager.undoStack.length = 0;
+        UndoManager.redoStack.length = 0;
     }
 
     // For toggling the hamburger menu
     @action
-    toggleSidebar = () => this.sidebarActive = !this.sidebarActive
+    toggleSidebar = () => {
+        this.sidebarActive = !this.sidebarActive;
 
+        if (this._ink) {
+            this.onSwitchInking();
+        }
+    }
     /**
      * Method called when 'Library' button is pressed on the home screen
      */

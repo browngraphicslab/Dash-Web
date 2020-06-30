@@ -401,14 +401,15 @@ body {
 .colorSelector {
     position: absolute;
     top: 550px;
-    left: 300px;
+    left: 280px;
     transform: translate(-50%, 0);
     z-index: 100;
     display: inline-flex;
     width: max-content;
     height: max-content;
     pointer-events: all;
-    font-size: 90px;
+    font-size: 80px;
+    user-select: none;
 }
 
 // Menu buttons for toggling between list and icon view

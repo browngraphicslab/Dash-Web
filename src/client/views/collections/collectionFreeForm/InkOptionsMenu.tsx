@@ -318,18 +318,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
             this.arrowPicker,
             this.dashButton,
         ];
-
-        const mobileButtons = [
-            this.shapePicker,
-            this.bezierButton,
-            this.widthPicker,
-            this.colorPicker,
-            this.fillPicker,
-            this.arrowPicker,
-            this.dashButton,
-        ];
-
-        return (window.screen.width < 600 ? this.getElement(mobileButtons) : this.getElement(buttons));
+        return this.getElement(buttons);
     }
 }
 Scripting.addGlobal(function activatePen(penBtn: any) {
