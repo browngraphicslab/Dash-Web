@@ -320,10 +320,13 @@ export default class InkOptionsMenu extends AntimodeMenu {
         ];
 
         const mobileButtons = [
-            ...this.shapeButtons,
+            this.shapePicker,
             this.bezierButton,
             this.widthPicker,
             this.colorPicker,
+            this.fillPicker,
+            this.arrowPicker,
+            this.dashButton,
         ];
 
         return (window.screen.width < 600 ? this.getElement(mobileButtons) : this.getElement(buttons));

@@ -56,6 +56,8 @@ export class MobileInterface extends React.Component {
     @observable private audioUploadActive: boolean = false;
     @observable private menuListView: boolean = false; //to switch between menu view (list / icon)
     @observable private _ink: boolean = false; //toggle whether ink is being dispalyed
+    @observable private inkButton: boolean = false;
+    @observable private undoButton: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc; // doc updated as the active mobile page is updated (initially home menu)
     public _homeDoc: Doc = this.mainDoc; // home menu as a document
@@ -107,6 +109,10 @@ export class MobileInterface extends React.Component {
         this.renderView = renderView;
         // Ensures that switching to home is not registed
         UndoManager.undoStack.length = 0;
+
+        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+            this.undoButton = true;
+        }
     }
 
     // For toggling the hamburger menu
@@ -445,7 +451,7 @@ export class MobileInterface extends React.Component {
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            title: "Collection " + workspaceCount
+            title: "Collection " + workspaceCount,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
@@ -493,19 +499,21 @@ export class MobileInterface extends React.Component {
 
     // DocButton that uses UndoManager and handles the opacity change if CanUndo is true
     @computed get undo() {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
-            return (<>
-                <div className="docButton"
-                    style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
-                    id="undoButton"
-                    title="undo"
-                    onClick={(e: React.MouseEvent) => {
-                        UndoManager.Undo();
-                        e.stopPropagation();
-                    }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="undo-alt" />
-                </div>
-            </>);
+        if (this.mainContainer) {
+            if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+                return (<>
+                    <div className="docButton"
+                        style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
+                        id="undoButton"
+                        title="undo"
+                        onClick={(e: React.MouseEvent) => {
+                            UndoManager.Undo();
+                            e.stopPropagation();
+                        }}>
+                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="undo-alt" />
+                    </div>
+                </>);
+            }
         }
     }
 
@@ -704,7 +712,6 @@ export class MobileInterface extends React.Component {
     }
 
     onDragOver = (e: React.DragEvent) => {
-        console.log("drag!");
         e.preventDefault();
         e.stopPropagation();
     }
