@@ -623,6 +623,7 @@ export class MobileInterface extends React.Component {
             this.menuListView = false;
             this._homeDoc._viewType = "masonry";
             this._homeDoc.columnWidth = 300;
+            this._homeDoc._columnWidth = 300;
             const menuButtons = DocListCast(this._homeDoc.data);
             menuButtons.map((doc: Doc, index: any) => {
                 const buttonData = DocListCast(doc.data);
