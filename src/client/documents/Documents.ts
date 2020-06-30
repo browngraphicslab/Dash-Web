@@ -977,7 +977,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().dockedBtns, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
