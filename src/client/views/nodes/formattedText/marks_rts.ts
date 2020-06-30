@@ -270,6 +270,7 @@ export const marks: { [index: string]: MarkSpec } = {
             userid: { default: "" },
             modified: { default: "when?" }, // 1 second intervals since 1970
         },
+        excludes: "user_mark",
         group: "inline",
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
