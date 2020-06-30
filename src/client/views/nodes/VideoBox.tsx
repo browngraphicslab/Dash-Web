@@ -58,21 +58,21 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     @action public Play = (update: boolean = true) => {
         this._playing = true;
-        update && this.player && this.player.play();
-        update && this._youtubePlayer && this._youtubePlayer.playVideo();
+        update && this.player?.play();
+        update && this._youtubePlayer?.playVideo();
         this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
-        this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
+        this._youtubePlayer?.seekTo(Math.round(time), true);
         this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this._playing = false;
-        update && this.player && this.player.pause();
-        update && this._youtubePlayer && this._youtubePlayer.pauseVideo && this._youtubePlayer.pauseVideo();
+        update && this.player?.pause();
+        update && this._youtubePlayer?.pauseVideo();
         this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
         this.updateTimecode();
@@ -261,16 +261,16 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
                 started = false;
-                this._youtubePlayer && this._youtubePlayer.unMute();
-                this.Pause();
+                this._youtubePlayer?.unMute();
+                //this.Pause();
                 return;
             }
             if (event.data === YT.PlayerState.PLAYING && !this._playing) this.Play(false);
             if (event.data === YT.PlayerState.PAUSED && this._playing) this.Pause(false);
         });
         const onYoutubePlayerReady = (event: any) => {
-            this._reactionDisposer && this._reactionDisposer();
-            this._youtubeReactionDisposer && this._youtubeReactionDisposer();
+            this._reactionDisposer?.();
+            this._youtubeReactionDisposer?.();
             this._reactionDisposer = reaction(() => this.layoutDoc.currentTimecode, () => !this._playing && this.Seek((this.layoutDoc.currentTimecode || 0)));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, Doc.GetSelectedTool()], () => {
                 const interactive = Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
@@ -346,7 +346,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const start = untracked(() => Math.round((this.layoutDoc.currentTimecode || 0)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.layoutDoc._nativeWidth || 640)} height={(this.layoutDoc._nativeHeight || 390)}
-            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
+            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=0&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
     }
 
     @action.bound
