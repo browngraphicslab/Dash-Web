@@ -386,8 +386,8 @@ class TreeView extends React.Component<TreeViewProps> {
         e.stopPropagation();
     }
 
-    @computed
-    get renderBullet() {
+    @computed get renderBullet() {
+        TraceMobx();
         const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className="bullet"
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}

@@ -7,7 +7,7 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { WebField } from "../../../fields/URLField";
-import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
+import { Cast, ScriptCast, NumCast, StrCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
@@ -136,8 +136,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
                 for (const facetKey of Object.keys(filterFacets)) {
                     const facet = filterFacets[facetKey];
-                    const satisfiesFacet = Object.keys(facet).some(value =>
-                        (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
+                    const satisfiesFacet = Object.keys(facet).some(value => {
+                        if (facet[value] === "match") {
+                            return d[facetKey] === undefined || Cast(d[facetKey], RichTextField)?.Text.includes(value);
+                        }
+                        return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                    });
                     if (!satisfiesFacet) {
                         return false;
                     }
@@ -471,4 +475,5 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
-import { SelectionManager } from "../../util/SelectionManager";
+import { SelectionManager } from "../../util/SelectionManager"; import { RichTextField } from "../../../fields/RichTextField";
+
