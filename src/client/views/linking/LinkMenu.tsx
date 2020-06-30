@@ -74,7 +74,8 @@ export class LinkMenu extends React.Component<Props> {
     render() {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
-        return <div className="linkMenu-list" ref={(r) => this._linkMenuRef = r} style={{ left: this.props.location[0], top: this.props.location[1] }}>
+        return <div className="linkMenu-list"
+            ref={(r) => this._linkMenuRef = r} style={{ left: this.props.location[0], top: this.props.location[1] }}>
             {!this._editingLink ?
                 this.renderAllGroups(groups) :
                 <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)} />

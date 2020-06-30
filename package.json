@@ -52,6 +52,7 @@
         "@types/passport-local": "^1.0.33",
         "@types/pdfjs-dist": "^2.1.4",
         "@types/prosemirror-commands": "^1.0.1",
+        "@types/prosemirror-dev-tools": "^2.1.0",
         "@types/prosemirror-history": "^1.0.1",
         "@types/prosemirror-inputrules": "^1.0.2",
         "@types/prosemirror-keymap": "^1.0.2",
