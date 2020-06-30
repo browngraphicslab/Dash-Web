@@ -945,20 +945,27 @@ export namespace Doc {
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) {
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) {
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
-        for (let i = 0; i < docFilters.length; i += 3) {
-            if (docFilters[i] === key && docFilters[i + 1] === value) {
-                docFilters.splice(i, 3);
-                break;
+        runInAction(() => {
+            for (let i = 0; i < docFilters.length; i += 3) {
+                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
+                    if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
+                    docFilters.splice(i, 3);
+                    break;
+                }
             }
-        }
-        if (typeof modifiers === "string") {
-            docFilters.push(key);
-            docFilters.push(value);
-            docFilters.push(modifiers);
-            container._docFilters = new List<string>(docFilters);
-        }
+            if (typeof modifiers === "string") {
+                if (!docFilters.length && modifiers === "match" && value === undefined) {
+                    container._docFilters = undefined;
+                } else {
+                    docFilters.push(key);
+                    docFilters.push(value);
+                    docFilters.push(modifiers);
+                    container._docFilters = new List<string>(docFilters);
+                }
+            }
+        })
     }
     export function readDocRangeFilter(doc: Doc, key: string) {
         const docRangeFilters = Cast(doc._docRangeFilters, listSpec("string"), []);
@@ -1168,5 +1175,5 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });
