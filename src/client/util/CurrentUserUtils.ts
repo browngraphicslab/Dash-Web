@@ -654,7 +654,7 @@ export class CurrentUserUtils {
 
         // Finally, setup the list of buttons to display in the sidebar
         if (doc["tabs-buttons"] === undefined) {
-            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([searchBtn, libraryBtn, toolsBtn], {
+            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
                 _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
                 title: "sidebar btn row stack", backgroundColor: "dimGray",
             }));
@@ -777,6 +777,7 @@ export class CurrentUserUtils {
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
         doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
+        doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
         doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });

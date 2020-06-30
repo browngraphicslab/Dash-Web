@@ -1,13 +1,13 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt } from "../../../fields/Doc";
+import { Doc, Opt, Field } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { WebField } from "../../../fields/URLField";
-import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
+import { Cast, ScriptCast, NumCast, StrCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
@@ -136,8 +136,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
                 for (const facetKey of Object.keys(filterFacets)) {
                     const facet = filterFacets[facetKey];
-                    const satisfiesFacet = Object.keys(facet).some(value =>
-                        (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
+                    const satisfiesFacet = Object.keys(facet).some(value => {
+                        if (facet[value] === "match") {
+                            return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                        }
+                        return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                    });
                     if (!satisfiesFacet) {
                         return false;
                     }
@@ -208,7 +212,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
 
-        @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
@@ -355,7 +358,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
 
             if (text) {
-                if (text.includes("www.youtube.com/watch")) {
+                if (text.includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
                     const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
@@ -473,3 +476,4 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
+

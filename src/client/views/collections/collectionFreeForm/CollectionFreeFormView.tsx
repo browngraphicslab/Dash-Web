@@ -194,7 +194,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return (pt => super.onExternalDrop(e, { x: pt[0], y: pt[1] }))(this.getTransform().transformPoint(e.pageX, e.pageY));
     }
 
-    @undoBatch
     @action
     internalDocDrop(e: Event, de: DragManager.DropEvent, docDragData: DragManager.DocumentDragData, xp: number, yp: number) {
         if (!super.onInternalDrop(e, de)) return false;

@@ -30,6 +30,7 @@ import { HistoryUtil } from '../util/History';
 import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { Scripting } from '../util/Scripting';
 import SettingsManager from '../util/SettingsManager';
+import GroupManager from '../util/GroupManager';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -382,7 +383,8 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
+    sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
         const sidebarContent = this.userDoc?.["tabs-panelContainer"];
@@ -401,7 +403,7 @@ export class MainView extends React.Component {
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
                     onClick={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
+                    ScreenToLocalTransform={this.sidebarScreenToLocal}
                     ContentScaling={returnOne}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
@@ -443,9 +445,14 @@ export class MainView extends React.Component {
                     docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
-                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                    <FontAwesomeIcon icon="cog" size="lg" />
-                </button>
+                <div className="buttonContainer" >
+                    <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                        <FontAwesomeIcon icon="cog" size="lg" />
+                    </button>
+                    <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
+                        <FontAwesomeIcon icon="columns" size="lg" />
+                    </button>
+                </div>
             </div>
             {this.docButtons}
         </div>;
@@ -591,6 +598,7 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <GroupManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
             <GestureOverlay>

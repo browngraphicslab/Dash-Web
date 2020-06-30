@@ -47,6 +47,8 @@ import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { UndoManager } from '../../util/UndoManager';
+import { RichTextField } from '../../../fields/RichTextField';
+import { TextField } from '../../util/ProsemirrorCopy/prompt';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -357,8 +359,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
     }
     @computed get _allFacets() {
-        const facets = new Set<string>();
-        this.childDocs.filter(child => child).forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
+        TraceMobx();
+        const facets = new Set<string>(["type", "text", "data", "author", "ACL"]);
+        this.childDocs.filter(child => child).forEach(child => child && Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
         return Array.from(facets).filter(f => !f.startsWith("_") && !["proto", "zIndex", "isPrototype", "context", "text-noTemplate"].includes(f)).sort();
     }
@@ -387,8 +390,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             }
         } else {
             const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
-            const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
-                set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+            var rtfields = 0;
+            const facetValues = Array.from(allCollectionDocs.reduce((set, child) => {
+                const field = child[facetHeader] as Field;
+                const fieldStr = Field.toString(field);
+                if (field instanceof RichTextField || (typeof (field) === "string" && fieldStr.split(" ").length > 2)) rtfields++;
+                return set.add(fieldStr);
+            }, new Set<string>()));
 
             let nonNumbers = 0;
             let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
@@ -402,13 +410,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 }
             });
             let newFacet: Opt<Doc>;
-            if (nonNumbers / allCollectionDocs.length < .1) {
-                newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+            if (facetHeader === "text" || rtfields / allCollectionDocs.length > 0.1) {
+                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
+                Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                newFacet.target = this.props.Document;
+                newFacet._textBoxPadding = 4;
+                const scriptText = `setDocFilter(this.target, "${facetHeader}", text, "match")`;
+                newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
+            } else if (nonNumbers / facetValues.length < .1) {
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader, treeViewExpandedView: "layout", treeViewOpen: true });
                 const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
-                newFacet.treeViewExpandedView = "layout";
-                newFacet.treeViewOpen = true;
                 const extendedMinVal = minVal - Math.min(1, Math.abs(maxVal - minVal) * .05);
                 const extendedMaxVal = maxVal + Math.min(1, Math.abs(maxVal - minVal) * .05);
                 newFacet[newFacetField + "-min"] = ranged === undefined ? extendedMinVal : ranged[0];
@@ -418,7 +431,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 newFacet.target = this.props.Document;
                 const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
-
                 Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
             } else {
                 newFacet = new Doc();
@@ -445,6 +457,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
     }
     @computed get filterView() {
+        TraceMobx();
         const facetCollection = this.props.Document;
         const flyout = (
             <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
