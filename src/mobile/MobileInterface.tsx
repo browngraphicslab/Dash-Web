@@ -56,8 +56,6 @@ export class MobileInterface extends React.Component {
     @observable private audioUploadActive: boolean = false;
     @observable private menuListView: boolean = false; //to switch between menu view (list / icon)
     @observable private _ink: boolean = false; //toggle whether ink is being dispalyed
-    @observable private inkButton: boolean = false;
-    @observable private undoButton: boolean = false;
 
     public _activeDoc: Doc = this.mainDoc; // doc updated as the active mobile page is updated (initially home menu)
     public _homeDoc: Doc = this.mainDoc; // home menu as a document
@@ -109,10 +107,6 @@ export class MobileInterface extends React.Component {
         this.renderView = renderView;
         // Ensures that switching to home is not registed
         UndoManager.undoStack.length = 0;
-
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
-            this.undoButton = true;
-        }
     }
 
     // For toggling the hamburger menu
@@ -519,35 +513,39 @@ export class MobileInterface extends React.Component {
 
     // DocButton that uses UndoManager and handles the opacity change if CanRedo is true
     @computed get redo() {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
-            return (<>
-                <div className="docButton"
-                    style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
-                    id="undoButton"
-                    title="redo"
-                    onClick={(e: React.MouseEvent) => {
-                        UndoManager.Redo();
-                        e.stopPropagation();
-                    }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="redo-alt" />
-                </div>
-            </>);
+        if (this.mainContainer) {
+            if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+                return (<>
+                    <div className="docButton"
+                        style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
+                        id="undoButton"
+                        title="redo"
+                        onClick={(e: React.MouseEvent) => {
+                            UndoManager.Redo();
+                            e.stopPropagation();
+                        }}>
+                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="redo-alt" />
+                    </div>
+                </>);
+            }
         }
     }
 
     // DocButton for switching into ink mode
     @computed get drawInk() {
-        if (this._activeDoc._viewType === "docking") {
-            return (
-                <>
-                    <div className="docButton"
-                        id="inkButton"
-                        title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
-                        onClick={this.onSwitchInking}>
-                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
-                        />
-                    </div>
-                </>);
+        if (this.mainContainer) {
+            if (this._activeDoc._viewType === "docking") {
+                return (
+                    <>
+                        <div className="docButton"
+                            id="inkButton"
+                            title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
+                            onClick={this.onSwitchInking}>
+                            <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
+                            />
+                        </div>
+                    </>);
+            }
         }
     }
 
@@ -746,8 +744,8 @@ export class MobileInterface extends React.Component {
                         {this.pinToPresentation()}
                         {this.downloadDocument()}
                         {this.undo}
-                        {this.drawInk}
                         {this.redo}
+                        {this.drawInk}
                         {this.uploadImageButton()}
                     </div>
                     {this.displayWorkspaces}
