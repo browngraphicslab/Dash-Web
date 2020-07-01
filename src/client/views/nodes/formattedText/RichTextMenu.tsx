@@ -1,6 +1,6 @@
 import React = require("react");
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faIndent, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
@@ -26,7 +26,7 @@ import { TraceMobx } from "../../../../fields/util";
 import { UndoManager } from "../../../util/UndoManager";
 const { toggleMark } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
+library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
 
 
 @observer
@@ -443,6 +443,63 @@ export default class RichTextMenu extends AntimodeMenu {
         return true;
     }
 
+    insetParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const inset = (node.attrs.inset ? Number(node.attrs.inset) : 0) + 10;
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+    outsetParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const inset = Math.max(0, (node.attrs.inset ? Number(node.attrs.inset) : 0) - 10);
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+
+    indentParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
+                const indent = !nodeval ? 25 : nodeval < 0 ? 0 : nodeval + 25;
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+
+    hangingIndentParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
+                const indent = !nodeval ? -25 : nodeval > 0 ? 0 : nodeval - 10;
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+
     insertBlockquote(state: EditorState<any>, dispatch: any) {
         const path = (state.selection.$from as any).path;
         if (path.length > 6 && path[path.length - 6].type === schema.nodes.blockquote) {
@@ -450,6 +507,11 @@ export default class RichTextMenu extends AntimodeMenu {
         } else {
             wrapIn(schema.nodes.blockquote)(state, dispatch);
         }
+        return true;
+    }
+
+    insertHorizontalRule(state: EditorState<any>, dispatch: any) {
+        dispatch(state.tr.replaceSelectionWith(state.schema.nodes.horizontal_rule.create()).scrollIntoView());
         return true;
     }
 
@@ -822,6 +884,10 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("align-left", "Align Left", undefined, this.alignLeft),
             this.createButton("align-center", "Align Center", undefined, this.alignCenter),
             this.createButton("align-right", "Align Right", undefined, this.alignRight),
+            this.createButton("indent", "Inset More", undefined, this.insetParagraph),
+            this.createButton("outdent", "Inset Less", undefined, this.outsetParagraph),
+            this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
+            this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
@@ -831,7 +897,8 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes"),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
-                this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),]}
+                this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
+                this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),]}
             </div>
             <div key="button">
                 {/* <div key="collapser">
