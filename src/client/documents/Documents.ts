@@ -1,5 +1,5 @@
 import { runInAction } from "mobx";
-import { extname } from "path";
+import { extname, basename } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
 import { HtmlField } from "../../fields/HtmlField";
@@ -48,6 +48,8 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { Networking } from "../Network";
+import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -1103,6 +1105,32 @@ export namespace DocUtils {
             }
         });
         return optionsCollection;
+    }
+
+    export async function uploadFilesToDocs(files: File[], options: DocumentOptions) {
+        const generatedDocuments: Doc[] = [];
+        for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
+            if (result instanceof Error) {
+                alert(`Upload failed: ${result.message}`);
+                return [];
+            }
+            const full = { ...options, _width: 400, title: name };
+            const pathname = Utils.prepend(result.accessPaths.agnostic.client);
+            const doc = await DocUtils.DocumentFromType(type, pathname, full);
+            if (!doc) {
+                continue;
+            }
+            const proto = Doc.GetProto(doc);
+            proto.text = result.rawText;
+            proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+            if (Upload.isImageInformation(result)) {
+                proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
+                proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
+                proto.contentSize = result.contentSize;
+            }
+            generatedDocuments.push(doc);
+        }
+        return generatedDocuments;
     }
 }
 

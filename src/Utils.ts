@@ -7,6 +7,22 @@ import { ColorState } from 'react-color';
 export namespace Utils {
     export let DRAG_THRESHOLD = 4;
 
+    export function readUploadedFileAsText(inputFile: File) {
+        const temporaryFileReader = new FileReader();
+
+        return new Promise((resolve, reject) => {
+            temporaryFileReader.onerror = () => {
+                temporaryFileReader.abort();
+                reject(new DOMException("Problem parsing input file."));
+            };
+
+            temporaryFileReader.onload = () => {
+                resolve(temporaryFileReader.result);
+            };
+            temporaryFileReader.readAsText(inputFile);
+        });
+    }
+
     export function GenerateGuid(): string {
         return v4();
     }
