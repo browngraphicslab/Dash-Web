@@ -225,7 +225,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document) || de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
                 } else {
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
