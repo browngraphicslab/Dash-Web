@@ -600,52 +600,54 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
-            <div className="documentDecorations-container" ref={this.setTextBar} style={{
-                width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
-                left: bounds.x - this._resizeBorderWidth / 2,
-                top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
-            }}>
-                {maximizeIcon}
-                {titleArea}
-                {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                    <div className="documentDecorations-iconifyButton" title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} onPointerDown={this.onIconifyDown}>
-                        {"_"}
-                    </div>}
-                <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
-                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
-                </div>
-                <div id="documentDecorations-rotation" className="documentDecorations-rotation"
-                    onPointerDown={this.onRotateDown}> ⟲ </div>
-                <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-leftResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-centerCont"></div>
-                <div id="documentDecorations-rightResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
-                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                    <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
-                        title="tap to select containing document" onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
-                        <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
-                    </div>}
-                <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
-                    onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
+            {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>
+                <div className="documentDecorations-container" key="container" ref={this.setTextBar} style={{
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
+                }}>
+                    {maximizeIcon}
+                    {titleArea}
+                    {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
+                        <div className="documentDecorations-iconifyButton" title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} onPointerDown={this.onIconifyDown}>
+                            {"_"}
+                        </div>}
+                    <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
+                        {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                    </div>
+                    <div id="documentDecorations-rotation" className="documentDecorations-rotation"
+                        onPointerDown={this.onRotateDown}> ⟲ </div>
+                    <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-leftResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-centerCont"></div>
+                    <div id="documentDecorations-rightResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
+                        onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
+                        <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
+                            title="tap to select containing document" onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
+                            <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                        </div>}
+                    <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
+                        onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
-            </div >
-            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
-                <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
-            </div>
+                </div >
+                <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
+                    <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
+                </div>
+            </>}
         </div >
         );
     }

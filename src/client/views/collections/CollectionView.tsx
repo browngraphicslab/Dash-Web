@@ -141,15 +141,17 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             } else {
                 added.map(doc => {
                     const context = Cast(doc.context, Doc, null);
-                    if (context && (context?.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
-                        const pushpin = Docs.Create.FreeformDocument([], {
-                            title: "pushpin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null),
-                            _width: 10, _height: 10, _backgroundColor: "red", isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                    if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG) &&
+                        !DocListCast(doc.links).some(d => d.isPushpin)) {
+                        const pushpin = Docs.Create.FontIconDocument({
+                            icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                            _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
                         });
                         Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                        DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin");
+                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin");
                         const first = DocListCast(pushpin.links).find(d => d instanceof Doc);
                         first && (first.hidden = true);
+                        pushpinLink && (Doc.GetProto(pushpinLink).isPushpin = true);
                         doc.displayTimecode = undefined;
                     }
                     doc.context = this.props.Document;
