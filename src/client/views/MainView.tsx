@@ -190,7 +190,7 @@ export class MainView extends React.Component {
             }
             const doc = MainView.userDoc && await Cast(MainView.userDoc.activeWorkspace, Doc);
             if (doc) {
-                MainView.openWorkspace(doc);
+                this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
             }
@@ -219,11 +219,11 @@ export class MainView extends React.Component {
 
         Doc.AddDocToList(workspaces, "data", workspaceDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => MainView.openWorkspace(workspaceDoc), 0);
+        setTimeout(() => this.openWorkspace(workspaceDoc), 0);
     }
 
     @action
-    static openWorkspace = (doc: Doc, fromHistory = false) => {
+    openWorkspace = (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
 
         if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
@@ -305,7 +305,7 @@ export class MainView extends React.Component {
             DataDoc={undefined}
             LibraryPath={emptyPath}
             addDocument={undefined}
-            addDocTab={MainView.addDocTabFunc}
+            addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             rootSelected={returnTrue}
             onClick={undefined}
@@ -378,9 +378,9 @@ export class MainView extends React.Component {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    static addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
+    addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
-            doc.dockingConfig ? MainView.openWorkspace(doc) :
+            doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
@@ -399,7 +399,7 @@ export class MainView extends React.Component {
                     LibraryPath={emptyPath}
                     addDocument={undefined}
                     rootSelected={returnTrue}
-                    addDocTab={MainView.addDocTabFunc}
+                    addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
                     onClick={undefined}
@@ -425,7 +425,7 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     addDocument={undefined}
-                    addDocTab={MainView.addDocTabFunc}
+                    addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
@@ -531,7 +531,7 @@ export class MainView extends React.Component {
                     moveDocument={this.moveButtonDoc}
                     CollectionView={undefined}
                     addDocument={this.addButtonDoc}
-                    addDocTab={MainView.addDocTabFunc}
+                    addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={this.remButtonDoc}
                     onClick={undefined}
@@ -628,5 +628,7 @@ Scripting.addGlobal(function copyWorkspace() {
     const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
     Doc.AddDocToList(workspaces, "data", copiedWorkspace);
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-    setTimeout(() => MainView.openWorkspace(copiedWorkspace), 0);
+
+
+    // setTimeout(() => .openWorkspace(copiedWorkspace), 0);
 });
