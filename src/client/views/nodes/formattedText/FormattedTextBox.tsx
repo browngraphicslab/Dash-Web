@@ -32,7 +32,7 @@ import { DocumentType } from '../../../documents/DocumentTypes';
 import { DictationManager } from '../../../util/DictationManager';
 import { DragManager } from "../../../util/DragManager";
 import { makeTemplate } from '../../../util/DropConverter';
-import buildKeymap from "./ProsemirrorExampleTransfer";
+import buildKeymap, { updateBullets } from "./ProsemirrorExampleTransfer";
 import RichTextMenu from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
 
@@ -86,6 +86,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
     public ProseRef?: HTMLDivElement;
+    public get EditorView() { return this._editorView; }
     private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _scrollRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _editorView: Opt<EditorView>;
@@ -93,7 +94,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _searchIndex = 0;
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
-    private dropDisposer?: DragManager.DragDropDisposer;
+    private _dropDisposer?: DragManager.DragDropDisposer;
 
     @computed get _recording() { return this.dataDoc.audioState === "recording"; }
     set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
@@ -291,8 +292,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.ProseRef = ele;
-        this.dropDisposer?.();
-        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.layoutDoc));
+        this._dropDisposer?.();
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.layoutDoc));
     }
 
     @undoBatch
@@ -660,8 +661,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             incomingValue => {
                 if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
                     const updatedState = JSON.parse(incomingValue);
-                    this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
-                    this.tryUpdateHeight();
+                    if (JSON.stringify(this._editorView!.state.toJSON()) !== JSON.stringify(updatedState)) {
+                        this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
+                        this.tryUpdateHeight();
+                    }
                 }
             }
         );
@@ -1046,6 +1049,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @action
     onFocused = (e: React.FocusEvent): void => {
+        console.log("FOUCSS")
         FormattedTextBox.FocusedBox = this;
         this.tryUpdateHeight();
 
@@ -1163,18 +1167,28 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
     }
 
-    public static HadSelection: boolean = false;
-    onBlur = (e: any) => {
-        FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
-        //DictationManager.Controls.stop(false);
+    public startUndoTypingBatch() {
+        this._undoTyping = UndoManager.StartBatch("undoTyping");
+    }
+
+    public endUndoTypingBatch() {
+        const wasUndoing = this._undoTyping;
         if (this._undoTyping) {
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
+        return wasUndoing;
+    }
+    public static HadSelection: boolean = false;
+    onBlur = (e: any) => {
+        console.log("BLURRR")
+        FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
+        //DictationManager.Controls.stop(false);
+        this.endUndoTypingBatch();
         this.doLinkOnDeselect();
 
         // move the richtextmenu offscreen
-        if (!RichTextMenu.Instance.Pinned && !RichTextMenu.Instance.overMenu) RichTextMenu.Instance.jumpTo(-300, -300);
+        if (!RichTextMenu.Instance.Pinned) RichTextMenu.Instance.delayHide();
     }
 
     _lastTimedMark: Mark | undefined = undefined;
@@ -1208,11 +1222,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         // this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
 
         if (!this._undoTyping) {
-            this._undoTyping = UndoManager.StartBatch("undoTyping");
+            this.startUndoTypingBatch();
         }
     }
 
     ondrop = (eve: React.DragEvent) => {
+        this._editorView!.dispatch(updateBullets(this._editorView!.state.tr, this._editorView!.state.schema));
         eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
     }
     onscrolled = (ev: React.UIEvent) => {
@@ -1308,7 +1323,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
-                                padding: this.layoutDoc._textBoxPadding ? this.layoutDoc._textBoxPadding : `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
+                                padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
                                 pointerEvents: !this.props.isSelected() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : "all") : undefined
                             }}
                         />
