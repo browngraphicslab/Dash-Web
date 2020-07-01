@@ -2,7 +2,7 @@ import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, DocCastAsync } from "../../../../fields/Doc";
+import { Doc, DocCastAsync, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../../fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne, returnEmptyFilter } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
@@ -16,13 +16,11 @@ import React = require("react");
 import { Docs } from "../../../documents/Documents";
 import wiki from "wikijs";
 import { DocumentType } from "../../../documents/DocumentTypes";
-import { computed, action, observable } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { LinkManager } from "../../../util/LinkManager";
-import { LinkDocPreview } from "../LinkDocPreview";
-import { DocumentLinksButton } from "../DocumentLinksButton";
-import { ContextMenu } from "../../ContextMenu";
-import { MainView } from "../../MainView";
+import { action } from "mobx";
+// import { LinkManager } from "../../../util/LinkManager";
+// import { LinkDocPreview } from "../LinkDocPreview";
+// import { DocumentLinksButton } from "../DocumentLinksButton";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -70,10 +68,8 @@ export class FormattedTextBoxComment {
     static textBox: FormattedTextBox | undefined;
     static linkDoc: Doc | undefined;
 
-    static targetDoc: Doc | undefined;
-    static _editRef = React.createRef<HTMLDivElement>();
-
-    static openDoc: any;
+    static _deleteRef: Opt<HTMLDivElement | null>;
+    static _followRef: Opt<HTMLDivElement | null>;
 
     constructor(view: any) {
         if (!FormattedTextBoxComment.tooltip) {
@@ -88,8 +84,8 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
-            FormattedTextBoxComment.tooltip.style.maxWidth = "225px";
-            FormattedTextBoxComment.tooltip.style.maxHeight = "225px";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "350px";
+            FormattedTextBoxComment.tooltip.style.maxHeight = "250px";
             FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
@@ -100,13 +96,25 @@ export class FormattedTextBoxComment {
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
                     if (FormattedTextBoxComment.linkDoc.author) {
+
+                        // if (FormattedTextBoxComment._deleteRef && FormattedTextBoxComment._deleteRef.contains(e.target as any)) {
+                        //     FormattedTextBoxComment.deleteLink();
+                        // } else if (FormattedTextBoxComment._followRef && FormattedTextBoxComment._followRef.contains(e.target as any)) {
+                        //     if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
+                        //         textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+                        //     } else {
+                        //         DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
+                        //             (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+                        //     }
+                        // } else {
                         if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                            FormattedTextBoxComment.openDoc = textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                             textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                         } else {
                             DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                                 (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
                         }
+                        //}
+
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
                     textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "onRight");
@@ -117,33 +125,16 @@ export class FormattedTextBoxComment {
                 e.preventDefault();
             };
             root && root.appendChild(FormattedTextBoxComment.tooltip);
-        }
+        };
     }
 
     @action
     public static deleteLink = (): void => {
         console.log(FormattedTextBoxComment.linkDoc);
-        FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
-        //this.props.showLinks();
-        LinkDocPreview.LinkInfo = undefined;
-        DocumentLinksButton.EditLink = undefined;
-    }
-
-    @action
-    public static onContextMenu = (e: React.MouseEvent) => {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => FormattedTextBoxComment.followDefault(), icon: "arrow-right" });
-        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
-    }
-
-    @action.bound
-    public static async followDefault() {
-        DocumentLinksButton.EditLink = undefined;
-        LinkDocPreview.LinkInfo = undefined;
-        FormattedTextBoxComment.targetDoc ? DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, FormattedTextBoxComment.targetDoc,
-            doc => FormattedTextBoxComment, false) : null;
+        // FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
+        // //this.props.showLinks();
+        // LinkDocPreview.LinkInfo = undefined;
+        // DocumentLinksButton.EditLink = undefined;
     }
 
     public static Hide() {
@@ -157,22 +148,6 @@ export class FormattedTextBoxComment {
         FormattedTextBoxComment.end = end;
         FormattedTextBoxComment.mark = mark;
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "");
-    }
-
-    @action
-    onClick = (e: PointerEvent) => {
-        if (FormattedTextBoxComment._editRef && !FormattedTextBoxComment._editRef.current?.contains(e.target as Node)) {
-            FormattedTextBoxComment.linkDoc = undefined;
-            FormattedTextBoxComment.targetDoc = undefined;
-        }
-    }
-    @action
-    componentDidMount() {
-        document.addEventListener("pointerdown", this.onClick);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.onClick);
     }
 
     static showCommentbox(set: string, view: EditorView, nbef: number) {
@@ -213,7 +188,6 @@ export class FormattedTextBoxComment {
         (FormattedTextBoxComment.tooltipText as any).href = "";
         FormattedTextBoxComment.tooltipText.style.whiteSpace = "";
         FormattedTextBoxComment.tooltipText.style.overflow = "";
-
         // this section checks to see if the insertion point is over text entered by a different user.  If so, it sets ths comment text to indicate the user and the modification date
         if (state.selection.$from) {
             nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
@@ -266,12 +240,12 @@ export class FormattedTextBoxComment {
                                 target._scrollY = NumCast(anchor?.y);
                             }
                             if (target?.author) {
-
+                                FormattedTextBoxComment.showCommentbox("", view, nbef);
                                 const docPreview = <div style={{ backgroundColor: "white" }}> {target.title}
                                     <div className="wrapper" style={{ float: "right" }}>
-                                        <div title="Delete link" className="button" style={{ display: "inline" }} ref={this._editRef} onPointerDown={this.deleteLink}>
+                                        <div title="Delete link" className="FormattedTextBoxComment-button" style={{ display: "inline" }} ref={(r) => this._deleteRef = r}>
                                             <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
-                                        <div title="Follow link" className="button" style={{ display: "inline" }} onClick={this.followDefault} onContextMenu={this.onContextMenu}>
+                                        <div title="Follow link" className="FormattedTextBoxComment-button" style={{ display: "inline" }} ref={(r) => this._followRef = r}>
                                             <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
                                         </div>
                                     </div>
@@ -303,7 +277,34 @@ export class FormattedTextBoxComment {
                                     />
                                 </div>;
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
-                                ReactDOM.render(docPreview, FormattedTextBoxComment.tooltipText);
+
+                                ReactDOM.render(<ContentFittingDocumentView
+                                    Document={target}
+                                    LibraryPath={emptyPath}
+                                    fitToBox={true}
+                                    moveDocument={returnFalse}
+                                    rootSelected={returnFalse}
+                                    ScreenToLocalTransform={Transform.Identity}
+                                    parentActive={returnFalse}
+                                    addDocument={returnFalse}
+                                    removeDocument={returnFalse}
+                                    addDocTab={returnFalse}
+                                    pinToPres={returnFalse}
+                                    dontRegisterView={true}
+                                    docFilters={returnEmptyFilter}
+                                    ContainingCollectionDoc={undefined}
+                                    ContainingCollectionView={undefined}
+                                    renderDepth={0}
+                                    PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
+                                    PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
+                                    focus={emptyFunction}
+                                    whenActiveChanged={returnFalse}
+                                    bringToFront={returnFalse}
+                                    ContentScaling={returnOne}
+                                    NativeWidth={returnZero}
+                                    NativeHeight={returnZero}
+                                />, FormattedTextBoxComment.tooltipText);
+
                                 FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
                                 FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
                             }
