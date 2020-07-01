@@ -65,7 +65,7 @@ export class MainView extends React.Component {
     public static Instance: MainView;
     private _buttonBarHeight = 36;
     private _flyoutSizeOnDown = 0;
-    private static _urlState: HistoryUtil.DocUrl;
+    private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
 
@@ -73,12 +73,12 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
-    private get darkScheme() { return BoolCast(Cast(MainView.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
 
-    @computed private static get userDoc() { return Doc.UserDoc(); }
-    @computed private get mainContainer() { return MainView.userDoc ? FieldValue(Cast(MainView.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
+    @computed private get userDoc() { return Doc.UserDoc(); }
+    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get sidebarButtonsDoc() { return Cast(MainView.userDoc["tabs-buttons"], Doc) as Doc; }
+    @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
     public isPointerDown = false;
 
@@ -119,7 +119,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
-        MainView._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
+        this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== "/home") {
@@ -128,7 +128,7 @@ export class MainView extends React.Component {
                 const type = pathname[0];
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
-                    if (!MainView.userDoc) {
+                    if (!this.userDoc) {
                         runInAction(() => this.flyoutWidth = 0);
                         DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action((field: Opt<Field>) =>
                             field instanceof Doc && (CurrentUserUtils.GuestTarget = field)));
@@ -172,14 +172,14 @@ export class MainView extends React.Component {
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         const received = CurrentUserUtils.MainDocId;
-        if (received && !MainView.userDoc) {
+        if (received && !this.userDoc) {
             reaction(
                 () => CurrentUserUtils.GuestTarget,
                 target => target && this.createNewWorkspace(),
                 { fireImmediately: true }
             );
         } else {
-            if (received && MainView._urlState.sharing) {
+            if (received && this._urlState.sharing) {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
                     initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
                         if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
@@ -188,7 +188,7 @@ export class MainView extends React.Component {
                     }),
                 );
             }
-            const doc = MainView.userDoc && await Cast(MainView.userDoc.activeWorkspace, Doc);
+            const doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
             if (doc) {
                 this.openWorkspace(doc);
             } else {
@@ -199,7 +199,7 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        const workspaces = Cast(MainView.userDoc.myWorkspaces, Doc) as Doc;
+        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
@@ -228,10 +228,10 @@ export class MainView extends React.Component {
 
         if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
             !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
-            MainView.userDoc ? (MainView.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
+            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
         }
-        const state = MainView._urlState;
-        if (state.sharing === true && !MainView.userDoc) {
+        const state = this._urlState;
+        if (state.sharing === true && !this.userDoc) {
             DocServer.Control.makeReadOnly();
         } else {
             fromHistory || HistoryUtil.pushState({
@@ -257,7 +257,7 @@ export class MainView extends React.Component {
         }
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            const col = MainView.userDoc && await Cast(MainView.userDoc.rightSidebarCollection, Doc);
+            const col = this.userDoc && await Cast(this.userDoc.rightSidebarCollection, Doc);
             col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
         }, 100);
         return true;
@@ -387,7 +387,7 @@ export class MainView extends React.Component {
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
-        const sidebarContent = MainView.userDoc?.["tabs-panelContainer"];
+        const sidebarContent = this.userDoc?.["tabs-panelContainer"];
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
@@ -459,8 +459,8 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const sidebar = MainView.userDoc?.["tabs-panelContainer"];
-        return !MainView.userDoc || !(sidebar instanceof Doc) ? (null) : (
+        const sidebar = this.userDoc?.["tabs-panelContainer"];
+        return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 height: RichTextMenu.Instance?.Pinned ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
@@ -628,7 +628,5 @@ Scripting.addGlobal(function copyWorkspace() {
     const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
     Doc.AddDocToList(workspaces, "data", copiedWorkspace);
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-
-
-    // setTimeout(() => .openWorkspace(copiedWorkspace), 0);
+    setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
 });
