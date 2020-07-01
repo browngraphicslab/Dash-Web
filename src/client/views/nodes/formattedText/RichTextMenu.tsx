@@ -149,7 +149,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this._reaction?.();
     }
 
-    public delayHide = () => { this._delayHide = true; }
+    public delayHide = () => this._delayHide = true;
 
     @action
     changeView(view: EditorView) {
@@ -599,7 +599,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
-    get TextView() { return (this.view as any).TextView as FormattedTextBox }
+    get TextView() { return (this.view as any).TextView as FormattedTextBox; }
 
     createColorButton() {
         const self = this;
@@ -608,7 +608,7 @@ export default class RichTextMenu extends AntimodeMenu {
             e.stopPropagation();
             self.TextView.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
-            self.TextView.EditorView!.focus()
+            self.TextView.EditorView!.focus();
         }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
@@ -616,7 +616,7 @@ export default class RichTextMenu extends AntimodeMenu {
             self.setActiveColor(color);
             self.TextView.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
-            self.TextView.EditorView!.focus()
+            self.TextView.EditorView!.focus();
         }
 
         const button =

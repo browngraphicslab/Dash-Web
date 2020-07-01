@@ -68,15 +68,10 @@ export interface FormattedTextBoxProps {
     xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
     yMargin?: number;
 }
-
-const richTextSchema = createSchema({
-    documentText: "string",
-});
-
 export const GoogleRef = "googleDocId";
 
-type RichTextDocument = makeInterface<[typeof richTextSchema, typeof documentSchema]>;
-const RichTextDocument = makeInterface(richTextSchema, documentSchema);
+type RichTextDocument = makeInterface<[typeof documentSchema]>;
+const RichTextDocument = makeInterface(documentSchema);
 
 type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => void;
 
@@ -661,7 +656,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             incomingValue => {
                 if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
                     const updatedState = JSON.parse(incomingValue);
-                    if (JSON.stringify(this._editorView!.state.toJSON()) !== JSON.stringify(updatedState)) {
+                    if (JSON.stringify(this._editorView.state.toJSON()) !== JSON.stringify(updatedState)) {
                         this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
                         this.tryUpdateHeight();
                     }
@@ -1293,7 +1288,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "number", null),
-                        fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit")
+                        fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
+                        transition: "opacity 1s"
                     }}
                     onContextMenu={this.specificContextMenu}
                     onKeyDown={this.onKeyPress}

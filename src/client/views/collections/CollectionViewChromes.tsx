@@ -452,9 +452,9 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
     @action toggleSort = () => {
         this.props.CollectionView.props.Document._columnsSort =
-        this.props.CollectionView.props.Document._columnsSort === "descending" ? "ascending" :
-            this.props.CollectionView.props.Document._columnsSort === "ascending" ? undefined : "descending";
-    };
+            this.props.CollectionView.props.Document._columnsSort === "descending" ? "ascending" :
+                this.props.CollectionView.props.Document._columnsSort === "ascending" ? undefined : "descending";
+    }
     @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {
