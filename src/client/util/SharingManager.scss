@@ -1,9 +1,9 @@
 @import "../views/globalCssVariables";
 
 .sharing-interface {
-    display: flex;
-    flex-direction: column;
-    width: 730px;
+    // display: flex;
+    // flex-direction: column;
+    width: 600px;
 
     .dialogue-box {
         width: 450;
@@ -16,6 +16,66 @@
 
     .sharing-contents {
         display: flex;
+        flex-direction: column;
+
+        .share-setup {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: center;
+            height: 36;
+
+            .user-search {
+                width: 90%;
+            }
+
+            .permissions-select {
+                z-index: 1;
+                margin-left: -100;
+                border: none;
+                outline: none;
+            }
+
+            .share-button {
+                height: 100%;
+                margin-left: 3%;
+            }
+        }
+
+        .main-container {
+            display: flex;
+
+
+            .individual-container,
+            .group-container {
+                width: 50%;
+
+                .share-title {
+                    margin-top: 20px;
+                    margin-bottom: 20px;
+                }
+
+                .groups-list,
+                .users-list {
+                    font-style: italic;
+                    background: white;
+                    border: 1px solid black;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    overflow-y: scroll;
+                    overflow-x: hidden;
+                    text-align: left;
+                    display: flex;
+                    align-content: center;
+                    align-items: center;
+                    text-align: center;
+                    justify-content: center;
+                    // color: red;
+                    color: black;
+                    height: 150px;
+                    margin: 0 2;
+                }
+            }
+        }
 
         button {
             background: $darker-alt-accent;
@@ -31,37 +91,6 @@
             transition: transform 0.2s;
             height: 25;
         }
-
-        .individual-container,
-        .group-container {
-            width: 50%;
-
-            .share-groups,
-            .share-individual {
-                margin-top: 20px;
-                margin-bottom: 20px;
-            }
-
-            .groups-list,
-            .users-list {
-                font-style: italic;
-                background: white;
-                border: 1px solid black;
-                padding-left: 10px;
-                padding-right: 10px;
-                overflow-y: scroll;
-                overflow-x: hidden;
-                text-align: left;
-                display: flex;
-                align-content: center;
-                align-items: center;
-                text-align: center;
-                justify-content: center;
-                color: red;
-                height: 150px;
-                margin: 0 2;
-            }
-        }
     }
 
     .focus-span {
@@ -69,11 +98,12 @@
     }
 
     p {
-        font-size: 15px;
+        font-size: 20px;
         text-align: left;
-        font-style: italic;
-        padding: 0;
+        // font-style: italic;
+        // padding: 0;
         margin: 0 0 20px 0;
+        color: black;
     }
 
     .hr-substitute {
@@ -108,9 +138,9 @@
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        width: 700px;
-        min-width: 700px;
-        max-width: 700px;
+        width: 100%;
+        // min-width: 700px;
+        // max-width: 700px;
         text-align: left;
         font-style: normal;
         font-size: 14;
@@ -118,20 +148,28 @@
         padding: 0;
         align-items: baseline;
 
+        &:hover .padding {
+            white-space: unset;
+        }
+
         .padding {
             padding: 0 10px 0 0;
             color: black;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 48%;
         }
 
         .permissions-dropdown {
-            outline: none;
+            border: none;
             height: 25;
         }
 
         .edit-actions {
             display: flex;
             position: absolute;
-            right: 51.5%;
+            right: -10;
         }
 
     }

@@ -89,7 +89,8 @@ export default class GroupManager extends React.Component<{}> {
     /**
      * @returns a list of all group documents.
      */
-    private getAllGroups(): Doc[] {
+    // private ?
+    getAllGroups(): Doc[] {
         const groupDoc = this.GroupManagerDoc;
         return groupDoc ? DocListCast(groupDoc.data) : [];
     }
@@ -98,7 +99,8 @@ export default class GroupManager extends React.Component<{}> {
      * @returns a group document based on the group name.
      * @param groupName 
      */
-    private getGroup(groupName: string): Doc | undefined {
+    // private?
+    getGroup(groupName: string): Doc | undefined {
         const groupDoc = this.getAllGroups().find(group => group.groupName === groupName);
         return groupDoc;
     }
@@ -172,8 +174,9 @@ export default class GroupManager extends React.Component<{}> {
     deleteGroup(group: Doc): boolean {
         if (group) {
             if (this.GroupManagerDoc && this.hasEditAccess(group)) {
+                // TODO look at this later
+                // SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
-                SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 if (group === this.currentGroup) {
                     runInAction(() => this.currentGroup = undefined);
                 }
@@ -248,48 +251,48 @@ export default class GroupManager extends React.Component<{}> {
     /**
      * A getter that @returns the interface rendered to view an individual group.
      */
-    private get editingInterface() {
-        const members: string[] = this.currentGroup ? JSON.parse(StrCast(this.currentGroup.members)) : [];
-        const options: UserOptions[] = this.currentGroup ? this.options.filter(option => !(JSON.parse(StrCast(this.currentGroup!.members)) as string[]).includes(option.value)) : [];
-        return (!this.currentGroup ? null :
-            <div className="editing-interface">
-                <div className="editing-header">
-                    <b>{this.currentGroup.groupName}</b>
-                    <div className={"close-button"} onClick={action(() => this.currentGroup = undefined)}>
-                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
-                    </div>
+    // private get editingInterface() {
+    //     const members: string[] = this.currentGroup ? JSON.parse(StrCast(this.currentGroup.members)) : [];
+    //     const options: UserOptions[] = this.currentGroup ? this.options.filter(option => !(JSON.parse(StrCast(this.currentGroup!.members)) as string[]).includes(option.value)) : [];
+    //     return (!this.currentGroup ? null :
+    //         <div className="editing-interface">
+    //             <div className="editing-header">
+    //                 <b>{this.currentGroup.groupName}</b>
+    //                 <div className={"close-button"} onClick={action(() => this.currentGroup = undefined)}>
+    //                     <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+    //                 </div>
 
-                    {this.hasEditAccess(this.currentGroup) ?
-                        <div className="group-buttons">
-                            <div className="add-member-dropdown">
-                                <Select
-                                    // isMulti={true}
-                                    isSearchable={true}
-                                    options={options}
-                                    onChange={selectedOption => this.addMemberToGroup(this.currentGroup!, (selectedOption as UserOptions).value)}
-                                    placeholder={"Add members"}
-                                    value={null}
-                                    closeMenuOnSelect={true}
-                                />
-                            </div>
-                            <button onClick={() => this.deleteGroup(this.currentGroup!)}>Delete group</button>
-                        </div> :
-                        null}
-                </div>
-                <div className="editing-contents">
-                    {members.map(member => (
-                        <div className="editing-row">
-                            <div className="user-email">
-                                {member}
-                            </div>
-                            {this.hasEditAccess(this.currentGroup!) ? <button onClick={() => this.removeMemberFromGroup(this.currentGroup!, member)}> Remove </button> : null}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
+    //                 {this.hasEditAccess(this.currentGroup) ?
+    //                     <div className="group-buttons">
+    //                         <div className="add-member-dropdown">
+    //                             <Select
+    //                                 // isMulti={true}
+    //                                 isSearchable={true}
+    //                                 options={options}
+    //                                 onChange={selectedOption => this.addMemberToGroup(this.currentGroup!, (selectedOption as UserOptions).value)}
+    //                                 placeholder={"Add members"}
+    //                                 value={null}
+    //                                 closeMenuOnSelect={true}
+    //                             />
+    //                         </div>
+    //                         <button onClick={() => this.deleteGroup(this.currentGroup!)}>Delete group</button>
+    //                     </div> :
+    //                     null}
+    //             </div>
+    //             <div className="editing-contents">
+    //                 {members.map(member => (
+    //                     <div className="editing-row">
+    //                         <div className="user-email">
+    //                             {member}
+    //                         </div>
+    //                         {this.hasEditAccess(this.currentGroup!) ? <button onClick={() => this.removeMemberFromGroup(this.currentGroup!, member)}> Remove </button> : null}
+    //                     </div>
+    //                 ))}
+    //             </div>
+    //         </div>
+    //     );
 
-    }
+    // }
 
     /**
      * A getter that @returns the main interface for the GroupManager.
@@ -307,7 +310,7 @@ export default class GroupManager extends React.Component<{}> {
                 {this.currentGroup ?
                     <GroupMemberView
                         group={this.currentGroup}
-                        onCloseButtonClick={() => this.currentGroup = undefined}
+                        onCloseButtonClick={action(() => this.currentGroup = undefined)}
                     />
                     : null}
                 <div className="group-heading">

@@ -8,7 +8,7 @@ import { action } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import Select from "react-select";
-import { Doc, Opt } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import "./GroupMemberView.scss";
 
 library.add(fa.faWindowClose);
@@ -44,7 +44,7 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                                     closeMenuOnSelect={true}
                                 />
                             </div>
-                            <button onClick={() => GroupManager.Instance.deleteGroup(this.props.group)}>Delete group</button>
+                            <button onClick={() => console.log(GroupManager.Instance.deleteGroup(this.props.group))}>Delete group</button>
                         </div> :
                         null}
                 </div>
