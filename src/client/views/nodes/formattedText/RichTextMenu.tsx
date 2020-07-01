@@ -876,11 +876,13 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
                 this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
                 this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+                <div className="richTextMenu-divider" />
             ]}</>,
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
+            <div className="richTextMenu-divider" />,
             this.createButton("align-left", "Align Left", undefined, this.alignLeft),
             this.createButton("align-center", "Align Center", undefined, this.alignCenter),
             this.createButton("align-right", "Align Right", undefined, this.alignRight),
@@ -893,12 +895,15 @@ export default class RichTextMenu extends AntimodeMenu {
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
             {this.collapsed ? this.getDragger() : (null)}
             <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
+                <div className="richTextMenu-divider" />,
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
+                <div className="richTextMenu-divider" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes"),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
-                this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),]}
+                this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
+                <div className="richTextMenu-divider" />,]}
             </div>
             <div key="button">
                 {/* <div key="collapser">
