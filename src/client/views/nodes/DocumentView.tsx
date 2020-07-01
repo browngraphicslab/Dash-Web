@@ -116,6 +116,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    public get title() { return this.props.Document.title }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }

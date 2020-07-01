@@ -32,9 +32,9 @@ export class LinkMenu extends React.Component<Props> {
             DocumentLinksButton.EditLink = undefined;
         }
 
-        // if (this._linkMenuRef && !this._linkMenuRef.contains(e.target)) {
-        //     DocumentLinksButton.EditLink = undefined;
-        // }
+        if (this._linkMenuRef && !this._linkMenuRef.contains(e.target as any)) {
+            DocumentLinksButton.EditLink = undefined;
+        }
     }
     @action
     componentDidMount() {

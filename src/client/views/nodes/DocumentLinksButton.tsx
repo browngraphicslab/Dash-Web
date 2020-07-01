@@ -24,6 +24,8 @@ interface DocumentLinksButtonProps {
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
 
+    @observable public static StartLink: DocumentView | undefined;
+
     @action
     onLinkButtonMoved = (e: PointerEvent) => {
         if (this._linkButton.current !== null) {
@@ -51,11 +53,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         return false;
     }
 
-    @observable static StartLink: DocumentView | undefined;
     onLinkButtonDown = (e: React.PointerEvent): void => {
-
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
-            if (doubleTap) {
+            if (doubleTap && this.props.InMenu) {
                 DocumentLinksButton.StartLink = this.props.View;
             } else if (!!!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
@@ -63,6 +63,17 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             }
         }));
     }
+
+    @action
+    onLinkClick = (e: React.MouseEvent): void => {
+        if (this.props.InMenu) {
+            DocumentLinksButton.StartLink = this.props.View;
+        } else if (!!!this.props.InMenu) {
+            DocumentLinksButton.EditLink = this.props.View;
+            DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
+        }
+    }
+
     completeLink = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e, doubleTap) => {
             if (doubleTap) {
@@ -76,6 +87,15 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         }));
     }
 
+    finishLinkClick = () => {
+        if (DocumentLinksButton.StartLink === this.props.View) {
+            DocumentLinksButton.StartLink = undefined;
+        } else {
+            DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
+                DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+        }
+    }
+
     @observable
     public static EditLink: DocumentView | undefined;
     public static EditLinkLoc: number[] = [0, 0];
@@ -86,7 +106,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         return (!links.length || links[0].hidden) && !this.props.AlwaysOn ? (null) :
             <div title="Drag(create link) Tap(view links)" ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
                 <div className={"documentLinksButton"} style={{ backgroundColor: DocumentLinksButton.StartLink ? "transparent" : "" }}
-                    onPointerDown={this.onLinkButtonDown}
+                    onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}
                 // onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
                 // onPointerEnter={action(e => links.length && (LinkDocPreview.LinkInfo = {
                 //     addDocTab: this.props.View.props.addDocTab,
@@ -97,7 +117,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 >
                     {links.length && !!!this.props.InMenu ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
                 </div>
-                {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"} onPointerDown={this.completeLink} /> : (null)}
+                {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
+                    onPointerDown={this.completeLink} onClick={this.finishLinkClick} /> : (null)}
                 {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-startLink"} /> : (null)}
             </div>;
     }

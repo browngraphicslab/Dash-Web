@@ -58,6 +58,7 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
+import { DocumentManager } from '../../../util/DocumentManager';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -1048,6 +1049,40 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     @action
+    onDoubleClick = (e: React.MouseEvent): void => {
+
+        this.doLinkOnDeselect();
+        FormattedTextBox._downEvent = true;
+        FormattedTextBoxComment.textBox = this;
+        if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
+            e.preventDefault();
+        }
+        if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
+                e.stopPropagation();  // if the text box is selected, then it consumes all down events
+            }
+        }
+        if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
+            e.preventDefault();
+        }
+        FormattedTextBoxComment.Hide();
+        if (FormattedTextBoxComment.linkDoc) {
+            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
+                this.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+            } else {
+                DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, this.props.Document,
+                    (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+            }
+        }
+
+        (e.nativeEvent as any).formattedHandled = true;
+
+        if (e.buttons === 1 && this.props.isSelected(true) && !e.altKey) {
+            e.stopPropagation();
+        }
+    }
+
+    @action
     onFocused = (e: React.FocusEvent): void => {
         console.log("FOUCSS")
         FormattedTextBox.FocusedBox = this;
@@ -1317,6 +1352,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             }
                         }
                     })}
+                    onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer`} ref={this._scrollRef}
                         style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }}

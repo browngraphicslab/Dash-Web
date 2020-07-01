@@ -1,12 +1,27 @@
 @import "../globalCssVariables";
 @import "../_nodeModuleOverrides";
 
-.collectionLinearView-outer{
+.collectionLinearView-outer {
     overflow: hidden;
-    height:100%;
+    height: 100%;
+
     .collectionLinearView {
-        display:flex;
+        display: flex;
         height: 100%;
+
+        >span {
+            margin-top: "auto";
+            margin-bottom: "auto";
+            background: $dark-color;
+            color: $light-color;
+            display: inline-block;
+            border-radius: 18px;
+            margin-top: auto;
+            margin-bottom: auto;
+            margin-right: 3px;
+            cursor: pointer;
+        }
+
         >label {
             margin-top: "auto";
             margin-bottom: "auto";
@@ -17,15 +32,15 @@
             font-size: 12.5px;
             width: 18px;
             height: 18px;
-            margin-top:auto;
-            margin-bottom:auto;
+            margin-top: auto;
+            margin-bottom: auto;
             margin-right: 3px;
             cursor: pointer;
             transition: transform 0.2s;
         }
 
         label p {
-            padding-left:5px;
+            padding-left: 5px;
         }
 
         label:hover {
@@ -36,13 +51,14 @@
         >input {
             display: none;
         }
+
         >input:not(:checked)~.collectionLinearView-content {
             display: none;
         }
 
         >input:checked~label {
             transform: rotate(45deg);
-            transition: transform 0.5s;
+transition: transform 0.5s;
             cursor: pointer;
         }
 
@@ -52,12 +68,14 @@
             position: relative;
             margin-top: auto;
 
-            .collectionLinearView-docBtn, .collectionLinearView-docBtn-scalable {
-                position:relative;
-                margin:auto;
+            .collectionLinearView-docBtn,
+            .collectionLinearView-docBtn-scalable {
+                position: relative;
+                margin: auto;
                 margin-left: 3px;
                 transform-origin: center 80%;
             }
+
             .collectionLinearView-docBtn-scalable:hover {
                 transform: scale(1.15);
             }
@@ -68,7 +86,7 @@
                 border-radius: 18px;
                 font-size: 15px;
             }
-            
+
             .collectionLinearView-round-button:hover {
                 transform: scale(1.15);
             }

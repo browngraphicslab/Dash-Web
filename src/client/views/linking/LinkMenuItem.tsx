@@ -137,6 +137,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @action.bound
     async followDefault() {
+        console.log("FOLLOWWW");
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
         DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
@@ -174,7 +175,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div> */}
                             <div title="Delete link" className="button" ref={this._editRef} onPointerDown={this.deleteLink}>
                                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
-                            <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}>
+                            <div title="Follow link" className="button" onClick={e => this.followDefault()} onContextMenu={this.onContextMenu}>
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
                             </div>
                         </div>
