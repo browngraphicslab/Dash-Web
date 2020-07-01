@@ -412,6 +412,28 @@ export default class RichTextMenu extends AntimodeMenu {
         dispatch?.(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
+    alignCenter = (state: EditorState<any>, dispatch: any) => {
+        return this.alignParagraphs(state, "center", dispatch);
+    }
+    alignLeft = (state: EditorState<any>, dispatch: any) => {
+        return this.alignParagraphs(state, "left", dispatch);
+    }
+    alignRight = (state: EditorState<any>, dispatch: any) => {
+        return this.alignParagraphs(state, "right", dispatch);
+    }
+
+    alignParagraphs(state: EditorState<any>, align: "left" | "right" | "center", dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, align }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
 
     insertBlockquote(state: EditorState<any>, dispatch: any) {
         const path = (state.selection.$from as any).path;
@@ -768,18 +790,21 @@ export default class RichTextMenu extends AntimodeMenu {
         TraceMobx();
         const row1 = <div className="antimodeMenu-row" key="row1" style={{ display: this.collapsed ? "none" : undefined }}>{[
             !this.collapsed ? this.getDragger() : (null),
-            this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
-            this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
-            this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
-            this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
-            this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
-            this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+            !this.Pinned ? (null) : <> {[
+                this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+                this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+                this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+                this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+                this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+                this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+            ]}</>,
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
-            this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
-            this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
+            this.createButton("align-left", "Align Left", undefined, this.alignLeft),
+            this.createButton("align-center", "Align Center", undefined, this.alignCenter),
+            this.createButton("align-right", "Align Right", undefined, this.alignRight),
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
@@ -787,7 +812,9 @@ export default class RichTextMenu extends AntimodeMenu {
             <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
-                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes")]}
+                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes"),
+                this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
+                this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),]}
             </div>
             <div key="button">
                 {/* <div key="collapser">

@@ -78,7 +78,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             target.__fields[prop] = value;
         }
-        if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
+        //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
         if (writeToServer) {
             if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
             else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });

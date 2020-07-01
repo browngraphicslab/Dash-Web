@@ -315,8 +315,6 @@ export class RichTextRules {
                     return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }),
 
-
-
             // create an inline view of a tag stored under the '#' field
             new InputRule(
                 new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
@@ -374,7 +372,6 @@ export class RichTextRules {
             new InputRule(
                 new RegExp(/%\)/),
                 (state, match, start, end) => {
-
                     return state.tr.deleteRange(start, end).removeStoredMark(state.schema.marks.summarizeInclusive.create());
                 }),
 

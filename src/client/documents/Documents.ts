@@ -414,7 +414,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view.LayoutString(layout.dataField);
+            options.layout = layout.view?.LayoutString(layout.dataField);
             const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
@@ -977,7 +977,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().dockedBtns, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
