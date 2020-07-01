@@ -312,7 +312,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
             return node.attrs.visibility ?
                 ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, 0] :
-                ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, "..."];
+                ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, `${node.firstChild?.textContent}...`];
         }
     },
 };
