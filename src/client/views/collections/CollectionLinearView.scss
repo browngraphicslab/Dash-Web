@@ -10,15 +10,15 @@
         height: 100%;
 
         >span {
-            margin-top: "auto";
-            margin-bottom: "auto";
+            margin-top: 8px;
+            margin-left: 4px;
+            //margin-bottom: 2px;
             background: $dark-color;
             color: $light-color;
             display: inline-block;
             border-radius: 18px;
-            margin-top: auto;
-            margin-bottom: auto;
-            margin-right: 3px;
+            margin-right: 6px;
+            padding: "4px";
             cursor: pointer;
         }
 
@@ -58,7 +58,7 @@
 
         >input:checked~label {
             transform: rotate(45deg);
-transition: transform 0.5s;
+            transition: transform 0.5s;
             cursor: pointer;
         }
 

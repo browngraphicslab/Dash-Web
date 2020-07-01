@@ -146,7 +146,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     background: backgroundColor === color ? "black" : backgroundColor,
                 }}
                     onPointerDown={e => e.stopPropagation()} >
-                    <span style={{ fontSize: "7px", display: "inline-block" }}>
+                    <span style={{ fontSize: "12.5px", display: "inline", whiteSpace: "nowrap" }}>
                         Creating Link From: {DocumentLinksButton.StartLink.title} </span>
 
                     <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
