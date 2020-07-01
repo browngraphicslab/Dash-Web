@@ -32,7 +32,7 @@ import { DocumentType } from '../../../documents/DocumentTypes';
 import { DictationManager } from '../../../util/DictationManager';
 import { DragManager } from "../../../util/DragManager";
 import { makeTemplate } from '../../../util/DropConverter';
-import buildKeymap from "./ProsemirrorExampleTransfer";
+import buildKeymap, { updateBullets } from "./ProsemirrorExampleTransfer";
 import RichTextMenu from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
 
@@ -1227,6 +1227,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     ondrop = (eve: React.DragEvent) => {
+        this._editorView!.dispatch(updateBullets(this._editorView!.state.tr, this._editorView!.state.schema));
         eve.stopPropagation(); // drag n drop of text within text note will generate a new note if not caughst, as will dragging in from outside of Dash.
     }
     onscrolled = (ev: React.UIEvent) => {
