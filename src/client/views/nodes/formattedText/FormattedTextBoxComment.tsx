@@ -84,8 +84,8 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
-            FormattedTextBoxComment.tooltip.style.maxWidth = "350px";
-            FormattedTextBoxComment.tooltip.style.maxHeight = "250px";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "200px";
+            FormattedTextBoxComment.tooltip.style.maxHeight = "206px";
             FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
@@ -241,50 +241,82 @@ export class FormattedTextBoxComment {
                             }
                             if (target?.author) {
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
-                                const docPreview = <div style={{ backgroundColor: "white", border: "7px solid white" }}>
+                                const docPreview = <div style={{ backgroundColor: "white", border: "8px solid white" }}>
                                     {target.title}
                                     <div className="wrapper" style={{ float: "right" }}>
                                         <div title="Delete link" className="FormattedTextBoxComment-button" style={{
                                             display: "inline",
-                                            paddingLeft: "5px",
-                                            paddingRight: "5px"
+                                            paddingLeft: "6px",
+                                            paddingRight: "6px",
+                                            paddingTop: "2.5px",
+                                            paddingBottom: "2.5px",
+                                            width: "20px",
+                                            height: "20px",
+                                            margin: 0,
+                                            marginRight: "6px",
+                                            borderRadius: "50%",
+                                            pointerEvents: "auto",
+                                            backgroundColor: "rgb(38, 40, 41)",
+                                            color: "rgb(178, 181, 184)",
+                                            transition: "transform 0.2s",
+                                            textAlign: "center",
+                                            position: "relative"
                                         }} ref={(r) => this._deleteRef = r}>
-                                            <FontAwesomeIcon className="FormattedTextBox-fa-icon" icon="trash" size="sm"
-                                            /></div>
+                                            <FontAwesomeIcon className="FormattedTextBox-fa-icon" icon="trash"
+                                                size="sm" /></div>
                                         <div title="Follow link" className="FormattedTextBoxComment-button" style={{
                                             display: "inline",
-                                            paddingRight: "5px"
+                                            paddingLeft: "6px",
+                                            paddingRight: "6px",
+                                            paddingTop: "2.5px",
+                                            paddingBottom: "2.5px",
+                                            width: "20px",
+                                            height: "20px",
+                                            margin: 0,
+                                            marginRight: "6px",
+                                            borderRadius: "50%",
+                                            pointerEvents: "auto",
+                                            backgroundColor: "rgb(38, 40, 41)",
+                                            color: "rgb(178, 181, 184)",
+                                            transition: "transform 0.2s",
+                                            textAlign: "center",
+                                            position: "relative"
                                         }} ref={(r) => this._followRef = r}>
                                             <FontAwesomeIcon className="FormattedTextBox-fa-icon" icon="arrow-right"
                                                 size="sm" />
                                         </div>
                                     </div>
-                                    <ContentFittingDocumentView
-                                        Document={target}
-                                        LibraryPath={emptyPath}
-                                        fitToBox={true}
-                                        moveDocument={returnFalse}
-                                        rootSelected={returnFalse}
-                                        ScreenToLocalTransform={Transform.Identity}
-                                        parentActive={returnFalse}
-                                        addDocument={returnFalse}
-                                        removeDocument={returnFalse}
-                                        addDocTab={returnFalse}
-                                        pinToPres={returnFalse}
-                                        dontRegisterView={true}
-                                        docFilters={returnEmptyFilter}
-                                        ContainingCollectionDoc={undefined}
-                                        ContainingCollectionView={undefined}
-                                        renderDepth={0}
-                                        PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
-                                        PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
-                                        focus={emptyFunction}
-                                        whenActiveChanged={returnFalse}
-                                        bringToFront={returnFalse}
-                                        ContentScaling={returnOne}
-                                        NativeWidth={returnZero}
-                                        NativeHeight={returnZero}
-                                    />
+                                    <div className="wrapper" style={{
+                                        maxWidth: "180px", maxHeight: "168px", overflow: "hidden",
+                                        overflowY: "hidden", paddingTop: "5px"
+                                    }}>
+                                        <ContentFittingDocumentView
+                                            Document={target}
+                                            LibraryPath={emptyPath}
+                                            fitToBox={true}
+                                            moveDocument={returnFalse}
+                                            rootSelected={returnFalse}
+                                            ScreenToLocalTransform={Transform.Identity}
+                                            parentActive={returnFalse}
+                                            addDocument={returnFalse}
+                                            removeDocument={returnFalse}
+                                            addDocTab={returnFalse}
+                                            pinToPres={returnFalse}
+                                            dontRegisterView={true}
+                                            docFilters={returnEmptyFilter}
+                                            ContainingCollectionDoc={undefined}
+                                            ContainingCollectionView={undefined}
+                                            renderDepth={0}
+                                            PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
+                                            PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
+                                            focus={emptyFunction}
+                                            whenActiveChanged={returnFalse}
+                                            bringToFront={returnFalse}
+                                            ContentScaling={returnOne}
+                                            NativeWidth={returnZero}
+                                            NativeHeight={returnZero}
+                                        />
+                                    </div>
                                 </div>;
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
 

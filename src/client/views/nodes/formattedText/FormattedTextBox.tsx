@@ -1430,7 +1430,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                                 setTimeout(() => this._editorView!.focus(), 500);
                                 e.stopPropagation();
                             }} >
-                            <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                            <FontAwesomeIcon className="formattedTextBox-audioFont"
                                 style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
                         </div>}
                 </div>
