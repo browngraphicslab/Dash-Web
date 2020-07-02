@@ -8,7 +8,7 @@ import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Mark, Node, Slice } from "prosemirror-model";
+import { Fragment, Mark, Node, Slice, Schema } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
@@ -16,6 +16,7 @@ import { DateField } from '../../../../fields/DateField';
 import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
+import { removeMarkWithAttrs } from "./prosemirrorPatches";
 import { Id } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
@@ -56,7 +57,7 @@ import { DocumentButtonBar } from '../../DocumentButtonBar';
 import { AudioBox } from '../AudioBox';
 import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
-import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
+import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
 
 library.add(faEdit);
@@ -87,6 +88,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
     private _searchIndex = 0;
+    private _cachedLinks: Doc[] = [];
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
@@ -140,6 +142,33 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
+
+    // removes all hyperlink anchors for the removed linkDoc
+    // TODO: bcz: Argh... if a section of text has multiple anchors, this should just remove the intended one. 
+    // but since removing one anchor from the list of attr anchors isn't implemented, this will end up removing nothing.
+    public RemoveLinkFromDoc(linkDoc?: Doc) {
+        const state = this._editorView?.state;
+        if (state && linkDoc && this._editorView) {
+            var allHrefs: any[] = [];
+            state.doc.nodesBetween(0, state.doc.nodeSize - 2, (node: any, pos: number, parent: any) => {
+                const foundMark = findLinkMark(node.marks);
+                const newHrefs = foundMark?.attrs.allHrefs.filter((a: any) => a.href.includes(linkDoc[Id])) || [];
+                allHrefs = newHrefs.length ? newHrefs : allHrefs;
+                return true;
+            });
+            if (allHrefs.length) {
+                this._editorView.dispatch(removeMarkWithAttrs(state.tr, 0, state.doc.nodeSize - 2, state.schema.marks.link, { allHrefs }));
+            }
+        }
+    }
+    // removes all the specified link referneces from the selection. 
+    // NOTE: as above, this won't work correctly if there are marks with overlapping but not exact sets of link references.
+    public RemoveLinkFromSelection(allHrefs: { href: string, title: string, linkId: string, targetId: string }[]) {
+        const state = this._editorView?.state;
+        if (state && this._editorView) {
+            this._editorView.dispatch(removeMarkWithAttrs(state.tr, state.selection.from, state.selection.to, state.schema.marks.link, { allHrefs }));
+        }
+    }
 
     linkOnDeselect: Map<string, string> = new Map();
 
@@ -626,6 +655,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     componentDidMount() {
+        this._cachedLinks = DocListCast(this.Document.links);
+        this._disposers.links = reaction(() => DocListCast(this.Document.links), // if a link is deleted, then remove all hyperlinks that reference it from the text's marks
+            newLinks => {
+                this._cachedLinks.forEach(l => !newLinks.includes(l) && this.RemoveLinkFromDoc(l));
+                this._cachedLinks = newLinks;
+            });
         this._disposers.buttonBar = reaction(
             () => DocumentButtonBar.Instance,
             instance => {

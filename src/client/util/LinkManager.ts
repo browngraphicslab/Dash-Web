@@ -49,7 +49,7 @@ export class LinkManager {
     }
 
     public deleteLink(linkDoc: Doc): boolean {
-        if (LinkManager.Instance.LinkManagerDoc) {
+        if (LinkManager.Instance.LinkManagerDoc && linkDoc instanceof Doc) {
             Doc.RemoveDocFromList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
             return true;
         }
