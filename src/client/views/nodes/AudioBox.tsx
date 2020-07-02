@@ -161,7 +161,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when document selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
 
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
     stopRecording = action(() => {
@@ -193,7 +193,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         const newDoc = Docs.Create.TextDocument("", {
             title: "", _chromeStatus: "disabled",
             x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
-            _width: NumCast(this.props.Document._width), _height: 3 * NumCast(this.props.Document._height)
+            _width: NumCast(this.props.Document._width), _height: 2 * NumCast(this.props.Document._height)
         });
         Doc.GetProto(newDoc).recordingSource = this.dataDoc;
         Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
@@ -228,7 +228,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
             {!this.path ?
                 <div className="audiobox-buttons">
                     <div className="audiobox-dictation" onClick={this.onFile}>
-                        <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "dimGray" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                        <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
                     <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
                         {this.audioState === "recording" ? "STOP" : "RECORD"}
