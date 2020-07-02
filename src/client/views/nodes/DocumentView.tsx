@@ -720,19 +720,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (!(e instanceof Touch)) {
-            if (e?.button === 0 && !e.ctrlKey) {
-                e?.preventDefault();
+            if (e.button === 0 && !e.ctrlKey) {
+                e.preventDefault();
                 return;
             }
-            e?.persist();
-            e?.stopPropagation();
+            e.persist();
+            e.stopPropagation();
 
             if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3 ||
                 e?.isDefaultPrevented()) {
                 e?.preventDefault();
                 return;
             }
-            e?.preventDefault();
+            e.preventDefault();
         }
 
         const cm = ContextMenu.Instance;

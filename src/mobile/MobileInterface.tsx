@@ -494,7 +494,7 @@ export class MobileInterface extends React.Component {
             return <div className="docButton"
                 title={"Download Image"}
                 style={{ backgroundColor: "white", color: "black" }}
-                onClick={e => window.open(this._activeDoc["data-path"]?.toString())}> // daa-path holds the url
+                onClick={e => window.open(this._activeDoc["data-path"]?.toString())}> {/*  daa-path holds the url */}
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="download" />
             </div>;
         } else return (null);
