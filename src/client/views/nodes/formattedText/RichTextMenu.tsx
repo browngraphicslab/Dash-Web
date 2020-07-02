@@ -921,7 +921,7 @@ interface ButtonDropdownProps {
 }
 
 @observer
-class ButtonDropdown extends React.Component<ButtonDropdownProps> {
+export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
 
     @observable private showDropdown: boolean = false;
     private ref: HTMLDivElement | null = null;
