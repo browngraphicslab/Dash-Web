@@ -1084,7 +1084,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @action
     onFocused = (e: React.FocusEvent): void => {
-        console.log("FOUCSS")
+        console.log("FOUCSS");
         FormattedTextBox.FocusedBox = this;
         this.tryUpdateHeight();
 
@@ -1216,7 +1216,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
-        console.log("BLURRR")
+        console.log("BLURRR");
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
         //DictationManager.Controls.stop(false);
         this.endUndoTypingBatch();

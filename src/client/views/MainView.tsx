@@ -59,6 +59,7 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
+import { Fade } from '@material-ui/core';
 
 @observer
 export class MainView extends React.Component {
@@ -81,6 +82,8 @@ export class MainView extends React.Component {
     @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
     public isPointerDown = false;
+
+    @observable public static linkCreated: boolean = false;
 
 
     componentDidMount() {
@@ -363,6 +366,11 @@ export class MainView extends React.Component {
     }
 
     @action
+    public static changeLinkCreated = () => {
+        MainView.linkCreated = !MainView.linkCreated;
+    }
+
+    @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
         Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
@@ -606,6 +614,15 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
+            {MainView.linkCreated ? <div className="mainView-linkCreated" style={{
+                border: "2px solid red", top: screenTop / 2,
+                left: screenLeft / 2, width: "50px", height: "20px", zIndex: 10000,
+                fontSize: "12px"
+            }}>
+                {/* <Fade in={MainView.linkCreated}> */}
+                link created!
+                {/* </Fade> */}
+            </div> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}

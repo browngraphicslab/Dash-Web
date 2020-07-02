@@ -79,7 +79,14 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
     @action
     exitLongLinks = () => {
-        DocumentLinksButton.StartLink = undefined
+        if (DocumentLinksButton.StartLink) {
+            if (DocumentLinksButton.StartLink.Document) {
+                action((e: React.PointerEvent<HTMLDivElement>) => {
+                    Doc.UnBrushDoc(DocumentLinksButton.StartLink?.Document as Doc);
+                });
+            }
+        }
+        DocumentLinksButton.StartLink = undefined;
     }
 
     render() {
@@ -146,8 +153,12 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     background: backgroundColor === color ? "black" : backgroundColor,
                 }}
                     onPointerDown={e => e.stopPropagation()} >
-                    <span style={{ fontSize: "12.5px", display: "inline", whiteSpace: "nowrap" }}>
-                        Creating Link From: {DocumentLinksButton.StartLink.title} </span>
+                    <span style={{
+                        fontSize: "12.5px", display: "inline", whiteSpace: "nowrap",
+                        paddingLeft: "8px", paddingRight: "8px", paddingTop: "4px",
+                        paddingBottom: "10px"
+                    }}>
+                        Creating link from: {DocumentLinksButton.StartLink.title} </span>
 
                     <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
                         onClick={this.exitLongLinks} />

@@ -116,7 +116,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-    public get title() { return this.props.Document.title }
+    public get title() { return this.props.Document.title; }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
@@ -1191,7 +1191,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={action(() => Doc.BrushDoc(this.props.Document))}
+            onPointerEnter={action(() => { Doc.BrushDoc(this.props.Document); })}
             onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
                 let entered = false;
                 const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
@@ -1200,7 +1200,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         entered = true;
                     }
                 }
+                // if (this.props.Document !== DocumentLinksButton.StartLink?.Document) {
                 !entered && Doc.UnBrushDoc(this.props.Document);
+                //}
+
             })}
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,

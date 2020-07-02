@@ -10,6 +10,7 @@ import React = require("react");
 import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
+import { MainView } from "../MainView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -56,6 +57,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     onLinkButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
             if (doubleTap && this.props.InMenu) {
+                //action(() => Doc.BrushDoc(this.props.View.Document));
                 DocumentLinksButton.StartLink = this.props.View;
             } else if (!!!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
@@ -68,6 +70,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     onLinkClick = (e: React.MouseEvent): void => {
         if (this.props.InMenu) {
             DocumentLinksButton.StartLink = this.props.View;
+            //action(() => Doc.BrushDoc(this.props.View.Document));
         } else if (!!!this.props.InMenu) {
             DocumentLinksButton.EditLink = this.props.View;
             DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
@@ -79,6 +82,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (doubleTap) {
                 if (DocumentLinksButton.StartLink === this.props.View) {
                     DocumentLinksButton.StartLink = undefined;
+                    // action((e: React.PointerEvent<HTMLDivElement>) => {
+                    //     Doc.UnBrushDoc(this.props.View.Document);
+                    // });
                 } else {
                     DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
                         DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
@@ -90,6 +96,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     finishLinkClick = () => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
+            // action((e: React.PointerEvent<HTMLDivElement>) => {
+            //     Doc.UnBrushDoc(this.props.View.Document);
+            // });
         } else {
             DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
                 DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
