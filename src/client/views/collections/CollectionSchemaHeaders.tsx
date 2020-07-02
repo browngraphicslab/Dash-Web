@@ -288,7 +288,7 @@ export interface KeysDropdownProps {
     existingKeys: string[];
     canAddNew: boolean;
     addNew: boolean;
-    onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
+    onSelect: (oldKey: string, newKey: string, addnew: boolean, filter: string) => void;
     setIsEditing: (isEditing: boolean) => void;
     width?: string;
 }
@@ -306,7 +306,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @action
     onSelect = (key: string): void => {
-        this.props.onSelect(this._key, key, this.props.addNew);
+        console.log("YEE");
+        let newkey = key.slice(0, this._key.length);
+        let filter = key.slice(this._key.length - key.length);
+        console.log(newkey);
+        console.log(filter);
+        this.props.onSelect(this._key, key, this.props.addNew, filter);
         this.setKey(key);
         this._isOpen = false;
         this.props.setIsEditing(false);
@@ -314,6 +319,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
+        //if (this._key !==)
+
         if (e.key === "Enter") {
             const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
             if (keyOptions.length) {
@@ -371,13 +378,15 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         });
 
         // if search term does not already exist as a group type, give option to create new group type
-        if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
-            options.push(<div key={""} className="key-option" style={{
-                border: "1px solid lightgray",
-                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
-            }}
-                onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
-                Create "{this._searchTerm}" key</div>);
+        if (this._key !== this._searchTerm.slice(0, this._key.length)) {
+            if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
+                options.push(<div key={""} className="key-option" style={{
+                    border: "1px solid lightgray",
+                    width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+                }}
+                    onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
+                    Create "{this._searchTerm}" key</div>);
+            }
         }
 
         return options;
@@ -386,7 +395,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div className="keys-dropdown" style={{ width: this.props.width, maxWidth: this.props.width, overflowX: "hidden" }}>
-                <input className="keys-search" //style={{ width: this.props.width, maxWidth: "1000" }}
+                {this._key === this._searchTerm.slice(0, this._key.length) ?
+                    <div style={{ position: "absolute", marginLeft: "4px", marginTop: "3", color: "grey", pointerEvents: "none", lineHeight: 1.15 }}>
+                        {this._key}
+                    </div>
+                    : undefined}
+                <input className="keys-search" style={{ width: "100%" }}
                     ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)}
                     onClick={(e) => {

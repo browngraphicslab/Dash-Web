@@ -220,16 +220,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         display: "flex"
                     }}>
                     <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
-                    <div className="keys-dropdown"
-                        style={{ display: "inline", zIndex: 1000 }}>
-                        {keysDropdown}
-                    </div>
+                    {/* <div className="keys-dropdown"
+                        style={{ display: "inline", zIndex: 1000 }}> */}
+                    {keysDropdown}
+                    {/* </div> */}
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ paddingRight: "6px", display: "inline" }}>
+                        style={{ paddingRight: "6px", display: "inline", zIndex: 1, background: "inherit" }}>
                         <FontAwesomeIcon icon={sortIcon} size="sm" />
                     </div>
                     <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
-                        style={{ float: "right", paddingRight: "6px" }}>
+                        style={{ float: "right", paddingRight: "6px", zIndex: 1, background: "inherit" }}>
                         <FontAwesomeIcon icon={"compass"} size="sm" />
                     </div>
                 </div>;
@@ -466,6 +466,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             sorted={this.sorted}
             expanded={expanded}
             resized={this.resized}
+            NoDataComponent={() => null}
             onResizedChange={this.props.onResizedChange}
             SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
                 <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}

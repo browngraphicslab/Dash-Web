@@ -310,7 +310,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @undoBatch
     @action
-    changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
+    changeColumns = (oldKey: string, newKey: string, addNew: boolean, filter?: string) => {
+        console.log("COL");
         const columns = this.columns;
         if (columns === undefined) {
             this.columns = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
@@ -325,6 +326,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     column.setHeading(newKey);
                     columns[index] = column;
                     this.columns = columns;
+                    if (filter) {
+                        console.log(newKey);
+                        console.log(filter);
+                        Doc.setDocFilter(this.props.Document, newKey, filter, "match");
+                    }
                 }
             }
         }
