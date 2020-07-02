@@ -231,12 +231,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
-        const existingVm = ContextMenu.Instance?.findByDescription(category);
+        const existingVm = ContextMenu.Instance.findByDescription(category);
         const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
 
         subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
         if (addExtras && CollectionView._safeMode) {
-            ContextMenu.Instance?.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
         }
         subItems.push({ description: "Schema", event: () => func(CollectionViewType.Schema), icon: "th-list" });
         subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
@@ -255,11 +255,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
         }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
-        !existingVm && ContextMenu.Instance?.addItem({ description: category, subitems: subItems, icon: "eye" });
+        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: subItems, icon: "eye" });
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        const cm = ContextMenu.Instance;
+        if (cm && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
@@ -267,7 +268,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return newRendition;
             }, false);
 
-            const existing = ContextMenu.Instance?.findByDescription("Options...");
+            const existing = cm.findByDescription("Options...");
             const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
@@ -278,9 +279,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && ContextMenu.Instance?.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
+            !existing && cm.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
 
-            const existingOnClick = ContextMenu.Instance?.findByDescription("OnClick...");
+            const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
             const funcs = [
                 { key: "onChildClick", name: "On Child Clicked" },
@@ -296,13 +297,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     icon: "edit",
                     event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && ContextMenu.Instance?.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
             if (!Doc.UserDoc().noviceMode) {
-                const more = ContextMenu.Instance?.findByDescription("More...");
+                const more = cm.findByDescription("More...");
                 const moreItems = more && "subitems" in more ? more.subitems : [];
                 moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
-                !more && ContextMenu.Instance?.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+                !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
             }
         }
     }

@@ -602,7 +602,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // bcz: theres should be a better way of doing these than referencing these static instances directly
         MarqueeOptionsMenu.Instance?.fadeOut(true);// I think it makes sense for the marquee menu to go away when panned. -syip2
-        // PDFMenu.Instance.fadeOut(true);
 
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         this.setPan((this.Document._panX || 0) - dx, (this.Document._panY || 0) - dy, undefined, true);
@@ -1204,17 +1203,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
-        if (this.props.annotationsKey) return;
+        if (this.props.annotationsKey || !ContextMenu.Instance) return;
 
-        const appearance = ContextMenu.Instance?.findByDescription("Appearance...");
+        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
         appearanceItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         appearanceItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
-        !appearance && ContextMenu.Instance?.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
-        const options = ContextMenu.Instance?.findByDescription("Options...");
+        const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay &&
             optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
@@ -1254,7 +1253,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
             });
         }
-        !options && ContextMenu.Instance?.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
+        !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
 
     }
     @observable showTimeline = false;
