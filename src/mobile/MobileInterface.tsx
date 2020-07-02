@@ -9,7 +9,7 @@ import {
     faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, reaction, trace } from 'mobx';
+import { action, computed, observable, reaction, trace, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
@@ -45,21 +45,19 @@ library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngl
 
 @observer
 export class MobileInterface extends React.Component {
-    @observable static Instance: MobileInterface;
-    @observable private _mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(Doc.UserDoc());
+    static Instance: MobileInterface;
+    private _library: Doc = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
+    private _mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(Doc.UserDoc());
     @observable private _sidebarActive: boolean = false; //to toggle sidebar display
     @observable private _imageUploadActive: boolean = false; //to toggle image upload
     @observable private _audioUploadActive: boolean = false;
     @observable private _menuListView: boolean = false; //to switch between menu view (list / icon)
     @observable private _ink: boolean = false; //toggle whether ink is being dispalyed
-    @observable private renderView?: () => JSX.Element;
-
-    private _activeDoc: Doc = this._mainDoc; // doc updated as the active mobile page is updated (initially home menu)
-    private _homeDoc: Doc = this._mainDoc; // home menu as a document
-    private _homeMenu: boolean = true; // to determine whether currently at home menu
-    private _child: Doc | null = null; // currently selected document
-    private _parents: Array<Doc> = []; // array of parent docs (for pathbar)
-    private _library: Doc = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
+    @observable private _homeMenu: boolean = true; // to determine whether currently at home menu
+    @observable private _child: Doc | null = null; // currently selected document
+    @observable private _activeDoc: Doc = this._mainDoc; // doc updated as the active mobile page is updated (initially home menu)
+    @observable private _homeDoc: Doc = this._mainDoc; // home menu as a document
+    @observable private _parents: Array<Doc> = []; // array of parent docs (for pathbar)
 
     @computed private get mainContainer() { return Doc.UserDoc() ? FieldValue(Cast(Doc.UserDoc().activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
 
@@ -103,7 +101,6 @@ export class MobileInterface extends React.Component {
         Doc.UserDoc().activeMobile = doc;
         onSwitch?.();
 
-        this.renderView = renderView;
         // Ensures that switching to home is not registed
         UndoManager.undoStack.length = 0;
         UndoManager.redoStack.length = 0;
@@ -123,13 +120,14 @@ export class MobileInterface extends React.Component {
      */
     switchToLibrary = async () => {
         this.switchCurrentView(this._library);
-        this._homeMenu = false;
+        runInAction(() => this._homeMenu = false);
         this.toggleSidebar();
     }
 
     /**
      * Back method for navigating through items
      */
+    @action
     back = () => {
         const header = document.getElementById("header") as HTMLElement;
         const doc = Cast(this._parents.pop(), Doc) as Doc; // Parent document
@@ -156,6 +154,7 @@ export class MobileInterface extends React.Component {
     /**
      * Return 'Home", which implies returning to 'Home' menu buttons
      */
+    @action
     returnHome = () => {
         if (!this._homeMenu || this._sidebarActive) {
             this._homeMenu = true;
@@ -171,6 +170,7 @@ export class MobileInterface extends React.Component {
     /**
      * Return to primary Workspace in library (Workspaces Doc)
      */
+    @action
     returnMain = () => {
         this._parents = [this._homeDoc];
         this.switchCurrentView(this._library);
@@ -179,9 +179,16 @@ export class MobileInterface extends React.Component {
     }
 
     /**
+     * Note: window.innerWidth and window.screen.width compute different values.
+     * window.screen.width is the display size, however window.innerWidth is the
+     * display resolution which computes differently.
+     */
+    returnWidth = () => window.innerWidth; //The windows width
+    returnHeight = () => (window.innerHeight - 300); //Calculating the windows height (-300 to account for topbar)
+    whitebackground = () => "white";
+    /**
      * DocumentView for graphic display of all documents
      */
-    whitebackground = () => "white";
     @computed get displayWorkspaces() {
         return !this.mainContainer ? (null) :
             <div style={{ position: "relative", top: '198px', height: `calc(100% - 350px)`, width: "100%", left: "0%" }}>
@@ -213,13 +220,6 @@ export class MobileInterface extends React.Component {
                 />
             </div>;
     }
-    /**
-     * Note: window.innerWidth and window.screen.width compute different values.
-     * window.screen.width is the display size, however window.innerWidth is the
-     * display resolution which computes differently.
-     */
-    returnWidth = () => window.innerWidth; //The windows width
-    returnHeight = () => (window.innerHeight - 300); //Calculating the windows height (-300 to account for topbar)
 
     /**
      * Handles the click functionality in the library panel.
@@ -227,18 +227,20 @@ export class MobileInterface extends React.Component {
      * @param doc: doc for which the method is called
      */
     handleClick = async (doc: Doc) => {
-        if (doc.type !== "collection" && this._sidebarActive) {
-            this._parents.push(this._activeDoc);
-            this.switchCurrentView(doc);
-            this._homeMenu = false;
-            this.toggleSidebar();
-        }
-        else {
-            this._parents.push(this._activeDoc);
-            this.switchCurrentView(doc);
-            this._homeMenu = false;
-            this._child = doc;
-        }
+        runInAction(() => {
+            if (doc.type !== "collection" && this._sidebarActive) {
+                this._parents.push(this._activeDoc);
+                this.switchCurrentView(doc);
+                this._homeMenu = false;
+                this.toggleSidebar();
+            }
+            else {
+                this._parents.push(this._activeDoc);
+                this.switchCurrentView(doc);
+                this._homeMenu = false;
+                this._child = doc;
+            }
+        });
     }
 
     /**
@@ -246,6 +248,7 @@ export class MobileInterface extends React.Component {
      * be opened (open icon on RHS of all menu items)
      * @param doc doc to be opened
      */
+    @action
     openFromSidebar = (doc: Doc) => {
         this._parents.push(this._activeDoc);
         this.switchCurrentView(doc);
@@ -254,77 +257,31 @@ export class MobileInterface extends React.Component {
         this.toggleSidebar();
     }
 
-    /**
-     * Handles creation of array which is then rendered in renderPathbar()
-     */
-    createPathname = () => {
-        return [...this._parents, this._activeDoc];
-    }
-
     // Renders the graphical pathbar
     renderPathbar = () => {
-        const docArray = this.createPathname();
-        const items = docArray.map((doc: Doc, index: any) => {
-            if (index === 0) {
-                return this._homeMenu ?
-                    <div className="pathbarItem" key={index}>
-                        <div className="pathbarText"
-                            style={{ backgroundColor: "rgb(119, 37, 37)" }}
-                            key={index}
-                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                        </div>
-                    </div>
-                    :
-                    <div className="pathbarItem" key={index}>
-                        <div className="pathbarText"
-                            key={index}
-                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                        </div>
-                    </div>;
-
-            } else if (doc === this._activeDoc) {
-                return (
-                    <div className="pathbarItem">
-                        <FontAwesomeIcon className="pathIcon" icon="angle-right" size="lg" />
-                        <div className="pathbarText"
-                            style={{ backgroundColor: "rgb(119, 37, 37)" }}
-                            key={index}
-                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                        </div>
-                    </div>);
-            } else {
-                return (
-                    <div className="pathbarItem">
-                        <FontAwesomeIcon className="pathIcon" icon="angle-right" size="lg" />
-                        <div className="pathbarText"
-                            key={index}
-                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                        </div>
-                    </div>);
-            }
-
-        });
-        if (this._parents.length !== 0) {
-            return (<div className="pathbar">
-                <div className="scrollmenu">
-                    {items}
+        const docPath = [...this._parents, this._activeDoc];
+        const items = docPath.map((doc: Doc, index: any) =>
+            <div className="pathbarItem" key={index}>
+                {index === 0 ? (null) : <FontAwesomeIcon key="icon" className="pathIcon" icon="angle-right" size="lg" />}
+                <div className="pathbarText"
+                    style={{ backgroundColor: this._homeMenu || doc === this._activeDoc ? "rgb(119,17,37)" : undefined }}
+                    onClick={() => this.handlePathClick(doc, index)}>{doc.title}
                 </div>
+            </div>);
+        return (<div className="pathbar">
+            <div className="scrollmenu">
+                {items}
+            </div>
+            {!this._parents.length ? (null) :
                 <div className="back" >
                     <FontAwesomeIcon onClick={this.back} icon={"chevron-left"} color="white" size={"2x"} />
-                </div>
-                <div className="hidePath" />
-            </div>);
-        } else {
-            return (<div className="pathbar">
-                <div className="scrollmenu">
-                    {items}
-                </div>
-                <div className="hidePath" />
-            </div>);
-        }
+                </div>}
+            <div className="hidePath" />
+        </div>);
     }
 
     // Handles when user clicks on a document in the pathbar
+    @action
     handlePathClick = (doc: Doc, index: number) => {
         if (doc === this._library) {
             this._child = null;
@@ -608,6 +565,7 @@ export class MobileInterface extends React.Component {
     }
 
     // For setting up the presentation document for the home menu
+    @action
     setupDefaultPresentation = () => {
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
@@ -662,6 +620,7 @@ export class MobileInterface extends React.Component {
      * Switch view from mobile menu to access the mobile uploads
      * Global function name: openMobileUploads()
      */
+    @action
     switchToMobileUploads = () => {
         const mobileUpload = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
         this.switchCurrentView(mobileUpload);
