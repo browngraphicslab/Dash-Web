@@ -737,7 +737,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            const href = link.attrs.allHrefs.length > 0 ? link.attrs.allHrefs[0].href : undefined;
+            const href = link.attrs.allLinks.length > 0 ? link.attrs.allLinks[0].href : undefined;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -773,27 +773,27 @@ export default class RichTextMenu extends AntimodeMenu {
 
     deleteLink = () => {
         if (this.view) {
-            const link = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.link);
+            const link = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.linkAnchor);
             if (link) {
-                const allHrefs = link.attrs.allHrefs.slice();
-                this.TextView.RemoveLinkFromSelection(link.attrs.allHrefs);
+                const allLinks = link.attrs.allLinks.slice();
+                this.TextView.RemoveLinkFromSelection(link.attrs.allLinks);
                 // bcz: Argh ... this will remove the link from the document even it's anchored somewhere else in the text which happens if only part of the anchor text was selected.
-                allHrefs.filter((aref: any) => aref?.href.indexOf(Utils.prepend("/doc/")) === 0).forEach((aref: any) => {
+                allLinks.filter((aref: any) => aref?.href.indexOf(Utils.prepend("/doc/")) === 0).forEach((aref: any) => {
                     const linkId = aref.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    linkId && DocServer.GetRefField(linkId).then(linkDoc => LinkManager.Instance.deleteLink(linkDoc as Doc))
+                    linkId && DocServer.GetRefField(linkId).then(linkDoc => LinkManager.Instance.deleteLink(linkDoc as Doc));
                 });
             }
         }
     }
 
     linkExtend($start: ResolvedPos, href: string) {
-        const mark = this.view!.state.schema.marks.link;
+        const mark = this.view!.state.schema.marks.linkAnchor;
 
         let startIndex = $start.index();
         let endIndex = $start.indexAfter();
 
-        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) startIndex--;
-        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) endIndex++;
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) endIndex++;
 
         let startPos = $start.start();
         let endPos = startPos;
