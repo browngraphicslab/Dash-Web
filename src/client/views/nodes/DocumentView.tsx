@@ -1169,9 +1169,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
-        if (!(this.props.Document instanceof Doc)) return (null);
         if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
-        if (this.props.Document.hidden) return (null);
+        if (!(this.props.Document instanceof Doc)) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;

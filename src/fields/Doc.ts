@@ -96,13 +96,13 @@ export const AclSym = Symbol("Acl");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
-export const AclReadWrite = Symbol("AclReadWrite");
+export const AclEdit = Symbol("AclEdit");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
 export function fetchProto(doc: Doc) {
-    if (doc.author !== Doc.CurrentUserEmail) {
+    if (doc.author !== Doc.CurrentUserEmail) { // storing acls for groups needs to be extended here - AclSym should store a datastructure that stores information about permissions
         const acl = Doc.Get(doc, "ACL", true);
         switch (acl) {
             case "ownerOnly":
@@ -114,8 +114,8 @@ export function fetchProto(doc: Doc) {
             case "addOnly":
                 doc[AclSym] = AclAddonly;
                 break;
-            case "write":
-                doc[AclSym] = AclReadWrite;
+            case "edit":
+                doc[AclSym] = AclEdit;
         }
     }
 

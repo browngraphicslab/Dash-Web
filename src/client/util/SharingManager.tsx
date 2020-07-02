@@ -85,7 +85,7 @@ export default class SharingManager extends React.Component<{}> {
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
     @observable private selectedUsers: UserOptions[] | null = null;
-    @observable private permissions: SharingPermissions = SharingPermissions.None;
+    @observable private permissions: SharingPermissions = SharingPermissions.Edit;
 
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -98,9 +98,9 @@ export default class SharingManager extends React.Component<{}> {
             this.targetDoc = target.props.Document;
             DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = true;
-            if (!this.sharingDoc) {
-                this.sharingDoc = new Doc;
-            }
+            // if (!this.sharingDoc) {
+            //     this.sharingDoc = new Doc;
+            // }
         }));
 
         // runInAction(() => this.groups = GroupManager.Instance.getAllGroups());
@@ -116,13 +116,13 @@ export default class SharingManager extends React.Component<{}> {
         }), 500);
     });
 
-    private get sharingDoc() {
-        return this.targetDoc ? Cast(this.targetDoc[SharingKey], Doc) as Doc : undefined;
-    }
+    // private get sharingDoc() {
+    //     return this.targetDoc ? Cast(this.targetDoc[SharingKey], Doc) as Doc : undefined;
+    // }
 
-    private set sharingDoc(value: Doc | undefined) {
-        this.targetDoc && (this.targetDoc[SharingKey] = value);
-    }
+    // private set sharingDoc(value: Doc | undefined) {
+    //     this.targetDoc && (this.targetDoc[SharingKey] = value);
+    // }
 
     constructor(props: {}) {
         super(props);
@@ -153,76 +153,79 @@ export default class SharingManager extends React.Component<{}> {
         const members: string[] = JSON.parse(StrCast(group.members));
         const users: ValidatedUser[] = this.users.filter(user => members.includes(user.user.email));
 
-        const sharingDoc = this.sharingDoc!;
-        console.log(sharingDoc)
-        if (permission === SharingPermissions.None) {
-            const metadata = sharingDoc[StrCast(group.groupName)];
-            if (metadata) sharingDoc[StrCast(group.groupName)] = undefined;
-        }
-        else {
-            sharingDoc[StrCast(group.groupName)] = permission;
-        }
+        const target = this.targetDoc!;
+        const ACL = `ACL-${StrCast(group.groupName)}`;
 
-        users.forEach(user => {
-            this.setInternalSharing(user, permission, group);
+        target[ACL] = permission;
+        // const sharingDoc = this.sharingDoc!;
+        // if (permission === SharingPermissions.None) {
+        //     const metadata = sharingDoc[StrCast(group.groupName)];
+        //     if (metadata) sharingDoc[StrCast(group.groupName)] = undefined;
+        // }
+        // else {
+        //     sharingDoc[StrCast(group.groupName)] = permission;
+        // }
+
+        users.forEach(({ notificationDoc }) => {
+            Doc.AddDocToList(notificationDoc, storage, target);
         });
     }
 
-    setInternalSharing = async (recipient: ValidatedUser, state: string, group?: Doc) => {
+    setInternalSharing = (recipient: ValidatedUser, permission: string, group?: Doc) => {
         const { user, notificationDoc } = recipient;
         const target = this.targetDoc!;
-        const manager = this.sharingDoc!;
+        // const manager = this.sharingDoc!;
         const key = user.userDocumentId;
 
-        let metadata = await DocCastAsync(manager[key]);
-        const permissions: { [key: string]: number } = metadata?.permissions ? JSON.parse(StrCast(metadata.permissions)) : {};
-        permissions[StrCast(group ? group.groupName : Doc.CurrentUserEmail)] = parseInt(HierarchyMapping.get(state)!);
-        const max = Math.max(...Object.values(permissions));
+        const ACL = `ACL-${key}`;
 
-        // let max = 0;
-        // const keys: string[] = [];
-        // for (const [key, value] of Object.entries(permissions)) {
-        //     if (value === max && max !== 0) {
-        //         keys.push(key);
-        //     }
-        //     else if (value > max) {
-        //         keys.splice(0, keys.length);
-        //         keys.push(key);
-        //         max = value;
-        //     }
+        // const permissions: { [key: string]: number } = target[ACL] ? JSON.parse(StrCast(target[ACL])) : {};
+
+        target[ACL] = permission;
+
+        Doc.AddDocToList(notificationDoc, storage, target);
+
+
+        // let metadata = await DocCastAsync(manager[key]);
+        // const permissions: { [key: string]: number } = metadata?.permissions ? JSON.parse(StrCast(metadata.permissions)) : {};
+        // permissions[StrCast(group ? group.groupName : Doc.CurrentUserEmail)] = parseInt(HierarchyMapping.get(permission)!);
+        // const max = Math.max(...Object.values(permissions));
+
+        // switch (max) {
+        //     case 0:
+        //         // if (metadata) {
+        //         //     const sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
+        //         //     Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
+        //         //     manager[key] = undefined;
+        //         // }
+        //         Doc.RemoveDocFromList(notificationDoc, storage, target);
+        //         break;
+
+        //     case 1: case 2: case 3:
+
+        //         Doc.AddDocToList(notificationDoc, storage, target);
+
+        //         if (!metadata) {
+        //             metadata = new Doc;
+        //             const sharedAlias = Doc.MakeAlias(target);
+        //             Doc.AddDocToList(notificationDoc, storage, target);
+        //             metadata.sharedAlias = sharedAlias;
+        //             manager[key] = metadata;
+        //         }
+        //         metadata.permissions = JSON.stringify(permissions);
+        //         // metadata.usersShared = JSON.stringify(keys);
+        //         break;
         // }
 
-        switch (max) {
-            case 0:
-                if (metadata) {
-                    const sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
-                    Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
-                    manager[key] = undefined;
-                }
-                break;
-
-            case 1: case 2: case 3:
-                if (!metadata) {
-                    metadata = new Doc;
-                    const sharedAlias = Doc.MakeAlias(target);
-                    Doc.AddDocToList(notificationDoc, storage, sharedAlias);
-                    metadata.sharedAlias = sharedAlias;
-                    manager[key] = metadata;
-                }
-                metadata.permissions = JSON.stringify(permissions);
-                // metadata.usersShared = JSON.stringify(keys);
-                break;
-        }
-
-        if (metadata) metadata.maxPermission = HierarchyMapping.get(`${max}`);
+        // if (metadata) metadata.maxPermission = HierarchyMapping.get(`${max}`);
     }
 
-    // private setExternalSharing = (state: string) => {
+    // private setExternalSharing = (permission: string) => {
     //     const sharingDoc = this.sharingDoc;
     //     if (!sharingDoc) {
     //         return;
     //     }
-    //     sharingDoc[PublicKey] = state;
+    //     sharingDoc[PublicKey] = permission;
     // }
 
     private get sharingUrl() {
@@ -281,15 +284,21 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     private computePermissions = (userKey: string) => {
-        const sharingDoc = this.sharingDoc;
-        if (!sharingDoc) {
-            return SharingPermissions.None;
-        }
-        const metadata = sharingDoc[userKey] as Doc | string;
-        if (!metadata) {
-            return SharingPermissions.None;
-        }
-        return StrCast(metadata instanceof Doc ? metadata.maxPermission : metadata, SharingPermissions.None);
+        // const sharingDoc = this.sharingDoc;
+        // if (!sharingDoc) {
+        //     return SharingPermissions.None;
+        // }
+        // const metadata = sharingDoc[userKey] as Doc | string;
+
+        if (!this.targetDoc) return SharingPermissions.None;
+
+        const ACL = `ACL-${userKey}`;
+        const permission = StrCast(this.targetDoc[ACL]);
+
+        // if (!metadata) {
+        //     return SharingPermissions.None;
+        // }
+        return StrCast(this.targetDoc[ACL], SharingPermissions.None);
     }
 
     @action
@@ -314,7 +323,6 @@ export default class SharingManager extends React.Component<{}> {
                 this.setInternalGroupSharing(GroupManager.Instance.getGroup(user.label)!, this.permissions);
             }
         });
-
         this.selectedUsers = null;
     }
 
@@ -377,27 +385,30 @@ export default class SharingManager extends React.Component<{}> {
                 <div className={"hr-substitute"} /> */}
                 <div className="sharing-contents">
                     <p className={"share-title"}><b>Share </b>{this.focusOn(StrCast(this.targetDoc?.title, "this document"))}</p>
-                    <div className="share-setup">
-                        <Select
-                            className={"user-search"}
-                            placeholder={"Enter user or group name..."}
-                            isMulti
-                            closeMenuOnSelect={false}
-                            options={options}
-                            onChange={this.handleUsersChange}
-                            value={this.selectedUsers}
-                        />
-                        <select className="permissions-select" onChange={this.handlePermissionsChange}>
-                            {this.sharingOptions}
-                        </select>
-                        <button className="share-button" onClick={this.share}>
-                            Share
-                        </button>
-                    </div>
+                    {this.targetDoc?.author !== Doc.CurrentUserEmail ? null
+                        :
+                        <div className="share-setup">
+                            <Select
+                                className={"user-search"}
+                                placeholder={"Enter user or group name..."}
+                                isMulti
+                                closeMenuOnSelect={false}
+                                options={options}
+                                onChange={this.handleUsersChange}
+                                value={this.selectedUsers}
+                            />
+                            <select className="permissions-select" onChange={this.handlePermissionsChange}>
+                                {this.sharingOptions}
+                            </select>
+                            <button className="share-button" onClick={this.share}>
+                                Share
+                            </button>
+                        </div>
+                    }
                     <div className="main-container">
                         <div className={"individual-container"}>
                             <div className={"users-list"} style={{ display: existOtherUsers ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
-                                {!existOtherUsers ? "There are no other users in your database." :
+                                {
                                     this.users.map(({ user, notificationDoc }) => { // can't use async here
                                         const userKey = user.userDocumentId;
                                         const permissions = this.computePermissions(userKey);
@@ -434,8 +445,8 @@ export default class SharingManager extends React.Component<{}> {
                         </div>
                         <div className={"group-container"}>
                             <div className={"groups-list"} style={{ display: existGroups ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
-                                {!existGroups ? "There are no groups in your database." :
-                                    GroupManager.Instance.getAllGroups().map(group => {
+                                {
+                                    GroupManager.Instance?.getAllGroups().map(group => {
                                         const permissions = this.computePermissions(StrCast(group.groupName));
                                         // const color = ColorMapping.get(permissions);
                                         return permissions === SharingPermissions.None ? null : (

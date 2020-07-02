@@ -111,7 +111,7 @@ const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHe
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    if (target[AclSym] && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return true;
+    if (target[AclSym] && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return true; // generalise to a testpermission function
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);

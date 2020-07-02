@@ -3,11 +3,11 @@ import { observable, action, runInAction, computed } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from "../../fields/Doc";
+import { Doc, DocListCast, Opt, DocListCastAsync } from "../../fields/Doc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
-import SharingManager, { User } from "./SharingManager";
+import { User } from "./SharingManager";
 import { Utils } from "../../Utils";
 import * as RequestPromise from "request-promise";
 import Select from 'react-select';
@@ -33,6 +33,7 @@ export default class GroupManager extends React.Component<{}> {
     @observable private selectedUsers: UserOptions[] | null = null; // list of users selected in the "Select users" dropdown.
     @observable currentGroup: Opt<Doc>; // the currently selected group.
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
+    private currentUserGroups: Doc[] = [];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -42,6 +43,26 @@ export default class GroupManager extends React.Component<{}> {
     // sets up the list of users
     componentDidMount() {
         this.populateUsers().then(resolved => runInAction(() => this.users = resolved));
+
+        // this.getAllGroups().forEach(group => {
+        //     const members: string[] = JSON.parse(StrCast(group.members));
+        //     if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(group);
+        // });
+        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
+            groups?.forEach(group => {
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(group);
+            });
+        })
+            .finally(() => console.log(this.currentUserGroups));
+
+        // (this.GroupManagerDoc?.data as List<Doc>).forEach(group => {
+        //     Promise.resolve(group).then(resolvedGroup => {
+        //         const members: string[] = JSON.parse(StrCast(resolvedGroup.members));
+        //         if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(resolvedGroup);
+        //     });
+        // });
+
     }
 
     /**
@@ -49,8 +70,8 @@ export default class GroupManager extends React.Component<{}> {
      */
     populateUsers = async () => {
         const userList: User[] = JSON.parse(await RequestPromise.get(Utils.prepend("/getUsers")));
-        const currentUserIndex = userList.findIndex(user => user.email === Doc.CurrentUserEmail);
-        currentUserIndex !== -1 && userList.splice(currentUserIndex, 1);
+        // const currentUserIndex = userList.findIndex(user => user.email === Doc.CurrentUserEmail);
+        // currentUserIndex !== -1 && userList.splice(currentUserIndex, 1);
         return userList.map(user => user.email);
     }
 
@@ -59,6 +80,11 @@ export default class GroupManager extends React.Component<{}> {
      */
     @computed get options() {
         return this.users.map(user => ({ label: user, value: user }));
+    }
+
+
+    get groupMemberships() {
+        return this.currentUserGroups;
     }
 
     /**
