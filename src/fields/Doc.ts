@@ -967,7 +967,7 @@ export namespace Doc {
                     container._docFilters = new List<string>(docFilters);
                 }
             }
-        })
+        });
     }
     export function readDocRangeFilter(doc: Doc, key: string) {
         const docRangeFilters = Cast(doc._docRangeFilters, listSpec("string"), []);

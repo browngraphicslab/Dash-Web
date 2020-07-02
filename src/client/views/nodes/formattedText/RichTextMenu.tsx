@@ -149,7 +149,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this._reaction?.();
     }
 
-    public delayHide = () => { this._delayHide = true; }
+    public delayHide = () => this._delayHide = true;
 
     @action
     changeView(view: EditorView) {
@@ -599,7 +599,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
-    get TextView() { return (this.view as any).TextView as FormattedTextBox }
+    get TextView() { return (this.view as any).TextView as FormattedTextBox; }
 
     createColorButton() {
         const self = this;
@@ -608,7 +608,7 @@ export default class RichTextMenu extends AntimodeMenu {
             e.stopPropagation();
             self.TextView.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
-            self.TextView.EditorView!.focus()
+            self.TextView.EditorView!.focus();
         }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
@@ -616,7 +616,7 @@ export default class RichTextMenu extends AntimodeMenu {
             self.setActiveColor(color);
             self.TextView.endUndoTypingBatch();
             UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
-            self.TextView.EditorView!.focus()
+            self.TextView.EditorView!.focus();
         }
 
         const button =
@@ -737,7 +737,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            const href = link.attrs.allHrefs.length > 0 ? link.attrs.allHrefs[0].href : undefined;
+            const href = link.attrs.allLinks.length > 0 ? link.attrs.allLinks[0].href : undefined;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -772,40 +772,28 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     deleteLink = () => {
-        if (!this.view) return;
-
-        const node = this.view.state.selection.$from.nodeAfter;
-        const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
-        const href = link!.attrs.allHrefs.length > 0 ? link!.attrs.allHrefs[0].href : undefined;
-        if (href) {
-            if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                if (linkclicked) {
-                    DocServer.GetRefField(linkclicked).then(async linkDoc => {
-                        if (linkDoc instanceof Doc) {
-                            LinkManager.Instance.deleteLink(linkDoc);
-                            this.view!.dispatch(this.view!.state.tr.removeMark(this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link));
-                        }
-                    });
-                }
-            } else {
-                if (node) {
-                    const { tr, schema, selection } = this.view.state;
-                    const extension = this.linkExtend(selection.$anchor, href);
-                    this.view.dispatch(tr.removeMark(extension.from, extension.to, schema.marks.link));
-                }
+        if (this.view) {
+            const link = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.linkAnchor);
+            if (link) {
+                const allLinks = link.attrs.allLinks.slice();
+                this.TextView.RemoveLinkFromSelection(link.attrs.allLinks);
+                // bcz: Argh ... this will remove the link from the document even it's anchored somewhere else in the text which happens if only part of the anchor text was selected.
+                allLinks.filter((aref: any) => aref?.href.indexOf(Utils.prepend("/doc/")) === 0).forEach((aref: any) => {
+                    const linkId = aref.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    linkId && DocServer.GetRefField(linkId).then(linkDoc => LinkManager.Instance.deleteLink(linkDoc as Doc));
+                });
             }
         }
     }
 
     linkExtend($start: ResolvedPos, href: string) {
-        const mark = this.view!.state.schema.marks.link;
+        const mark = this.view!.state.schema.marks.linkAnchor;
 
         let startIndex = $start.index();
         let endIndex = $start.indexAfter();
 
-        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) startIndex--;
-        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) endIndex++;
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) endIndex++;
 
         let startPos = $start.start();
         let endPos = startPos;
@@ -876,11 +864,13 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
                 this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
                 this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+                <div className="richTextMenu-divider" />
             ]}</>,
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
+            <div className="richTextMenu-divider" />,
             this.createButton("align-left", "Align Left", undefined, this.alignLeft),
             this.createButton("align-center", "Align Center", undefined, this.alignCenter),
             this.createButton("align-right", "Align Right", undefined, this.alignRight),
@@ -893,12 +883,15 @@ export default class RichTextMenu extends AntimodeMenu {
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
             {this.collapsed ? this.getDragger() : (null)}
             <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
+                <div className="richTextMenu-divider" />,
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
+                <div className="richTextMenu-divider" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes"),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
-                this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),]}
+                this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
+                <div className="richTextMenu-divider" />,]}
             </div>
             <div key="button">
                 {/* <div key="collapser">
@@ -928,7 +921,7 @@ interface ButtonDropdownProps {
 }
 
 @observer
-class ButtonDropdown extends React.Component<ButtonDropdownProps> {
+export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
 
     @observable private showDropdown: boolean = false;
     private ref: HTMLDivElement | null = null;

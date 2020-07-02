@@ -32,7 +32,7 @@ export function findUserMark(marks: Mark[]): Mark | undefined {
     return marks.find(m => m.attrs.userid);
 }
 export function findLinkMark(marks: Mark[]): Mark | undefined {
-    return marks.find(m => m.type === schema.marks.link);
+    return marks.find(m => m.type === schema.marks.linkAnchor);
 }
 export function findStartOfMark(rpos: ResolvedPos, view: EditorView, finder: (marks: Mark[]) => Mark | undefined) {
     let before = 0;
@@ -213,7 +213,7 @@ export class FormattedTextBoxComment {
             state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any, pos: number, parent: any) => !child && node.marks.length && (child = node));
             child = child || (nbef && state.selection.$from.nodeBefore);
             const mark = child ? findLinkMark(child.marks) : undefined;
-            const href = (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allHrefs.find((item: { href: string }) => item.href)?.href || forceUrl;
+            const href = (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allLinks.find((item: { href: string }) => item.href)?.href || forceUrl;
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;
