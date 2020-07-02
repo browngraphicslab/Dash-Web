@@ -29,7 +29,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionDockingView, DockedFrameRenderer } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -185,7 +184,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Delete", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "external-link-square-alt", selected: -1 });
         // RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Pin", event: () => DockedFrameRenderer.PinDoc(this.props.Document), icon: "map-pin", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Pin", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Open", event: () => MobileInterface.Instance.handleClick(this.props.Document), icon: "trash", selected: -1 });
 
         SelectionManager.DeselectAll();
@@ -945,7 +944,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         recommendations.documentIconHeight = 150;
         recommendations.sourceDoc = this.props.Document;
         recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
-        CollectionDockingView.AddRightSplit(recommendations, undefined);
+        this.props.addDocTab(recommendations, "onRight");
 
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
@@ -977,7 +976,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             body.href = urls[i];
             bodies.push(body);
         }
-        CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        this.props.addDocTab(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), "onRight");
         this._showKPQuery = true;
         this._queries = kps.toString();
     }

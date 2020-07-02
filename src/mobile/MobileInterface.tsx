@@ -13,7 +13,7 @@ import { action, computed, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
 import { Docs, DocumentOptions } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
@@ -35,7 +35,6 @@ import { AudioUpload } from "./AudioUpload";
 import { Cast, FieldValue } from '../fields/Types';
 import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
 import { AudioBox } from "../client/views/nodes/AudioBox";
-import { Compute } from "google-auth-library";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -47,22 +46,22 @@ library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngl
 @observer
 export class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
-    @computed private get userDoc() { return Doc.UserDoc(); }
-    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    @observable private mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(this.userDoc);
-    @observable private renderView?: () => JSX.Element;
-    @observable private sidebarActive: boolean = false; //to toggle sidebar display
-    @observable private imageUploadActive: boolean = false; //to toggle image upload
-    @observable private audioUploadActive: boolean = false;
-    @observable private menuListView: boolean = false; //to switch between menu view (list / icon)
+    @observable private _mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(Doc.UserDoc());
+    @observable private _sidebarActive: boolean = false; //to toggle sidebar display
+    @observable private _imageUploadActive: boolean = false; //to toggle image upload
+    @observable private _audioUploadActive: boolean = false;
+    @observable private _menuListView: boolean = false; //to switch between menu view (list / icon)
     @observable private _ink: boolean = false; //toggle whether ink is being dispalyed
+    @observable private renderView?: () => JSX.Element;
 
-    public _activeDoc: Doc = this.mainDoc; // doc updated as the active mobile page is updated (initially home menu)
-    public _homeDoc: Doc = this.mainDoc; // home menu as a document
+    private _activeDoc: Doc = this._mainDoc; // doc updated as the active mobile page is updated (initially home menu)
+    private _homeDoc: Doc = this._mainDoc; // home menu as a document
     private _homeMenu: boolean = true; // to determine whether currently at home menu
     private _child: Doc | null = null; // currently selected document
     private _parents: Array<Doc> = []; // array of parent docs (for pathbar)
-    private _library: Doc = CurrentUserUtils.setupLibrary(this.userDoc); // to access documents in Dash Web
+    private _library: Doc = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
+
+    @computed private get mainContainer() { return Doc.UserDoc() ? FieldValue(Cast(Doc.UserDoc().activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -72,7 +71,7 @@ export class MobileInterface extends React.Component {
     @action
     componentDidMount = () => {
         // if the home menu is in list view -> adjust the menu toggle appropriately
-        this._homeDoc._viewType === "stacking" ? this.menuListView = true : this.menuListView = false;
+        this._menuListView = this._homeDoc._viewType === "stacking" ? true : false;
         Doc.SetSelectedTool(InkTool.None); // ink should intially be set to none
         Doc.UserDoc().activeMobile = this._homeDoc; // active mobile set to home
         AudioBox.Enabled = true;
@@ -95,14 +94,14 @@ export class MobileInterface extends React.Component {
     // Switch the mobile view to the given doc
     @action
     switchCurrentView = (doc: Doc, renderView?: () => JSX.Element, onSwitch?: () => void) => {
-        if (!this.userDoc) return;
+        if (!Doc.UserDoc()) return;
         if (this._activeDoc === this._homeDoc) {
             this._parents.push(this._activeDoc);
             this._homeMenu = false;
         }
         this._activeDoc = doc;
         Doc.UserDoc().activeMobile = doc;
-        onSwitch && onSwitch();
+        onSwitch?.();
 
         this.renderView = renderView;
         // Ensures that switching to home is not registed
@@ -113,7 +112,7 @@ export class MobileInterface extends React.Component {
     // For toggling the hamburger menu
     @action
     toggleSidebar = () => {
-        this.sidebarActive = !this.sidebarActive;
+        this._sidebarActive = !this._sidebarActive;
 
         if (this._ink) {
             this.onSwitchInking();
@@ -126,7 +125,6 @@ export class MobileInterface extends React.Component {
         this.switchCurrentView(this._library);
         this._homeMenu = false;
         this.toggleSidebar();
-        //setTimeout(this.toggleSidebar, 300);
     }
 
     /**
@@ -146,13 +144,11 @@ export class MobileInterface extends React.Component {
             this._child = null;
             this.switchCurrentView(this._homeDoc);
             // Case 3: Parent document is any document
-        } else {
-            if (doc) {
-                this._child = doc;
-                this.switchCurrentView(doc);
-                this._homeMenu = false;
-                header.textContent = String(doc.title);
-            }
+        } else if (doc) {
+            this._child = doc;
+            this.switchCurrentView(doc);
+            this._homeMenu = false;
+            header.textContent = String(doc.title);
         }
         this._ink = false; // turns ink off
     }
@@ -161,13 +157,13 @@ export class MobileInterface extends React.Component {
      * Return 'Home", which implies returning to 'Home' menu buttons
      */
     returnHome = () => {
-        if (!this._homeMenu || this.sidebarActive) {
+        if (!this._homeMenu || this._sidebarActive) {
             this._homeMenu = true;
             this._parents = [];
             this._child = null;
             this.switchCurrentView(this._homeDoc);
         }
-        if (this.sidebarActive) {
+        if (this._sidebarActive) {
             this.toggleSidebar();
         }
     }
@@ -185,42 +181,38 @@ export class MobileInterface extends React.Component {
     /**
      * DocumentView for graphic display of all documents
      */
+    whitebackground = () => "white";
     @computed get displayWorkspaces() {
-        if (this.mainContainer) {
-            const backgroundColor = () => "white";
-            return (
-                <div style={{ position: "relative", top: '198px', height: `calc(100% - 350px)`, width: "100%", left: "0%" }}>
-                    <DocumentView
-                        Document={this.mainContainer}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        addDocument={returnFalse}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        rootSelected={returnFalse}
-                        removeDocument={undefined}
-                        onClick={undefined}
-                        ScreenToLocalTransform={Transform.Identity}
-                        ContentScaling={returnOne}
-                        PanelWidth={this.returnWidth}
-                        PanelHeight={this.returnHeight}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        renderDepth={0}
-                        focus={emptyFunction}
-                        backgroundColor={backgroundColor}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        docFilters={returnEmptyFilter}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                    />
-                </div>
-            );
-        }
+        return !this.mainContainer ? (null) :
+            <div style={{ position: "relative", top: '198px', height: `calc(100% - 350px)`, width: "100%", left: "0%" }}>
+                <DocumentView
+                    Document={this.mainContainer}
+                    DataDoc={undefined}
+                    LibraryPath={emptyPath}
+                    addDocument={returnFalse}
+                    addDocTab={returnFalse}
+                    pinToPres={emptyFunction}
+                    rootSelected={returnFalse}
+                    removeDocument={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.returnWidth}
+                    PanelHeight={this.returnHeight}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={this.whitebackground}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                />
+            </div>;
     }
-
     /**
      * Note: window.innerWidth and window.screen.width compute different values.
      * window.screen.width is the display size, however window.innerWidth is the
@@ -235,8 +227,7 @@ export class MobileInterface extends React.Component {
      * @param doc: doc for which the method is called
      */
     handleClick = async (doc: Doc) => {
-        const children = DocListCast(doc.data);
-        if (doc.type !== "collection" && this.sidebarActive) {
+        if (doc.type !== "collection" && this._sidebarActive) {
             this._parents.push(this._activeDoc);
             this.switchCurrentView(doc);
             this._homeMenu = false;
@@ -267,12 +258,7 @@ export class MobileInterface extends React.Component {
      * Handles creation of array which is then rendered in renderPathbar()
      */
     createPathname = () => {
-        const docArray = [];
-        this._parents.map((doc: Doc, index: any) => {
-            docArray.push(doc);
-        });
-        docArray.push(this._activeDoc);
-        return docArray;
+        return [...this._parents, this._activeDoc];
     }
 
     // Renders the graphical pathbar
@@ -280,24 +266,21 @@ export class MobileInterface extends React.Component {
         const docArray = this.createPathname();
         const items = docArray.map((doc: Doc, index: any) => {
             if (index === 0) {
-                return (
-                    <>
-                        {this._homeMenu ?
-                            <div className="pathbarItem">
-                                <div className="pathbarText"
-                                    style={{ backgroundColor: "rgb(119, 37, 37)" }}
-                                    key={index}
-                                    onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                                </div>
-                            </div>
-                            :
-                            <div className="pathbarItem">
-                                <div className="pathbarText"
-                                    key={index}
-                                    onClick={() => this.handlePathClick(doc, index)}>{doc.title}
-                                </div>
-                            </div>}
-                    </>);
+                return this._homeMenu ?
+                    <div className="pathbarItem" key={index}>
+                        <div className="pathbarText"
+                            style={{ backgroundColor: "rgb(119, 37, 37)" }}
+                            key={index}
+                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
+                        </div>
+                    </div>
+                    :
+                    <div className="pathbarItem" key={index}>
+                        <div className="pathbarText"
+                            key={index}
+                            onClick={() => this.handlePathClick(doc, index)}>{doc.title}
+                        </div>
+                    </div>;
 
             } else if (doc === this._activeDoc) {
                 return (
@@ -357,14 +340,14 @@ export class MobileInterface extends React.Component {
     }
 
     // Renders the contents of the menu and sidebar
-    renderDefaultContent = () => {
+    @computed get renderDefaultContent() {
         if (this._homeMenu) {
             return (
                 <div>
                     <div className="navbar">
                         <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="header" id="header">{this._homeDoc.title}</div>
-                        <div className="cover" id="cover" onClick={(e) => this.stop(e)}></div>
+                        <div className="cover" id="cover" onClick={e => e.stopPropagation()}></div>
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -376,7 +359,7 @@ export class MobileInterface extends React.Component {
             );
         }
         // stores workspace documents as 'workspaces' variable
-        let workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+        let workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
         if (this._child) {
             workspaces = this._child;
         }
@@ -400,16 +383,16 @@ export class MobileInterface extends React.Component {
             <div>
                 <div className="navbar">
                     <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
-                    <div className="header" id="header">{this.sidebarActive ? "library" : this._activeDoc.title}</div>
-                    <div className={`toggle-btn ${this.sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}>
+                    <div className="header" id="header">{this._sidebarActive ? "library" : this._activeDoc.title}</div>
+                    <div className={`toggle-btn ${this._sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}>
                         <span></span>
                         <span></span>
                         <span></span>
                     </div>
-                    <div className={`background ${this.sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}></div>
+                    <div className={`background ${this._sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}></div>
                 </div>
                 {this.renderPathbar()}
-                <div className={`sidebar ${this.sidebarActive ? "active" : ""}`}>
+                <div className={`sidebar ${this._sidebarActive ? "active" : ""}`}>
                     <div className="sidebarButtons">
                         {this._child ?
                             <>
@@ -435,7 +418,7 @@ export class MobileInterface extends React.Component {
                         }
                     </div>
                 </div>
-                <div className={`blanket ${this.sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}>
+                <div className={`blanket ${this._sidebarActive ? "active" : ""}`} onClick={this.toggleSidebar}>
                 </div>
             </div>
         );
@@ -446,7 +429,7 @@ export class MobileInterface extends React.Component {
      */
     @action
     createNewWorkspace = async (id?: string) => {
-        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+        const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
@@ -463,10 +446,6 @@ export class MobileInterface extends React.Component {
         workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
 
         Doc.AddDocToList(workspaces, "data", workspaceDoc);
-    }
-
-    stop = (e: React.MouseEvent) => {
-        e.stopPropagation();
     }
 
     // Button for switching between pen and ink mode
@@ -486,152 +465,121 @@ export class MobileInterface extends React.Component {
     }
 
     // The static ink menu that appears at the top
-    inkMenu = () => {
-        if (this._activeDoc._viewType === "docking") {
-            if (this._ink) {
-                return <div className="colorSelector">
-                    <InkOptionsMenu />
-                </div>;
-
-            }
-        }
+    @computed get inkMenu() {
+        return this._activeDoc._viewType !== "docking" || !this._ink ? (null) :
+            <div className="colorSelector">
+                <InkOptionsMenu />
+            </div>;
     }
 
     // DocButton that uses UndoManager and handles the opacity change if CanUndo is true
     @computed get undo() {
-        if (this.mainContainer) {
-            if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
-                return (<>
-                    <div className="docButton"
-                        style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
-                        id="undoButton"
-                        title="undo"
-                        onClick={(e: React.MouseEvent) => {
-                            UndoManager.Undo();
-                            e.stopPropagation();
-                        }}>
-                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="undo-alt" />
-                    </div>
-                </>);
-            }
-        }
+        if (this.mainContainer && this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
+            this._activeDoc !== Doc.UserDoc().rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+            return (
+                <div className="docButton"
+                    style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
+                    id="undoButton"
+                    title="undo"
+                    onClick={(e: React.MouseEvent) => {
+                        UndoManager.Undo();
+                        e.stopPropagation();
+                    }}>
+                    <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="undo-alt" />
+                </div>);
+        } else return (null);
     }
 
     // DocButton that uses UndoManager and handles the opacity change if CanRedo is true
     @computed get redo() {
-        if (this.mainContainer) {
-            if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc !== this.userDoc.rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
-                return (<>
-                    <div className="docButton"
-                        style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
-                        id="undoButton"
-                        title="redo"
-                        onClick={(e: React.MouseEvent) => {
-                            UndoManager.Redo();
-                            e.stopPropagation();
-                        }}>
-                        <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="redo-alt" />
-                    </div>
-                </>);
-            }
-        }
+        if (this.mainContainer && this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
+            this._activeDoc !== Doc.UserDoc().rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+            return (
+                <div className="docButton"
+                    style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
+                    id="undoButton"
+                    title="redo"
+                    onClick={(e: React.MouseEvent) => {
+                        UndoManager.Redo();
+                        e.stopPropagation();
+                    }}>
+                    <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="redo-alt" />
+                </div>);
+        } else return (null);
     }
 
     // DocButton for switching into ink mode
     @computed get drawInk() {
-        if (this.mainContainer) {
-            if (this._activeDoc._viewType === "docking") {
-                return (
-                    <>
-                        <div className="docButton"
-                            id="inkButton"
-                            title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
-                            onClick={this.onSwitchInking}>
-                            <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib"
-                            />
-                        </div>
-                    </>);
-            }
-        }
+        return !this.mainContainer || this._activeDoc._viewType !== "docking" ? (null) :
+            <div className="docButton"
+                id="inkButton"
+                title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
+                onClick={this.onSwitchInking}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="pen-nib" />
+            </div>;
     }
 
     // DocButton: Button that appears on the bottom of the screen to initiate image upload
-    uploadImageButton = () => {
+    @computed get uploadImageButton() {
         if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
             return <div className="docButton"
                 id="imageButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
                 onClick={this.toggleUpload}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload"
-                />
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="upload" />
             </div>;
-        }
+        } else return (null);
     }
 
     // DocButton to download images on the mobile
-    downloadDocument = () => {
+    @computed get downloadDocument() {
         if (this._activeDoc.type === "image" || this._activeDoc.type === "pdf" || this._activeDoc.type === "video") {
-            const url = this._activeDoc["data-path"]?.toString();
             return <div className="docButton"
                 title={"Download Image"}
                 style={{ backgroundColor: "white", color: "black" }}
-                onClick={e => {
-                    window.open(url);
-                }}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="download"
-                />
+                onClick={e => window.open(this._activeDoc["data-path"]?.toString())}> // daa-path holds the url
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="download" />
             </div>;
-        }
+        } else return (null);
     }
 
     // DocButton for pinning images to presentation
-    pinToPresentation = () => {
+    @computed get pinToPresentation() {
         // Only making button available if it is an image
         if (!(this._activeDoc.type === "collection" || this._activeDoc.type === "presentation")) {
             const isPinned = this._activeDoc && Doc.isDocPinned(this._activeDoc);
             return <div className="docButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Unpin from presentation" : "Pin to presentation"}
                 style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-                onClick={e => {
-                    if (isPinned) {
-                        DockedFrameRenderer.UnpinDoc(this._activeDoc);
-                    }
-                    else {
-                        DockedFrameRenderer.PinDoc(this._activeDoc);
-                    }
-                }}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
-                />
+                onClick={e => DockedFrameRenderer.PinDoc(this._activeDoc, isPinned)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
             </div>;
-        }
+        } else return (null);
     }
 
     // Buttons for switching the menu between large and small icons
-    switchMenuView = () => {
-        if (this._activeDoc.title === this._homeDoc.title) {
-            return (
-                <div className="homeSwitch">
-                    <div className={`list ${!this.menuListView ? "active" : ""}`} onClick={this.changeToIconView}>
-                        <FontAwesomeIcon size="sm" icon="th-large" />
-                    </div>
-                    <div className={`list ${this.menuListView ? "active" : ""}`} onClick={this.changeToListView}>
-                        <FontAwesomeIcon size="sm" icon="bars" />
-                    </div>
+    @computed get switchMenuView() {
+        return this._activeDoc.title !== this._homeDoc.title ? (null) :
+            <div className="homeSwitch">
+                <div className={`list ${!this._menuListView ? "active" : ""}`} onClick={this.changeToIconView}>
+                    <FontAwesomeIcon size="sm" icon="th-large" />
                 </div>
-            );
-        }
+                <div className={`list ${this._menuListView ? "active" : ""}`} onClick={this.changeToListView}>
+                    <FontAwesomeIcon size="sm" icon="bars" />
+                </div>
+            </div>;
     }
 
     // Logic for switching the menu into the icons
     @action
     changeToIconView = () => {
         if (this._homeDoc._viewType = "stacking") {
-            this.menuListView = false;
+            this._menuListView = false;
             this._homeDoc._viewType = "masonry";
             this._homeDoc.columnWidth = 300;
             this._homeDoc._columnWidth = 300;
             const menuButtons = DocListCast(this._homeDoc.data);
-            menuButtons.map((doc: Doc, index: any) => {
+            menuButtons.map(doc => {
                 const buttonData = DocListCast(doc.data);
                 buttonData[1]._nativeWidth = 0.1;
                 buttonData[1]._width = 0.1;
@@ -647,9 +595,9 @@ export class MobileInterface extends React.Component {
     changeToListView = () => {
         if (this._homeDoc._viewType = "masonry") {
             this._homeDoc._viewType = "stacking";
-            this.menuListView = true;
+            this._menuListView = true;
             const menuButtons = DocListCast(this._homeDoc.data);
-            menuButtons.map((doc: Doc, index: any) => {
+            menuButtons.map(doc => {
                 const buttonData = DocListCast(doc.data);
                 buttonData[1]._nativeWidth = 450;
                 buttonData[1]._dimMagnitude = 2;
@@ -671,49 +619,37 @@ export class MobileInterface extends React.Component {
 
     // For toggling image upload pop up
     @action
-    toggleUpload = () => this.imageUploadActive = !this.imageUploadActive
+    toggleUpload = () => this._imageUploadActive = !this._imageUploadActive
 
     // For toggling audio record and dictate pop up
     @action
-    toggleAudio = () => this.audioUploadActive = !this.audioUploadActive
+    toggleAudio = () => this._audioUploadActive = !this._audioUploadActive
 
     // Button for toggling the upload pop up in a collection
     @action
     toggleUploadInCollection = () => {
         const button = document.getElementById("imageButton") as HTMLElement;
-        button.style.backgroundColor = this.imageUploadActive ? "white" : "black";
-        button.style.color = this.imageUploadActive ? "black" : "white";
+        button.style.backgroundColor = this._imageUploadActive ? "white" : "black";
+        button.style.color = this._imageUploadActive ? "black" : "white";
 
-        this.imageUploadActive = !this.imageUploadActive;
+        this._imageUploadActive = !this._imageUploadActive;
     }
 
     // For closing the image upload pop up
     @action
     closeUpload = () => {
-        this.imageUploadActive = false;
+        this._imageUploadActive = false;
     }
 
     // Returns the image upload pop up
-    uploadImage = () => {
-        let doc;
-        let toggle;
-        if (this._homeMenu === false) {
-            doc = this._activeDoc;
-            toggle = this.toggleUploadInCollection;
-        } else {
-            doc = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-            toggle = this.toggleUpload;
-        }
-        return (
-            <Uploader Document={doc} />
-        );
+    @computed get uploadImage() {
+        const doc = !this._homeMenu ? this._activeDoc : Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        return <Uploader Document={doc} />;
     }
 
     // Radial menu can only be used if it is a colleciton and it is not a homeDoc
-    displayRadialMenu = () => {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc) {
-            return <RadialMenu />;
-        }
+    @computed get displayRadialMenu() {
+        return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc ? <RadialMenu /> : (null);
     }
 
     onDragOver = (e: React.DragEvent) => {
@@ -733,32 +669,31 @@ export class MobileInterface extends React.Component {
     }
 
     render() {
-        trace();
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
                 <SettingsManager />
-                <div className={`image-upload ${this.imageUploadActive ? "active" : ""}`}>
-                    {this.uploadImage()}
+                <div className={`image-upload ${this._imageUploadActive ? "active" : ""}`}>
+                    {this.uploadImage}
                 </div>
-                <div className={`audio-upload ${this.audioUploadActive ? "active" : ""}`}>
+                <div className={`audio-upload ${this._audioUploadActive ? "active" : ""}`}>
                     <AudioUpload />
                 </div>
-                {this.switchMenuView()}
-                {this.inkMenu()}
+                {this.switchMenuView}
+                {this.inkMenu}
                 <GestureOverlay>
                     <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
                     <div className="docButtonContainer">
-                        {this.pinToPresentation()}
-                        {this.downloadDocument()}
+                        {this.pinToPresentation}
+                        {this.downloadDocument}
                         {this.undo}
                         {this.redo}
                         {this.drawInk}
-                        {this.uploadImageButton()}
+                        {this.uploadImageButton}
                     </div>
                     {this.displayWorkspaces}
-                    {this.renderDefaultContent()}
+                    {this.renderDefaultContent}
                 </GestureOverlay>
-                {this.displayRadialMenu()}
+                {this.displayRadialMenu}
             </div>
         );
     }

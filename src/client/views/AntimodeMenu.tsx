@@ -131,7 +131,7 @@ export default abstract class AntimodeMenu extends React.Component {
     }
 
     protected getDragger = () => {
-        return <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />;
+        return <div className="antimodeMenu-dragger" key="dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />;
     }
 
     protected getElement(buttons: JSX.Element[]) {

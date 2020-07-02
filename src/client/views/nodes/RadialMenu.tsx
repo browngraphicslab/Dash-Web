@@ -3,7 +3,6 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import "./RadialMenu.scss";
 import { RadialMenuItem, RadialMenuProps } from "./RadialMenuItem";
-import { MobileInterface } from "../../../mobile/MobileInterface";
 
 @observer
 export class RadialMenu extends React.Component {
@@ -26,7 +25,6 @@ export class RadialMenu extends React.Component {
 
 
     catchTouch = (te: React.TouchEvent) => {
-        console.log("caught");
         te.stopPropagation();
         te.preventDefault();
     }

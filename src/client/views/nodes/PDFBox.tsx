@@ -226,9 +226,6 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get renderTitleBox() {
-        console.log("fitWidth ?: " + !(this.props.Document._fitWidth) && (window.screen.width > 600));
-        console.log("_nativeHeight: " + this.Document._nativeHeight);
-        console.log("%: " + `${100 / this.contentScaling}%`);
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
             width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,

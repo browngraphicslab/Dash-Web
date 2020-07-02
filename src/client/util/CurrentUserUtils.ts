@@ -32,7 +32,6 @@ export class CurrentUserUtils {
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
     @computed public static get UserDocument() { return Doc.UserDoc(); }
-    @computed public static get ActivePen() { return Doc.UserDoc().activePen instanceof Doc && (Doc.UserDoc().activePen as Doc).inkPen as Doc; }
 
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestWorkspace: Doc | undefined;
@@ -365,7 +364,7 @@ export class CurrentUserUtils {
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc];
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
                 await Promise.all(curIcons!);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
