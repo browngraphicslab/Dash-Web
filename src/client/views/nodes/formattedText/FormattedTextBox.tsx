@@ -8,7 +8,7 @@ import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Mark, Node, Slice } from "prosemirror-model";
+import { Fragment, Mark, Node, Slice, Schema } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
@@ -16,6 +16,7 @@ import { DateField } from '../../../../fields/DateField';
 import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
+import { removeMarkWithAttrs } from "./prosemirrorPatches";
 import { Id } from '../../../../fields/FieldSymbols';
 import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
@@ -56,7 +57,7 @@ import { DocumentButtonBar } from '../../DocumentButtonBar';
 import { AudioBox } from '../AudioBox';
 import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
-import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
+import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
 
 library.add(faEdit);
@@ -87,6 +88,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
     private _searchIndex = 0;
+    private _cachedLinks: Doc[] = [];
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
@@ -141,6 +143,33 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
 
+    // removes all hyperlink anchors for the removed linkDoc
+    // TODO: bcz: Argh... if a section of text has multiple anchors, this should just remove the intended one. 
+    // but since removing one anchor from the list of attr anchors isn't implemented, this will end up removing nothing.
+    public RemoveLinkFromDoc(linkDoc?: Doc) {
+        const state = this._editorView?.state;
+        if (state && linkDoc && this._editorView) {
+            var allLinks: any[] = [];
+            state.doc.nodesBetween(0, state.doc.nodeSize - 2, (node: any, pos: number, parent: any) => {
+                const foundMark = findLinkMark(node.marks);
+                const newHrefs = foundMark?.attrs.allLinks.filter((a: any) => a.href.includes(linkDoc[Id])) || [];
+                allLinks = newHrefs.length ? newHrefs : allLinks;
+                return true;
+            });
+            if (allLinks.length) {
+                this._editorView.dispatch(removeMarkWithAttrs(state.tr, 0, state.doc.nodeSize - 2, state.schema.marks.linkAnchor, { allLinks }));
+            }
+        }
+    }
+    // removes all the specified link referneces from the selection. 
+    // NOTE: as above, this won't work correctly if there are marks with overlapping but not exact sets of link references.
+    public RemoveLinkFromSelection(allLinks: { href: string, title: string, linkId: string, targetId: string }[]) {
+        const state = this._editorView?.state;
+        if (state && this._editorView) {
+            this._editorView.dispatch(removeMarkWithAttrs(state.tr, state.selection.from, state.selection.to, state.schema.marks.link, { allLinks }));
+        }
+    }
+
     linkOnDeselect: Map<string, string> = new Map();
 
     doLinkOnDeselect() {
@@ -177,8 +206,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.linkOnDeselect.set(key, value);
 
                     const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
-                    const allHrefs = [{ href: Utils.prepend("/doc/" + id), title: value, targetId: id }];
-                    const link = this._editorView.state.schema.marks.link.create({ allHrefs, location: "onRight", title: value });
+                    const allLinks = [{ href: Utils.prepend("/doc/" + id), title: value, targetId: id }];
+                    const link = this._editorView.state.schema.marks.linkAnchor.create({ allLinks, location: "onRight", title: value });
                     const mval = this._editorView.state.schema.marks.metadataVal.create();
                     const offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
@@ -246,8 +275,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             const alink = DocUtils.MakeLink({ doc: this.rootDoc }, { doc: target }, "automatic")!;
-            const allHrefs = [{ href: Utils.prepend("/doc/" + alink[Id]), title: "a link", targetId: target[Id], linkId: alink[Id] }];
-            const link = this._editorView.state.schema.marks.link.create({ allHrefs, title: "a link", location });
+            const allLinks = [{ href: Utils.prepend("/doc/" + alink[Id]), title: "a link", targetId: target[Id], linkId: alink[Id] }];
+            const link = this._editorView.state.schema.marks.linkAnchor.create({ allLinks, title: "a link", location });
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
@@ -614,9 +643,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let tr = state.tr.addMark(sel.from, sel.to, splitter);
             sel.from !== sel.to && tr.doc.nodesBetween(sel.from, sel.to, (node: any, pos: number, parent: any) => {
                 if (node.firstChild === null && node.marks.find((m: Mark) => m.type.name === schema.marks.splitter.name)) {
-                    const allHrefs = [{ href, title, targetId, linkId }];
-                    allHrefs.push(...(node.marks.find((m: Mark) => m.type.name === schema.marks.link.name)?.attrs.allHrefs ?? []));
-                    const link = state.schema.marks.link.create({ allHrefs, title, location, linkId });
+                    const allLinks = [{ href, title, targetId, linkId }];
+                    allLinks.push(...(node.marks.find((m: Mark) => m.type.name === schema.marks.linkAnchor.name)?.attrs.allLinks ?? []));
+                    const link = state.schema.marks.linkAnchor.create({ allLinks, title, location, linkId });
                     tr = tr.addMark(pos, pos + node.nodeSize, link);
                 }
             });
@@ -626,6 +655,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     componentDidMount() {
+        this._cachedLinks = DocListCast(this.Document.links);
+        this._disposers.links = reaction(() => DocListCast(this.Document.links), // if a link is deleted, then remove all hyperlinks that reference it from the text's marks
+            newLinks => {
+                this._cachedLinks.forEach(l => !newLinks.includes(l) && this.RemoveLinkFromDoc(l));
+                this._cachedLinks = newLinks;
+            });
         this._disposers.buttonBar = reaction(
             () => DocumentButtonBar.Instance,
             instance => {
@@ -731,8 +766,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         return node.copy(content.frag);
                     }
                     const marks = [...node.marks];
-                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.link);
-                    return linkIndex !== -1 && marks[linkIndex].attrs.allHrefs.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
+                    const linkIndex = marks.findIndex(mark => mark.type === editor.state.schema.marks.linkAnchor);
+                    return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
                 let start = 0;
@@ -914,8 +949,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const allHrefs = [{ href: Utils.prepend(`/doc/${linkId}`), title, linkId }];
-            const link = view.state.schema.mark(view.state.schema.marks.link, { allHrefs, location: "onRight", title, docref: true });
+            const allLinks = [{ href: Utils.prepend(`/doc/${linkId}`), title, linkId }];
+            const link = view.state.schema.mark(view.state.schema.marks.linkAnchor, { allLinks, location: "onRight", title, docref: true });
             marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
