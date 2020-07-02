@@ -217,10 +217,19 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <strong className="presElementBox-name">
                         {`${this.indexInPres + 1}. ${this.targetDoc?.title}`}
                     </strong>
-                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => {
-                        this.props.removeDocument?.(this.rootDoc);
-                        e.stopPropagation();
-                    }}>X</button>
+                    <button
+                        title="Close"
+                        className="presElementBox-closeIcon"
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => {
+                            this.props.removeDocument?.(this.rootDoc);
+                            e.stopPropagation();
+                        }}>
+                        <FontAwesomeIcon icon={"times"} onPointerDown={e => e.stopPropagation()} />
+                    </button>
+                    <button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton; }}>
+                        <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
+                    </button>
                     <br />
                 </>}
                 <div className="presElementBox-buttons">
@@ -231,7 +240,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Group With Up" className={pbi + (this.rootDoc.presGroupButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presGroupButton = !this.rootDoc.presGroupButton; }}><FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Progressivize" className={pbi + (this.rootDoc.pres ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Expand Inline" className={pbi + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton; }}><FontAwesomeIcon icon={"arrow-down"} onPointerDown={e => e.stopPropagation()} /></button>
                 </div>
                 {this.renderEmbeddedInline}
             </div>
