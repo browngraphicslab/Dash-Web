@@ -453,10 +453,12 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
+        console.log(InkOptionsMenu.Instance?.Pinned);
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                height: RichTextMenu.Instance?.Pinned ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
+                height: (RichTextMenu.Instance?.Pinned || InkOptionsMenu.Instance?.Pinned) ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
+
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
@@ -593,7 +595,10 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GoogleAuthenticationManager />
             <DocumentDecorations />
-            <GestureOverlay>
+            <InkOptionsMenu />
+
+            <GestureOverlay >
+
                 <RichTextMenu key="rich" />
                 {this.mainContent}
             </GestureOverlay>
@@ -606,7 +611,7 @@ export class MainView extends React.Component {
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
-            <InkOptionsMenu />
+
             <OverlayView />
             <TimelineMenu />
             {this.snapLines}

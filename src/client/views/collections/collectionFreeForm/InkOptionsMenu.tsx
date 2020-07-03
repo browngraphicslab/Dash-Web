@@ -17,6 +17,7 @@ import { DocumentType } from "../../../documents/DocumentTypes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, } from "@fortawesome/free-solid-svg-icons";
+import { Cast, StrCast, BoolCast } from "../../../../fields/Types";
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve);
 
@@ -28,35 +29,66 @@ export default class InkOptionsMenu extends AntimodeMenu {
     private _width = ["1", "5", "10", "100"];
     // private _buttons = ["circle", "triangle", "rectangle", "arrow", "line"];
     // private _icons = ["O", "∆", "ロ", "➜", "-"];
-    private _buttons = ["circle", "triangle", "rectangle", "line", "noRec", "",];
-    private _icons = ["O", "∆", "ロ", "⎯", "✖︎", " "];
+    // private _buttons = ["circle", "triangle", "rectangle", "line", "noRec", "",];
+    // private _icons = ["O", "∆", "ロ", "⎯⎯⎯", "✖︎", " "];
     //arrowStart and arrowEnd must match and defs must exist in Inking Stroke
-    private _arrowStart = ["arrowHead", "arrowHead", "dot", "dot", "none"];
-    private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
-    private _arrowIcons = ["→", "↔︎", "•", "••", " "];
+    // private _arrowStart = ["arrowHead", "arrowHead", "dot", "dot", "none"];
+    // private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
+    // private _arrowIcons = ["→", "↔︎", "•", "••", " "];
+    private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
+    private _head = ["none", "arrowHead", "arrowHead", "none", "arrowHead", "arrowHead", "none", "none", "none"];
+    private _end = ["none", "none", "arrowEnd", "none", "none", "arrowEnd", "none", "none", "none"];
+    private _shape = ["", "", "", "", "", "", "rectangle", "circle", "triangle"];
+
+    @observable _shapesNum = this._shape.length;
+    @observable _selected = this._shapesNum;
+
+    @observable private collapsed: boolean = false;
 
     @observable _colorBtn = false;
     @observable _widthBtn = false;
     @observable _fillBtn = false;
-    @observable _arrowBtn = false;
-    @observable _dashBtn = false;
-    @observable _shapeBtn = false;
+    // @observable _arrowBtn = false;
+    // @observable _dashBtn = false;
+    // @observable _shapeBtn = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
         InkOptionsMenu.Instance = this;
         this._canFade = false; // don't let the inking menu fade away
+        this.Pinned = BoolCast(Doc.UserDoc()["inkOptionsMenu-pinned"]);
+
     }
+
+    @action
+    toggleMenuPin = (e: React.MouseEvent) => {
+        Doc.UserDoc()["inkOptionsMenu-pinned"] = this.Pinned = !this.Pinned;
+        if (!this.Pinned) {
+            // this.fadeOut(true);
+        }
+    }
+
+    @action
+    protected toggleCollapse = (e: React.MouseEvent) => {
+        this.collapsed = !this.collapsed;
+        setTimeout(() => {
+            const x = Math.min(this._left, window.innerWidth - InkOptionsMenu.Instance.width);
+            InkOptionsMenu.Instance.jumpTo(x, this._top, true);
+        }, 0);
+    }
+
+
+
 
     getColors = () => {
         return this._palette;
     }
 
-    @action
-    changeArrow = (arrowStart: string, arrowEnd: string) => {
-        SetActiveArrowStart(arrowStart);
-        SetActiveArrowEnd(arrowEnd);
-    }
+    // @action
+    // changeArrow = (arrowStart: string, arrowEnd: string) => {
+    //     SetActiveArrowStart(arrowStart);
+    //     SetActiveArrowEnd(arrowEnd);
+    // }
 
     @action
     changeColor = (color: string, type: string) => {
@@ -116,39 +148,76 @@ export default class InkOptionsMenu extends AntimodeMenu {
         this.editProperties(ActiveDash(), "dash");
     }
 
-    @computed get arrowPicker() {
-        var currIcon;
-        for (var i = 0; i < this._arrowStart.length; i++) {
-            if (this._arrowStart[i] === ActiveArrowStart() && this._arrowEnd[i] === ActiveArrowEnd()) {
-                currIcon = this._arrowIcons[i];
-                if (this._arrowIcons[i] === " ") {
-                    currIcon = "➤";
-                }
-            }
-        }
-        var arrowPicker = <button
-            className="antimodeMenu-button"
-            key="arrow"
-            onPointerDown={action(e => this._arrowBtn = !this._arrowBtn)}
-            style={{ backgroundColor: this._arrowBtn ? "121212" : "" }}>
-            {currIcon}
-        </button>;
-        if (this._arrowBtn) {
-            arrowPicker = <div className="btn2-group" key="arrows">
-                {arrowPicker}
-                {this._arrowStart.map((arrowStart, i) => {
-                    return <button
-                        className="antimodeMenu-button"
-                        key={arrowStart}
-                        onPointerDown={action(() => { SetActiveArrowStart(arrowStart); SetActiveArrowEnd(this._arrowEnd[i]); this.editProperties(arrowStart, "arrowStart"), this.editProperties(this._arrowEnd[i], "arrowEnd"); this._arrowBtn = false; })}
-                        style={{ backgroundColor: this._arrowBtn ? "121212" : "" }}>
-                        {this._arrowIcons[i]}
-                    </button>;
-                })}
-            </div>;
-        }
-        return arrowPicker;
+    @computed get drawButtons() {
+        const drawButtons = <div className="btn-draw" key="draw">
+            {this._draw.map((icon, i) => {
+                return <button
+                    className="antimodeMenu-button"
+                    key={icon}
+                    onPointerDown={action(() => {
+                        console.log(this._selected);
+
+                        if (this._selected !== i) {
+                            this._selected = i;
+                            Doc.SetSelectedTool(InkTool.Pen);
+                            SetActiveArrowStart(this._head[i]);
+                            SetActiveArrowEnd(this._end[i]);
+                            SetActiveBezierApprox("300");
+
+                            //  this.editProperties(this._head[i], "arrowStart"), this.editProperties(this._end[i], "arrowEnd"); 
+                            GestureOverlay.Instance.InkShape = this._shape[i];
+                        } else {
+                            this._selected = this._shapesNum;
+                            Doc.SetSelectedTool(InkTool.None);
+                            SetActiveArrowStart("none");
+                            SetActiveArrowEnd("none");
+                            GestureOverlay.Instance.InkShape = "";
+                            SetActiveBezierApprox("0");
+
+                        }
+                        console.log(this._selected);
+
+                    })}
+                    style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
+                    {this._draw[i]}
+                </button>;
+            })}</div>;
+        return drawButtons;
     }
+
+    // @computed get arrowPicker() {
+    //     var currIcon;
+    //     for (var i = 0; i < this._arrowStart.length; i++) {
+    //         if (this._arrowStart[i] === ActiveArrowStart() && this._arrowEnd[i] === ActiveArrowEnd()) {
+    //             currIcon = this._arrowIcons[i];
+    //             if (this._arrowIcons[i] === " ") {
+    //                 currIcon = "➤";
+    //             }
+    //         }
+    //     }
+    //     var arrowPicker = <button
+    //         className="antimodeMenu-button"
+    //         key="arrow"
+    //         onPointerDown={action(e => this._arrowBtn = !this._arrowBtn)}
+    //         style={{ backgroundColor: this._arrowBtn ? "121212" : "" }}>
+    //         {currIcon}
+    //     </button>;
+    //     if (this._arrowBtn) {
+    //         arrowPicker = <div className="btn2-group" key="arrows">
+    //             {arrowPicker}
+    //             {this._arrowStart.map((arrowStart, i) => {
+    //                 return <button
+    //                     className="antimodeMenu-button"
+    //                     key={arrowStart}
+    //                     onPointerDown={action(() => { SetActiveArrowStart(arrowStart); SetActiveArrowEnd(this._arrowEnd[i]); this.editProperties(arrowStart, "arrowStart"), this.editProperties(this._arrowEnd[i], "arrowEnd"); this._arrowBtn = false; })}
+    //                     style={{ backgroundColor: this._arrowBtn ? "121212" : "" }}>
+    //                     {this._arrowIcons[i]}
+    //                 </button>;
+    //             })}
+    //         </div>;
+    //     }
+    //     return arrowPicker;
+    // }
 
     @computed get widthPicker() {
         var widthPicker = <button
@@ -234,48 +303,48 @@ export default class InkOptionsMenu extends AntimodeMenu {
         return fillPicker;
     }
 
-    @computed get shapePicker() {
-        var currIcon;
-        if (GestureOverlay.Instance.InkShape === "") {
-            currIcon = <FontAwesomeIcon icon="shapes" size="lg" />;
-        } else {
-            for (var i = 0; i < this._icons.length; i++) {
-                if (GestureOverlay.Instance.InkShape === this._buttons[i]) {
-                    currIcon = this._icons[i];
-                }
-            }
-        }
-        var shapePicker = <button
-            className="antimodeMenu-button"
-            key="shape"
-            onPointerDown={action(e => this._shapeBtn = !this._shapeBtn)}
-            style={{ backgroundColor: this._shapeBtn ? "121212" : "" }}>
-            {currIcon}
-        </button>;
-        if (this._shapeBtn) {
-            shapePicker = <div className="btn2-group" key="shape">
-                {shapePicker}
-                {this._buttons.map((btn, i) => {
-                    var ttl = btn;
-                    if (btn === "") {
-                        ttl = "no shape";
-                    }
-                    if (btn === "noRec") {
-                        ttl = "disable shape recognition";
-                    }
-                    return <button
-                        className="antimodeMenu-button"
-                        title={`Draw ${btn}`}
-                        key={ttl}
-                        onPointerDown={action((e) => { GestureOverlay.Instance.InkShape = btn; this._shapeBtn = false; })}
-                        style={{ backgroundColor: this._shapeBtn ? "121212" : "" }}>
-                        {this._icons[i]}
-                    </button>;
-                })}
-            </div>;
-        }
-        return shapePicker;
-    }
+    // @computed get shapePicker() {
+    //     var currIcon;
+    //     if (GestureOverlay.Instance.InkShape === "") {
+    //         currIcon = <FontAwesomeIcon icon="shapes" size="lg" />;
+    //     } else {
+    //         for (var i = 0; i < this._icons.length; i++) {
+    //             if (GestureOverlay.Instance.InkShape === this._buttons[i]) {
+    //                 currIcon = this._icons[i];
+    //             }
+    //         }
+    //     }
+    //     var shapePicker = <button
+    //         className="antimodeMenu-button"
+    //         key="shape"
+    //         onPointerDown={action(e => this._shapeBtn = !this._shapeBtn)}
+    //         style={{ backgroundColor: this._shapeBtn ? "121212" : "" }}>
+    //         {currIcon}
+    //     </button>;
+    //     if (this._shapeBtn) {
+    //         shapePicker = <div className="btn2-group" key="shape">
+    //             {shapePicker}
+    //             {this._buttons.map((btn, i) => {
+    //                 var ttl = btn;
+    //                 if (btn === "") {
+    //                     ttl = "no shape";
+    //                 }
+    //                 if (btn === "noRec") {
+    //                     ttl = "disable shape recognition";
+    //                 }
+    //                 return <button
+    //                     className="antimodeMenu-button"
+    //                     title={`Draw ${btn}`}
+    //                     key={ttl}
+    //                     onPointerDown={action((e) => { GestureOverlay.Instance.InkShape = btn; this._shapeBtn = false; })}
+    //                     style={{ backgroundColor: this._shapeBtn ? "121212" : "", fontSize: "20" }}>
+    //                     {this._icons[i]}
+    //                 </button>;
+    //             })}
+    //         </div>;
+    //     }
+    //     return shapePicker;
+    // }
 
     @computed get bezierButton() {
         return <button
@@ -306,23 +375,35 @@ export default class InkOptionsMenu extends AntimodeMenu {
             // <button className="antimodeMenu-button" title="Drag" key="drag" onPointerDown={e => this.dragStart(e)}>
             //     <FontAwesomeIcon icon="arrows-alt" size="lg" />
             // </button>,
-            this.shapePicker,
-            this.bezierButton,
+            // this.shapePicker,
+            // this.bezierButton,
             this.widthPicker,
             this.colorPicker,
             this.fillPicker,
-            this.arrowPicker,
-            this.dashButton,
+            this.drawButtons,
+            // this.arrowPicker,
+            // this.dashButton,
+            <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
+                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
+            </button>
+
         ];
+
+        // return this.getElement(buttons);
         return this.getElement(buttons);
     }
 }
 Scripting.addGlobal(function activatePen(penBtn: any) {
     if (penBtn) {
-        Doc.SetSelectedTool(InkTool.Pen);
+        //no longer changes to inkmode
+        // Doc.SetSelectedTool(InkTool.Pen);
         InkOptionsMenu.Instance.jumpTo(300, 300);
+        InkOptionsMenu.Instance.Pinned = true;
+
     } else {
-        Doc.SetSelectedTool(InkTool.None);
+        // Doc.SetSelectedTool(InkTool.None);
+        InkOptionsMenu.Instance.Pinned = false;
         InkOptionsMenu.Instance.fadeOut(true);
+
     }
 });
