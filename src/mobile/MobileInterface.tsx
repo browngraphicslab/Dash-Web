@@ -6,7 +6,8 @@ import {
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
+    faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft,
+    faAlignRight, faAlignLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, reaction, trace, runInAction } from 'mobx';
@@ -35,13 +36,16 @@ import { AudioUpload } from "./AudioUpload";
 import { Cast, FieldValue } from '../fields/Types';
 import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
 import { AudioBox } from "../client/views/nodes/AudioBox";
+import { CollectionViewType } from "../client/views/collections/CollectionView";
+import { DocumentType } from "../client/documents/DocumentTypes";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft);
+    faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft,
+    faAlignLeft, faAlignRight);
 
 @observer
 export class MobileInterface extends React.Component {
@@ -423,7 +427,7 @@ export class MobileInterface extends React.Component {
 
     // The static ink menu that appears at the top
     @computed get inkMenu() {
-        return this._activeDoc._viewType !== "docking" || !this._ink ? (null) :
+        return this._activeDoc._viewType !== CollectionViewType.Docking || !this._ink ? (null) :
             <div className="colorSelector">
                 <InkOptionsMenu />
             </div>;
@@ -467,7 +471,7 @@ export class MobileInterface extends React.Component {
 
     // DocButton for switching into ink mode
     @computed get drawInk() {
-        return !this.mainContainer || this._activeDoc._viewType !== "docking" ? (null) :
+        return !this.mainContainer || this._activeDoc._viewType !== CollectionViewType.Docking ? (null) :
             <div className="docButton"
                 id="inkButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
@@ -478,7 +482,7 @@ export class MobileInterface extends React.Component {
 
     // DocButton: Button that appears on the bottom of the screen to initiate image upload
     @computed get uploadImageButton() {
-        if (this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" && this._activeDoc.title !== "WORKSPACES") {
+        if (this._activeDoc.type === DocumentType.COL && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== CollectionViewType.Docking && this._activeDoc.title !== "WORKSPACES") {
             return <div className="docButton"
                 id="imageButton"
                 title={Doc.isDocPinned(this._activeDoc) ? "Pen on" : "Pen off"}
@@ -605,9 +609,11 @@ export class MobileInterface extends React.Component {
         return <Uploader Document={doc} />;
     }
 
-    // Radial menu can only be used if it is a colleciton and it is not a homeDoc
+    // Radial menu can only be used if it is a colleciton and it is not a homeDoc 
+    // (and cannot be used on Workspace to avoid pin to presentation opening on right)
     @computed get displayRadialMenu() {
-        return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc ? <RadialMenu /> : (null);
+        return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
+            this._activeDoc._viewType !== CollectionViewType.Docking ? <RadialMenu /> : (null);
     }
 
     onDragOver = (e: React.DragEvent) => {
