@@ -6,7 +6,8 @@ import {
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft
+    faThumbtack, faTree, faTv, faBook, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft,
+    faAlignRight, faAlignLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, reaction, trace, runInAction } from 'mobx';
@@ -41,7 +42,8 @@ library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngl
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft);
+    faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft,
+    faAlignLeft, faAlignRight);
 
 @observer
 export class MobileInterface extends React.Component {
@@ -605,9 +607,10 @@ export class MobileInterface extends React.Component {
         return <Uploader Document={doc} />;
     }
 
-    // Radial menu can only be used if it is a colleciton and it is not a homeDoc
+    // Radial menu can only be used if it is a colleciton and it is not a homeDoc 
+    // (and cannot be used on Workspace to avoid pin to presentation opening on right)
     @computed get displayRadialMenu() {
-        return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc ? <RadialMenu /> : (null);
+        return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc && this._activeDoc._viewType !== "docking" ? <RadialMenu /> : (null);
     }
 
     onDragOver = (e: React.DragEvent) => {

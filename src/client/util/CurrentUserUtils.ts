@@ -59,7 +59,6 @@ export class CurrentUserUtils {
             const queryTemplate = this.mobileButton({
                 title: "NEW MOBILE BUTTON",
                 onClick: undefined,
-                _backgroundColor: "lightgrey"
             },
                 [this.ficon({
                     ignoreClick: true,
