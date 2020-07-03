@@ -288,7 +288,7 @@ export interface KeysDropdownProps {
     existingKeys: string[];
     canAddNew: boolean;
     addNew: boolean;
-    onSelect: (oldKey: string, newKey: string, addnew: boolean, filter: string) => void;
+    onSelect: (oldKey: string, newKey: string, addnew: boolean, filter?: string) => void;
     setIsEditing: (isEditing: boolean) => void;
     width?: string;
 }
@@ -306,15 +306,17 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @action
     onSelect = (key: string): void => {
-        console.log("YEE");
-        let newkey = key.slice(0, this._key.length);
-        let filter = key.slice(this._key.length - key.length);
-        console.log(newkey);
-        console.log(filter);
-        this.props.onSelect(this._key, key, this.props.addNew, filter);
-        this.setKey(key);
-        this._isOpen = false;
-        this.props.setIsEditing(false);
+        if (key.slice(0, this._key.length) === this._key && this._key !== key) {
+            let filter = key.slice(this._key.length - key.length);
+            this.props.onSelect(this._key, this._key, this.props.addNew, filter);
+            console.log("YEE");
+        }
+        else {
+            this.props.onSelect(this._key, key, this.props.addNew);
+            this.setKey(key);
+            this._isOpen = false;
+            this.props.setIsEditing(false);
+        }
     }
 
     @undoBatch
@@ -394,7 +396,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     render() {
         return (
-            <div className="keys-dropdown" style={{ width: this.props.width, maxWidth: this.props.width, overflowX: "hidden" }}>
+            <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width, overflowX: "hidden" }}>
                 {this._key === this._searchTerm.slice(0, this._key.length) ?
                     <div style={{ position: "absolute", marginLeft: "4px", marginTop: "3", color: "grey", pointerEvents: "none", lineHeight: 1.15 }}>
                         {this._key}
