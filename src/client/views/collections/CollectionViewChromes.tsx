@@ -300,7 +300,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     onPointerDown={stopPropagation}
                     onChange={this.viewChanged}
                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
-                    {Object.values(CollectionViewType).map(type => ["invalid", "docking"].includes(type) ? (null) : (
+                    {Object.values(CollectionViewType).map(type => [CollectionViewType.Invalid, CollectionViewType.Docking].includes(type) ? (null) : (
                         <option
                             key={Utils.GenerateGuid()}
                             className="collectionViewBaseChrome-viewOption"
