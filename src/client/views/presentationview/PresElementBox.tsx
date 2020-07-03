@@ -49,7 +49,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight],
-            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : 0), { fireImmediately: true });
+            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 200 : 0), { fireImmediately: true });
     }
     componentWillUnmount() {
         this._heightDisposer?.();

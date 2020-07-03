@@ -104,7 +104,7 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("paste", KeyManager.Instance.paste as any);
-        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on 
+        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on
             const id = FormattedTextBox.GetDocFromUrl(e.detail);
             DocServer.GetRefField(id).then(doc => {
                 if (doc instanceof Doc) {

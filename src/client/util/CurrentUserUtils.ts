@@ -54,6 +54,26 @@ export class CurrentUserUtils {
                 removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
             });
         }
+        // Prototype for mobile button (not sure if 'Advanced Item Prototypes' is ideal location)
+        if (doc["template-mobile-button"] === undefined) {
+            const queryTemplate = this.mobileButton({
+                title: "NEW MOBILE BUTTON",
+                onClick: undefined,
+                _backgroundColor: "lightgrey"
+            },
+                [this.ficon({
+                    ignoreClick: true,
+                    icon: "mobile",
+                    backgroundColor: "rgba(0,0,0,0)"
+                }),
+                this.mobileTextContainer({},
+                    [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
+            doc["template-mobile-button"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "mobile button", icon: "mobile"
+            });
+        }
 
         if (doc["template-button-slides"] === undefined) {
             const slideTemplate = Docs.Create.MultirowDocument(
@@ -219,6 +239,7 @@ export class CurrentUserUtils {
             doc["template-button-slides"] as Doc,
             doc["template-button-description"] as Doc,
             doc["template-button-query"] as Doc,
+            doc["template-mobile-button"] as Doc,
             doc["template-button-detail"] as Doc,
             doc["template-button-link"] as Doc,
             doc["template-button-switch"] as Doc];
@@ -343,7 +364,7 @@ export class CurrentUserUtils {
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
             const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc];
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
                 await Promise.all(curIcons!);
                 requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
@@ -378,6 +399,9 @@ export class CurrentUserUtils {
         if (doc.emptyWebpage === undefined) {
             doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
+        if (doc.activeMobileMenu === undefined) {
+            this.setupActiveMobileMenu(doc);
+        }
         return [
             { title: "Drag a comparison box", label: "Comp", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
@@ -391,7 +415,7 @@ export class CurrentUserUtils {
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
             { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
-            { title: "Drag a mobile view", label: "Phone", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
+            { title: "Drag a mobile view", label: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             { title: "Drag an instance of the device collection", label: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
             // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
             // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
@@ -445,24 +469,71 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    static setupMobileButtons(doc: Doc, buttons?: string[]) {
-        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-            { title: "record", icon: "microphone", ignoreClick: true, click: "FILL" },
-            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
-            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
-            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "red", activeInkPen: doc },
-            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
-            // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
-        ];
-        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
-            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
-            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activeInkPen: data.activeInkPen,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
-        }));
+    // Sets up mobile menu if it is undefined creates a new one, otherwise returns existing menu
+    static setupActiveMobileMenu(doc: Doc) {
+        if (doc.activeMobileMenu === undefined) {
+            console.log("undefined");
+            doc.activeMobileMenu = this.setupMobileMenu();
+        }
+        return doc.activeMobileMenu as Doc;
     }
+
+    // Sets up mobileMenu stacking document
+    static setupMobileMenu() {
+        const menu = new PrefetchProxy(Docs.Create.StackingDocument(this.setupMobileButtons(), {
+            _width: 980, ignoreClick: true, lockedPosition: false, _chromeStatus: "disabled", title: "home", _yMargin: 100
+        }));
+        return menu;
+    }
+
+    // SEts up mobile buttons for inside mobile menu
+    static setupMobileButtons(doc?: Doc, buttons?: string[]) {
+        const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
+            { title: "WORKSPACES", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
+            { title: "UPLOAD", icon: "upload", click: 'openMobileUploads()', backgroundColor: "lightgrey", info: "Upload files from your mobile device so they can be accessed on Dash Web." },
+            { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploadCollection()', backgroundColor: "lightgrey", info: "Access the collection of your mobile uploads." },
+            { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey", info: "Use your phone to record, dictate and then upload audio onto Dash Web." },
+            { title: "PRESENTATION", icon: "desktop", click: 'switchToMobilePresentation()', backgroundColor: "lightgrey", info: "Use your phone as a remote for you presentation." },
+            { title: "SETTINGS", icon: "cog", click: 'openMobileSettings()', backgroundColor: "lightgrey", info: "Change your password, log out, or manage your account security." }
+        ];
+        // returns a list of mobile buttons
+        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data =>
+            this.mobileButton({
+                title: data.title,
+                lockedPosition: true,
+                onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
+                _backgroundColor: data.backgroundColor
+            },
+                [this.ficon({ ignoreClick: true, icon: data.icon, backgroundColor: "rgba(0,0,0,0)" }), this.mobileTextContainer({}, [this.mobileButtonText({}, data.title), this.mobileButtonInfo({}, data.info)])])
+        );
+    }
+
+    // sets up the main document for the mobile button
+    static mobileButton = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MulticolumnDocument(docs, {
+        ...opts,
+        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 900, _nativeHeight: 250, _width: 900, _height: 250, _yMargin: 15,
+        borderRounding: "5px", boxShadow: "0 0", _chromeStatus: "disabled"
+    }) as any as Doc
+
+    // sets up the text container for the information contained within the mobile button
+    static mobileTextContainer = (opts: DocumentOptions, docs: Doc[]) => Docs.Create.MultirowDocument(docs, {
+        ...opts,
+        dropAction: undefined, removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 450, _nativeHeight: 250, _width: 450, _height: 250, _yMargin: 25,
+        backgroundColor: "rgba(0,0,0,0)", borderRounding: "0", boxShadow: "0 0", _chromeStatus: "disabled", ignoreClick: true
+    }) as any as Doc
+
+    // Sets up the title of the button
+    static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
+        ...opts,
+        dropAction: undefined, title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
+    }) as any as Doc
+
+    // Sets up the description of the button
+    static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
+        ...opts,
+        dropAction: undefined, title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
+    }) as any as Doc
+
 
     static setupThumbButtons(doc: Doc) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, pointerDown?: string, pointerUp?: string, ischecked?: string, clipboard?: Doc, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
@@ -497,31 +568,12 @@ export class CurrentUserUtils {
         return Cast(userDoc.thumbDoc, Doc);
     }
 
-    static setupMobileDoc(userDoc: Doc) {
-        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
-            _columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
-        });
+    static setupLibrary(userDoc: Doc) {
+        return CurrentUserUtils.setupWorkspaces(userDoc);
     }
 
-    static setupMobileInkingDoc(userDoc: Doc) {
-        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
-    }
-
-    static setupMobileUploadDoc(userDoc: Doc) {
-        // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
-        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
-            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
-        });
-        const uploadDoc = Docs.Create.StackingDocument([], {
-            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
-        });
-        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
-        });
-    }
-
-    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
-    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
+    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
+    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
     static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
@@ -625,7 +677,7 @@ export class CurrentUserUtils {
         return doc["tabs-button-library"] as Doc;
     }
 
-    // setup the Search button which will display the search panel.  
+    // setup the Search button which will display the search panel.
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
@@ -715,11 +767,13 @@ export class CurrentUserUtils {
         }
     }
 
+    // Right sidebar is where mobile uploads are contained
     static setupRightSidebar(doc: Doc) {
         if (doc.rightSidebarCollection === undefined) {
-            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Right Sidebar" }));
+            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
         }
     }
+
 
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
@@ -771,13 +825,14 @@ export class CurrentUserUtils {
         doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "none");
         doc.activeDash = StrCast(doc.activeDash, "0");
         doc.fontSize = NumCast(doc.fontSize, 12);
-        doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
-        doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
+        doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
+        doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
-        this.setupOverlays(doc);  // documents in overlay layer 
+        this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
+        this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
@@ -816,9 +871,5 @@ export class CurrentUserUtils {
     }
 }
 
-Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); },
-    "initializes the Mobile inking document", "(userDoc: Doc)");
-Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); },
-    "initializes the Mobile upload document", "(userDoc: Doc)");
 Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
     "creates a new workspace when called");

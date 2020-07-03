@@ -297,7 +297,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     public unhighlightSearchTerms = () => {
-        if (this._editorView && (this._editorView as any).docView) {
+        if (window.screen.width < 600) null;
+        else if (this._editorView && (this._editorView as any).docView) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const end = this._editorView.state.doc.nodeSize - 2;
@@ -1209,7 +1210,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         e.stopPropagation();
 
         const view = this._editorView as any;
-        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there 
+        // this interposes on prosemirror's upHandler to prevent prosemirror's up from invoked multiple times when there
         // are nested prosemirrors.  We only want the lowest level prosemirror to be invoked.
         if (view.mouseDown) {
             const originalUpHandler = view.mouseDown.up;
