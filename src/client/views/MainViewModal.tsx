@@ -23,20 +23,20 @@ export default class MainViewModal extends React.Component<MainViewOverlayProps>
 
     componentDidMount() {
 
-        document.removeEventListener("click", this.close);
+        document.removeEventListener("pointerdown", this.close);
 
         this.displayedListenerDisposer = reaction(() => this.props.isDisplayed, (isDisplayed) => {
-            if (isDisplayed) document.addEventListener("click", this.close);
-            else document.removeEventListener("click", this.close);
+            if (isDisplayed) document.addEventListener("pointerdown", this.close);
+            else document.removeEventListener("pointerdown", this.close);
         });
     }
 
     componentWillUnmount() {
         this.displayedListenerDisposer?.();
-        document.removeEventListener("click", this.close);
+        document.removeEventListener("pointerdown", this.close);
     }
 
-    close = (e: MouseEvent) => {
+    close = (e: PointerEvent) => {
 
         const { left, right, top, bottom } = this.ref.current!.getBoundingClientRect();
 
