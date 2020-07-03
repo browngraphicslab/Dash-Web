@@ -170,6 +170,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     setColumnSort = (columnField: SchemaHeaderField, descending: boolean | undefined) => {
         const columns = this.columns;
+        columns.forEach(col => {
+            col.setDesc(undefined);
+        })
+
         const index = columns.findIndex(c => c.heading === columnField.heading);
         const column = columns[index];
         column.setDesc(descending);

@@ -42,7 +42,7 @@ export class CurrentUserUtils {
         if (doc["template-button-query"] === undefined) {
             const queryTemplate = Docs.Create.MulticolumnDocument(
                 [
-                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200 }),
+                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200 }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true })
                 ],
                 { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true }
@@ -631,7 +631,7 @@ export class CurrentUserUtils {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
                 _width: 50, _height: 25, title: "Search", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: new PrefetchProxy(Docs.Create.SearchDocument({ ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Stacking, title: "sidebar search stack", })) as any as Doc,
+                sourcePanel: new PrefetchProxy(Docs.Create.SearchDocument({ ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, title: "sidebar search stack", })) as any as Doc,
                 searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 lockedPosition: true,

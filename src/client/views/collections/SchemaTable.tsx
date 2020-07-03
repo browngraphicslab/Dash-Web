@@ -128,7 +128,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
     @computed get sorted(): SortingRule[] {
         return this.props.columns.reduce((sorted, shf) => {
-            shf.desc && sorted.push({ id: shf.heading, desc: shf.desc });
+            shf.desc !== undefined && sorted.push({ id: shf.heading, desc: shf.desc });
             return sorted;
         }, [] as SortingRule[]);
     }
@@ -209,7 +209,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }}>
                 {col.heading}</div>;
 
-            const sortIcon = col.desc === undefined ? "circle" : col.desc === true ? "caret-down" : "caret-up";
+            const sortIcon = col.desc === undefined ? "caret-right" : col.desc === true ? "caret-down" : "caret-up";
 
             const header =
                 <div //className="collectionSchemaView-header"
@@ -217,7 +217,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     className="collectionSchemaView-menuOptions-wrapper"
                     style={{
                         background: col.color, padding: "2px",
-                        display: "flex"
+                        display: "flex", cursor: "default"
                     }}>
                     <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
                     {/* <div className="keys-dropdown"
@@ -225,13 +225,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     {keysDropdown}
                     {/* </div> */}
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ paddingRight: "6px", display: "inline", zIndex: 1, background: "inherit" }}>
-                        <FontAwesomeIcon icon={sortIcon} size="sm" />
+                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit" }}>
+                        <FontAwesomeIcon icon={sortIcon} size="lg" />
                     </div>
-                    <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
+                    {/* <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
                         style={{ float: "right", paddingRight: "6px", zIndex: 1, background: "inherit" }}>
                         <FontAwesomeIcon icon={"compass"} size="sm" />
-                    </div>
+                    </div> */}
                 </div>;
 
             return {

@@ -132,21 +132,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         this.resultsScrolled = this.resultsScrolled.bind(this);
 
-        new PrefetchProxy(Docs.Create.SearchItemBoxDocument({
-            title: "search item template",
-            backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
-        }));
+        // new PrefetchProxy(Docs.Create.SearchItemBoxDocument({
+        //     title: "search item template",
+        //     backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
+        // }));
 
 
-        if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
-            Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
-            // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
-            // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
-            // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
-            // stored on each pres element.  
-            (this.searchItemTemplate as Doc).lookupField = ScriptField.MakeFunction("lookupSearchBoxField(container, field, data)",
-                { field: "string", data: Doc.name, container: Doc.name });
-        }
+        // if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
+        //     Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+        //     // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
+        //     // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
+        //     // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
+        //     // stored on each pres element.  
+        //     (this.searchItemTemplate as Doc).lookupField = ScriptField.MakeFunction("lookupSearchBoxField(container, field, data)",
+        //         { field: "string", data: Doc.name, container: Doc.name });
+        // }
     }
     @observable setupButtons = false;
     componentDidMount = () => {
@@ -422,86 +422,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable secondstring: string = "";
 
     @observable bucketcount: number[] = [];
-
-    @action private makenewbuckets() {
-        console.log("new");
-        let highcount = 0;
-        let secondcount = 0;
-        this.firststring = "";
-        this.secondstring = "";
-        this.buckets = [];
-        this.bucketcount = [];
-        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-        for (var key in this.new_buckets) {
-            if (this.new_buckets[key] > highcount) {
-                secondcount === highcount;
-                this.secondstring = this.firststring;
-                highcount = this.new_buckets[key];
-                this.firststring = key;
-            }
-            else if (this.new_buckets[key] > secondcount) {
-                secondcount = this.new_buckets[key];
-                this.secondstring = key;
-            }
-        }
-
-        let bucket = Docs.Create.StackingDocument([], { _viewType: CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true, title: `default bucket` });
-        bucket._viewType === CollectionViewType.Stacking;
-        bucket._height = 185;
-        bucket.bucketfield = "results";
-        bucket.isBucket = true;
-        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
-        this.buckets!.push(bucket);
-        this.bucketcount[0] = 0;
-
-        if (this.firststring !== "") {
-            let firstbucket = Docs.Create.StackingDocument([], { _viewType: CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true, title: this.firststring });
-            firstbucket._height = 185;
-
-            firstbucket._viewType === CollectionViewType.Stacking;
-            firstbucket.bucketfield = this.firststring;
-            firstbucket.isBucket = true;
-            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, firstbucket);
-            this.buckets!.push(firstbucket);
-            this.bucketcount[1] = 0;
-
-        }
-
-        if (this.secondstring !== "") {
-            let secondbucket = Docs.Create.StackingDocument([], { _viewType: CollectionViewType.Stacking, ignoreClick: true, forceActive: true, lockedPosition: true, title: this.secondstring });
-            secondbucket._height = 185;
-            secondbucket._viewType === CollectionViewType.Stacking;
-            secondbucket.bucketfield = this.secondstring;
-            secondbucket.isBucket = true;
-            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, secondbucket);
-            this.buckets!.push(secondbucket);
-            this.bucketcount[2] = 0;
-        }
-
-        let webbucket = Docs.Create.StackingDocument([], { _viewType: CollectionViewType.Stacking, childDropAction: "alias", ignoreClick: true, lockedPosition: true, title: this.secondstring });
-        webbucket._height = 185;
-        webbucket._viewType === CollectionViewType.Stacking;
-        webbucket.bucketfield = "webs";
-        webbucket.isBucket = true;
-        let old = Cast(this.props.Document.webbucket, Doc) as Doc;
-        let old2 = Cast(this.props.Document.bing, Doc) as Doc;
-        if (old) {
-            console.log("Cleanup");
-            Doc.RemoveDocFromList(old, this.props.fieldKey, old2);
-        }
-        const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${this.layoutDoc._searchString}`, {
-            _width: 200, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
-            title: "bing", UseCors: true
-        });
-        this.props.Document.bing = textDoc;
-        this.props.Document.webbucket = webbucket;
-        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, webbucket);
-        Doc.AddDocToList(webbucket, this.props.fieldKey, textDoc);
-
-
-    }
-
-
     @observable buckets: Doc[] | undefined;
 
     getAllResults = async (query: string) => {
@@ -520,7 +440,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
-
 
     private NumResults = 25;
     private lockPromise?: Promise<void>;
@@ -581,9 +500,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
                 await this._curRequest;
             }
-            if (this._numTotalResults > 3 && this.expandedBucket === false) {
-                this.makenewbuckets();
-            }
+
             this.resultsScrolled();
             res();
         });
@@ -632,7 +549,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             basicWordStatus: this._basicWordStatus,
             icons: this._icons,
         }
-        return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Stacking, title: StrCast(this.layoutDoc._searchString), searchQuery: StrCast(this.layoutDoc._searchString) });
+        return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString), searchQuery: StrCast(this.layoutDoc._searchString) });
     }
 
     @action.bound
@@ -759,46 +676,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             if (i < this._visibleDocuments.length) {
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";
-                                if (this._numTotalResults > 3 && this.expandedBucket === false) {
+                                Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
 
-                                    if (StrCast(result[0].type) === this.firststring) {
-                                        if (this.bucketcount[1] < 3) {
-                                            result[0].parent = this.buckets![1];
-                                            Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
-                                            this.bucketcount[1] += 1;
-                                        }
-                                    }
-                                    else if (StrCast(result[0].type) === this.secondstring) {
-                                        if (this.bucketcount[2] < 3) {
-                                            result[0].parent = this.buckets![2];
-                                            Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
-                                            this.bucketcount[2] += 1;
-                                        }
-                                    }
-                                    else if (this.bucketcount[0] < 3) {
-                                        //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
-                                        //this.bucketcount[0]+=1;
-                                        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                                    }
-                                }
-                                else {
-                                    Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                                }
                             }
                         }
                     }
                 }
-            }
-        }
-        if (this._numTotalResults > 3 && this.expandedBucket === false) {
-            if (this.buckets![0]) {
-                this.buckets![0]._height = this.bucketcount[0] * 55 + 25;
-            }
-            if (this.buckets![1]) {
-                this.buckets![1]._height = this.bucketcount[1] * 55 + 25;
-            }
-            if (this.buckets![2]) {
-                this.buckets![2]._height = this.bucketcount[2] * 55 + 25;
             }
         }
         if (this._maxSearchIndex >= this._numTotalResults) {
@@ -1214,12 +1097,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
 
-    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate : undefined;
     getTransform = () => {
         return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     }
     panelHeight = () => {
-        return this.props.PanelHeight() - 50;
+        return this.props.PanelHeight();
     }
     selectElement = (doc: Doc) => {
         //this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex));
@@ -1230,17 +1112,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     //Make id layour document
     render() {
-        if (this.expandedBucket === true) {
-            this.props.Document._gridGap = 5;
-        }
-        else {
-            this.props.Document._gridGap = 10;
-        }
         this.props.Document._searchDoc = true;
-
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-
                 <div className="searchBox-bar">
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
@@ -1263,11 +1137,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 </div>
                 <CollectionView {...this.props}
                     Document={this.props.Document}
-                    PanelHeight={this.panelHeight}
                     moveDocument={returnFalse}
-                    NativeHeight={() => 400}
-                    childLayoutTemplate={this.childLayoutTemplate}
-                    addDocument={undefined}
                     removeDocument={returnFalse}
                     focus={this.selectElement}
                     ScreenToLocalTransform={Transform.Identity} />
@@ -1284,7 +1154,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 Scripting.addGlobal(function lookupSearchBoxField(container: Doc, field: string, data: Doc) {
     // if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
-    // if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
+    // if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Schema ? 50 : 46;
     // if (field === 'presStatus') return container.presStatus;
     // if (field === '_itemIndex') return container._itemIndex;
     if (field == "query") return container._searchString;
