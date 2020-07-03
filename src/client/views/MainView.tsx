@@ -619,12 +619,15 @@ export class MainView extends React.Component {
 
             <Fade in={MainView.linkCreated}>
                 <div style={{
-                    border: "1px solid rgb(111, 144, 175)", top: MainView.popupX ? MainView.popupX : 600
-                    , position: "absolute",
-                    left: MainView.popupY ? MainView.popupY : 250
-                    , width: "auto", height: "auto", zIndex: 10000,
-                    fontSize: "13px", whiteSpace: "nowrap", backgroundColor: "rgb(170, 205, 238)",
-                    padding: "5px", //fontWeight: "bold"
+                    border: "1px solid rgb(100, 100, 100)",
+                    left: MainView.popupX ? MainView.popupX : 600,
+                    position: "absolute",
+                    top: MainView.popupY ? MainView.popupY : 250, width: "auto",
+                    height: "auto", zIndex: 10000, borderRadius: "13px",
+                    fontSize: "13px", whiteSpace: "nowrap",
+                    color: "rgb(100, 100, 100)", backgroundColor: "rgba(250, 250, 250, 0.85)",
+                    paddingTop: "6.5px", paddingBottom: "6.5px", fontWeight: "bold",
+                    paddingLeft: "9px", paddingRight: "9px"
                 }}>Link Created</div>
             </Fade>
 

@@ -42,6 +42,7 @@ import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
+import { MainView } from '../MainView';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -641,12 +642,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
+            runInAction(() => MainView.popupX = de.x);
+            runInAction(() => MainView.popupY = de.y);
+            runInAction(() => { MainView.linkCreated = true; });
+            runInAction(() => { setTimeout(function () { runInAction(() => MainView.linkCreated = false); }, 2500); });
+
             DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+            runInAction(() => MainView.popupX = de.x);
+            runInAction(() => MainView.popupY = de.y);
+
+            runInAction(() => { MainView.linkCreated = true; });
+            runInAction(() => { setTimeout(function () { runInAction(() => MainView.linkCreated = false); }, 2000); });
+
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
                     { doc: this.props.Document }, `link`)); // TODODO this is where in text links get passed
