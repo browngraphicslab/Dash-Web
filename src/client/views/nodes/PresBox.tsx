@@ -20,6 +20,7 @@ import { PrefetchProxy } from "../../../fields/Proxy";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Scripting } from "../../util/Scripting";
 import { InkingStroke } from "../InkingStroke";
+import { HighlightSpanKind } from "typescript";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -35,7 +36,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         super(props);
         if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
+                title: "pres element template", backgroundColor: "transparent", _xMargin: 0, _height: 20, isTemplateDoc: true, isTemplateForField: "data"
             }));
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
             // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
@@ -209,7 +210,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this.layoutDoc.presStatus = true;
                 this.startPresentation(index);
             }
-
+            const heights: number[] = [];
+            this.childDocs.forEach(doc => {
+                if (doc.presExpandInlineButton) heights.push(155);
+                else heights.push(58);
+            });
+            let sum: number = 65;
+            for (let i = 0; i < this.itemIndex; i++) {
+                sum += heights[i];
+            }
+            const highlight = document.getElementById("presBox-hightlight");
+            if (this.itemIndex === 0 && highlight) highlight.style.top = "65";
+            else if (highlight) highlight.style.top = sum.toString();
+            if (this.childDocs[this.itemIndex].presExpandInlineButton && highlight) highlight.style.height = "156";
+            else if (highlight) highlight.style.height = "58";
+            console.log(highlight?.style.top);
+            console.log(highlight?.className);
+            console.log(sum);
             this.navigateToElement(this.childDocs[index], fromDoc);
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
@@ -296,9 +313,76 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
+
+    @observable private transitionTools: boolean = false;
+    // For toggling transition toolbar
+    @action
+    toggleTransitionTools = () => this.transitionTools = !this.transitionTools
+
+    @undoBatch
+    @action
+    toolbarTest = () => {
+        const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
+        console.log("title: " + presTargetDoc.title);
+        console.log("index: " + this.itemIndex);
+    }
+
+    @observable private activeItem = this.itemIndex ? this.childDocs[this.itemIndex] : null;
+
+
+    /**
+    * The function that is called on click to turn zoom option of docs on/off.
+    */
+    @action
+    onZoomDocumentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        activeItem.presZoomButton = !activeItem.presZoomButton;
+        if (activeItem.presZoomButton) {
+            activeItem.presNavButton = false;
+        }
+    }
+
+    /**
+     * The function that is called on click to turn navigation option of docs on/off.
+     */
+    @action
+    onNavigateDocumentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        activeItem.presNavButton = !activeItem.presNavButton;
+        if (activeItem.presNavButton) {
+            activeItem.presZoomButton = false;
+        }
+    }
+
+    /**
+     * The function that is called on click to turn fading document after presented option on/off.
+     * It also makes sure that the option swithches from hide-after to this one, since both
+     * can't coexist.
+     */
+    @action
+    onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        activeItem.presFadeButton = !activeItem.presFadeButton;
+        if (!activeItem.presFadeButton) {
+            if (targetDoc) {
+                targetDoc.opacity = 1;
+            }
+        } else {
+            activeItem.presHideAfterButton = false;
+            if (this.rootDoc.presStatus && targetDoc) {
+                targetDoc.opacity = 0.5;
+            }
+        }
+    }
+
+
     render() {
         // console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
-        // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
+        // const presOrderedDocs = DocListCast(activeItem.presOrderedDocs);
         // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
         //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
         // }
@@ -324,6 +408,30 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div className="presBox-button" title="Next" style={{ gridColumn: 4 }} onClick={this.next}>
                     <FontAwesomeIcon icon={"arrow-right"} />
                 </div>
+            </div>
+            <div className="presBox-highlight" id="presBox-hightlight" />
+            <div className="presBox-toolbar">
+                <div className="toolbar-button"><FontAwesomeIcon icon={"plus"} onClick={this.toolbarTest} /></div>
+                <div className="toolbar-divider" />
+                <div className="toolbar-button"><FontAwesomeIcon icon={"plus"} onClick={this.toolbarTest} /></div>
+                <div className="toolbar-button"><FontAwesomeIcon icon={"object-group"} onClick={this.toolbarTest} /></div>
+                <div className="toolbar-button"><FontAwesomeIcon icon={"eye"} onClick={this.toolbarTest} /></div>
+                <div className="toolbar-divider" />
+                <div className="toolbar-button" onClick={this.toggleTransitionTools}>
+                    Transitions <FontAwesomeIcon className="toolbar-dropdown" icon={"angle-down"} />
+                    <div className={`toolbar-transitionTools ${this.transitionTools ? "active" : ""}`} onPointerDown={e => e.stopPropagation()}>
+                        <div className="toolbar-transitionButtons">
+                            <button title="Zoom" className={`toolbar-transition ${this.activeItem?.presZoomButton ? "active" : ""}`} onClick={this.onZoomDocumentClick}><FontAwesomeIcon className="toolbar-icon" icon={"search-plus"} onPointerDown={e => e.stopPropagation()} />Zoom</button>
+                            <button title="Navigate" className={`toolbar-transition ${this.activeItem?.presNavButton ? "active" : ""}`} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon className="toolbar-icon" icon={"location-arrow"} onPointerDown={e => e.stopPropagation()} />Navigate</button>
+                            <button title="Fade After" className={`toolbar-transition ${this.activeItem?.presFadeButton ? "active" : ""}`} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon className="toolbar-icon" icon={"file-download"} onPointerDown={e => e.stopPropagation()} /> Fade After</button>
+                            {/* <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button> */}
+                            {/* <button title="Hide Before" className={pbi + (this.rootDoc.presHideTillShownButton ? "-selected" : "")} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={"file"} onPointerDown={e => e.stopPropagation()} /></button>
+                            <button title="Group With Up" className={pbi + (this.rootDoc.presGroupButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presGroupButton = !this.rootDoc.presGroupButton; }}><FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} /></button>
+                            <button title="Progressivize" className={pbi + (this.rootDoc.pres ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button> */}
+                        </div>
+                    </div>
+                </div>
+                <div className="toolbar-divider" />
             </div>
             <div className="presBox-listCont" >
                 {mode !== CollectionViewType.Invalid ?

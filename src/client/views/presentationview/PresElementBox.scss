@@ -45,34 +45,44 @@
 }
 
 .presElementBox-buttons {
-    display: flow-root;
-    position: relative;
+    display: grid;
+    grid-template-rows: 15px;
+    top: 15px;
+    left: -20;
+    position: absolute;
     width: 100%;
     height: auto;
 
     .presElementBox-interaction {
-        color: gray;
-        float: left;
-        padding: 0px;
-        width: 20px;
-        height: 20px;
+        display: none;
     }
 
     .presElementBox-interaction-selected {
-        color: white;
+        color: grey;
+        background-color: rgba(0, 0, 0, 0);
         float: left;
         padding: 0px;
         width: 20px;
         height: 20px;
-        border: solid 1px darkgray;
     }
 }
 
-.presElementBox-name {
-    font-size: 12pxππ;
+.presElementBox-number {
+    font-size: 12px;
+    font-weight: 700;
+    left: -15;
     position: absolute;
     display: inline-block;
-    width: calc(100% - 45px);
+    overflow: hidden;
+}
+
+.presElementBox-name {
+    font-size: 13px;
+    position: relative;
+    left: 10px;
+    top: 4px;
+    letter-spacing: normal;
+    width: calc(100% - 60px);
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: pre;
@@ -113,8 +123,8 @@
     position: absolute;
     border-radius: 100%;
     z-index: 300;
-    right: 3px;
-    bottom: 3px;
+    right: 26px;
+    top: 3px;
     width: 20px;
     height: 20px;
     display: flex;
@@ -129,6 +139,7 @@
     bottom: 3px;
     width: 20px;
     height: 20px;
+    z-index: 200;
     display: flex;
     justify-content: center;
     align-items: center;

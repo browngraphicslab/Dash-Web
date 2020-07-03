@@ -164,10 +164,18 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
      */
     ScreenToLocalListTransform = (xCord: number, yCord: number) => [xCord, yCord];
 
+    @action
+    presExpandDocumentClick = () => {
+        const highlight = document.getElementById("presBox-hightlight");
+        this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton;
+        if (highlight && this.rootDoc.presExpandInlineButton) highlight.style.height = "156";
+        else if (highlight && !this.rootDoc.presExpandInlineButton) highlight.style.height = "58";
+    }
+
     embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = () => this.props.PanelWidth() - 20;
     /**
-     * The function that is responsible for rendering the a preview or not for this
+     * The function that is responsible for rendering a preview or not for this
      * presentation element.
      */
     @computed get renderEmbeddedInline() {
@@ -214,9 +222,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 onClick={e => { this.props.focus(this.rootDoc); e.stopPropagation(); }}>
                 {treecontainer ? (null) : <>
-                    <strong className="presElementBox-name">
-                        {`${this.indexInPres + 1}. ${this.targetDoc?.title}`}
-                    </strong>
+                    <div className="presElementBox-number">
+                        {`${this.indexInPres + 1}.`}
+                    </div>
+                    <div className="presElementBox-name">
+                        {`${this.targetDoc?.title}`}
+                    </div>
                     <button
                         title="Close"
                         className="presElementBox-closeIcon"
@@ -227,7 +238,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         }}>
                         <FontAwesomeIcon icon={"times"} onPointerDown={e => e.stopPropagation()} />
                     </button>
-                    <button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton; }}>
+                    <button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                         <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
                     </button>
                     <br />
@@ -238,7 +249,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <button title="Hide Before" className={pbi + (this.rootDoc.presHideTillShownButton ? "-selected" : "")} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={"file"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Fade After" className={pbi + (this.rootDoc.presFadeButton ? "-selected" : "")} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Group With Up" className={pbi + (this.rootDoc.presGroupButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presGroupButton = !this.rootDoc.presGroupButton; }}><FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} /></button>
+                    {/* <button title="Group With Up" className={pbi + (this.rootDoc.presGroupButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presGroupButton = !this.rootDoc.presGroupButton; }}><FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} /></button> */}
                     <button title="Progressivize" className={pbi + (this.rootDoc.pres ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button>
                 </div>
                 {this.renderEmbeddedInline}

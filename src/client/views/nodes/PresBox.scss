@@ -1,5 +1,6 @@
 .presBox-cont {
     position: absolute;
+    display: block;
     pointer-events: inherit;
     z-index: 2;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
@@ -12,11 +13,82 @@
     transition: 0.7s opacity ease;
 
     .presBox-listCont {
-        position: absolute;
+        position: relative;
         height: calc(100% - 25px);
         width: 100%;
+        margin-top: 10px;
     }
+
+    .presBox-highlight {
+        position: absolute;
+        top: 0;
+        height: 0;
+        width: 100%;
+        margin-top: 10px;
+        background-color: #ffe4b3;
+    }
+
+    .presBox-toolbar {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        height: 30px;
+        width: 100%;
+        color: white;
+        background-color: #323232;
+
+        .toolbar-button {
+            margin-left: 10px;
+            margin-right: 10px;
+            letter-spacing: 0;
+            display: flex;
+            align-items: center;
+
+            .toolbar-dropdown {
+                margin-left: 5px;
+            }
+
+            .toolbar-transitionTools {
+                display: none;
+            }
+
+            .toolbar-transitionTools.active {
+                position: absolute;
+                display: block;
+                top: 30px;
+                transform: translate(-10px, 0px);
+                border-top: solid 3px grey;
+                background-color: #323232;
+                width: 105px;
+                height: max-content;
+                z-index: 100;
+
+                .toolbar-transitionButtons {
+                    display: block;
+
+                    .toolbar-transition {
+                        display: flex;
+                        font-size: 10;
+                        width: 100;
+                        background-color: rgba(0, 0, 0, 0);
+                        min-width: max-content;
+
+                        .toolbar-icon {
+                            margin-right: 5px;
+                        }
+                    }
+                }
+            }
+        }
+
+        .toolbar-divider {
+            border-left: 1px solid white;
+            height: 80%;
+        }
+    }
+
     .presBox-buttons {
+        position: relative;
         width: 100%;
         background: gray;
         padding-top: 5px;
@@ -24,6 +96,7 @@
         display: grid;
         grid-column-end: 4;
         grid-column-start: 1;
+
         .presBox-viewPicker {
             height: 25;
             position: relative;
@@ -31,10 +104,12 @@
             grid-column: 1/2;
             min-width: 15px;
         }
+
         select {
             background: #323232;
             color: white;
         }
+
         .presBox-button {
             margin-right: 2.5%;
             margin-left: 2.5%;
@@ -44,10 +119,12 @@
             align-items: center;
             background: #323232;
             color: white;
+
             svg {
                 margin: auto;
             }
         }
+
         .collectionViewBaseChrome-viewPicker {
             min-width: 50;
             width: 5%;
@@ -56,17 +133,21 @@
             display: inline-block;
         }
     }
-    .presBox-backward, .presBox-forward {
+
+    .presBox-backward,
+    .presBox-forward {
         width: 25px;
         border-radius: 5px;
-        top:50%;
+        top: 50%;
         position: absolute;
         display: inline-block;
     }
+
     .presBox-backward {
-        left:5;
+        left: 5;
     }
+
     .presBox-forward {
-        right:5;
+        right: 5;
     }
 }
