@@ -184,7 +184,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (found) {
             const top = found.getBoundingClientRect().top;
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
-            smoothScroll(500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            smoothScroll(doc.presTransition ? Number(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
         afterFocus && setTimeout(() => {
             if (afterFocus?.()) { }

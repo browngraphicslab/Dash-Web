@@ -9,7 +9,7 @@ import { returnFalse, returnOne } from "../../../Utils";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionDockingView, DockedFrameRenderer } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
@@ -21,6 +21,7 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { Scripting } from "../../util/Scripting";
 import { InkingStroke } from "../InkingStroke";
 import { HighlightSpanKind } from "typescript";
+import { SearchUtil } from "../../util/SearchUtil";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -327,6 +328,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         console.log("index: " + this.itemIndex);
     }
 
+    @undoBatch
+    @action
+    viewLinks = () => {
+        const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
+        console.log(SearchUtil.GetContextsOfDocument(presTargetDoc));
+        console.log(DocListCast(presTargetDoc.context));
+        console.log(DocumentManager.Instance.getAllDocumentViews(presTargetDoc));
+
+        // if (!DocumentManager.Instance.getDocumentView(curPres)) {
+        //     CollectionDockingView.AddRightSplit(curPres);
+        // }
+    }
+
     @observable private activeItem = this.itemIndex ? this.childDocs[this.itemIndex] : null;
 
 
@@ -379,6 +393,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    // @computed
+    // transitionTimer = (doc: Doc) => {
+    //     const slider: HTMLInputElement = document.getElementById("toolbar-slider");
+    //     // let output = document.getElementById("demo");
+    //     // if (output && slider) output.innerHTML = slider.value; // Display the default slider value
+    //     const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+    //     const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+    //     targetDoc.presTransition = slider ? (Number(slider.value) * 1000) : 0.5;
+    // }
+
+    setTransitionTime = (number: String) => {
+        const timeInMS = Number(number) * 1000;
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        if (targetDoc) targetDoc.presTransition = timeInMS;
+    }
+
 
     render() {
         // console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
@@ -413,7 +444,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <div className="presBox-toolbar">
                 <div className="toolbar-button"><FontAwesomeIcon icon={"plus"} onClick={this.toolbarTest} /></div>
                 <div className="toolbar-divider" />
-                <div className="toolbar-button"><FontAwesomeIcon icon={"plus"} onClick={this.toolbarTest} /></div>
+                <div className="toolbar-button"><FontAwesomeIcon icon={"plus"} onClick={this.viewLinks} /></div>
                 <div className="toolbar-button"><FontAwesomeIcon icon={"object-group"} onClick={this.toolbarTest} /></div>
                 <div className="toolbar-button"><FontAwesomeIcon icon={"eye"} onClick={this.toolbarTest} /></div>
                 <div className="toolbar-divider" />
@@ -424,6 +455,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <button title="Zoom" className={`toolbar-transition ${this.activeItem?.presZoomButton ? "active" : ""}`} onClick={this.onZoomDocumentClick}><FontAwesomeIcon className="toolbar-icon" icon={"search-plus"} onPointerDown={e => e.stopPropagation()} />Zoom</button>
                             <button title="Navigate" className={`toolbar-transition ${this.activeItem?.presNavButton ? "active" : ""}`} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon className="toolbar-icon" icon={"location-arrow"} onPointerDown={e => e.stopPropagation()} />Navigate</button>
                             <button title="Fade After" className={`toolbar-transition ${this.activeItem?.presFadeButton ? "active" : ""}`} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon className="toolbar-icon" icon={"file-download"} onPointerDown={e => e.stopPropagation()} /> Fade After</button>
+                            <input type="range" min="0.1" max="10" defaultValue="0.5" className="toolbar-slider" id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setTransitionTime(e.target.value)} />
                             {/* <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button> */}
                             {/* <button title="Hide Before" className={pbi + (this.rootDoc.presHideTillShownButton ? "-selected" : "")} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={"file"} onPointerDown={e => e.stopPropagation()} /></button>
                             <button title="Group With Up" className={pbi + (this.rootDoc.presGroupButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presGroupButton = !this.rootDoc.presGroupButton; }}><FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} /></button>
