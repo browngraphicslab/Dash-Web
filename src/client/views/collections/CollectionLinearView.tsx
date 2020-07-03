@@ -149,36 +149,14 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         </div>;
                     })}
                 </div>
-                {DocumentLinksButton.StartLink ? <span style={{
-                    background: backgroundColor === color ? "black" : backgroundColor,
-                    paddingRight: "14px",
-                    height: "35",
-                    transform: "translate3d(6px, 5px, 0px)",
-                    paddingTop: "6.5px",
-                    paddingBottom: "7px",
-                    paddingLeft: "5px"
+                {DocumentLinksButton.StartLink ? <span className="bottomPopup-background" style={{
+                    background: backgroundColor === color ? "black" : backgroundColor
                 }}
                     onPointerDown={e => e.stopPropagation()} >
-                    <span style={{
-                        display: "inline",
-                        whiteSpace: "nowrap",
-                        paddingLeft: "8px",
-                        paddingRight: "4px",
-                        verticalAlign: "middle",
-                        fontSize: "12.5px"
-                    }}>
+                    <span className="bottomPopup-text" >
                         Creating link from: {DocumentLinksButton.StartLink.title} </span>
-                    <span onClick={this.exitLongLinks}
-                        style={{
-                            display: "inline",
-                            whiteSpace: "nowrap",
-                            paddingLeft: "8px",
-                            paddingRight: "8px",
-                            verticalAlign: "middle",
-                            backgroundColor: "lightgrey",
-                            borderRadius: "5.5px",
-                            color: "black"
-                        }}>Exit</span>
+                    <span className="bottomPopup-exit" onClick={this.exitLongLinks}
+                    >Exit</span>
 
                     {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
                         onClick={this.exitLongLinks} /> */}

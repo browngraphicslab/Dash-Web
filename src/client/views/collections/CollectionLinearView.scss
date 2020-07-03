@@ -10,16 +10,40 @@
         height: 100%;
 
         >span {
-            //margin-top: 8px;
-            //margin-left: 4px;
-            //margin-bottom: 2px;
             background: $dark-color;
             color: $light-color;
-            //display: inline-block;
             border-radius: 18px;
             margin-right: 6px;
-            //height: 100%;
             cursor: pointer;
+        }
+
+        .bottomPopup-background {
+            padding-right: 14px;
+            height: 35;
+            transform: translate3d(6px, 5px, 0px);
+            padding-top: 6.5px;
+            padding-bottom: 7px;
+            padding-left: 5px;
+        }
+
+        .bottomPopup-text {
+            display: inline;
+            white-space: nowrap;
+            padding-left: 8px;
+            padding-right: 4px;
+            vertical-align: middle;
+            font-size: 12.5px;
+        }
+
+        .bottomPopup-exit {
+            display: inline;
+            white-space: nowrap;
+            padding-left: 8px;
+            padding-right: 8px;
+            vertical-align: middle;
+            background-color: lightgrey;
+            border-radius: 5.5px;
+            color: black;
         }
 
         >label {

@@ -10,7 +10,7 @@ import React = require("react");
 import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { MainView } from "../MainView";
+import { LinkCreatedBox } from "./LinkCreatedBox";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -89,10 +89,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 } else {
                     DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
                         DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
-                    runInAction(() => { MainView.linkCreated = true; });
-                    runInAction(() => { setTimeout(function () { runInAction(() => MainView.linkCreated = false); }, 2500); });
-                    MainView.popupX = e.screenX;
-                    MainView.popupY = e.screenY;
+
+                    runInAction(() => {
+                        LinkCreatedBox.popupX = e.screenX;
+                        LinkCreatedBox.popupY = e.screenY - 120;
+                        LinkCreatedBox.linkCreated = true;
+                        setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                    });
                 }
             }
         }));
@@ -108,10 +111,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         } else {
             DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
                 DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
-            runInAction(() => { MainView.linkCreated = true; });
-            runInAction(() => { setTimeout(function () { runInAction(() => MainView.linkCreated = false); }, 2000); });
-            MainView.popupX = e.screenX - 25;
-            MainView.popupY = e.screenY - 140;
+
+            runInAction(() => {
+                LinkCreatedBox.popupX = e.screenX;
+                LinkCreatedBox.popupY = e.screenY - 120;
+                LinkCreatedBox.linkCreated = true;
+                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+            });
         }
     }
 

@@ -50,7 +50,6 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
 import { Upload } from "../../server/SharedMediaTypes";
-import { MainView } from "../views/MainView";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -866,10 +865,6 @@ export namespace DocUtils {
 
     export function MakeLinkToActiveAudio(doc: Doc) {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
-    }
-
-    function stopLinkCreated() {
-        MainView.linkCreated = false;
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {

@@ -60,6 +60,7 @@ import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { Fade } from '@material-ui/core';
+import { LinkCreatedBox } from './nodes/LinkCreatedBox';
 
 @observer
 export class MainView extends React.Component {
@@ -82,11 +83,6 @@ export class MainView extends React.Component {
     @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
     public isPointerDown = false;
-
-    @observable public static linkCreated: boolean = false;
-    @observable public static popupX: number = 600;
-    @observable public static popupY: number = 250;
-
 
     componentDidMount() {
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType"]); // can play with these fields on someone else's
@@ -368,11 +364,6 @@ export class MainView extends React.Component {
     }
 
     @action
-    public static changeLinkCreated = () => {
-        MainView.linkCreated = !MainView.linkCreated;
-    }
-
-    @action
     onPointerMove = (e: PointerEvent) => {
         this.flyoutWidth = Math.max(e.clientX, 0);
         Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
@@ -616,21 +607,7 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
-
-            <Fade in={MainView.linkCreated}>
-                <div style={{
-                    border: "1px solid rgb(100, 100, 100)",
-                    left: MainView.popupX ? MainView.popupX : 600,
-                    position: "absolute",
-                    top: MainView.popupY ? MainView.popupY : 250, width: "auto",
-                    height: "auto", zIndex: 10000, borderRadius: "13px",
-                    fontSize: "13px", whiteSpace: "nowrap",
-                    color: "rgb(100, 100, 100)", backgroundColor: "rgba(250, 250, 250, 0.85)",
-                    paddingTop: "6.5px", paddingBottom: "6.5px", fontWeight: "bold",
-                    paddingLeft: "9px", paddingRight: "9px"
-                }}>Link Created</div>
-            </Fade>
-
+            <LinkCreatedBox />
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
