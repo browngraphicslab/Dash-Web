@@ -581,14 +581,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onZoomMenu = (e: React.WheelEvent) => {
         this.props.active(true) && e.stopPropagation();
         if (this.menuCoordinates[0] > e.screenX) {
-            this.menuCoordinates[0] -= e.screenX //* this.scale;
+            this.menuCoordinates[0] -= e.screenX; //* this.scale;
         } else {
-            this.menuCoordinates[0] += e.screenX //* this.scale;
+            this.menuCoordinates[0] += e.screenX; //* this.scale;
         }
         if (this.menuCoordinates[1] > e.screenY) {
-            this.menuCoordinates[1] -= e.screenY //* this.scale;
+            this.menuCoordinates[1] -= e.screenY; //* this.scale;
         } else {
-            this.menuCoordinates[1] += e.screenY //* this.scale;
+            this.menuCoordinates[1] += e.screenY; //* this.scale;
         }
     }
 

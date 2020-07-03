@@ -135,3 +135,24 @@
 
     }
 }
+
+@media only screen and (max-device-width: 480px) {
+    .settings-interface {
+        width: 80vw;
+        height: 400px;
+    }
+
+    .settings-interface .settings-body .settings-content input {
+        font-size: 30;
+    }
+
+    .settings-interface button {
+        width: 100%;
+        font-size: 30px;
+        background: #b2cef8;
+    }
+
+    .settings-interface .settings-heading {
+        font-size: 25;
+    }
+}

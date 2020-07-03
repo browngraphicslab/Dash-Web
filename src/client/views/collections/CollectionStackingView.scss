@@ -33,8 +33,9 @@
     .collectionStackingViewFieldColumn {
         height: max-content;
     }
+
     .collectionStackingViewFieldColumnDragging {
-        height:100%;
+        height: 100%;
     }
 
     .collectionSchemaView-previewDoc {
@@ -424,5 +425,16 @@
 
     .rc-switch-checked .rc-switch-inner {
         left: 8px;
+    }
+}
+
+@media only screen and (max-device-width: 480px) {
+
+    .collectionStackingView .collectionStackingView-columnDragger,
+    .collectionMasonryView .collectionStackingView-columnDragger {
+        width: 0.1;
+        height: 0.1;
+        opacity: 0;
+        font-size: 0;
     }
 }

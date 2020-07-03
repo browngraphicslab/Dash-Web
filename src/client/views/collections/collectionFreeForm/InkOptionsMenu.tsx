@@ -20,6 +20,8 @@ import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscr
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve);
 
+
+
 @observer
 export default class InkOptionsMenu extends AntimodeMenu {
     static Instance: InkOptionsMenu;
@@ -41,6 +43,8 @@ export default class InkOptionsMenu extends AntimodeMenu {
     @observable _arrowBtn = false;
     @observable _dashBtn = false;
     @observable _shapeBtn = false;
+
+
 
     constructor(props: Readonly<{}>) {
         super(props);

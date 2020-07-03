@@ -72,8 +72,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     overflow: "visible",
                 }}
                 onContextMenu={() => {
-                    ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
-                    ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                    ContextMenu.Instance?.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
+                    ContextMenu.Instance?.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
                 }}
             ><defs>
                 </defs>

@@ -279,7 +279,7 @@ export class RichTextRules {
                                 DocUtils.Publish(target, docid, returnFalse, returnFalse);
                                 DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
                             });
-                            const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                            const link = state.schema.marks.linkAnchor.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;

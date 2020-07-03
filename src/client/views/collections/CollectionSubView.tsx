@@ -9,7 +9,6 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { WebField } from "../../../fields/URLField";
 import { Cast, ScriptCast, NumCast, StrCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Networking } from "../../Network";

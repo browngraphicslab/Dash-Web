@@ -602,7 +602,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // bcz: theres should be a better way of doing these than referencing these static instances directly
         MarqueeOptionsMenu.Instance?.fadeOut(true);// I think it makes sense for the marquee menu to go away when panned. -syip2
-        PDFMenu.Instance.fadeOut(true);
 
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         this.setPan((this.Document._panX || 0) - dx, (this.Document._panY || 0) - dy, undefined, true);
@@ -870,7 +869,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
 
-        // TODO This technically isn't correct if type !== "doc", as 
+        // TODO This technically isn't correct if type !== "doc", as
         // currently nothing is done, but we should probably push a new state
         if (state.type === "doc" && this.Document._panX !== undefined && this.Document._panY !== undefined) {
             const init = state.initializers![this.Document[Id]];
@@ -1204,7 +1203,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
-        if (this.props.annotationsKey) return;
+        if (this.props.annotationsKey || !ContextMenu.Instance) return;
 
         const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
