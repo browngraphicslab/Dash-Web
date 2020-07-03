@@ -2,9 +2,9 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable, runInAction, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../fields/Doc";
+import { Doc, DocCastAsync } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue, returnOne, returnZero, returnEmptyString, returnEmptyFilter } from "../../../Utils";
@@ -15,13 +15,21 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionViewType } from "../collections/CollectionView";
+import { CollectionViewType, CollectionView } from "../collections/CollectionView";
 import { ParentDocSelector } from "../collections/ParentDocumentSelector";
 import { ContextMenu } from "../ContextMenu";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
+import { FieldViewProps, FieldView } from "../nodes/FieldView";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { makeInterface, createSchema, listSpec } from "../../../fields/Schema";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { PrefetchProxy } from "../../../fields/Proxy";
+import { Docs } from "../../documents/Documents";
+import { ScriptField } from "../../../fields/ScriptField";
+import { CollectionStackingView } from "../collections/CollectionStackingView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -122,30 +130,113 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
 }
 
+
+type SearchSchema = makeInterface<[typeof documentSchema]>;
+
+export const SearchSchema = createSchema({
+    targetDoc: Doc,
+});
+
+const SearchDocument = makeInterface(documentSchema);
+
+
+
 @observer
-export class SearchItem extends React.Component<SearchItemProps> {
+export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchema>(SearchDocument) {
+    
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchItem, fieldKey); }
+
+    constructor(props:any){
+        super(props);
+        //this.rootDoc._viewType= CollectionViewType.Stacking;
+        this.props.Document._height=46;
+        if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
+            Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+            // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
+            // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
+            // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
+            // stored on each pres element.  
+            (this.searchItemTemplate as Doc).lookupField = ScriptField.MakeFunction("lookupSearchBoxField(container, field, data)",
+                { field: "string", data: Doc.name, container: Doc.name });
+        }
+
+    }
 
     @observable _selected: boolean = false;
 
     onClick = () => {
-        // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
-        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        DocumentManager.Instance.jumpToDocument(this.rootDoc, false);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
+    @computed get query() { return StrCast(this.lookupField("query")); }
+
+    private _oldHeight: number = 46;
+
     componentDidMount() {
-        Doc.SetSearchQuery(this.props.query);
-        this.props.doc.searchMatch = true;
+        let parent: Doc |undefined = undefined;
+        let height = 0;
+        if (this.rootDoc.parent){
+            parent = Cast(this.rootDoc.parent, Doc, null);
+            if (parent!== undefined){
+            height=(NumCast(parent._height));
+            }
+        }
+
+        this._reactionDisposer2 = reaction(
+            () => this._useIcons,
+            el=> { 
+                if (this.rootDoc.parent){
+                    parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
+                    height=(NumCast(parent._height));
+                };
+                console.log(height);
+                console.log(this._oldHeight);
+            setTimeout(() =>{this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null;
+                parent!==undefined? this._mainRef.current?.getBoundingClientRect()? parent._height= -this._oldHeight + height +this._mainRef.current?.getBoundingClientRect().height : null: null;
+                this._mainRef.current?.getBoundingClientRect()?  this._oldHeight= this._mainRef.current?.getBoundingClientRect().height : null;
+                // this._oldHeight 55? this._oldHeight =55:null;
+            }, 1);
+        }
+        );
+
+        this._reactionDisposer3 = reaction(
+            () => this._displayLines,
+            el=> { 
+                if (this.rootDoc.parent){
+                    parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
+                    height=(NumCast(parent._height));
+                };
+            setTimeout(() =>{this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null;
+                parent!==undefined? this._mainRef.current?.getBoundingClientRect()? parent._height= -this._oldHeight + height +this._mainRef.current?.getBoundingClientRect().height : null: null;
+                this._mainRef.current?.getBoundingClientRect()?  this._oldHeight= this._mainRef.current?.getBoundingClientRect().height : null;
+            }, 1);
+        }
+        );
+
+        Doc.SetSearchQuery(this.query);
+        this.rootDoc.searchMatch = true;
     }
     componentWillUnmount() {
-        this.props.doc.searchMatch = undefined;
+        this.rootDoc.searchMatch = undefined;
+        this._reactionDisposer2 && this._reactionDisposer2();
+        this._reactionDisposer3 && this._reactionDisposer3();
+
     }
 
-    //@computed
+    
+
+    private _reactionDisposer2?: IReactionDisposer;
+    private _reactionDisposer3?: IReactionDisposer;
+
+
+    
+    @computed get highlightPos(){return NumCast(this.rootDoc.searchIndex)}
+
     @action
     public DocumentIcon() {
-        const layoutresult = StrCast(this.props.doc.type);
+        const layoutresult = StrCast(this.rootDoc.type);
         if (!this._useIcons) {
             const returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             const returnYDimension = () => this._displayDim;
@@ -156,10 +247,10 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))} >
                 <ContentFittingDocumentView
-                    Document={this.props.doc}
+                    Document={this.rootDoc}
                     LibraryPath={emptyPath}
                     rootSelected={returnFalse}
-                    fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
+                    fitToBox={StrCast(this.rootDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
@@ -192,9 +283,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
                                 layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
                                     layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
                                         faCaretUp;
-        return <div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
+        return <div><div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
-        </div>;
+        </div>
+        <div className="searchItem-label">{this.rootDoc.type ? this.rootDoc.type : "Other"}</div>
+        </div>
+        ;
     }
 
     collectionRef = React.createRef<HTMLDivElement>();
@@ -202,38 +296,60 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @action
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
-    nextHighlight = (e: React.PointerEvent) => {
+    @action
+    nextHighlight = (e: React.MouseEvent) => {
         e.preventDefault();
-        e.button === 0 && SearchBox.Instance.openSearch(e);
-        this.props.doc.searchMatch = false;
-        setTimeout(() => this.props.doc.searchMatch = true, 0);
-    }
-    highlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocumentType.LINK) {
-            if (this.props.doc.anchor1 && this.props.doc.anchor2) {
+        e.stopPropagation();
+        //e.button === 0 && SearchBox.Instance.openSearch(e);
 
-                const doc1 = Cast(this.props.doc.anchor1, Doc, null);
-                const doc2 = Cast(this.props.doc.anchor2, Doc, null);
+        this.rootDoc!.searchMatch = false;
+        setTimeout(() => this.rootDoc!.searchMatch = true, 0);
+        this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
+        this.length=NumCast(this.rootDoc!.length);
+    }
+
+    @action
+    nextHighlight2 = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        //e.button === 0 && SearchBox.Instance.openSearch(e);
+
+        this.rootDoc!.searchMatch2 = false;
+        setTimeout(() => this.rootDoc!.searchMatch2 = true, 0);
+        this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
+
+        this.length=NumCast(this.rootDoc!.length);
+    }
+
+    @observable length:number|undefined = 0;
+
+    highlightDoc = (e: React.PointerEvent) => {
+        if (this.rootDoc!.type === DocumentType.LINK) {
+            if (this.rootDoc!.anchor1 && this.rootDoc!.anchor2) {
+
+                const doc1 = Cast(this.rootDoc!.anchor1, Doc, null);
+                const doc2 = Cast(this.rootDoc!.anchor2, Doc, null);
                 Doc.BrushDoc(doc1);
                 Doc.BrushDoc(doc2);
             }
         } else {
-            Doc.BrushDoc(this.props.doc);
+            Doc.BrushDoc(this.rootDoc!);
         }
         e.stopPropagation();
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocumentType.LINK) {
-            if (this.props.doc.anchor1 && this.props.doc.anchor2) {
+        if (this.rootDoc!.type === DocumentType.LINK) {
+            if (this.rootDoc!.anchor1 && this.rootDoc!.anchor2) {
 
-                const doc1 = Cast(this.props.doc.anchor1, Doc, null);
-                const doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                const doc1 = Cast(this.rootDoc!.anchor1, Doc, null);
+                const doc2 = Cast(this.rootDoc!.anchor2, Doc, null);
                 Doc.UnBrushDoc(doc1);
                 Doc.UnBrushDoc(doc2);
             }
         } else {
-            Doc.UnBrushDoc(this.props.doc);
+            Doc.UnBrushDoc(this.rootDoc!);
         }
     }
 
@@ -243,7 +359,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({
             description: "Copy ID", event: () => {
-                Utils.CopyText(this.props.doc[Id]);
+                Utils.CopyText(StrCast(this.rootDoc[Id]));
             },
             icon: "fingerprint"
         });
@@ -268,7 +384,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             Math.abs(e.clientY - this._downY) > Utils.DRAG_THRESHOLD) {
             document.removeEventListener("pointermove", this.onPointerMoved);
             document.removeEventListener("pointerup", this.onPointerUp);
-            const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
+            const doc = Doc.IsPrototype(this.rootDoc) ? Doc.MakeDelegate(this.rootDoc) : this.rootDoc;
             DragManager.StartDocumentDrag([this._target], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
         }
     }
@@ -279,32 +395,160 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     @computed
     get contextButton() {
-        return <ParentDocSelector Document={this.props.doc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return <ParentDocSelector Document={this.rootDoc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
+    @computed get searchElementDoc() { return this.rootDoc; }
+    // @computed get targetDoc() { return this.searchElementDoc?.targetDoc as Doc; }
+
+    @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate: undefined;
+    getTransform = () => {
+    return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
+    }
+    panelHeight = () => {
+        return this.props.PanelHeight();
+    }
+    selectElement = (doc: Doc) => {
+        //this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.layoutDoc._itemIndex));
+    }
+
+    newsearch(){
+       runInAction(()=>{
+        if (StrCast(this.rootDoc.bucketfield)!=="results"){
+        SearchBox.Instance._icons=[StrCast(this.rootDoc.bucketfield)];
+        SearchBox.Instance._icons=SearchBox.Instance._icons;
+        }
+        else{
+            SearchBox.Instance._icons=SearchBox.Instance._allIcons;
+        }
+        SearchBox.Instance.expandedBucket= true;
+        SearchBox.Instance.submitSearch();
+       }) 
+    }
+    
+    @action
+    returnLines(){
+        if ((Cast(this.rootDoc.lines, listSpec("string")))!.length>1){
+        if (!this._displayLines) {
+            console.log(Cast(this.rootDoc.lines, listSpec("string")));
+            return <div style={{width: 10}}
+            onPointerDown={action(() => {
+                this._displayLines = !this._displayLines;
+                //this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
+            })}
+            //onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
+             >
+            {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div style={{overflow:"visible"}}id={i.toString()} className="searchItem-highlighting">{l}</div>)}
+            </div>;;
+        }
+    }
+    }
+    
+    //this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); 
+
+    @observable _displayLines: boolean = true;
+
+    returnButtons(){
+        return <div>
+        <div onClick={action(() => { this.rootDoc!.type === DocumentType.PDF? this._displayLines = !this._displayLines : null; 
+        })}> 
+        {this.rootDoc!.type === DocumentType.PDF?"Expand Lines": null}
+        {NumCast(this.rootDoc!.length)>1?`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`: null}
+             <button onClick={this.nextHighlight} style={{padding:2, position:"absolute", left:77}}>
+                        <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
+                        </button>
+                        <button onClick={this.nextHighlight2} style={{padding:2, position:"absolute", left:87}}>                    
+                        <FontAwesomeIcon icon="arrow-down" size="sm"  />
+                        </button>
+        </div>
+        <div>
+        <div style={{background: "lightgrey"}}>
+            {this.returnLines()}
+        </div>
+        </div>
+        </div>
+    }
+
+    private _mainRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+
     render() {
-        const doc1 = Cast(this.props.doc.anchor1, Doc);
-        const doc2 = Cast(this.props.doc.anchor2, Doc);
+        const doc1 = Cast(this.rootDoc!.anchor1, Doc);
+        const doc2 = Cast(this.rootDoc!.anchor2, Doc);
+        if (StrCast(this.rootDoc.bucketfield)==="webs"){
+            this.props.Document._viewType=CollectionViewType.Stacking;  
+            this.props.Document._chromeStatus='disabled';
+            this.props.Document._height=this.rootDoc._height;
+            return <div>
+            <CollectionView {...this.props}
+            Document={this.props.Document}
+            PanelHeight={this.panelHeight}
+            whenActiveChanged={emptyFunction}
+            onClick={undefined}
+            moveDocument={returnFalse}
+            childLayoutTemplate={undefined}
+            addDocument={undefined}
+            removeDocument={returnFalse}
+            focus={this.selectElement}
+            ScreenToLocalTransform={this.getTransform} />
+            </div>
+        }
+        if (this.rootDoc.isBucket === true){
+            this.props.Document._viewType=CollectionViewType.Stacking;  
+            this.props.Document._chromeStatus='disabled';
+            this.props.Document._height=this.rootDoc._height;
+
+            return <div>
+            <CollectionView {...this.props}
+            Document={this.props.Document}
+            PanelHeight={this.panelHeight}
+            whenActiveChanged={emptyFunction}
+            onClick={undefined}
+            moveDocument={returnFalse}
+            childLayoutTemplate={this.childLayoutTemplate}
+            addDocument={undefined}
+            removeDocument={returnFalse}
+            focus={this.selectElement}
+            ScreenToLocalTransform={this.getTransform} />
+            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, marginBottom:-2, paddingTop:2,fontFamily:"Arial, sans-serif"}}>See all {StrCast(this.rootDoc.bucketfield)}...
+            </button>
+            </div>
+        }
+        else if (this.rootDoc.isBucket === false){
+            this.props.Document._chromeStatus='disabled';
+            return      <div className="searchItem">
+                <div className="searchItem-body" >
+                <div className="searchItem-title-container">
+                <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>No Search Results</div>
+                </div>
+                </div>
+            </div>
+        }
+        else {
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-            <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
+            <div ref={this._mainRef} className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
-                        <div className="searchItem-title">{StrCast(this.props.doc.title)}</div>
-                        <div className="searchItem-highlighting">{this.props.highlighting.length ? "Matched fields:" + this.props.highlighting.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
-                        {this.props.lines.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)}
-                    </div>
+                        <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>{StrCast(this.rootDoc.title)}</div>
+                        <div className="searchItem-highlighting">
+                        {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
+                        <div className={`icon-${this._displayLines ? "q" : "a"}`}>
+                        {NumCast(this.rootDoc.length) > 1 || this.rootDoc!.type === DocumentType.PDF?this.returnButtons(): null} 
+                        </div>
+                        </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
                     <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                         <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
-                        <div className="searchItem-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
                     </div>
                 </div>
-                <div className="searchItem-context" title="Drag as document">
-                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.props.doc.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
+                {/* <div className="searchItem-context" title="Drag as document">
+                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.rootDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
                         this.contextButton}
-                </div>
+                </div> */}
             </div>
         </div>;
+        }
     }
 } 

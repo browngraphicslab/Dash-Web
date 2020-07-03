@@ -14,7 +14,6 @@ import { normalize } from "path";
 import RouteSubscriber from "../RouteSubscriber";
 const imageDataUri = require('image-data-uri');
 import { isWebUri } from "valid-url";
-import { launch } from "puppeteer";
 import { Opt } from "../../fields/Doc";
 
 export enum Directory {
@@ -286,25 +285,26 @@ function delay(ms: number) {
  * 
  * On failure, returns undefined.
  */
-async function captureYoutubeScreenshot(targetUrl: string): Promise<Opt<Buffer>> {
-    const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080 });
+async function captureYoutubeScreenshot(targetUrl: string){
+    // const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    // const page = await browser.newPage();
+    // // await page.setViewport({ width: 1920, height: 1080 });
 
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
+    // // await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
 
-    const videoPlayer = await page.$('.html5-video-player');
-    videoPlayer && await page.focus("video");
-    await delay(7000);
-    const ad = await page.$('.ytp-ad-skip-button-text');
-    await ad?.click();
-    await videoPlayer?.click();
-    await delay(1000);
-    // hide youtube player controls.
-    await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as HTMLElement).style.display = 'none');
+    // const videoPlayer = await page.$('.html5-video-player');
+    // videoPlayer && await page.focus("video");
+    // await delay(7000);
+    // const ad = await page.$('.ytp-ad-skip-button-text');
+    // await ad?.click();
+    // await videoPlayer?.click();
+    // await delay(1000);
+    // // hide youtube player controls.
+    // await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as HTMLElement).style.display = 'none');
 
-    const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
-    await browser.close();
+    // const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
+    // await browser.close();
 
-    return buffer;
+    // return buffer;
+    return null;
 }

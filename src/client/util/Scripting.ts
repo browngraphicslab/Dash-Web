@@ -136,7 +136,7 @@ export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
     Scripting.addGlobal(constructor);
 }
 
-const _scriptingGlobals: { [name: string]: any } = {};
+export const _scriptingGlobals: { [name: string]: any } = {};
 let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
 const _scriptingDescriptions: { [name: string]: any } = {};
 const _scriptingParams: { [name: string]: any } = {};

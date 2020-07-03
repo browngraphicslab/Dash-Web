@@ -21,6 +21,9 @@ import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { UndoManager } from "../util/UndoManager";
+import { DocumentType } from "./DocumentTypes";
+import { SearchItem } from "../views/search/SearchItem";
+import { SearchBox, filterData } from "../views/search/SearchBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
@@ -38,7 +41,6 @@ import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { PresBox } from "../views/nodes/PresBox";
-import { QueryBox } from "../views/nodes/QueryBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { SliderBox } from "../views/nodes/SliderBox";
@@ -180,10 +182,11 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
-    searchText?: string; //for searchbox
-    searchQuery?: string; // for queryBox
-    filterQuery?: string;
+    searchQuery?: string, // for quersyBox
+    filterQuery?: filterData,
     linearViewIsExpanded?: boolean; // is linear view expanded
+    border?: string; //for searchbox
+    hovercolor?: string;
 }
 
 class EmptyBox {
@@ -213,8 +216,8 @@ export namespace Docs {
                 layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
-            [DocumentType.QUERY, {
-                layout: { view: QueryBox, dataField: defaultDataKey },
+            [DocumentType.SEARCH, {
+                layout: { view: SearchBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
@@ -303,6 +306,9 @@ export namespace Docs {
             }],
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: defaultDataKey }
+            }],
+            [DocumentType.SEARCHITEM, {
+                layout: { view: SearchItem, dataField: defaultDataKey }
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
@@ -616,8 +622,8 @@ export namespace Docs {
             return instance;
         }
 
-        export function QueryDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        export function SearchDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>([]), options);
         }
 
         export function ColorDocument(options: DocumentOptions = {}) {
@@ -786,6 +792,10 @@ export namespace Docs {
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
+        }
+
+        export function SearchItemBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCHITEM), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
