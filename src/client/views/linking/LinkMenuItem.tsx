@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
@@ -15,7 +15,7 @@ import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
-library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
+library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt);
 
 
 interface LinkMenuItemProps {
@@ -71,6 +71,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _eleClone: any;
 
     _editRef = React.createRef<HTMLDivElement>();
+    _buttonRef = React.createRef<HTMLDivElement>();
+
     @observable private _showMore: boolean = false;
     @action toggleShowMore(e: React.PointerEvent) { e.stopPropagation(); this._showMore = !this._showMore; }
 
@@ -108,9 +110,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         document.removeEventListener("pointerup", this.onLinkButtonUp);
         document.addEventListener("pointerup", this.onLinkButtonUp);
 
-        //if (this._editRef && this._editRef.current?.contains(e.target as any)) {
-        LinkDocPreview.LinkInfo = undefined;
-        //}
+        if (this._buttonRef && this._buttonRef.current?.contains(e.target as any)) {
+            LinkDocPreview.LinkInfo = undefined;
+        }
     }
 
     onLinkButtonUp = (e: PointerEvent): void => {
@@ -163,7 +165,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
-                    <div ref={this._drag} className="linkMenu-name" title="drag to view target. click to customize."
+                    <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
                         onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
                         onPointerEnter={action(e => this.props.linkDoc && (LinkDocPreview.LinkInfo = {
                             addDocTab: this.props.addDocTab,
@@ -173,11 +175,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         }))}
                         onPointerDown={this.onLinkButtonDown}>
                         <p >{StrCast(this.props.destinationDoc.title)}</p>
-                        <div className="linkMenu-item-buttons" ref={this._editRef} >
+                        <div className="linkMenu-item-buttons" ref={this._buttonRef} >
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div> */}
+                            {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
+                                <FontAwesomeIcon className="fa-icon" icon="pencil-alt" size="sm" /></div> */}
                             <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
                                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
