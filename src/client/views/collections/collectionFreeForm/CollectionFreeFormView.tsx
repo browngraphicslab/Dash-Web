@@ -48,6 +48,7 @@ import { SnappingManager } from "../../../util/SnappingManager";
 import { InkingStroke, ActiveArrowStart, ActiveArrowEnd, ActiveInkColor, ActiveFillColor, ActiveInkWidth, ActiveInkBezierApprox, ActiveDash } from "../../InkingStroke";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
+import { MainView } from "../../MainView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -248,6 +249,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else {
             const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             this.props.addDocument(source);
+            MainView.popupX = xp;
+            MainView.popupY = yp;
+            runInAction(() => { MainView.linkCreated = true; });
+            runInAction(() => { setTimeout(function () { runInAction(() => MainView.linkCreated = false); }, 2500); });
             linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
             e.stopPropagation();
             return true;

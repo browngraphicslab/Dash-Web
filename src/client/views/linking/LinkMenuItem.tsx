@@ -97,6 +97,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         return (<div className="link-metadata">{mdRows}</div>);
     }
 
+    @action
     onLinkButtonDown = (e: React.PointerEvent): void => {
         this._downX = e.clientX;
         this._downY = e.clientY;
@@ -106,6 +107,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         document.addEventListener("pointermove", this.onLinkButtonMoved);
         document.removeEventListener("pointerup", this.onLinkButtonUp);
         document.addEventListener("pointerup", this.onLinkButtonUp);
+
+        //if (this._editRef && this._editRef.current?.contains(e.target as any)) {
+        LinkDocPreview.LinkInfo = undefined;
+        //}
     }
 
     onLinkButtonUp = (e: PointerEvent): void => {
@@ -168,14 +173,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         }))}
                         onPointerDown={this.onLinkButtonDown}>
                         <p >{StrCast(this.props.destinationDoc.title)}</p>
-                        <div className="linkMenu-item-buttons">
+                        <div className="linkMenu-item-buttons" ref={this._editRef} >
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
                             {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div> */}
-                            <div title="Delete link" className="button" ref={this._editRef} onPointerDown={this.deleteLink}>
+                            <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
                                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
-                            <div title="Follow link" className="button" onClick={e => this.followDefault()} onContextMenu={this.onContextMenu}>
+                            <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
                             </div>
                         </div>

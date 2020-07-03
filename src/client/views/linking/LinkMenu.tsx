@@ -10,6 +10,7 @@ import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 
 library.add(faTrash);
 
@@ -28,6 +29,9 @@ export class LinkMenu extends React.Component<Props> {
 
     @action
     onClick = (e: PointerEvent) => {
+
+        LinkDocPreview.LinkInfo = undefined;
+
         if (this._linkMenuRef?.contains(e.target as any)) {
             DocumentLinksButton.EditLink = undefined;
         }

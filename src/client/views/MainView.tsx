@@ -84,6 +84,8 @@ export class MainView extends React.Component {
     public isPointerDown = false;
 
     @observable public static linkCreated: boolean = false;
+    @observable public static popupX: number = 600;
+    @observable public static popupY: number = 250;
 
 
     componentDidMount() {
@@ -614,15 +616,18 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
-            {MainView.linkCreated ? <div className="mainView-linkCreated" style={{
-                border: "2px solid red", top: screenTop / 2,
-                left: screenLeft / 2, width: "50px", height: "20px", zIndex: 10000,
-                fontSize: "12px"
-            }}>
-                {/* <Fade in={MainView.linkCreated}> */}
-                link created!
-                {/* </Fade> */}
-            </div> : null}
+
+            <Fade in={MainView.linkCreated}>
+                <div style={{
+                    border: "1px solid rgb(111, 144, 175)", top: MainView.popupX ? MainView.popupX : 600
+                    , position: "absolute",
+                    left: MainView.popupY ? MainView.popupY : 250
+                    , width: "auto", height: "auto", zIndex: 10000,
+                    fontSize: "13px", whiteSpace: "nowrap", backgroundColor: "rgb(170, 205, 238)",
+                    padding: "5px", //fontWeight: "bold"
+                }}>Link Created</div>
+            </Fade>
+
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
