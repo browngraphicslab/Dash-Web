@@ -150,9 +150,9 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     })}
                 </div>
                 {DocumentLinksButton.StartLink ? <span style={{
-                    background: backgroundColor === color ? "black" : backgroundColor, paddingRight: "5px",
+                    background: backgroundColor === color ? "black" : backgroundColor, paddingRight: "10px",
                     height: 30, transform: "translate3d(6px, 5px, 0px)",
-                    paddingTop: "3px",
+                    paddingTop: "5px",
                     //textAlign: "center"
                 }}
                     onPointerDown={e => e.stopPropagation()} >
@@ -160,12 +160,24 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         display: "inline",
                         whiteSpace: "nowrap",
                         paddingLeft: "8px",
+                        paddingRight: "4px",
                         verticalAlign: "middle"
                     }}>
                         Creating link from: {DocumentLinksButton.StartLink.title} </span>
+                    <span onClick={this.exitLongLinks}
+                        style={{
+                            display: "inline",
+                            whiteSpace: "nowrap",
+                            paddingLeft: "8px",
+                            paddingRight: "8px",
+                            verticalAlign: "middle",
+                            backgroundColor: "lightgrey",
+                            borderRadius: "10px",
+                            color: "black"
+                        }}>Exit</span>
 
-                    <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
-                        onClick={this.exitLongLinks} />
+                    {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
+                        onClick={this.exitLongLinks} /> */}
 
                 </span> : null}
             </div>
