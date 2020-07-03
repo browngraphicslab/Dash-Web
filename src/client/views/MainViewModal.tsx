@@ -22,7 +22,6 @@ export default class MainViewModal extends React.Component<MainViewOverlayProps>
                 <div
                     className={"dialogue-box"}
                     style={{
-                        backgroundColor: "gainsboro",
                         borderColor: "black",
                         ...(p.dialogueBoxStyle || {}),
                         opacity: p.isDisplayed ? dialogueOpacity : 0

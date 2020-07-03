@@ -31,7 +31,7 @@ export namespace DocServer {
 
     export enum WriteMode {
         Default = 0, //Anything goes
-        Playground = 1, //Playground (write own/no read)
+        Playground = 1, //Playground (write own/no read other updates)
         LiveReadonly = 2,//Live Readonly (no write/read others)
         LivePlayground = 3,//Live Playground (write own/read others)
     }

@@ -7,7 +7,7 @@ import { Doc, DocListCast, Opt, DocListCastAsync } from "../../fields/Doc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { User } from "./SharingManager";
+import SharingManager, { User } from "./SharingManager";
 import { Utils } from "../../Utils";
 import * as RequestPromise from "request-promise";
 import Select from 'react-select';
@@ -203,6 +203,7 @@ export default class GroupManager extends React.Component<{}> {
                 // TODO look at this later
                 // SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
+                SharingManager.Instance.removeGroup(group);
                 if (group === this.currentGroup) {
                     runInAction(() => this.currentGroup = undefined);
                 }
@@ -222,6 +223,7 @@ export default class GroupManager extends React.Component<{}> {
             const memberList: string[] = JSON.parse(StrCast(groupDoc.members));
             !memberList.includes(email) && memberList.push(email);
             groupDoc.members = JSON.stringify(memberList);
+            SharingManager.Instance.shareWithAddedMember(groupDoc, email);
         }
     }
 
@@ -234,8 +236,11 @@ export default class GroupManager extends React.Component<{}> {
         if (this.hasEditAccess(groupDoc)) {
             const memberList: string[] = JSON.parse(StrCast(groupDoc.members));
             const index = memberList.indexOf(email);
-            index !== -1 && memberList.splice(index, 1);
-            groupDoc.members = JSON.stringify(memberList);
+            if (index !== -1) {
+                const user = memberList.splice(index, 1)[0];
+                groupDoc.members = JSON.stringify(memberList);
+                SharingManager.Instance.removeMember(groupDoc, email);
+            }
         }
     }
 
