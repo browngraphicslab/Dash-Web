@@ -152,7 +152,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 {DocumentLinksButton.StartLink ? <span style={{
                     background: backgroundColor === color ? "black" : backgroundColor, paddingRight: "10px",
                     height: 30, transform: "translate3d(6px, 5px, 0px)",
-                    paddingTop: "5px",
+                    paddingTop: "4.5px",
                     //textAlign: "center"
                 }}
                     onPointerDown={e => e.stopPropagation()} >
@@ -172,7 +172,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                             paddingRight: "8px",
                             verticalAlign: "middle",
                             backgroundColor: "lightgrey",
-                            borderRadius: "10px",
+                            borderRadius: "5.5px",
                             color: "black"
                         }}>Exit</span>
 
