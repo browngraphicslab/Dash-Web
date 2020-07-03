@@ -150,10 +150,13 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     })}
                 </div>
                 {DocumentLinksButton.StartLink ? <span style={{
-                    background: backgroundColor === color ? "black" : backgroundColor, paddingRight: "10px",
-                    height: 30, transform: "translate3d(6px, 5px, 0px)",
-                    paddingTop: "4.5px",
-                    //textAlign: "center"
+                    background: backgroundColor === color ? "black" : backgroundColor,
+                    paddingRight: "14px",
+                    height: "35",
+                    transform: "translate3d(6px, 5px, 0px)",
+                    paddingTop: "6.5px",
+                    paddingBottom: "7px",
+                    paddingLeft: "5px"
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span style={{
@@ -161,7 +164,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         whiteSpace: "nowrap",
                         paddingLeft: "8px",
                         paddingRight: "4px",
-                        verticalAlign: "middle"
+                        verticalAlign: "middle",
+                        fontSize: "12.5px"
                     }}>
                         Creating link from: {DocumentLinksButton.StartLink.title} </span>
                     <span onClick={this.exitLongLinks}
