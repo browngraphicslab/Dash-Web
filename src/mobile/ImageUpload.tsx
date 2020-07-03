@@ -172,6 +172,7 @@ export class Uploader extends React.Component<ImageUploadProps> {
                 interactive={true}
                 dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
                 overlayDisplayedOpacity={this.overlayOpacity}
+                closeOnExternalClick={this.closeUpload}
             />
         );
     }

@@ -68,6 +68,7 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
             isDisplayed={true}
             interactive={true}
             contents={this.editingInterface}
+            closeOnExternalClick={this.props.onCloseButtonClick}
         />;
     }
 

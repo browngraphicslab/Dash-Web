@@ -157,6 +157,7 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                 contents={this.renderPrompt}
                 overlayDisplayedOpacity={0.9}
                 dialogueBoxStyle={this.dialogueBoxStyle}
+                closeOnExternalClick={() => this.isOpen = false}
             />
         );
     }

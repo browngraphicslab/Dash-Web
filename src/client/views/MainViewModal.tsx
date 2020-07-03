@@ -1,5 +1,8 @@
 import * as React from 'react';
 import "./MainViewModal.scss";
+import { Opt } from '../../fields/Doc';
+import { Lambda, reaction } from 'mobx';
+import { observer } from 'mobx-react';
 
 export interface MainViewOverlayProps {
     isDisplayed: boolean;
@@ -9,9 +12,40 @@ export interface MainViewOverlayProps {
     overlayStyle?: React.CSSProperties;
     dialogueBoxDisplayedOpacity?: number;
     overlayDisplayedOpacity?: number;
+    closeOnExternalClick?: () => void;
 }
 
+@observer
 export default class MainViewModal extends React.Component<MainViewOverlayProps> {
+
+    private ref: React.RefObject<HTMLDivElement> = React.createRef();
+    private displayedListenerDisposer: Opt<Lambda>;
+
+    componentDidMount() {
+
+        document.removeEventListener("click", this.close);
+
+        this.displayedListenerDisposer = reaction(() => this.props.isDisplayed, (isDisplayed) => {
+            if (isDisplayed) document.addEventListener("click", this.close);
+            else document.removeEventListener("click", this.close);
+        });
+    }
+
+    componentWillUnmount() {
+        this.displayedListenerDisposer?.();
+        document.removeEventListener("click", this.close);
+    }
+
+    close = (e: MouseEvent) => {
+
+        const { left, right, top, bottom } = this.ref.current!.getBoundingClientRect();
+
+        if (e.clientX === 0 && e.clientY === 0) return; // why does this happen?
+        if (e.clientX < left || e.clientX > right || e.clientY > bottom || e.clientY < top) {
+            this.props.closeOnExternalClick?.();
+        }
+
+    }
 
     render() {
         const p = this.props;
@@ -26,6 +60,7 @@ export default class MainViewModal extends React.Component<MainViewOverlayProps>
                         ...(p.dialogueBoxStyle || {}),
                         opacity: p.isDisplayed ? dialogueOpacity : 0
                     }}
+                    ref={this.ref}
                 >{p.contents}</div>
                 <div
                     className={"overlay"}

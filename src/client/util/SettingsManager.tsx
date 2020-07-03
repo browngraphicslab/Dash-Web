@@ -134,6 +134,7 @@ export default class SettingsManager extends React.Component<{}> {
                 interactive={true}
                 dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
                 overlayDisplayedOpacity={this.overlayOpacity}
+                closeOnExternalClick={this.close}
             />
         );
     }
