@@ -1,4 +1,4 @@
-import { runInAction } from "mobx";
+import { runInAction, action } from "mobx";
 import { extname, basename } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
@@ -866,6 +866,7 @@ export namespace DocUtils {
     export function MakeLinkToActiveAudio(doc: Doc) {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
+
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
@@ -877,6 +878,7 @@ export namespace DocUtils {
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
+
         return linkDoc;
     }
 

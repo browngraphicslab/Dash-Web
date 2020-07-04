@@ -79,7 +79,15 @@ export default class KeyManager {
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
+                // if (DocumentLinksButton.StartLink) {
+                //     if (DocumentLinksButton.StartLink.Document) {
+                //         action((e: React.PointerEvent<HTMLDivElement>) => {
+                //             Doc.UnBrushDoc(DocumentLinksButton.StartLink?.Document as Doc);
+                //         });
+                //     }
+                // }
                 DocumentLinksButton.StartLink = undefined;
+
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);
                 var doDeselect = true;
