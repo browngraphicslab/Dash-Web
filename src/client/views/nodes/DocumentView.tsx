@@ -740,7 +740,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: "make hypothesis link", event: () => {
                 const docUrl = Utils.prepend("/doc/" + this.props.Document[Id]);
-                document.dispatchEvent(new CustomEvent("hypothesisLink", { detail: docUrl }));
+                const docTitle = StrCast(this.layoutDoc.title);
+                document.dispatchEvent(new CustomEvent<{ url: string, title: string }>("hypothesisLink", {
+                    detail: { url: docUrl, title: docTitle },
+                    bubbles: true
+                }));
             }, icon: "eye"
         });
 
