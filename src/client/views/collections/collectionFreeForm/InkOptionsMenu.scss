@@ -9,7 +9,6 @@
         height: 100%;
     }
 
-
 }
 
 .sketch-picker {
@@ -36,6 +35,44 @@
         background: #323232;
         display: block;
 
+    }
+}
 
+@media only screen and (max-device-width: 480px) {
+    .antimodeMenu-button {
+        font-size: 50%;
+
+        .color-preview {
+            width: 100%;
+            height: 100%;
+        }
+
+    }
+
+    .sketch-picker {
+        background: #323232;
+
+        .flexbox-fit {
+            background: #323232;
+        }
+    }
+
+    .btn-group {
+        display: grid;
+        grid-template-columns: auto auto;
+        /* Make the buttons appear below each other */
+    }
+
+    .btn2-group {
+        display: block;
+        background: #323232;
+        grid-template-columns: auto;
+
+        /* Make the buttons appear below each other */
+        .antimodeMenu-button {
+            background: #323232;
+            display: block;
+            font-size: 50%;
+        }
     }
 }

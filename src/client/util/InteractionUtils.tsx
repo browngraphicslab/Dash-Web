@@ -27,7 +27,7 @@ export namespace InteractionUtils {
     export interface MultiTouchEventDisposer { (): void; }
 
     /**
-     * 
+     *
      * @param element - element to turn into a touch target
      * @param startFunc - event handler, typically Touchable.onTouchStart (classes that inherit touchable can pass in this.onTouchStart)
      */
@@ -278,8 +278,8 @@ export namespace InteractionUtils {
 
     /**
      * Returns euclidean distance between two points
-     * @param pt1 
-     * @param pt2 
+     * @param pt1
+     * @param pt2
      */
     export function TwoPointEuclidist(pt1: React.Touch, pt2: React.Touch): number {
         return Math.sqrt(Math.pow(pt1.clientX - pt2.clientX, 2) + Math.pow(pt1.clientY - pt2.clientY, 2));

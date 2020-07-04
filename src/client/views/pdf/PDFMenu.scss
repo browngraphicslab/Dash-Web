@@ -4,3 +4,22 @@
     padding: 5px;
     grid-template-columns: 90px 20px 90px;
 }
+
+.color-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
+    button.color-button {
+        width: 20px;
+        height: 20px;
+        border-radius: 15px !important;
+        margin: 3px;
+        border: 2px solid transparent !important;
+        padding: 3px;
+
+        &.active {
+            border: 2px solid white;
+        }
+    }
+}

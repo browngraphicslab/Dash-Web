@@ -5,7 +5,6 @@ import { Doc } from "../../fields/Doc";
 import { InkData, InkTool } from "../../fields/InkField";
 import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
-import MobileInterface from "../../mobile/MobileInterface";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
 import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from "../../Utils";
@@ -112,7 +111,7 @@ export default class GestureOverlay extends Touchable {
     onReactTouchStart = (te: React.TouchEvent) => {
         document.removeEventListener("touchmove", this.onReactHoldTouchMove);
         document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-        if (RadialMenu.Instance._display === true) {
+        if (RadialMenu.Instance?._display === true) {
             te.preventDefault();
             te.stopPropagation();
             RadialMenu.Instance.closeMenu();
@@ -162,8 +161,8 @@ export default class GestureOverlay extends Touchable {
                 // -- radial menu code --
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
-                    const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    const pt: any = te.touches[te.touches.length - 1];
+                    const target = document.elementFromPoint(te.changedTouches?.item(0).clientX, te.changedTouches?.item(0).clientY);
+                    const pt: any = te.touches[te.touches?.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
@@ -580,14 +579,6 @@ export default class GestureOverlay extends Touchable {
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
             //push first points to so interactionUtil knows pointer is up
             this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
-            if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
-                DocServer.Mobile.dispatchGesturePoints({
-                    points: this._points,
-                    bounds: B,
-                    color: ActiveInkColor(),
-                    width: ActiveInkWidth()
-                });
-            }
 
             const initialPoint = this._points[0.];
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);
@@ -725,7 +716,7 @@ export default class GestureOverlay extends Touchable {
         this._points = [];
         switch (shape) {
             //must push an extra point in the end so InteractionUtils knows pointer is up.
-            //must be (points[0].X,points[0]-1) 
+            //must be (points[0].X,points[0]-1)
             case "rectangle":
                 this._points.push({ X: left, Y: top });
                 this._points.push({ X: right, Y: top });
@@ -912,7 +903,7 @@ export default class GestureOverlay extends Touchable {
     }
 }
 
-// export class 
+// export class
 
 export enum ToolglassTools {
     InkToText = "inktotext",

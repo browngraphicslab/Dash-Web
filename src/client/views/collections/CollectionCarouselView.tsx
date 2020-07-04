@@ -87,7 +87,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!e.isPropagationStopped()) {
-            ContextMenu.Instance.addItem({
+            ContextMenu.Instance?.addItem({
                 description: "Make Hero Image", event: () => {
                     const index = NumCast(this.layoutDoc._itemIndex);
                     (this.dataDoc || Doc.GetProto(this.props.Document)).hero = ObjectField.MakeCopy(this.childLayoutPairs[index].layout.data as ObjectField);

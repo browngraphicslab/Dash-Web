@@ -29,7 +29,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -42,7 +41,7 @@ import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
-import { HypothesisApi } from '../../apis/hypothesis/HypothesisApiUtils';
+import { MobileInterface } from '../../../mobile/MobileInterface';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -182,10 +181,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
         RadialMenu.Instance.openMenu(pt.pageX - 15, pt.pageY - 15);
 
-        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "layer-group", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "folder", selected: -1 });
+        // RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "external-link-square-alt", selected: -1 });
+        // RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Pin", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Open", event: () => MobileInterface.Instance.handleClick(this.props.Document), icon: "trash", selected: -1 });
 
         SelectionManager.DeselectAll();
     }
@@ -346,12 +346,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     followLinkClick = async (altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
-        // open up target if it's not already in view ... 
+        // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
             const targetFocusAfterDocFocus = () => {
                 const where = StrCast(this.Document.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 this.props.addDocTab(doc, where) && this.props.focus(doc, BoolCast(this.Document.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
@@ -725,23 +725,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 return;
             }
             e.persist();
-            e?.stopPropagation();
+            e.stopPropagation();
 
-            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
-                e.isDefaultPrevented()) {
-                e.preventDefault();
+            if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3 ||
+                e?.isDefaultPrevented()) {
+                e?.preventDefault();
                 return;
             }
             e.preventDefault();
         }
 
         const cm = ContextMenu.Instance;
+        if (!cm) return;
 
         cm.addItem({
             description: "make hypothesis link", event: () => {
                 const docUrl = Utils.prepend("/doc/" + this.props.Document[Id]);
                 const docTitle = StrCast(this.layoutDoc.title);
-                document.dispatchEvent(new CustomEvent<{ url: string, title: string }>("hypothesisLink", {
+                document.dispatchEvent(new CustomEvent<{ url: string, title: string }>("linkRequest", {
                     detail: { url: docUrl, title: docTitle },
                     bubbles: true
                 }));
@@ -887,7 +888,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
             }
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            cm.displayMenu(e.pageX - 15, e.pageY - 15);
             !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
         });
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
@@ -955,7 +956,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         recommendations.documentIconHeight = 150;
         recommendations.sourceDoc = this.props.Document;
         recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
-        CollectionDockingView.AddRightSplit(recommendations, undefined);
+        this.props.addDocTab(recommendations, "onRight");
 
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
@@ -987,13 +988,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             body.href = urls[i];
             bodies.push(body);
         }
-        CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        this.props.addDocTab(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), "onRight");
         this._showKPQuery = true;
         this._queries = kps.toString();
     }
 
     // does Document set a layout prop
-    // does Document set a layout prop 
+    // does Document set a layout prop
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
     getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
