@@ -7,34 +7,66 @@
     user-select: none;
 }
 
-.linkEditor-back {
+.linkEditor-button-back {
     margin-bottom: 6px;
+    border-radius: 10px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
 }
 
 .linkEditor-info {
-    border-bottom: 0.5px solid $light-color-secondary; 
-    padding-bottom: 6px;
-    margin-bottom: 6px;
+    //border-bottom: 0.5px solid $light-color-secondary;
+    padding-bottom: 4px;
+    padding-top: 5px;
+    padding-left: 5px;
+    //margin-bottom: 6px;
     display: flex;
     justify-content: space-between;
 
     .linkEditor-linkedTo {
         width: calc(100% - 26px);
+        padding-left: 5px;
+        padding-right: 5px
     }
 }
 
-.linkEditor-button, .linkEditor-addbutton {
+.linkEditor-description {
+    padding-left: 6.5px;
+    padding-right: 6.5px;
+    padding-bottom: 3.5px;
+
+    .linkEditor-description-text {
+        text-decoration-color: grey;
+    }
+
+    .linkEditor-description-input {
+        border: 1px solid rgb(114, 162, 179);
+        border-radius: 4px;
+        background-color: lightblue;
+        padding-left: 2px;
+        padding-right: 2px;
+        color: grey;
+        text-decoration-color: grey;
+    }
+}
+
+
+.linkEditor-button,
+.linkEditor-addbutton {
     width: 18px;
     height: 18px;
     padding: 0;
     // font-size: 12px;
     border-radius: 10px;
 
+
     &:disabled {
         background-color: gray;
     }
 }
-.linkEditor-addbutton{
+
+.linkEditor-addbutton {
     margin-left: 0px;
 }
 
@@ -44,7 +76,7 @@
 }
 
 .linkEditor-group {
-    background-color: $light-color-secondary; 
+    background-color: $light-color-secondary;
     padding: 6px;
     margin: 3px 0;
     border-radius: 3px;
@@ -56,7 +88,7 @@
 
     .linkEditor-group-row-label {
         margin-right: 6px;
-        display:inline-block;
+        display: inline-block;
     }
 
     .linkEditor-metadata-row {

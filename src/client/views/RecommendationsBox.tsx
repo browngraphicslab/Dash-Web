@@ -169,7 +169,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                             <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
                                 <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
                             </div>
-                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "Recommender", undefined)}>
+                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "Recommender", "", undefined)}>
                                 <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
                             </div>
                         </div>

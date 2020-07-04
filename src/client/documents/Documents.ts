@@ -94,6 +94,7 @@ export interface DocumentOptions {
     label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
+    description?: string; // added for links
     _viewScale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
@@ -259,7 +260,7 @@ export namespace Docs {
             }],
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
-                options: { _height: 150 }
+                options: { _height: 150, description: "" }
             }],
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
@@ -864,15 +865,15 @@ export namespace DocUtils {
     export let ActiveRecordings: Doc[] = [];
 
     export function MakeLinkToActiveAudio(doc: Doc) {
-        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
+        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "", "audio timeline"));
     }
 
-    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
+    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 

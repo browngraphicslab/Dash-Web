@@ -11,6 +11,8 @@ import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { LinkCreatedBox } from "./LinkCreatedBox";
+import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
+import { LinkManager } from "../../util/LinkManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -54,6 +56,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         return false;
     }
 
+
     onLinkButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
             if (doubleTap && this.props.InMenu) {
@@ -87,15 +90,22 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     //     Doc.UnBrushDoc(this.props.View.Document);
                     // });
                 } else {
-                    DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
-                        DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
 
-                    runInAction(() => {
-                        LinkCreatedBox.popupX = e.screenX;
-                        LinkCreatedBox.popupY = e.screenY - 120;
-                        LinkCreatedBox.linkCreated = true;
-                        setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-                    });
+                    if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
+                        const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                        LinkManager.currentLink = linkDoc;
+                        runInAction(() => {
+                            LinkCreatedBox.popupX = e.screenX;
+                            LinkCreatedBox.popupY = e.screenY - 33;
+                            LinkCreatedBox.linkCreated = true;
+
+                            LinkDescriptionPopup.popupX = e.screenX;
+                            LinkDescriptionPopup.popupY = e.screenY;
+                            LinkDescriptionPopup.descriptionPopup = true;
+
+                            setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                        });
+                    }
                 }
             }
         }));
@@ -109,15 +119,21 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             //     Doc.UnBrushDoc(this.props.View.Document);
             // });
         } else {
-            DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
-                DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+            if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
+                const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                LinkManager.currentLink = linkDoc;
+                runInAction(() => {
+                    LinkCreatedBox.popupX = e.screenX;
+                    LinkCreatedBox.popupY = e.screenY - 33;
+                    LinkCreatedBox.linkCreated = true;
 
-            runInAction(() => {
-                LinkCreatedBox.popupX = e.screenX;
-                LinkCreatedBox.popupY = e.screenY - 120;
-                LinkCreatedBox.linkCreated = true;
-                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-            });
+                    LinkDescriptionPopup.popupX = e.screenX;
+                    LinkDescriptionPopup.popupY = e.screenY;
+                    LinkDescriptionPopup.descriptionPopup = true;
+
+                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                });
+            }
         }
     }
 
