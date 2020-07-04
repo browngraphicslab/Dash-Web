@@ -55,6 +55,7 @@ export default class RichTextMenu extends AntimodeMenu {
     @observable private activeFontSize: string = "";
     @observable private activeFontFamily: string = "";
     @observable private activeListType: string = "";
+    @observable private activeAlignment: string = "left";
 
     @observable private brushIsEmpty: boolean = true;
     @observable private brushMarks: Set<Mark> = new Set();
@@ -91,7 +92,7 @@ export default class RichTextMenu extends AntimodeMenu {
             { mark: schema.marks.pFontSize.create({ fontSize: 32 }), title: "Set font size", label: "32pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 48 }), title: "Set font size", label: "48pt", command: this.changeFontSize },
             { mark: schema.marks.pFontSize.create({ fontSize: 72 }), title: "Set font size", label: "72pt", command: this.changeFontSize },
-            { mark: null, title: "", label: "various", command: unimplementedFunction, hidden: true },
+            { mark: null, title: "", label: "...", command: unimplementedFunction, hidden: true },
             { mark: null, title: "", label: "13pt", command: unimplementedFunction, hidden: true }, // this is here because the default size is 13, but there is no actual 13pt option
         ];
 
@@ -110,7 +111,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this.listTypeOptions = [
             { node: schema.nodes.ordered_list.create({ mapStyle: "bullet" }), title: "Set list type", label: ":", command: this.changeListType },
             { node: schema.nodes.ordered_list.create({ mapStyle: "decimal" }), title: "Set list type", label: "1.1", command: this.changeListType },
-            { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "1.A", command: this.changeListType },
+            { node: schema.nodes.ordered_list.create({ mapStyle: "multi" }), title: "Set list type", label: "A.1", command: this.changeListType },
             //{ node: undefined, title: "Set list type", label: "Remove", command: this.changeListType },
         ];
 
@@ -178,11 +179,13 @@ export default class RichTextMenu extends AntimodeMenu {
 
         // update active font family and size
         const active = this.getActiveFontStylesOnSelection();
-        const activeFamilies = active?.get("families");
-        const activeSizes = active?.get("sizes");
+        const activeFamilies = active.activeFamilies;
+        const activeSizes = active.activeSizes;
 
-        this.activeFontFamily = !activeFamilies?.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
-        this.activeFontSize = !activeSizes?.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "various";
+        this.activeListType = this.getActiveListStyle();
+        this.activeAlignment = this.getActiveAlignment();
+        this.activeFontFamily = !activeFamilies.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
+        this.activeFontSize = !activeSizes.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
 
         // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
@@ -213,8 +216,34 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     // finds font sizes and families in selection
+    getActiveAlignment() {
+        if (this.view) {
+            const path = (this.view.state.selection.$from as any).path;
+            for (let i = path.length - 3; i < path.length; i -= 3) {
+                if (path[i]?.type === this.view.state.schema.nodes.paragraph) {
+                    return path[i].attrs.align || "left";
+                }
+            }
+        }
+        return "left";
+    }
+
+    // finds font sizes and families in selection
+    getActiveListStyle() {
+        if (this.view) {
+            const path = (this.view.state.selection.$from as any).path;
+            for (let i = 0; i < path.length; i += 3) {
+                if (path[i].type === this.view.state.schema.nodes.ordered_list) {
+                    return path[i].attrs.mapStyle;
+                }
+            }
+        }
+        return "decimal";
+    }
+
+    // finds font sizes and families in selection
     getActiveFontStylesOnSelection() {
-        if (!this.view) return;
+        if (!this.view) return { activeFamilies: [], activeSizes: [] };
 
         const activeFamilies: string[] = [];
         const activeSizes: string[] = [];
@@ -228,10 +257,7 @@ export default class RichTextMenu extends AntimodeMenu {
             });
         }
 
-        const styles = new Map<String, String[]>();
-        styles.set("families", activeFamilies);
-        styles.set("sizes", activeSizes);
-        return styles;
+        return { activeFamilies, activeSizes };
     }
 
     getMarksInSelection(state: EditorState<any>) {
@@ -354,7 +380,8 @@ export default class RichTextMenu extends AntimodeMenu {
         return <select onChange={onChange} key={key}>{items}</select>;
     }
 
-    createNodesDropdown(activeOption: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[], key: string): JSX.Element {
+    createNodesDropdown(activeMap: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[], key: string): JSX.Element {
+        const activeOption = activeMap === "bullet" ? ":" : activeMap === "decimal" ? "1.1" : "A.1";
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
@@ -871,9 +898,9 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createLinkButton(),
             this.createBrushButton(),
             <div className="richTextMenu-divider" />,
-            this.createButton("align-left", "Align Left", undefined, this.alignLeft),
-            this.createButton("align-center", "Align Center", undefined, this.alignCenter),
-            this.createButton("align-right", "Align Right", undefined, this.alignRight),
+            this.createButton("align-left", "Align Left", this.activeAlignment === "left", this.alignLeft),
+            this.createButton("align-center", "Align Center", this.activeAlignment === "center", this.alignCenter),
+            this.createButton("align-right", "Align Right", this.activeAlignment === "right", this.alignRight),
             this.createButton("indent", "Inset More", undefined, this.insetParagraph),
             this.createButton("outdent", "Inset Less", undefined, this.outsetParagraph),
             this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
