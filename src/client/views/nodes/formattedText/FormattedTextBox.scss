@@ -305,9 +305,9 @@ footnote::after {
     ol {
         font-family: inherit;
     }
-    .bullet {  p {display: inline-block; font-family: inherit} margin-left: 0; }
-    .bullet1 { p {display: inline-block; font-family: inherit} }
-    .bullet2,.bullet3,.bullet4,.bullet5,.bullet6 { p {display: inline-block; font-family: inherit} font-size: smaller; }
+    .bullet {  p { font-family: inherit} margin-left: 0; }
+    .bullet1 { p { font-family: inherit} }
+    .bullet2,.bullet3,.bullet4,.bullet5,.bullet6 { p { font-family: inherit} font-size: smaller; }
 
     .decimal1-ol { counter-reset: deci1; p {display: inline-block; font-family: inherit} margin-left: 0; }
     .decimal2-ol { counter-reset: deci2; p {display: inline-block; font-family: inherit} font-size: smaller; padding-left: 2.1em;}
@@ -322,7 +322,7 @@ footnote::after {
     .multi3-ol { counter-reset: multi3; p {display: inline-block; font-family: inherit} font-size: smaller; padding-left: 2.85em;}
     .multi4-ol { counter-reset: multi4; p {display: inline-block; font-family: inherit} font-size: smaller; padding-left: 3.85em;}
 
-    .bullet:before, .bullet1:before, .bullet2:before, .bullet3:before, .bullet4:before, .bullet5:before { transition: 0.5s; display: inline-block; vertical-align: top; margin-left: -1em; width: 1em; content:" " }
+    //.bullet:before, .bullet1:before, .bullet2:before, .bullet3:before, .bullet4:before, .bullet5:before { transition: 0.5s; display: inline-block; vertical-align: top; margin-left: -1em; width: 1em; content:" " }
 
     .decimal1:before { transition: 0.5s;counter-increment: deci1; display: inline-block; vertical-align: top; margin-left: -1em;   width:  1em;   content: counter(deci1) ". ";  }
     .decimal2:before { transition: 0.5s;counter-increment: deci2; display: inline-block; vertical-align: top; margin-left: -2.1em; width: 2.1em;  content: counter(deci1) "."counter(deci2) ". ";  }
