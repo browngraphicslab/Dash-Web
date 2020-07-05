@@ -1,53 +1,51 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
+import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, _allowStateChangesInsideComputed, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../fields/Doc";
-import { documentSchema, collectionSchema } from "../../../../fields/documentSchemas";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
+import { collectionSchema, documentSchema } from "../../../../fields/documentSchemas";
 import { Id } from "../../../../fields/FieldSymbols";
-import { InkData, InkField, InkTool, PointData } from "../../../../fields/InkField";
+import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
-import { createSchema, listSpec, makeInterface } from "../../../../fields/Schema";
-import { ScriptField, ComputedField } from "../../../../fields/ScriptField";
+import { createSchema, makeInterface } from "../../../../fields/Schema";
+import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnOne, Utils, returnZero, returnFalse, numberRange } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
+import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
 import { InteractionUtils } from "../../../util/InteractionUtils";
 import { SelectionManager } from "../../../util/SelectionManager";
+import { SnappingManager } from "../../../util/SnappingManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
+import { Timeline } from "../../animationtimeline/Timeline";
 import { ContextMenu } from "../../ContextMenu";
-import { ContextMenuProps } from "../../ContextMenuItem";
+import { ActiveArrowEnd, ActiveArrowStart, ActiveDash, ActiveFillColor, ActiveInkBezierApprox, ActiveInkColor, ActiveInkWidth } from "../../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentViewProps, DocumentView } from "../../nodes/DocumentView";
+import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
+import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
-import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionDockingView } from "../CollectionDockingView";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult, computerStarburstLayout, computerPassLayout } from "./CollectionFreeFormLayoutEngines";
+import { CollectionViewType } from "../CollectionView";
+import { computePivotLayout, computerPassLayout, computerStarburstLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { CollectionViewType } from "../CollectionView";
-import { Timeline } from "../../animationtimeline/Timeline";
-import { SnappingManager } from "../../../util/SnappingManager";
-import { InkingStroke, ActiveArrowStart, ActiveArrowEnd, ActiveInkColor, ActiveFillColor, ActiveInkWidth, ActiveInkBezierApprox, ActiveDash } from "../../InkingStroke";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -602,7 +600,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // bcz: theres should be a better way of doing these than referencing these static instances directly
         MarqueeOptionsMenu.Instance?.fadeOut(true);// I think it makes sense for the marquee menu to go away when panned. -syip2
-        PDFMenu.Instance.fadeOut(true);
 
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         this.setPan((this.Document._panX || 0) - dx, (this.Document._panY || 0) - dy, undefined, true);
@@ -870,7 +867,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
         const state = HistoryUtil.getState();
 
-        // TODO This technically isn't correct if type !== "doc", as 
+        // TODO This technically isn't correct if type !== "doc", as
         // currently nothing is done, but we should probably push a new state
         if (state.type === "doc" && this.Document._panX !== undefined && this.Document._panY !== undefined) {
             const init = state.initializers![this.Document[Id]];
@@ -1205,7 +1202,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
-        if (this.props.annotationsKey) return;
+        if (this.props.annotationsKey || !ContextMenu.Instance) return;
 
         const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];

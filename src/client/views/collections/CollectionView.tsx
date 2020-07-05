@@ -12,26 +12,29 @@ import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt 
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
+import { RichTextField } from '../../../fields/RichTextField';
 import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyFilter } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
 import { InteractionUtils } from '../../util/InteractionUtils';
+import { UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
-import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionCarousel3DView } from './CollectionCarousel3DView';
+import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import { CollectionLinearView } from './CollectionLinearView';
 import CollectionMapView from './CollectionMapView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
@@ -43,12 +46,8 @@ import { CollectionStaffView } from './CollectionStaffView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { UndoManager } from '../../util/UndoManager';
-import { RichTextField } from '../../../fields/RichTextField';
-import { TextField } from '../../util/ProsemirrorCopy/prompt';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -139,7 +138,23 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             } else if (this.dataDoc[AclSym] === AclAddonly) {
                 added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
             } else {
-                added.map(doc => doc.context = this.props.Document);
+                added.map(doc => {
+                    const context = Cast(doc.context, Doc, null);
+                    if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG) &&
+                        !DocListCast(doc.links).some(d => d.isPushpin)) {
+                        const pushpin = Docs.Create.FontIconDocument({
+                            icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                            _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                        });
+                        Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin");
+                        const first = DocListCast(pushpin.links).find(d => d instanceof Doc);
+                        first && (first.hidden = true);
+                        pushpinLink && (Doc.GetProto(pushpinLink).isPushpin = true);
+                        doc.displayTimecode = undefined;
+                    }
+                    doc.context = this.props.Document;
+                });
                 added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
                 targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
                 targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
@@ -164,7 +179,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // this is called with the document that was dragged and the collection to move it into.
     // if the target collection is the same as this collection, then the move will be allowed.
     // otherwise, the document being moved must be able to be removed from its container before
-    // moving it into the target.  
+    // moving it into the target.
     @action.bound
     moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
@@ -186,7 +201,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     showIsTagged = () => {
         return (null);
-        // this section would display an icon in the bototm right of a collection to indicate that all 
+        // this section would display an icon in the bototm right of a collection to indicate that all
         // photos had been processed through Google's content analysis API and Google's tags had been
         // assigned to the documents googlePhotosTags field.
         // const children = DocListCast(this.props.Document[this.props.fieldKey]);
@@ -261,7 +276,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
+        const cm = ContextMenu.Instance;
+        if (cm && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
@@ -269,7 +285,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return newRendition;
             }, false);
 
-            const existing = ContextMenu.Instance.findByDescription("Options...");
+            const existing = cm.findByDescription("Options...");
             const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
@@ -280,9 +296,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
+            !existing && cm.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
 
-            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
             const funcs = [
                 { key: "onChildClick", name: "On Child Clicked" },
@@ -298,13 +314,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     icon: "edit",
                     event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
             if (!Doc.UserDoc().noviceMode) {
-                const more = ContextMenu.Instance.findByDescription("More...");
+                const more = cm.findByDescription("More...");
                 const moreItems = more && "subitems" in more ? more.subitems : [];
                 moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
-                !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+                !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
             }
         }
     }
@@ -555,5 +571,3 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         </div>);
     }
 }
-
-

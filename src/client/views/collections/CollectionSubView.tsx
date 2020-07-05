@@ -9,7 +9,6 @@ import { ScriptField } from "../../../fields/ScriptField";
 import { WebField } from "../../../fields/URLField";
 import { Cast, ScriptCast, NumCast, StrCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils, returnFalse, returnEmptyFilter } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Networking } from "../../Network";
@@ -225,7 +224,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document) || de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
                 } else {
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
@@ -238,21 +237,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             return false;
         }
-        readUploadedFileAsText = (inputFile: File) => {
-            const temporaryFileReader = new FileReader();
 
-            return new Promise((resolve, reject) => {
-                temporaryFileReader.onerror = () => {
-                    temporaryFileReader.abort();
-                    reject(new DOMException("Problem parsing input file."));
-                };
-
-                temporaryFileReader.onload = () => {
-                    resolve(temporaryFileReader.result);
-                };
-                temporaryFileReader.readAsText(inputFile);
-            });
-        }
         @undoBatch
         @action
         protected async onExternalDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
@@ -271,8 +256,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             e.stopPropagation();
             e.preventDefault();
-            const { addDocument } = this;
-            if (!addDocument) {
+            if (!this.addDocument) {
                 alert("this.props.addDocument does not exist. Aborting drop operation.");
                 return;
             }
@@ -286,14 +270,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             DocServer.GetRefField(docid).then(f => {
                                 if (f instanceof Doc) {
                                     if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                    (f instanceof Doc) && addDocument(f);
+                                    (f instanceof Doc) && this.addDocument(f);
                                 }
                             });
                         } else {
-                            addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
+                            this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
                     } else if (text) {
-                        addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
+                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
                     }
                     return;
                 }
@@ -313,7 +297,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         if (source.startsWith("http")) {
                             const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                             ImageUtils.ExtractExif(doc);
-                            addDocument(doc);
+                            this.addDocument(doc);
                         }
                         return;
                     } else {
@@ -360,7 +344,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (text) {
                 if (text.includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
                     const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
-                    addDocument(Docs.Create.VideoDocument(url, {
+                    this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
                         _width: 400,
@@ -413,10 +397,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const file = item.getAsFile();
                     file?.type && files.push(file);
 
-                    file?.type === "application/json" && this.readUploadedFileAsText(file).then(result => {
+                    file?.type === "application/json" && Utils.readUploadedFileAsText(file).then(result => {
                         console.log(result);
                         const json = JSON.parse(result as string);
-                        addDocument(Docs.Create.TreeDocument(
+                        this.addDocument(Docs.Create.TreeDocument(
                             json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
                                 const label = Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 });
                                 const proto = Doc.GetProto(label);
@@ -428,38 +412,18 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     });
                 }
             }
-            for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
-                if (result instanceof Error) {
-                    alert(`Upload failed: ${result.message}`);
-                    return;
-                }
-                const full = { ...options, _width: 400, title: name };
-                const pathname = Utils.prepend(result.accessPaths.agnostic.client);
-                const doc = await DocUtils.DocumentFromType(type, pathname, full);
-                if (!doc) {
-                    continue;
-                }
-                const proto = Doc.GetProto(doc);
-                proto.text = result.rawText;
-                proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
-                if (Upload.isImageInformation(result)) {
-                    proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
-                    proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
-                    proto.contentSize = result.contentSize;
-                }
-                generatedDocuments.push(doc);
-            }
+            generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
+                    this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
-                    generatedDocuments.forEach(addDocument);
+                    generatedDocuments.forEach(this.addDocument);
                 }
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                    this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
                 }
             }
             batch.end();

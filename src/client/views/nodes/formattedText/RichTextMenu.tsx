@@ -1,8 +1,8 @@
 import React = require("react");
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faIndent, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
+import { action, observable, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { lift, wrapIn } from "prosemirror-commands";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos } from "prosemirror-model";
@@ -23,9 +23,10 @@ import { updateBullets } from "./ProsemirrorExampleTransfer";
 import "./RichTextMenu.scss";
 import { schema } from "./schema_rts";
 import { TraceMobx } from "../../../../fields/util";
+import { UndoManager } from "../../../util/UndoManager";
 const { toggleMark } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
+library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
 
 
 @observer
@@ -68,6 +69,8 @@ export default class RichTextMenu extends AntimodeMenu {
     @observable private currentLink: string | undefined = "";
     @observable private showLinkDropdown: boolean = false;
 
+    _reaction: IReactionDisposer | undefined;
+    _delayHide = false;
     constructor(props: Readonly<{}>) {
         super(props);
         RichTextMenu.Instance = this;
@@ -138,6 +141,16 @@ export default class RichTextMenu extends AntimodeMenu {
         ];
     }
 
+    componentDidMount() {
+        this._reaction = reaction(() => SelectionManager.SelectedDocuments(),
+            () => this._delayHide && !(this._delayHide = false) && this.fadeOut(true));
+    }
+    componentWillUnmount() {
+        this._reaction?.();
+    }
+
+    public delayHide = () => this._delayHide = true;
+
     @action
     changeView(view: EditorView) {
         this.view = view;
@@ -145,16 +158,6 @@ export default class RichTextMenu extends AntimodeMenu {
 
     update(view: EditorView, lastState: EditorState | undefined) {
         this.updateFromDash(view, lastState, this.editorProps);
-    }
-
-    public MakeLinkToSelection = (linkDocId: string, title: string, location: string, targetDocId: string): string => {
-        if (this.view) {
-            const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, linkId: linkDocId, targetId: targetDocId });
-            this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
-                addMark(this.view.state.selection.from, this.view.state.selection.to, link));
-            return this.view.state.selection.$from.nodeAfter?.text || "";
-        }
-        return "";
     }
 
     @action
@@ -310,8 +313,11 @@ export default class RichTextMenu extends AntimodeMenu {
         function onClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && command && command(self.view.state, self.view.dispatch, self.view);
-            self.view && onclick && onclick(self.view.state, self.view.dispatch, self.view);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => {
+                self.view && command && command(self.view.state, self.view.dispatch, self.view);
+                self.view && onclick && onclick(self.view.state, self.view.dispatch, self.view);
+            }, "rich text menu command");
             self.setActiveMarkButtons(self.getActiveMarksOnSelection());
         }
 
@@ -338,9 +344,10 @@ export default class RichTextMenu extends AntimodeMenu {
         function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
             e.stopPropagation();
             e.preventDefault();
+            self.TextView.endUndoTypingBatch();
             options.forEach(({ label, mark, command }) => {
                 if (e.target.value === label) {
-                    self.view && mark && command(mark, self.view);
+                    UndoManager.RunInBatch(() => self.view && mark && command(mark, self.view), "text mark dropdown");
                 }
             });
         }
@@ -361,9 +368,10 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const self = this;
         function onChange(val: string) {
+            self.TextView.endUndoTypingBatch();
             options.forEach(({ label, node, command }) => {
                 if (val === label) {
-                    self.view && node && command(node);
+                    UndoManager.RunInBatch(() => self.view && node && command(node), "nodes dropdown");
                 }
             });
         }
@@ -412,6 +420,85 @@ export default class RichTextMenu extends AntimodeMenu {
         dispatch?.(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
+    alignCenter = (state: EditorState<any>, dispatch: any) => {
+        return this.alignParagraphs(state, "center", dispatch);
+    }
+    alignLeft = (state: EditorState<any>, dispatch: any) => {
+        return this.alignParagraphs(state, "left", dispatch);
+    }
+    alignRight = (state: EditorState<any>, dispatch: any) => {
+        return this.alignParagraphs(state, "right", dispatch);
+    }
+
+    alignParagraphs(state: EditorState<any>, align: "left" | "right" | "center", dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, align }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+
+    insetParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const inset = (node.attrs.inset ? Number(node.attrs.inset) : 0) + 10;
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+    outsetParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const inset = Math.max(0, (node.attrs.inset ? Number(node.attrs.inset) : 0) - 10);
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+
+    indentParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
+                const indent = !nodeval ? 25 : nodeval < 0 ? 0 : nodeval + 25;
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
+
+    hangingIndentParagraph(state: EditorState<any>, dispatch: any) {
+        var tr = state.tr;
+        state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
+            if (node.type === schema.nodes.paragraph) {
+                const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
+                const indent = !nodeval ? -25 : nodeval > 0 ? 0 : nodeval - 10;
+                tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
+                return false;
+            }
+            return true;
+        });
+        dispatch?.(tr);
+        return true;
+    }
 
     insertBlockquote(state: EditorState<any>, dispatch: any) {
         const path = (state.selection.$from as any).path;
@@ -420,6 +507,11 @@ export default class RichTextMenu extends AntimodeMenu {
         } else {
             wrapIn(schema.nodes.blockquote)(state, dispatch);
         }
+        return true;
+    }
+
+    insertHorizontalRule(state: EditorState<any>, dispatch: any) {
+        dispatch(state.tr.replaceSelectionWith(state.schema.nodes.horizontal_rule.create()).scrollIntoView());
         return true;
     }
 
@@ -439,7 +531,8 @@ export default class RichTextMenu extends AntimodeMenu {
         function onBrushClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.fillBrush(self.view.state, self.view.dispatch);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => self.view && self.fillBrush(self.view.state, self.view.dispatch), "rt brush");
         }
 
         let label = "Stored marks: ";
@@ -506,19 +599,24 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
+    get TextView() { return (this.view as any).TextView as FormattedTextBox; }
 
     createColorButton() {
         const self = this;
         function onColorClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
+            self.TextView.EditorView!.focus();
         }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
             self.setActiveColor(color);
-            self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
+            self.TextView.EditorView!.focus();
         }
 
         const button =
@@ -563,13 +661,15 @@ export default class RichTextMenu extends AntimodeMenu {
         function onHighlightClick(e: React.PointerEvent) {
             e.preventDefault();
             e.stopPropagation();
-            self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch), "rt highligher");
         }
         function changeHighlight(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
             self.setActiveHighlight(color);
-            self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch), "rt highlighter");
         }
 
         const button =
@@ -609,7 +709,8 @@ export default class RichTextMenu extends AntimodeMenu {
         const self = this;
 
         function onLinkChange(e: React.ChangeEvent<HTMLInputElement>) {
-            self.setCurrentLink(e.target.value);
+            self.TextView.endUndoTypingBatch();
+            UndoManager.RunInBatch(() => self.setCurrentLink(e.target.value), "link change");
         }
 
         const link = this.currentLink ? this.currentLink : "";
@@ -636,7 +737,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const node = this.view.state.selection.$from.nodeAfter;
         const link = node && node.marks.find(m => m.type.name === "link");
         if (link) {
-            const href = link.attrs.allHrefs.length > 0 ? link.attrs.allHrefs[0].href : undefined;
+            const href = link.attrs.allLinks.length > 0 ? link.attrs.allLinks[0].href : undefined;
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -671,40 +772,28 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     deleteLink = () => {
-        if (!this.view) return;
-
-        const node = this.view.state.selection.$from.nodeAfter;
-        const link = node && node.marks.find(m => m.type === this.view!.state.schema.marks.link);
-        const href = link!.attrs.allHrefs.length > 0 ? link!.attrs.allHrefs[0].href : undefined;
-        if (href) {
-            if (href.indexOf(Utils.prepend("/doc/")) === 0) {
-                const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                if (linkclicked) {
-                    DocServer.GetRefField(linkclicked).then(async linkDoc => {
-                        if (linkDoc instanceof Doc) {
-                            LinkManager.Instance.deleteLink(linkDoc);
-                            this.view!.dispatch(this.view!.state.tr.removeMark(this.view!.state.selection.from, this.view!.state.selection.to, this.view!.state.schema.marks.link));
-                        }
-                    });
-                }
-            } else {
-                if (node) {
-                    const { tr, schema, selection } = this.view.state;
-                    const extension = this.linkExtend(selection.$anchor, href);
-                    this.view.dispatch(tr.removeMark(extension.from, extension.to, schema.marks.link));
-                }
+        if (this.view) {
+            const link = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.linkAnchor);
+            if (link) {
+                const allLinks = link.attrs.allLinks.slice();
+                this.TextView.RemoveLinkFromSelection(link.attrs.allLinks);
+                // bcz: Argh ... this will remove the link from the document even it's anchored somewhere else in the text which happens if only part of the anchor text was selected.
+                allLinks.filter((aref: any) => aref?.href.indexOf(Utils.prepend("/doc/")) === 0).forEach((aref: any) => {
+                    const linkId = aref.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                    linkId && DocServer.GetRefField(linkId).then(linkDoc => LinkManager.Instance.deleteLink(linkDoc as Doc));
+                });
             }
         }
     }
 
     linkExtend($start: ResolvedPos, href: string) {
-        const mark = this.view!.state.schema.marks.link;
+        const mark = this.view!.state.schema.marks.linkAnchor;
 
         let startIndex = $start.index();
         let endIndex = $start.indexAfter();
 
-        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) startIndex--;
-        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allHrefs.find((item: { href: string }) => item.href === href)).length) endIndex++;
+        while (startIndex > 0 && $start.parent.child(startIndex - 1).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) startIndex--;
+        while (endIndex < $start.parent.childCount && $start.parent.child(endIndex).marks.filter(m => m.type === mark && m.attrs.allLinks.find((item: { href: string }) => item.href === href)).length) endIndex++;
 
         let startPos = $start.start();
         let endPos = startPos;
@@ -744,7 +833,7 @@ export default class RichTextMenu extends AntimodeMenu {
         return ref_node;
     }
 
-    @action onPointerEnter(e: React.PointerEvent) { RichTextMenu.Instance.overMenu = true; }
+    @action onPointerEnter(e: React.PointerEvent) { RichTextMenu.Instance.overMenu = false; }
     @action onPointerLeave(e: React.PointerEvent) { RichTextMenu.Instance.overMenu = false; }
 
     @action
@@ -768,26 +857,41 @@ export default class RichTextMenu extends AntimodeMenu {
         TraceMobx();
         const row1 = <div className="antimodeMenu-row" key="row1" style={{ display: this.collapsed ? "none" : undefined }}>{[
             !this.collapsed ? this.getDragger() : (null),
-            this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
-            this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
-            this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
-            this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
-            this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
-            this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+            !this.Pinned ? (null) : <> {[
+                this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+                this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+                this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+                this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+                this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+                this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+                <div className="richTextMenu-divider" />
+            ]}</>,
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
-            this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
-            this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
+            <div className="richTextMenu-divider" />,
+            this.createButton("align-left", "Align Left", undefined, this.alignLeft),
+            this.createButton("align-center", "Align Center", undefined, this.alignCenter),
+            this.createButton("align-right", "Align Right", undefined, this.alignRight),
+            this.createButton("indent", "Inset More", undefined, this.insetParagraph),
+            this.createButton("outdent", "Inset Less", undefined, this.outsetParagraph),
+            this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
+            this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
             {this.collapsed ? this.getDragger() : (null)}
             <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
+                <div className="richTextMenu-divider" />,
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
-                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes")]}
+                <div className="richTextMenu-divider" />,
+                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes"),
+                this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
+                this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
+                this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
+                <div className="richTextMenu-divider" />,]}
             </div>
             <div key="button">
                 {/* <div key="collapser">
@@ -817,7 +921,7 @@ interface ButtonDropdownProps {
 }
 
 @observer
-class ButtonDropdown extends React.Component<ButtonDropdownProps> {
+export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
 
     @observable private showDropdown: boolean = false;
     private ref: HTMLDivElement | null = null;

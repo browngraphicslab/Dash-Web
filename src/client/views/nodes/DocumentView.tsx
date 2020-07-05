@@ -29,7 +29,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -42,6 +41,8 @@ import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
+import { MobileInterface } from '../../../mobile/MobileInterface';
+import { LinkCreatedBox } from './LinkCreatedBox';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -116,6 +117,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    public get title() { return this.props.Document.title; }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
@@ -181,10 +183,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
         RadialMenu.Instance.openMenu(pt.pageX - 15, pt.pageY - 15);
 
-        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "layer-group", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "folder", selected: -1 });
+        // RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "external-link-square-alt", selected: -1 });
+        // RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Pin", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Open", event: () => MobileInterface.Instance.handleClick(this.props.Document), icon: "trash", selected: -1 });
 
         SelectionManager.DeselectAll();
     }
@@ -345,12 +348,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
     followLinkClick = async (altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
-        // open up target if it's not already in view ... 
+        // open up target if it's not already in view ...
         const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
             const targetFocusAfterDocFocus = () => {
                 const where = StrCast(this.Document.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 this.props.addDocTab(doc, where) && this.props.focus(doc, BoolCast(this.Document.followLinkZoom, true), undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
@@ -639,12 +642,27 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
+            runInAction(() => {
+                LinkCreatedBox.popupX = de.x;
+                LinkCreatedBox.popupY = de.y;
+                LinkCreatedBox.linkCreated = true;
+                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+            });
+
             DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+
+            runInAction(() => {
+                LinkCreatedBox.popupX = de.x;
+                LinkCreatedBox.popupY = de.y;
+                LinkCreatedBox.linkCreated = true;
+                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+            });
+
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
                     { doc: this.props.Document }, `link`)); // TODODO this is where in text links get passed
@@ -724,17 +742,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 return;
             }
             e.persist();
-            e?.stopPropagation();
+            e.stopPropagation();
 
-            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
-                e.isDefaultPrevented()) {
-                e.preventDefault();
+            if (Math.abs(this._downX - e?.clientX) > 3 || Math.abs(this._downY - e?.clientY) > 3 ||
+                e?.isDefaultPrevented()) {
+                e?.preventDefault();
                 return;
             }
             e.preventDefault();
         }
 
         const cm = ContextMenu.Instance;
+        if (!cm) return;
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
@@ -875,7 +894,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
             }
-            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            cm.displayMenu(e.pageX - 15, e.pageY - 15);
             !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
         });
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
@@ -943,7 +962,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         recommendations.documentIconHeight = 150;
         recommendations.sourceDoc = this.props.Document;
         recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
-        CollectionDockingView.AddRightSplit(recommendations, undefined);
+        this.props.addDocTab(recommendations, "onRight");
 
         // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
@@ -975,13 +994,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             body.href = urls[i];
             bodies.push(body);
         }
-        CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        this.props.addDocTab(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), "onRight");
         this._showKPQuery = true;
         this._queries = kps.toString();
     }
 
     // does Document set a layout prop
-    // does Document set a layout prop 
+    // does Document set a layout prop
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
     getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
@@ -1169,8 +1188,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
-        if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
         if (!(this.props.Document instanceof Doc)) return (null);
+        if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
+        if (this.props.Document.hidden) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
@@ -1189,7 +1209,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={action(() => Doc.BrushDoc(this.props.Document))}
+            onPointerEnter={action(() => { Doc.BrushDoc(this.props.Document); })}
             onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
                 let entered = false;
                 const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
@@ -1198,7 +1218,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         entered = true;
                     }
                 }
+                // if (this.props.Document !== DocumentLinksButton.StartLink?.Document) {
                 !entered && Doc.UnBrushDoc(this.props.Document);
+                //}
+
             })}
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,
