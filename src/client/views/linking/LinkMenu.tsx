@@ -26,7 +26,7 @@ interface Props {
 export class LinkMenu extends React.Component<Props> {
 
     @observable private _editingLink?: Doc;
-    @observable private _linkMenuRef: Opt<HTMLDivElement | null>;
+    @observable private _linkMenuRef = React.createRef<HTMLDivElement>();
     private _editorRef = React.createRef<HTMLDivElement>();
 
     @action
@@ -35,7 +35,7 @@ export class LinkMenu extends React.Component<Props> {
         LinkDocPreview.LinkInfo = undefined;
 
 
-        if (this._linkMenuRef && !!!this._linkMenuRef.contains(e.target as any)) {
+        if (this._linkMenuRef && !!!this._linkMenuRef.current?.contains(e.target as any)) {
             if (this._editorRef && !!!this._editorRef.current?.contains(e.target as any)) {
                 console.log("outside click");
                 DocumentLinksButton.EditLink = undefined;
@@ -81,7 +81,7 @@ export class LinkMenu extends React.Component<Props> {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         return <div className="linkMenu-list"
-            ref={(r) => this._linkMenuRef = r} style={{ left: this.props.location[0], top: this.props.location[1] }}>
+            ref={this._linkMenuRef} style={{ left: this.props.location[0], top: this.props.location[1] }}>
             {!this._editingLink ?
                 this.renderAllGroups(groups) :
                 <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}

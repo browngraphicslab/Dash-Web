@@ -92,11 +92,16 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
     @action
     changeDescriptionSetting = () => {
-        if (LinkDescriptionPopup.showDescriptions === "ON") {
+        if (LinkDescriptionPopup.showDescriptions) {
+            if (LinkDescriptionPopup.showDescriptions === "ON") {
+                LinkDescriptionPopup.showDescriptions = "OFF";
+                LinkDescriptionPopup.descriptionPopup = false;
+            } else {
+                LinkDescriptionPopup.showDescriptions = "ON";
+            }
+        } else {
             LinkDescriptionPopup.showDescriptions = "OFF";
             LinkDescriptionPopup.descriptionPopup = false;
-        } else {
-            LinkDescriptionPopup.showDescriptions = "ON";
         }
     }
 

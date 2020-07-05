@@ -286,6 +286,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
 
     @observable description = StrCast(LinkManager.currentLink?.description);
+    @observable openDropdown: boolean = false;
+
+    @observable currentFollow: string = "Default";
+
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
@@ -318,9 +322,47 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 ></EditableView></div></div>;
     }
 
+    @action
+    changeDropdown = () => {
+        this.openDropdown = !this.openDropdown;
+    }
+
+    @action
+    changeFollowBehavior = (follow: string) => {
+        this.openDropdown = false;
+        this.currentFollow = follow;
+    }
+
     @computed
     get followingDropdown() {
-        return "choose follow behavior";
+        return <div className="linkEditor-followingDropdown">
+            <div className="linkEditor-followingDropdown-label">
+                Follow Behavior:</div>
+            <div className="linkEditor-followingDropdown-dropdown">
+                <div className="linkEditor-followingDropdown-header">
+                    {this.currentFollow}
+                    <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
+                        icon={this.openDropdown ? "chevron-up" : "chevron-down"}
+                        size={"sm"} onPointerDown={this.changeDropdown} />
+                </div>
+                {this.openDropdown ?
+                    <div className="linkEditor-followingDropdown-optionsList">
+                        <div className="linkEditor-followingDropdown-option"
+                            onPointerDown={() => this.changeFollowBehavior("default")}>
+                            Default
+                        </div>
+                        <div className="linkEditor-followingDropdown-option"
+                            onPointerDown={() => this.changeFollowBehavior("Always open in right tab")}>
+                            Always open in right tab
+                        </div>
+                        <div className="linkEditor-followingDropdown-option"
+                            onPointerDown={() => this.changeFollowBehavior("Always open in new tab")}>
+                            Always open in new tab
+                        </div>
+                    </div>
+                    : null}
+            </div>
+        </div>;
     }
 
     render() {

@@ -51,6 +51,52 @@
     }
 }
 
+.linkEditor-followingDropdown {
+    padding-left: 6.5px;
+    padding-right: 6.5px;
+    padding-bottom: 3.5px;
+
+    .linkEditor-followingDropdown-dropdown {
+
+        .linkEditor-followingDropdown-header {
+
+            border: 1px solid rgb(114, 162, 179);
+            border-radius: 4px;
+            background-color: lightblue;
+            padding-left: 2px;
+            padding-right: 2px;
+            color: grey;
+            text-decoration-color: grey;
+
+            .linkEditor-followingDropdown-icon {
+                float: right;
+            }
+        }
+
+        .linkEditor-followingDropdown-optionsList {
+            padding-left: 3px;
+            padding-right: 3px;
+
+            .linkEditor-followingDropdown-option {
+                border: 0.25px dotted rgb(114, 162, 179);
+                background-color: lightblue;
+                padding-left: 2px;
+                padding-right: 2px;
+                color: grey;
+                text-decoration-color: grey;
+                font-size: 9px;
+
+                &:hover {
+                    background-color: rgb(141, 197, 216);
+                }
+            }
+
+        }
+    }
+
+
+}
+
 
 .linkEditor-button,
 .linkEditor-addbutton {
