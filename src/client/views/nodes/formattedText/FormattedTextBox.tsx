@@ -59,6 +59,7 @@ import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
+import { DocumentManager } from '../../../util/DocumentManager';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -1031,6 +1032,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     _downX = 0;
     _downY = 0;
     _break = false;
+    _collapsed = false;
     onPointerDown = (e: React.PointerEvent): void => {
         if (this._recording && !e.ctrlKey && e.button === 0) {
             this.stopDictation(true);
@@ -1079,6 +1081,40 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     @action
+    onDoubleClick = (e: React.MouseEvent): void => {
+
+        this.doLinkOnDeselect();
+        FormattedTextBox._downEvent = true;
+        FormattedTextBoxComment.textBox = this;
+        if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
+            e.preventDefault();
+        }
+        if (e.button === 0 && this.props.isSelected(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // stop propagation if not in sidebar
+                e.stopPropagation();  // if the text box is selected, then it consumes all down events
+            }
+        }
+        if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
+            e.preventDefault();
+        }
+        FormattedTextBoxComment.Hide();
+        if (FormattedTextBoxComment.linkDoc) {
+            if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
+                this.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
+            } else {
+                DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, this.props.Document,
+                    (doc: Doc, followLinkLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
+            }
+        }
+
+        (e.nativeEvent as any).formattedHandled = true;
+
+        if (e.buttons === 1 && this.props.isSelected(true) && !e.altKey) {
+            e.stopPropagation();
+        }
+    }
+
+    @action
     onFocused = (e: React.FocusEvent): void => {
         FormattedTextBox.FocusedBox = this;
         this.tryUpdateHeight();
@@ -1111,9 +1147,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     static _bulletStyleSheet: any = addStyleSheet();
     static _userStyleSheet: any = addStyleSheet();
-
+    _forceUncollapse = true; // if the cursor doesn't move between clicks, then the selection will disappear for some reason.  This flags the 2nd click as happening on a selection which allows bullet points to toggle
+    _forceDownNode: Node | undefined;
     onClick = (e: React.MouseEvent): void => {
-        if ((this._editorView!.root as any).getSelection().isCollapsed) { // this is a hack to allow the cursor to be placed at the end of a document when the document ends in an inline dash comment.  Apparently Chrome on Windows has a bug/feature which breaks this when clicking after the end of the text.
+        if (Math.abs(e.clientX - this._downX) > 4 || Math.abs(e.clientY - this._downY) > 4) {
+            this._forceDownNode = undefined;
+            return;
+        }
+        if (!this._forceUncollapse || (this._editorView!.root as any).getSelection().isCollapsed) { // this is a hack to allow the cursor to be placed at the end of a document when the document ends in an inline dash comment.  Apparently Chrome on Windows has a bug/feature which breaks this when clicking after the end of the text.
             const pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
             const node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
             if (pcords && node?.type === this._editorView!.state.schema.nodes.dashComment) {
@@ -1125,6 +1166,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 if (e.clientY > lastNode?.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
                     this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
                 }
+            } else if ([this._editorView!.state.schema.nodes.ordered_list, this._editorView!.state.schema.nodes.listItem].includes(node?.type) &&
+                node !== (this._editorView!.state.selection as NodeSelection)?.node && pcords) {
+                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos!)));
             }
         }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
@@ -1132,12 +1176,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         if (this.props.isSelected(true)) { // if text box is selected, then it consumes all click events
             e.stopPropagation();
-            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
+            this.hitBulletTargets(e.clientX, e.clientY, !this._editorView?.state.selection.empty || this._forceUncollapse, false, this._forceDownNode, e.shiftKey);
         }
+        this._forceUncollapse = !(this._editorView!.root as any).getSelection().isCollapsed;
+        this._forceDownNode = (this._editorView!.state.selection as NodeSelection)?.node;
     }
 
     // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
-    hitBulletTargets(x: number, y: number, collapse: boolean, highlightOnly: boolean) {
+    hitBulletTargets(x: number, y: number, collapse: boolean, highlightOnly: boolean, downNode: Node | undefined = undefined, selectOrderedList: boolean = false) {
+        this._forceUncollapse = false;
         clearStyleSheetRules(FormattedTextBox._bulletStyleSheet);
         const clickPos = this._editorView!.posAtCoords({ left: x, top: y });
         let olistPos = clickPos?.pos;
@@ -1153,20 +1200,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     $olistPos = this._editorView?.state.doc.resolve(($olistPos as any).path[($olistPos as any).path.length - 4]);
                 }
             }
+            const listPos = this._editorView?.state.doc.resolve(clickPos.pos);
             const listNode = this._editorView?.state.doc.nodeAt(clickPos.pos);
-            if (olistNode && olistNode.type === this._editorView?.state.schema.nodes.ordered_list) {
-                if (!collapse) {
-                    if (!highlightOnly) {
-                        this._editorView.dispatch(this._editorView.state.tr.setSelection(new NodeSelection($olistPos!)));
-                    }
-                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
-                } else if (listNode && listNode.type === this._editorView.state.schema.nodes.list_item) {
-                    if (!highlightOnly) {
+            if (olistNode && olistNode.type === this._editorView?.state.schema.nodes.ordered_list && listNode) {
+                if (!highlightOnly) {
+                    if (selectOrderedList || (!collapse && listNode.attrs.visibility)) {
+                        this._editorView.dispatch(this._editorView.state.tr.setSelection(new NodeSelection(selectOrderedList ? $olistPos! : listPos!)));
+                    } else if (!listNode.attrs.visibility || downNode === listNode) {
                         this._editorView.dispatch(this._editorView.state.tr.setNodeMarkup(clickPos.pos, listNode.type, { ...listNode.attrs, visibility: !listNode.attrs.visibility }));
                         this._editorView.dispatch(this._editorView.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, clickPos.pos)));
                     }
-                    addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
+                addStyleSheetRule(FormattedTextBox._bulletStyleSheet, olistNode.attrs.mapStyle + olistNode.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
             }
         }
     }
@@ -1347,6 +1392,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             }
                         }
                     })}
+                    onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer`} ref={this._scrollRef}
                         style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }}
@@ -1393,7 +1439,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                                 setTimeout(() => this._editorView!.focus(), 500);
                                 e.stopPropagation();
                             }} >
-                            <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                            <FontAwesomeIcon className="formattedTextBox-audioFont"
                                 style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
                         </div>}
                 </div>

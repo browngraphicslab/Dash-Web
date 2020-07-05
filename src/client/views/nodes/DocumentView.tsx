@@ -42,6 +42,7 @@ import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
+import { LinkCreatedBox } from './LinkCreatedBox';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -116,6 +117,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    public get title() { return this.props.Document.title; }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
     get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
@@ -640,12 +642,27 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
+            runInAction(() => {
+                LinkCreatedBox.popupX = de.x;
+                LinkCreatedBox.popupY = de.y;
+                LinkCreatedBox.linkCreated = true;
+                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+            });
+
             DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+
+            runInAction(() => {
+                LinkCreatedBox.popupX = de.x;
+                LinkCreatedBox.popupY = de.y;
+                LinkCreatedBox.linkCreated = true;
+                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+            });
+
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
                     { doc: this.props.Document }, `link`)); // TODODO this is where in text links get passed
@@ -1191,7 +1208,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={action(() => Doc.BrushDoc(this.props.Document))}
+            onPointerEnter={action(() => { Doc.BrushDoc(this.props.Document); })}
             onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
                 let entered = false;
                 const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
@@ -1200,7 +1217,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         entered = true;
                     }
                 }
+                // if (this.props.Document !== DocumentLinksButton.StartLink?.Document) {
                 !entered && Doc.UnBrushDoc(this.props.Document);
+                //}
+
             })}
             style={{
                 transformOrigin: this._animateScalingTo ? "center center" : undefined,

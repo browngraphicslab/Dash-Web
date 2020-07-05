@@ -832,12 +832,14 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
+
         if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
+
         if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
