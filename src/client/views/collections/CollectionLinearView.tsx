@@ -15,6 +15,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -89,6 +90,16 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         DocumentLinksButton.StartLink = undefined;
     }
 
+    @action
+    changeDescriptionSetting = () => {
+        if (LinkDescriptionPopup.showDescriptions === "ON") {
+            LinkDescriptionPopup.showDescriptions = "OFF";
+            LinkDescriptionPopup.descriptionPopup = false;
+        } else {
+            LinkDescriptionPopup.showDescriptions = "ON";
+        }
+    }
+
     render() {
         const guid = Utils.GenerateGuid();
         const flexDir: any = StrCast(this.Document.flexDirection);
@@ -155,6 +166,9 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
                         Creating link from: {DocumentLinksButton.StartLink.title} </span>
+                    <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
+                    > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                    </span>
                     <span className="bottomPopup-exit" onClick={this.exitLongLinks}
                     >Exit</span>
 

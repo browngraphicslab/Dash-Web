@@ -96,11 +96,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         LinkManager.currentLink = linkDoc;
                         runInAction(() => {
                             LinkCreatedBox.popupX = e.screenX;
-                            LinkCreatedBox.popupY = e.screenY - 33;
+                            LinkCreatedBox.popupY = e.screenY - 133;
                             LinkCreatedBox.linkCreated = true;
 
                             LinkDescriptionPopup.popupX = e.screenX;
-                            LinkDescriptionPopup.popupY = e.screenY;
+                            LinkDescriptionPopup.popupY = e.screenY - 100;
                             LinkDescriptionPopup.descriptionPopup = true;
 
                             setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
@@ -124,12 +124,14 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 LinkManager.currentLink = linkDoc;
                 runInAction(() => {
                     LinkCreatedBox.popupX = e.screenX;
-                    LinkCreatedBox.popupY = e.screenY - 33;
+                    LinkCreatedBox.popupY = e.screenY - 133;
                     LinkCreatedBox.linkCreated = true;
 
-                    LinkDescriptionPopup.popupX = e.screenX;
-                    LinkDescriptionPopup.popupY = e.screenY;
-                    LinkDescriptionPopup.descriptionPopup = true;
+                    if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
+                        LinkDescriptionPopup.popupX = e.screenX;
+                        LinkDescriptionPopup.popupY = e.screenY - 100;
+                        LinkDescriptionPopup.descriptionPopup = true;
+                    }
 
                     setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
                 });

@@ -4,12 +4,14 @@ import "./LinkDescriptionPopup.scss";
 import { observable, action } from "mobx";
 import { EditableView } from "../EditableView";
 import { LinkManager } from "../../util/LinkManager";
+import { LinkCreatedBox } from "./LinkCreatedBox";
 
 
 @observer
 export class LinkDescriptionPopup extends React.Component<{}> {
 
     @observable public static descriptionPopup: boolean = false;
+    @observable public static showDescriptions: string = "ON";
     @observable public static popupX: number = 700;
     @observable public static popupY: number = 350;
     @observable description: string = "";
@@ -37,6 +39,7 @@ export class LinkDescriptionPopup extends React.Component<{}> {
     onClick = (e: PointerEvent) => {
         if (this.popupRef && !!!this.popupRef.current?.contains(e.target as any)) {
             LinkDescriptionPopup.descriptionPopup = false;
+            LinkCreatedBox.linkCreated = false;
         }
     }
 
