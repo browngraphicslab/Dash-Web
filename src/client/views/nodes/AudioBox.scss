@@ -45,6 +45,15 @@
         width: 100%;
         height: 100%;
         position: relative;
+
+        .recording {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            padding-left: 2px;
+            background: lightgrey;
+        }
     }
 
     .audiobox-controls {
@@ -53,6 +62,7 @@
         position: relative;
         display: flex;
         padding-left: 2px;
+        background: lightgrey;
 
         .audiobox-player {
             margin-top: auto;
@@ -70,6 +80,10 @@
                 margin-bottom: auto;
                 width: 25px;
                 padding: 2px;
+            }
+
+            .audiobox-playhead:hover {
+                background-color: darkgrey;
             }
 
             .audiobox-dictation {

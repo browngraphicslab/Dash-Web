@@ -53,6 +53,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     _stream: MediaStream | undefined;
 
     @observable private static _scrubTime = 0;
+    @observable private _repeat: boolean = false;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
@@ -106,8 +107,12 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     }
 
     pause = action(() => {
-        this._ele!.pause();
-        this.audioState = "paused";
+        if (this._repeat) {
+            this.playFrom(0);
+        } else {
+            this._ele!.pause();
+            this.audioState = "paused";
+        }
     });
 
     playFromTime = (absoluteTime: number) => {
@@ -222,6 +227,12 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         </audio>;
     }
 
+    @action
+    onRepeat = (e: React.MouseEvent) => {
+        this._repeat = !this._repeat;
+        e.stopPropagation();
+    }
+
     render() {
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
@@ -231,13 +242,19 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                         <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
                     <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
-                        {this.audioState === "recording" ? "STOP" : "RECORD"}
+                        {this.audioState === "recording" ?
+                            <div className="recording" >
+                                10:00
+                                
+                                    <FontAwesomeIcon style={{ width: "100%" }} icon={"stop-circle"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                                    <FontAwesomeIcon style={{ width: "100%" }} icon={"pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /> </div> : "RECORD"}
                     </button>
                 </div> :
-                <div className="audiobox-controls">
-                    <div className="audiobox-player" onClick={this.onPlay}>
-                        <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this.audioState === "paused" ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                        <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "yellow" : "dimGray" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                <div className="audiobox-controls" onClick={this.layoutDoc.playOnSelect ? this.onPlay : undefined}>
+                    <div className="audiobox-player" >
+                        <div className="audiobox-playhead" onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%" }} icon={this.audioState === "paused" ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "darkgrey" : "" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-playhead" onClick={this.onRepeat}><FontAwesomeIcon style={{ width: "100%", background: this._repeat ? "darkgrey" : "" }} icon="redo-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                         <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
                             onPointerDown={e => {
                                 if (e.button === 0 && !e.ctrlKey) {
