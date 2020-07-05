@@ -42,6 +42,13 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                                     placeholder={"Add members"}
                                     value={null}
                                     closeMenuOnSelect={true}
+                                    styles={{
+                                        dropdownIndicator: (base, state) => ({
+                                            ...base,
+                                            transition: '0.5s all ease',
+                                            transform: state.selectProps.menuIsOpen ? 'rotate(180deg)' : undefined
+                                        })
+                                    }}
                                 />
                             </div>
                             <button onClick={() => console.log(GroupManager.Instance.deleteGroup(this.props.group))}>Delete group</button>

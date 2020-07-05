@@ -1,7 +1,5 @@
 import * as React from 'react';
 import "./MainViewModal.scss";
-import { Opt } from '../../fields/Doc';
-import { Lambda, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 
 export interface MainViewOverlayProps {
@@ -18,35 +16,6 @@ export interface MainViewOverlayProps {
 @observer
 export default class MainViewModal extends React.Component<MainViewOverlayProps> {
 
-    private ref: React.RefObject<HTMLDivElement> = React.createRef();
-    private displayedListenerDisposer: Opt<Lambda>;
-
-    componentDidMount() {
-
-        document.removeEventListener("pointerdown", this.close);
-
-        this.displayedListenerDisposer = reaction(() => this.props.isDisplayed, (isDisplayed) => {
-            if (isDisplayed) document.addEventListener("pointerdown", this.close);
-            else document.removeEventListener("pointerdown", this.close);
-        });
-    }
-
-    componentWillUnmount() {
-        this.displayedListenerDisposer?.();
-        document.removeEventListener("pointerdown", this.close);
-    }
-
-    close = (e: PointerEvent) => {
-
-        const { left, right, top, bottom } = this.ref.current!.getBoundingClientRect();
-
-        if (e.clientX === 0 && e.clientY === 0) return; // why does this happen?
-        if (e.clientX < left || e.clientX > right || e.clientY > bottom || e.clientY < top) {
-            this.props.closeOnExternalClick?.();
-        }
-
-    }
-
     render() {
         const p = this.props;
         const dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
@@ -60,10 +29,10 @@ export default class MainViewModal extends React.Component<MainViewOverlayProps>
                         ...(p.dialogueBoxStyle || {}),
                         opacity: p.isDisplayed ? dialogueOpacity : 0
                     }}
-                    ref={this.ref}
                 >{p.contents}</div>
                 <div
                     className={"overlay"}
+                    onClick={this.props?.closeOnExternalClick}
                     style={{
                         backgroundColor: "gainsboro",
                         ...(p.overlayStyle || {}),

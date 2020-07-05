@@ -362,6 +362,13 @@ export default class GroupManager extends React.Component<{}> {
                             placeholder={"Select users"}
                             value={this.selectedUsers}
                             closeMenuOnSelect={false}
+                            styles={{
+                                dropdownIndicator: (base, state) => ({
+                                    ...base,
+                                    transition: '0.5s all ease',
+                                    transform: state.selectProps.menuIsOpen ? 'rotate(180deg)' : undefined
+                                })
+                            }}
                         />
                     </div>
                     <div className="group-content">
