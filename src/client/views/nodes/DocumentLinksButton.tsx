@@ -11,6 +11,9 @@ import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { LinkCreatedBox } from "./LinkCreatedBox";
+import { SelectionManager } from "../../util/SelectionManager";
+import { Document } from "../../../fields/documentSchemas";
+
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -26,6 +29,21 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     private _linkButton = React.createRef<HTMLDivElement>();
 
     @observable public static StartLink: DocumentView | undefined;
+
+    componentDidMount() {
+        // window.addEventListener("linkStarted", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
+        //     const annotatedUrl = e.details;
+        //     SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+        //         DocumentLinksButton.StartLink = element;
+        //     }));
+        // });
+        window.addEventListener("fakeLinkStarted", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
+            console.log("Helo fake link");
+            SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+                DocumentLinksButton.StartLink = element;
+            }));
+        });
+    }
 
     @action
     onLinkButtonMoved = (e: PointerEvent) => {

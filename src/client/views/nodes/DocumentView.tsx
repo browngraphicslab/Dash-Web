@@ -773,6 +773,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "eye"
         });
 
+        cm.addItem({
+            description: "pretend we made an annotation", event: () => {
+                document.dispatchEvent(new CustomEvent("fakeLinkStarted", {
+                    detail: "hello this is fake",
+                    bubbles: true
+                }));
+            }, icon: "eye"
+        });
+
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
             cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));

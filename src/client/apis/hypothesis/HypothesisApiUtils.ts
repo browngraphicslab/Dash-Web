@@ -10,4 +10,8 @@ export namespace Hypothesis {
             throw new Error('DASH: Error in GET request');
         }
     };
+
+    export const makeAnnotationUrl = (annotationId: string, baseUrl: string) => {
+        return `https://hyp.is/${annotationId}/${baseUrl}`;
+    };
 }
