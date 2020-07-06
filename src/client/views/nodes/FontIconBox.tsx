@@ -5,7 +5,7 @@ import { createSchema, makeInterface } from '../../../fields/Schema';
 import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
-import { StrCast, Cast } from '../../../fields/Types';
+import { StrCast, Cast, NumCast } from '../../../fields/Types';
 import { Utils } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../fields/Doc';
@@ -59,13 +59,14 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     render() {
         const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
-        const referenceLayout = Doc.Layout(referenceDoc);
+        const refLayout = Doc.Layout(referenceDoc);
         return <button className="fontIconBox-outerDiv" title={StrCast(this.layoutDoc.title)} ref={this._ref} onContextMenu={this.specificContextMenu}
             style={{
-                background: StrCast(referenceLayout.backgroundColor),
+                padding: Cast(this.layoutDoc._xPadding, "number", null),
+                background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
             }}>
-            <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={this._foregroundColor} size="sm" />
+            <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
             {!this.rootDoc.label ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.label).substring(0, 5)} </div>}
         </button>;
     }

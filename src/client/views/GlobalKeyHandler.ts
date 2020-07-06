@@ -20,6 +20,7 @@ import { MainView } from "./MainView";
 import { DocumentView } from "./nodes/DocumentView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import PDFMenu from "./pdf/PDFMenu";
+import { ContextMenu } from "./ContextMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -78,19 +79,28 @@ export default class KeyManager {
                 // MarqueeView.DragMarquee = !MarqueeView.DragMarquee; // bcz: this needs a better disclosure UI
                 break;
             case "escape":
+                // if (DocumentLinksButton.StartLink) {
+                //     if (DocumentLinksButton.StartLink.Document) {
+                //         action((e: React.PointerEvent<HTMLDivElement>) => {
+                //             Doc.UnBrushDoc(DocumentLinksButton.StartLink?.Document as Doc);
+                //         });
+                //     }
+                // }
                 DocumentLinksButton.StartLink = undefined;
+
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);
+                var doDeselect = true;
                 if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
                     if (CollectionDockingView.Instance.HasFullScreen()) {
                         CollectionDockingView.Instance.CloseFullScreen();
                     } else {
-                        SelectionManager.DeselectAll();
+                        doDeselect = !ContextMenu.Instance.closeMenu();
                     }
                 }
-                SelectionManager.DeselectAll();
+                doDeselect && SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 // RecommendationsBox.Instance.closeMenu();
                 GoogleAuthenticationManager.Instance.cancel();

@@ -41,24 +41,17 @@ export class LinkManager {
     }
 
     public addLink(linkDoc: Doc): boolean {
-        const linkList = LinkManager.Instance.getAllLinks();
-        linkList.push(linkDoc);
         if (LinkManager.Instance.LinkManagerDoc) {
-            LinkManager.Instance.LinkManagerDoc.data = new List<Doc>(linkList);
+            Doc.AddDocToList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
             return true;
         }
         return false;
     }
 
     public deleteLink(linkDoc: Doc): boolean {
-        const linkList = LinkManager.Instance.getAllLinks();
-        const index = LinkManager.Instance.getAllLinks().indexOf(linkDoc);
-        if (index > -1) {
-            linkList.splice(index, 1);
-            if (LinkManager.Instance.LinkManagerDoc) {
-                LinkManager.Instance.LinkManagerDoc.data = new List<Doc>(linkList);
-                return true;
-            }
+        if (LinkManager.Instance.LinkManagerDoc && linkDoc instanceof Doc) {
+            Doc.RemoveDocFromList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
+            return true;
         }
         return false;
     }

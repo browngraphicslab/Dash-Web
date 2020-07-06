@@ -55,25 +55,28 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
         const backup = "oldPath";
         const { Document } = this.props;
-        const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
-        const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
-        const matches = pathCorrectionTest.exec(href);
-        console.log("\nHere's the { url } being fed into the outer regex:");
-        console.log(href);
-        console.log("And here's the 'properPath' build from the captured filename:\n");
-        if (matches !== null && href.startsWith(window.location.origin)) {
-            const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
-            console.log(properPath);
-            if (!properPath.includes(href)) {
-                console.log(`The two (url and proper path) were not equal`);
-                const proto = Doc.GetProto(Document);
-                proto[this.props.fieldKey] = new PdfField(properPath);
-                proto[backup] = href;
+        const pdf = Cast(this.dataDoc[this.props.fieldKey], PdfField);
+        const href = pdf?.url?.href;
+        if (href) {
+            const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
+            const matches = pathCorrectionTest.exec(href);
+            console.log("\nHere's the { url } being fed into the outer regex:");
+            console.log(href);
+            console.log("And here's the 'properPath' build from the captured filename:\n");
+            if (matches !== null && href.startsWith(window.location.origin)) {
+                const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
+                console.log(properPath);
+                if (!properPath.includes(href)) {
+                    console.log(`The two (url and proper path) were not equal`);
+                    const proto = Doc.GetProto(Document);
+                    proto[this.props.fieldKey] = new PdfField(properPath);
+                    proto[backup] = href;
+                } else {
+                    console.log(`The two (url and proper path) were equal`);
+                }
             } else {
-                console.log(`The two (url and proper path) were equal`);
+                console.log("Outer matches was null!");
             }
-        } else {
-            console.log("Outer matches was null!");
         }
     }
 
@@ -154,7 +157,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                 <div className="pdfBox-overlayCont" key="cont" onPointerDown={(e) => e.stopPropagation()} style={{ left: `${this._searching ? 0 : 100}%` }}>
                     <button className="pdfBox-overlayButton" title={searchTitle} />
                     <input className="pdfBox-searchBar" placeholder="Search" ref={this._searchRef} onChange={this.searchStringChanged} onKeyDown={e => e.keyCode === KeyCodes.ENTER && this.search(this._searchString, !e.shiftKey)} />
-                    <button title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
+                    <button className="pdfBox-search" title="Search" onClick={e => this.search(this._searchString, !e.shiftKey)}>
                         <FontAwesomeIcon icon="search" size="sm" color="white" /></button>
                     <button className="pdfBox-prevIcon " title="Previous Annotation" onClick={this.prevAnnotation} >
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="lg" />
@@ -186,7 +189,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
                             <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="lg" />
                         </div>
                     </button>
-                    <div className="pdfBox-settingsFlyout" style={{ right: `${this._flyout ? 20 : -600}px` }} >
+                    <div className="pdfBox-settingsFlyout" style={{ right: `${this._flyout ? 20 : -1000}px` }} >
                         <div className="pdfBox-settingsFlyout-title">
                             Annotation View Settings
                         </div>
@@ -226,7 +229,8 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         const classname = "pdfBox" + (this.active() ? "-interactive" : "");
         return <div className={classname} style={{
             width: !this.props.Document._fitWidth ? this.Document._nativeWidth || 0 : `${100 / this.contentScaling}%`,
-            height: !this.props.Document._fitWidth ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
+            //height adjusted for mobile (window.screen.width > 600)
+            height: !this.props.Document._fitWidth && (window.screen.width > 600) ? this.Document._nativeHeight || 0 : `${100 / this.contentScaling}%`,
             transform: `scale(${this.contentScaling})`
         }}  >
             <div className="pdfBox-title-outer">
@@ -238,7 +242,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}

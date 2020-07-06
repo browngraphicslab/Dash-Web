@@ -78,7 +78,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         } else {
             target.__fields[prop] = value;
         }
-        if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
+        //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
         if (writeToServer) {
             if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
             else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
@@ -108,7 +108,7 @@ export function OVERRIDE_ACL(val: boolean) {
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
-    "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
+    "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
     if (target[AclSym] && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return true;

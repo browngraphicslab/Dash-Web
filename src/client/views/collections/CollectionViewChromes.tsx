@@ -300,7 +300,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     onPointerDown={stopPropagation}
                     onChange={this.viewChanged}
                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
-                    {Object.values(CollectionViewType).map(type => ["invalid", "docking"].includes(type) ? (null) : (
+                    {Object.values(CollectionViewType).map(type => [CollectionViewType.Invalid, CollectionViewType.Docking].includes(type) ? (null) : (
                         <option
                             key={Utils.GenerateGuid()}
                             className="collectionViewBaseChrome-viewOption"
@@ -316,7 +316,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     render() {
         const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
-        const scale = Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale);
+        const scale = Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform()?.Scale);
         return (
             <div className="collectionViewChrome-cont" style={{
                 top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined,
@@ -406,7 +406,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     @observable private _currentKey: string = "";
     @observable private suggestions: string[] = [];
 
-    @computed private get descending() { return BoolCast(this.props.CollectionView.props.Document.stackingHeadersSortDescending); }
+    @computed private get descending() { return StrCast(this.props.CollectionView.props.Document._columnsSort) === "descending"; }
     @computed get pivotField() { return StrCast(this.props.CollectionView.props.Document._pivotField); }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
@@ -450,7 +450,11 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
         return true;
     }
 
-    @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
+    @action toggleSort = () => {
+        this.props.CollectionView.props.Document._columnsSort =
+            this.props.CollectionView.props.Document._columnsSort === "descending" ? "ascending" :
+                this.props.CollectionView.props.Document._columnsSort === "ascending" ? undefined : "descending";
+    }
     @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {

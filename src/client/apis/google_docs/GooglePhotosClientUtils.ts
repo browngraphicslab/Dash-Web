@@ -130,7 +130,6 @@ export namespace GooglePhotos {
             const uploads = await Transactions.WriteMediaItemsToServer(response);
             const children = uploads.map((upload: Transactions.UploadInformation) => {
                 const document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
-                document.fillColumn = true;
                 document.contentSize = upload.contentSize;
                 return document;
             });

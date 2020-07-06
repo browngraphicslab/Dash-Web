@@ -3,13 +3,18 @@ import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
-import { Docs } from '../documents/Documents';
+import { Docs, DocUtils } from '../documents/Documents';
 import { Doc } from '../../fields/Doc';
 import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
-import { undoBatch } from '../util/UndoManager';
+import { undoBatch, UndoManager } from '../util/UndoManager';
 import { NumCast } from '../../fields/Types';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
+import * as rp from 'request-promise';
+import { Utils } from '../../Utils';
+import { Networking } from '../Network';
+import { Upload } from '../../server/SharedMediaTypes';
+import { basename } from 'path';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -26,7 +31,7 @@ export class PreviewCursor extends React.Component<{}> {
         document.addEventListener("paste", this.paste);
     }
 
-    paste = (e: ClipboardEvent) => {
+    paste = async (e: ClipboardEvent) => {
         if (PreviewCursor.Visible && e.clipboardData) {
             const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
             runInAction(() => PreviewCursor.Visible = false);
@@ -104,6 +109,16 @@ export class PreviewCursor extends React.Component<{}> {
                         x: newPoint[0],
                         y: newPoint[1],
                     })))();
+                } else if (e.clipboardData.items.length) {
+                    const batch = UndoManager.StartBatch("collection view drop");
+                    const files: File[] = [];
+                    for (let i = 0; i < e.clipboardData.items.length; i++) {
+                        const file = e.clipboardData.items[i].getAsFile();
+                        file && files.push(file);
+                    }
+                    const generatedDocuments = await DocUtils.uploadFilesToDocs(files, { x: newPoint[0], y: newPoint[1] });
+                    generatedDocuments.forEach(PreviewCursor._addDocument);
+                    batch.end();
                 }
         }
     }

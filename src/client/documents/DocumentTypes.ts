@@ -33,8 +33,10 @@ export enum DocumentType {
     DOCHOLDER = "docholder",    // nested document (view of a document)
     SEARCHITEM= "searchitem",
     COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
+    GROUP = "group",            // group of users
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
     SCRIPTDB = "scriptdb",          // database of scripts
     RECOMMENDATION = "recommendation", // view of a recommendation
+    GROUPDB = "groupdb"         // database of groups
 }

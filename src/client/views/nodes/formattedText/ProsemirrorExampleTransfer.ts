@@ -1,7 +1,6 @@
 import { chainCommands, exitCode, joinDown, joinUp, lift, deleteSelection, joinBackward, selectNodeBackward, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn, newlineInCode } from "prosemirror-commands";
 import { liftTarget } from "prosemirror-transform";
 import { redo, undo } from "prosemirror-history";
-import { undoInputRule } from "prosemirror-inputrules";
 import { Schema } from "prosemirror-model";
 import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
@@ -12,19 +11,22 @@ import { Doc, DataSym } from "../../../../fields/Doc";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Docs } from "../../../documents/Documents";
-import { update } from "lodash";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
 export type KeyMap = { [key: string]: any };
 
-export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string, from?: number, to?: number) => {
+export let updateBullets = (tx2: Transaction, schema: Schema, assignedMapStyle?: string, from?: number, to?: number) => {
+    let mapStyle = assignedMapStyle;
     tx2.doc.descendants((node: any, offset: any, index: any) => {
         if ((from === undefined || to === undefined || (from <= offset + node.nodeSize && to >= offset)) && (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item)) {
             const path = (tx2.doc.resolve(offset) as any).path;
             let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && c.type === schema.nodes.ordered_list ? 1 : 0), 0);
-            if (node.type === schema.nodes.ordered_list) depth++;
-            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: mapStyle || node.attrs.mapStyle, bulletStyle: depth, }, node.marks);
+            if (node.type === schema.nodes.ordered_list) {
+                if (depth === 0 && !assignedMapStyle) mapStyle = node.attrs.mapStyle;
+                depth++;
+            }
+            tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle, bulletStyle: depth, }, node.marks);
         }
     });
     return tx2;
@@ -215,10 +217,13 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
                 marks && tx3.setStoredMarks([...marks]);
                 dispatch(tx3);
             })) {
+                const fromattrs = state.selection.$from.node().attrs;
                 if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
-                    splitMetadata(marks, tx3);
-                    if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
-                        dispatch(tx3);
+                    const tonode = tx3.selection.$to.node();
+                    const tx4 = tx3.setNodeMarkup(tx3.selection.to - 1, tonode.type, fromattrs, tonode.marks);
+                    splitMetadata(marks, tx4);
+                    if (!liftListItem(schema.nodes.list_item)(tx4, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
+                        dispatch(tx4);
                     }
                 })) {
                     return false;
@@ -280,19 +285,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
 
         return false;
     });
-
-    // bind("^", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-    //     let newNode = schema.nodes.footnote.create({});
-    //     if (dispatch && state.selection.from === state.selection.to) {
-    //         let tr = state.tr;
-    //         tr.replaceSelectionWith(newNode); // replace insertion with a footnote.
-    //         dispatch(tr.setSelection(new NodeSelection( // select the footnote node to open its display
-    //             tr.doc.resolve(  // get the location of the footnote node by subtracting the nodesize of the footnote from the current insertion point anchor (which will be immediately after the footnote node)
-    //                 tr.selection.anchor - tr.selection.$anchor.nodeBefore!.nodeSize))));
-    //         return true;
-    //     }
-    //     return false;
-    // });
 
     return keys;
 }

@@ -155,9 +155,11 @@ export class ContextMenu extends React.Component {
 
     @action
     closeMenu = () => {
+        const wasOpen = this._display;
         this.clearItems();
         this._display = false;
         this._shouldDisplay = false;
+        return wasOpen;
     }
 
     @computed get filteredItems(): (OriginalMenuProps | string[])[] {

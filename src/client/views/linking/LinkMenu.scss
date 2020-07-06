@@ -15,7 +15,7 @@
 }
 
 .linkMenu-group {
-    border-bottom: 0.5px solid lightgray; 
+    border-bottom: 0.5px solid lightgray;
     padding: 5px 0;
 
 
@@ -30,9 +30,11 @@
             p {
                 background-color: lightgray;
             }
+
             p.expand-one {
                 width: calc(100% - 26px);
             }
+
             .linkEditor-tableButton {
                 display: block;
             }
@@ -51,6 +53,3 @@
         }
     }
 }
-
-
-

@@ -77,7 +77,7 @@ export namespace SearchUtil {
         const docs = ids.map((id: string) => docMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < ids.length; i++) {
             const testDoc = docs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || testDoc.proto === undefined || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
             }

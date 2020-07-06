@@ -120,7 +120,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 });
                 const files = await res.json();
                 const url = Utils.prepend(files[0].path);
-                // upload to server with known URL 
+                // upload to server with known URL
                 const audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", _width: 200, _height: 32 });
                 audioDoc.treeViewExpandedView = "layout";
                 const audioAnnos = Cast(this.dataDoc[this.fieldKey + "-audioAnnotations"], listSpec(Doc));
@@ -174,14 +174,14 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             //     }), icon: "expand-arrows-alt"
             // });
 
-            const existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
+            const existingAnalyze = ContextMenu.Instance?.findByDescription("Analyzers...");
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
             //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
-            !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
+            !existingAnalyze && ContextMenu.Instance?.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
-            ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
         }
     }
 
@@ -236,6 +236,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (this._curSuffix === "_m") this._mediumRetryCount++;
         if (this._curSuffix === "_l") this._largeRetryCount++;
     }
+
     @action onError = (error: any) => {
         const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
         if (timeout < 5) {

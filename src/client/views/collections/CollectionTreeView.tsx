@@ -176,7 +176,7 @@ class TreeView extends React.Component<TreeViewProps> {
         })}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.doc, key, value, false);
-            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, _LODdisable: true, templates: new List<string>([Templates.Title.Layout]) });
+            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
             Doc.SetInPlace(this.doc, "editTitle", undefined, false);
             Doc.SetInPlace(doc, "editTitle", "*", false);
             return this.props.addDocument(doc);
@@ -304,7 +304,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - 20);
-    rtfHeight = () => this.rtfWidth() < this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
+    rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
 
     @computed get renderContent() {
         TraceMobx();
@@ -332,8 +332,8 @@ class TreeView extends React.Component<TreeViewProps> {
             </div></ul>;
         } else {
             const layoutDoc = this.layoutDoc;
-            const panelHeight = layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight;
-            const panelWidth = layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth;
+            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
+            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
@@ -386,8 +386,8 @@ class TreeView extends React.Component<TreeViewProps> {
         e.stopPropagation();
     }
 
-    @computed
-    get renderBullet() {
+    @computed get renderBullet() {
+        TraceMobx();
         const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className="bullet"
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
@@ -828,7 +828,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         SetValue={undoBatch((value: string) => Doc.SetInPlace(this.dataDoc, "title", value, false) || true)}
                         OnFillDown={undoBatch((value: string) => {
                             Doc.SetInPlace(this.dataDoc, "title", value, false);
-                            const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, _LODdisable: true, templates: new List<string>([Templates.Title.Layout]) });
+                            const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
                             Doc.SetInPlace(doc, "editTitle", "*", false);
                             this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
                         })} />}

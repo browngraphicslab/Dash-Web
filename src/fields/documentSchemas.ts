@@ -2,6 +2,8 @@ import { makeInterface, createSchema, listSpec } from "./Schema";
 import { ScriptField } from "./ScriptField";
 import { Doc } from "./Doc";
 import { DateField } from "./DateField";
+import { SchemaHeaderField } from "./SchemaHeaderField";
+import { Schema } from "prosemirror-model";
 
 export const documentSchema = createSchema({
     // content properties
@@ -43,10 +45,16 @@ export const documentSchema = createSchema({
     _showTitleHover: "string",  // the showTitle should be shown only on hover
     _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
-    _LODdisable: "boolean",     // whether to disbale LOD switching for CollectionFreeFormViews
+    _freeformLOD: "boolean",    // whether to enable LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field key should be used as the timeline/pivot axis
     _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
+    _columnsFill: "boolean",    // whether documents in a stacking view column should be sized to fill the column
+    _columnsSort: "string",     // how a document should be sorted "ascending", "descending", undefined (none)   
+    _columnsStack: "boolean",   // whether a stacking document stacks vertically (as opposed to masonry horizontal)
+    _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden
+    _columnHeaders: listSpec(SchemaHeaderField), // header descriptions for stacking/masonry
+    _schemaHeaders: listSpec(SchemaHeaderField), // header descriptions for schema views
     _fontSize: "number",
     _fontFamily: "string",
     _sidebarWidthPercent: "string", // percent of text window width taken up by sidebar

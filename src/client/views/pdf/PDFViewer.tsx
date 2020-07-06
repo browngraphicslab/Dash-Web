@@ -97,7 +97,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _zoomed = 1;
 
     private _pdfViewer: any;
-    private _retries = 0; // number of times tried to create the PDF viewer 
+    private _retries = 0; // number of times tried to create the PDF viewer
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
@@ -115,8 +115,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _downX: number = 0;
     private _downY: number = 0;
     private _coverPath: any;
+    private _lastSearch = false;
     private _viewerIsSetup = false;
-    private _lastSearch: string = "";
 
     @computed get allAnnotations() {
         return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).
@@ -150,25 +150,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
-        this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
-            if (search) {
-                this.search(Doc.SearchQuery(), false);
-                this._lastSearch = Doc.SearchQuery();
-            }
-            else {
-                setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
-                this._lastSearch && (this._lastSearch = "mxytzlaf");
+        this._searchReactionDisposer = reaction(() => this.Document.searchMatch, m => {
+            if (m) {
+                if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), false);
+                else !(this._lastSearch = false) && setTimeout(() => !this._lastSearch && this.search("", false, true), 200);
             }
         }, { fireImmediately: true });
 
-        this._searchReactionDisposer2 = reaction(() => this.Document.searchMatch2, search => {
-            if (search) {
-                this.search(Doc.SearchQuery(), true);
-                this._lastSearch = Doc.SearchQuery();
-            }
-            else {
-                setTimeout(() => this._lastSearch === "mxytzlaf" && this.search("mxytzlaf", true), 200); // bcz: how do we clear search highlights?
-                this._lastSearch && (this._lastSearch = "mxytzlaf");
+        this._searchReactionDisposer2 = reaction(() => this.Document.searchMatch2, m => {
+            if (m) {
+                if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), false);
+                else !(this._lastSearch = false) && setTimeout(() => !this._lastSearch && this.search("", false, true), 200);
             }
         }, { fireImmediately: true });
 
@@ -305,7 +297,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         let minY = Number.MAX_VALUE;
         if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             const anno = this._savedAnnotations.values()[0][0];
-            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, _LODdisable: true, title: "Annotation on " + this.Document.title });
+            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
@@ -399,7 +391,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 div.style.top = (parseInt(div.style.top)/*+ this.getScrollFromPage(page)*/).toString();
             }
             this._annotationLayer.current.append(div);
-            div.style.backgroundColor = "yellow";
+            div.style.backgroundColor = "#ACCEF7";
             div.style.opacity = "0.5";
             const savedPage = this._savedAnnotations.getValue(page);
             if (savedPage) {
@@ -413,11 +405,12 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 
     @action
-    search = (searchString: string, fwd: boolean) => {
-        if (!searchString) {
+    search = (searchString: string, fwd: boolean, clear: boolean = false) => {
+        if (clear) {
+            this._pdfViewer.findController.executeCommand('reset', {});
+        } else if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
-        }
-        else if (this._pdfViewer.pageViewsReady) {
+        } else if (this._pdfViewer.pageViewsReady) {
             this._pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: !fwd,
@@ -686,7 +679,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewer-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewerDash-overlay${Doc.GetSelectedTool() !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
             style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
@@ -718,7 +711,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         </div>;
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewerDash-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
+        return <div className={"pdfViewerDash-text" + ((!DocumentDecorations.Instance?.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get standinViews() {
@@ -740,8 +733,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,
-                width: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeWidth) : `${100 / this.contentScaling}%`,
-                height: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeHeight) : `${100 / this.contentScaling}%`,
+                width: !this.props.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.props.Document._nativeWidth) : `${100 / this.contentScaling}%`,
+                height: !this.props.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.props.Document._nativeHeight) : `${100 / this.contentScaling}%`,
                 transform: `scale(${this.props.ContentScaling()})`
             }}  >
             {this.pdfViewerDiv}
