@@ -302,7 +302,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             mapStyle: { default: "decimal" }, // "decimal", "multi", "bullet"
             visibility: { default: true }
         },
-        content: 'paragraph block*',
+        content: 'paragraph+ | (paragraph ordered_list)',
         parseDOM: [{
             tag: "li", getAttrs(dom: any) {
                 return { mapStyle: dom.getAttribute("data-mapStyle"), bulletStyle: dom.getAttribute("data-bulletStyle") };
@@ -310,9 +310,9 @@ export const nodes: { [index: string]: NodeSpec } = {
         }],
         toDOM(node: any) {
             const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
-            return node.attrs.visibility ?
-                ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, 0] :
-                ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, "..."];
+            return ["li", { class: `${map}`, "data-mapStyle": node.attrs.mapStyle, "data-bulletStyle": node.attrs.bulletStyle }, node.attrs.visibility ? 0 :
+                ["span", { style: `position: relative; width: 100%; height: 1.5em; overflow: hidden; display: ${node.attrs.mapStyle !== "bullet" ? "inline-block" : "list-item"}; text-overflow: ellipsis; white-space: pre` },
+                    `${node.firstChild?.textContent}...`]];
         }
     },
 };

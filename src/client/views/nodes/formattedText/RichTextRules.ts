@@ -275,11 +275,11 @@ export class RichTextRules {
                     if (!fieldKey) {
                         if (docid) {
                             DocServer.GetRefField(docid).then(docx => {
-                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
+                                const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, }, docid);
                                 DocUtils.Publish(target, docid, returnFalse, returnFalse);
                                 DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
                             });
-                            const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                            const link = state.schema.marks.linkAnchor.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;
@@ -305,7 +305,7 @@ export class RichTextRules {
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
-                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
+                            const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500 }, docid);
                             DocUtils.Publish(docx, docid, returnFalse, returnFalse);
                         }
                     });
@@ -314,8 +314,6 @@ export class RichTextRules {
                     const sm = state.storedMarks || undefined;
                     return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }),
-
-
 
             // create an inline view of a tag stored under the '#' field
             new InputRule(
@@ -374,7 +372,6 @@ export class RichTextRules {
             new InputRule(
                 new RegExp(/%\)/),
                 (state, match, start, end) => {
-
                     return state.tr.deleteRange(start, end).removeStoredMark(state.schema.marks.summarizeInclusive.create());
                 }),
 

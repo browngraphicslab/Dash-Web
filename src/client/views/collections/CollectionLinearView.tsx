@@ -13,6 +13,8 @@ import { CollectionSubView } from './CollectionSubView';
 import { DocumentView } from '../nodes/DocumentView';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
+import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -75,6 +77,18 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         return new Transform(-translateX, -translateY, 1);
     }
 
+    @action
+    exitLongLinks = () => {
+        if (DocumentLinksButton.StartLink) {
+            if (DocumentLinksButton.StartLink.Document) {
+                action((e: React.PointerEvent<HTMLDivElement>) => {
+                    Doc.UnBrushDoc(DocumentLinksButton.StartLink?.Document as Doc);
+                });
+            }
+        }
+        DocumentLinksButton.StartLink = undefined;
+    }
+
     render() {
         const guid = Utils.GenerateGuid();
         const flexDir: any = StrCast(this.Document.flexDirection);
@@ -82,7 +96,12 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const color = StrCast(this.props.Document.color, "white");
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <label htmlFor={`${guid}`} title="Close Menu" style={{ background: backgroundColor === color ? "black" : backgroundColor }}
+                <label htmlFor={`${guid}`} title="Close Menu" style={{
+                    background: backgroundColor === color ? "black" : backgroundColor,
+                    // width: "18px", height: "18px", fontSize: "12.5px",
+                    // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
+                    // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
+                }}
                     onPointerDown={e => e.stopPropagation()} >
                     <p>+</p>
                 </label>
@@ -130,6 +149,19 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         </div>;
                     })}
                 </div>
+                {DocumentLinksButton.StartLink ? <span className="bottomPopup-background" style={{
+                    background: backgroundColor === color ? "black" : backgroundColor
+                }}
+                    onPointerDown={e => e.stopPropagation()} >
+                    <span className="bottomPopup-text" >
+                        Creating link from: {DocumentLinksButton.StartLink.title} </span>
+                    <span className="bottomPopup-exit" onClick={this.exitLongLinks}
+                    >Exit</span>
+
+                    {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
+                        onClick={this.exitLongLinks} /> */}
+
+                </span> : null}
             </div>
         </div>;
     }

@@ -10,6 +10,7 @@ import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
+import { LinkDocPreview } from "../nodes/LinkDocPreview";
 
 library.add(faTrash);
 
@@ -28,7 +29,14 @@ export class LinkMenu extends React.Component<Props> {
 
     @action
     onClick = (e: PointerEvent) => {
-        if (!Array.from(this._linkMenuRef?.getElementsByTagName((e.target as HTMLElement).tagName) || []).includes(e.target as any)) {
+
+        LinkDocPreview.LinkInfo = undefined;
+
+        if (this._linkMenuRef?.contains(e.target as any)) {
+            DocumentLinksButton.EditLink = undefined;
+        }
+
+        if (this._linkMenuRef && !this._linkMenuRef.contains(e.target as any)) {
             DocumentLinksButton.EditLink = undefined;
         }
     }
@@ -70,7 +78,8 @@ export class LinkMenu extends React.Component<Props> {
     render() {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
-        return <div className="linkMenu-list" ref={(r) => this._linkMenuRef = r} style={{ left: this.props.location[0], top: this.props.location[1] }}>
+        return <div className="linkMenu-list"
+            ref={(r) => this._linkMenuRef = r} style={{ left: this.props.location[0], top: this.props.location[1] }}>
             {!this._editingLink ?
                 this.renderAllGroups(groups) :
                 <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink} showLinks={action(() => this._editingLink = undefined)} />

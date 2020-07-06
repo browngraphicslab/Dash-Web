@@ -552,7 +552,7 @@ function Distance(p1: any, p2: any) // distance between two points
 }
 function CalcStartUnitVector(points: any, index: any) // start angle from points[0] to points[index] normalized as a unit vector
 {
-    const v = new Point(points[index].X - points[0].X, points[index].Y - points[0].Y);
+    const v = new Point(points[index]?.X - points[0]?.X, points[index]?.Y - points[0]?.Y);
     const len = Math.sqrt(v.X * v.X + v.Y * v.Y);
     return new Point(v.X / len, v.Y / len);
 }

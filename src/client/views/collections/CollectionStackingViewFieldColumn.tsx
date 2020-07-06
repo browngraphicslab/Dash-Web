@@ -96,8 +96,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const castedValue = this.getValue(value);
         if (castedValue) {
-            if (this.props.parent.sectionHeaders) {
-                if (this.props.parent.sectionHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
+            if (this.props.parent.columnHeaders) {
+                if (this.props.parent.columnHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
                     return false;
                 }
             }
@@ -148,9 +148,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     deleteColumn = () => {
         const key = StrCast(this.props.parent.props.Document._pivotField);
         this.props.docList.forEach(d => d[key] = undefined);
-        if (this.props.parent.sectionHeaders && this.props.headingObject) {
-            const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
-            this.props.parent.sectionHeaders.splice(index, 1);
+        if (this.props.parent.columnHeaders && this.props.headingObject) {
+            const index = this.props.parent.columnHeaders.indexOf(this.props.headingObject);
+            this.props.parent.columnHeaders.splice(index, 1);
         }
     }
 
@@ -168,7 +168,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
         const alias = Doc.MakeAlias(this.props.parent.props.Document);
-        alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.props.Document.sectionHeaders, listSpec(SchemaHeaderField))?.length || 1);
+        alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.columnHeaders, listSpec(SchemaHeaderField))?.length || 1);
         alias._pivotField = undefined;
         const key = StrCast(this.props.parent.props.Document._pivotField);
         let value = this.getValue(this._heading);
@@ -259,8 +259,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     }
                 }, icon: "compress-arrows-alt"
             }));
-        layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
-        layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200 })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":columns", event: () => this.props.parent.props.addDocument(Docs.Create.MulticolumnDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":image", event: () => this.props.parent.props.addDocument(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
 
@@ -359,10 +359,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
-                {this.props.parent.Document.hideHeadings ? (null) : headingView}
+                {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
                 {
                     this.collapsed ? (null) :
-                        <div>
+                        <div style={{ marginTop: 5 }}>
                             <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                                 style={{
                                     padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,

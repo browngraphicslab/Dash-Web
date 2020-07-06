@@ -17,12 +17,12 @@ export const marks: { [index: string]: MarkSpec } = {
             return ["div", { className: "dummy" }, 0];
         }
     },
-    // :: MarkSpec A link. Has `href` and `title` attributes. `title`
+    // :: MarkSpec A linkAnchor. The anchor can have multiple links, where each link has an href URL and a title for use in menus and hover (Dash links have linkIDs & targetIDs). `title`
     // defaults to the empty string. Rendered and parsed as an `<a>`
     // element.
-    link: {
+    linkAnchor: {
         attrs: {
-            allHrefs: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
+            allLinks: { default: [] as { href: string, title: string, linkId: string, targetId: string }[] },
             showPreview: { default: true },
             location: { default: null },
             title: { default: null },
@@ -31,22 +31,22 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { allHrefs: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.getAttribute("targetids") }], location: dom.getAttribute("location"), };
+                return { allLinks: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.getAttribute("targetids") }], location: dom.getAttribute("location"), };
             }
         }],
         toDOM(node: any) {
-            const targetids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
-            const linkids = node.attrs.allHrefs.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
+            const targetids = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.targetId, "");
+            const linkids = node.attrs.allLinks.reduce((p: string, item: { href: string, title: string, targetId: string, linkId: string }) => p + " " + item.linkId, "");
             return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                node.attrs.allHrefs.length === 1 ?
-                    ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allHrefs[0].href }, 0] :
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, href: node.attrs.allLinks[0].href, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
+                node.attrs.allLinks.length === 1 ?
+                    ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allLinks[0].href }, 0] :
                     ["div", { class: "prosemirror-anchor" },
                         ["span", { class: "prosemirror-linkBtn" },
                             ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],
                             ["input", { class: "prosemirror-hrefoptions" }],
                         ],
-                        ["div", { class: "prosemirror-links" }, ...node.attrs.allHrefs.map((item: { href: string, title: string }) =>
+                        ["div", { class: "prosemirror-links" }, ...node.attrs.allLinks.map((item: { href: string, title: string }) =>
                             ["a", { class: "prosemirror-dropdownlink", href: item.href }, item.title]
                         )]
                     ];
@@ -270,6 +270,7 @@ export const marks: { [index: string]: MarkSpec } = {
             userid: { default: "" },
             modified: { default: "when?" }, // 1 second intervals since 1970
         },
+        excludes: "user_mark",
         group: "inline",
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
