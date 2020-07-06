@@ -59,9 +59,7 @@
     }
 
     .rt-thead {
-        width: calc(100% - 52px);
-        margin-left: 50px;
-
+        width: 100%;
         z-index: 100;
         overflow-y: visible;
 
@@ -165,7 +163,7 @@
 .collectionSchema-col {
     height: 100%;
 
-    .collectionSchema-col-wrapper {
+    .collectionSchema-apper {
         &.col-before {
             border-left: 2px solid red;
         }
@@ -297,7 +295,6 @@ button.add-column {
                 background-color: white;
                 border: 1px solid lightgray;
                 padding: 2px 3px;
-                overflow-x: hidden;
 
                 &:not(:first-child) {
                     border-top: 0;
@@ -531,8 +528,8 @@ button.add-column {
 .reactTable-sub {
     padding: 10px 30px;
     background-color: rgb(252, 252, 252);
-    width: calc(100% - 50px);
-    margin-left: 50px;
+    width: 100%;
+ 
 
     .row-dragger {
         background-color: rgb(252, 252, 252);

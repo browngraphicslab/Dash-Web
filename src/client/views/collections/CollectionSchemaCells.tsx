@@ -194,7 +194,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
         const onItemDown = (e: React.PointerEvent) => {
-            fieldIsDoc && SetupDrag(this._focusRef,
+            //fieldIsDoc && 
+            SetupDrag(this._focusRef,
                 () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
                 this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
                 this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);

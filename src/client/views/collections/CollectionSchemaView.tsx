@@ -456,6 +456,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 this.props.select(false);
             }
         }
+        console.log("yeeeet");
     }
 
     @computed
@@ -605,6 +606,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         }
     }
 
+
+
+    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        console.log("yeet2");
+    }
     render() {
         TraceMobx();
         const menuContent = this.renderMenuContent;
@@ -630,6 +636,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             }}  >
             <div className="collectionSchemaView-tableContainer"
                 style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
+                onKeyPress={this.onKeyPress}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
                 onDrop={e => this.onExternalDrop(e, {})}

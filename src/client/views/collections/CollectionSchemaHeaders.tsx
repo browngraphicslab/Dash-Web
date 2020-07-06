@@ -396,7 +396,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     render() {
         return (
-            <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width, overflowX: "hidden" }}>
+            <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
                 {this._key === this._searchTerm.slice(0, this._key.length) ?
                     <div style={{ position: "absolute", marginLeft: "4px", marginTop: "3", color: "grey", pointerEvents: "none", lineHeight: 1.15 }}>
                         {this._key}
@@ -411,7 +411,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" style={{
                     backgroundColor: "white",
-                    width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+                    width: this.props.width, maxWidth: this.props.width,
                 }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this.renderOptions()}

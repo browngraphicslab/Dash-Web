@@ -217,7 +217,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     className="collectionSchemaView-menuOptions-wrapper"
                     style={{
                         background: col.color, padding: "2px",
-                        display: "flex", cursor: "default"
+                        display: "flex", cursor: "default", height: "100%",
                     }}>
                     <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
                     {/* <div className="keys-dropdown"

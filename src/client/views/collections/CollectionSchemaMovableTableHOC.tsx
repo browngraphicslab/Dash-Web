@@ -209,6 +209,14 @@ export class MovableRow extends React.Component<MovableRowProps> {
         return doc !== targetCollection && doc !== targetView?.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);
     }
 
+    @action
+    onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        console.log("yes");
+        if (e.key === "Backspace" || e.key === "Delete") {
+            undoBatch(() => this.props.removeDoc(this.props.rowInfo.original));
+        }
+    }
+
     render() {
         const { children = null, rowInfo } = this.props;
         if (!rowInfo) {
@@ -227,14 +235,14 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (this.props.rowWrapped) className += " row-wrapped";
 
         return (
-            <div className={className} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
-                <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    <ReactTableDefaults.TrComponent>
-                        <div className="row-dragger">
+            <div className={className} onKeyPress={this.onKeyDown} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
+                <div className="collectionSchema-row-wrapper" onKeyPress={this.onKeyDown} ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                    <ReactTableDefaults.TrComponent onKeyPress={this.onKeyDown} >
+                        {/* <div className="row-dragger">
                             <div className="row-option" onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
                             <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
                             <div className="row-option" onClick={() => this.props.addDocTab(this.props.rowInfo.original, "onRight")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
-                        </div>
+                        </div> */}
                         {children}
                     </ReactTableDefaults.TrComponent>
                 </div>
