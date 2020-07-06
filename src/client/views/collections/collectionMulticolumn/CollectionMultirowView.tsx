@@ -7,7 +7,7 @@ import { Doc } from '../../../../fields/Doc';
 import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../fields/Types';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { Utils, returnZero, returnFalse, returnOne } from '../../../../Utils';
-import "./collectionMultirowView.scss";
+import "./CollectionMultirowView.scss";
 import { computed, trace, observable, action } from 'mobx';
 import { Transform } from '../../../util/Transform';
 import HeightLabel from './MultirowHeightLabel';
