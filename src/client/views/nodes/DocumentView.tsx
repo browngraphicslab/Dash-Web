@@ -43,6 +43,7 @@ import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { LinkCreatedBox } from './LinkCreatedBox';
+import { Hypothesis } from '../../apis/hypothesis/HypothesisApiUtils';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -756,13 +757,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!cm) return;
 
         cm.addItem({
-            description: "make hypothesis link", event: () => {
+            description: "make hypothesis link", event: async () => {
                 const docUrl = Utils.prepend("/doc/" + this.props.Document[Id]);
                 const docTitle = StrCast(this.layoutDoc.title);
-                document.dispatchEvent(new CustomEvent<{ url: string, title: string }>("linkRequest", {
-                    detail: { url: docUrl, title: docTitle },
-                    bubbles: true
-                }));
+                const getResponse = await Hypothesis.getAnnotation("melissaz", "placeholder");
+                if (getResponse && getResponse.rows.length > 0) {
+                    const annotationId = getResponse.rows[0].id;
+                    document.dispatchEvent(new CustomEvent<{ url: string, title: string, id: string }>("linkRequest", {
+                        detail: { url: docUrl, title: docTitle, id: annotationId },
+                        bubbles: true
+                    }));
+                } else {
+                    console.log("no placeholder annotation found");
+                }
             }, icon: "eye"
         });
 
