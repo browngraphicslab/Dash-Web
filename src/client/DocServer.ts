@@ -39,9 +39,10 @@ export namespace DocServer {
     const docsWithUpdates: { [field: string]: Set<Doc> } = {};
 
     export var PlaygroundFields: string[];
-    export function setPlaygroundFields(livePlayougroundFields: string[]) {
-        DocServer.PlaygroundFields = livePlayougroundFields;
-        livePlayougroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
+    export function setPlaygroundFields(livePlaygroundFields: string[]) {
+        console.log("here");
+        DocServer.PlaygroundFields = livePlaygroundFields;
+        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
     }
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {

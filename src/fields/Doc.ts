@@ -17,8 +17,9 @@ import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, getEffectiveAcl } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
+import { SharingPermissions } from "../client/util/SharingManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -100,23 +101,39 @@ export const AclEdit = Symbol("AclEdit");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
+const AclMap = new Map<string, symbol>([
+    [SharingPermissions.None, AclPrivate],
+    [SharingPermissions.View, AclReadonly],
+    [SharingPermissions.Add, AclAddonly],
+    [SharingPermissions.Edit, AclEdit]
+]);
 
 export function fetchProto(doc: Doc) {
+    console.log("in fetchproto");
     if (doc.author !== Doc.CurrentUserEmail) { // storing acls for groups needs to be extended here - AclSym should store a datastructure that stores information about permissions
-        const acl = Doc.Get(doc, "ACL", true);
-        switch (acl) {
-            case "ownerOnly":
-                doc[AclSym] = AclPrivate;
-                return undefined;
-            case "readOnly":
-                doc[AclSym] = AclReadonly;
-                break;
-            case "addOnly":
-                doc[AclSym] = AclAddonly;
-                break;
-            case "edit":
-                doc[AclSym] = AclEdit;
-        }
+
+        const permissions: { [key: string]: symbol } = {};
+
+        Object.keys(doc).forEach(key => {
+            if (key.startsWith("ACL")) permissions[key] = AclMap.get(StrCast(doc[key]))!;
+        });
+
+        doc[AclSym] = permissions;
+
+        // const acl = Doc.Get(doc, "ACL", true);
+        // switch (acl) {
+        //     case "ownerOnly":
+        //         doc[AclSym] = AclPrivate;
+        //         return undefined;
+        //     case "readOnly":
+        //         doc[AclSym] = AclReadonly;
+        //         break;
+        //     case "addOnly":
+        //         doc[AclSym] = AclAddonly;
+        //         break;
+        //     // case "edit":
+        //     //     doc[AclSym] = AclEdit;
+        // }
     }
 
     if (doc.proto instanceof Promise) {
@@ -134,10 +151,10 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
-            has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
+            has: (target, key) => getEffectiveAcl(target) !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                if (target[AclSym] !== AclPrivate) Object.assign(obj, target.___fields);
+                if (getEffectiveAcl(target) !== AclPrivate) Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -191,11 +208,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [AclSym]: any = undefined;
+    public [AclSym]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
-    public [ToString]() { return `Doc(${this[AclSym] === AclPrivate ? "-inaccessible-" : this.title})`; }
+    public [ToString]() { return `Doc(${getEffectiveAcl(this) === AclPrivate ? "-inaccessible-" : this.title})`; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -823,7 +840,8 @@ export namespace Doc {
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return 0;
+        console.log("here");
+        if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
@@ -832,15 +850,15 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
-
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
+        console.log("here");
+        if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
 
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
+        if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
@@ -870,7 +888,8 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return false;
+        console.log("here");
+        if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return false;
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {

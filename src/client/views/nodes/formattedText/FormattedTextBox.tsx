@@ -13,7 +13,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym, AclEdit } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
 import { removeMarkWithAttrs } from "./prosemirrorPatches";
@@ -24,7 +24,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../fields/Types";
-import { TraceMobx, OVERRIDE_ACL } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_ACL, getEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -226,7 +226,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
-            if (!this.dataDoc[AclSym]) {
+            // if (!this.dataDoc[AclSym]) { // what?
+            console.log("here");
+            if (getEffectiveAcl(this.dataDoc) === AclEdit) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));

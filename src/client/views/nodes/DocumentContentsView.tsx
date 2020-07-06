@@ -36,7 +36,7 @@ import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
 import { RecommendationsBox } from "../RecommendationsBox";
-import { TraceMobx } from "../../../fields/util";
+import { TraceMobx, getEffectiveAcl } from "../../../fields/util";
 import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
 
@@ -184,8 +184,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
         const bindings = this.CreateBindings(onClick, onInput);
         //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns
-
-        return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc || this.layoutDoc[AclSym] === AclPrivate) ? (null) :
+        console.log("here");
+        return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc || getEffectiveAcl(this.layoutDoc) === AclPrivate) ? (null) :
             <ObserverJsxParser
                 key={42}
                 blacklistedAttrs={[]}

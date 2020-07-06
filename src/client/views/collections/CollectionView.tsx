@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx } from '../../../fields/util';
+import { TraceMobx, getEffectiveAcl } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -132,10 +132,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
+        console.log("here");
+        const effectiveAcl = getEffectiveAcl(this.dataDoc);
         if (added.length) {
-            if (this.dataDoc[AclSym] === AclReadonly) {
+            if (effectiveAcl === AclReadonly) {
                 return false;
-            } else if (this.dataDoc[AclSym] === AclAddonly) {
+            } else if (effectiveAcl === AclAddonly) {
                 added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
             } else {
                 added.map(doc => {
