@@ -3,6 +3,10 @@
 .linkMenu {
     width: 100%;
     height: auto;
+
+    &:hover {
+        width: calc(auto + 26px);
+    }
 }
 
 .linkMenu-list {
@@ -17,6 +21,7 @@
     padding-bottom: 6.5px;
     padding-left: 6.5px;
     padding-right: 2px;
+    //width: calc(auto + 50px);
 }
 
 .linkMenu-group {
@@ -39,7 +44,7 @@
             }
 
             p.expand-one {
-                width: calc(100% - 26px);
+                width: calc(100% + 26px);
             }
 
             .linkEditor-tableButton {

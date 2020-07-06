@@ -12,6 +12,7 @@
         .linkMenu-text {
 
             padding: 4px 2px;
+            //display: inline;
 
             .linkMenu-destination-title {
                 text-decoration: none;
@@ -52,6 +53,7 @@
 
     &:hover {
 
+
         .linkMenu-item-buttons {
             display: flex;
         }
@@ -61,6 +63,7 @@
             .linkMenu-destination-title {
                 text-decoration: underline;
                 color: rgb(15, 57, 148);
+                display: inline;
             }
 
             &.expand-two p {
@@ -81,6 +84,7 @@
 }
 
 .linkMenu-item-buttons {
+    //@extend: right;
     position: absolute;
     top: 50%;
     right: 0;

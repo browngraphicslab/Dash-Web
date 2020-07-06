@@ -288,7 +288,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable description = StrCast(LinkManager.currentLink?.description);
     @observable openDropdown: boolean = false;
 
-    @observable currentFollow: string = "Default";
+    @observable followBehavior = this.props.linkDoc.follow ? this.props.linkDoc.follow : "Default";
 
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
@@ -330,7 +330,8 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @action
     changeFollowBehavior = (follow: string) => {
         this.openDropdown = false;
-        this.currentFollow = follow;
+        this.followBehavior = follow;
+        this.props.linkDoc.follow = follow;
     }
 
     @computed
@@ -340,7 +341,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 Follow Behavior:</div>
             <div className="linkEditor-followingDropdown-dropdown">
                 <div className="linkEditor-followingDropdown-header">
-                    {this.currentFollow}
+                    {this.followBehavior}
                     <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
                         icon={this.openDropdown ? "chevron-up" : "chevron-down"}
                         size={"sm"} onPointerDown={this.changeDropdown} />
@@ -348,7 +349,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 {this.openDropdown ?
                     <div className="linkEditor-followingDropdown-optionsList">
                         <div className="linkEditor-followingDropdown-option"
-                            onPointerDown={() => this.changeFollowBehavior("default")}>
+                            onPointerDown={() => this.changeFollowBehavior("Default")}>
                             Default
                         </div>
                         <div className="linkEditor-followingDropdown-option"
