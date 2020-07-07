@@ -219,7 +219,7 @@ export default class RichTextMenu extends AntimodeMenu {
     getActiveAlignment() {
         if (this.view) {
             const path = (this.view.state.selection.$from as any).path;
-            for (let i = path.length - 3; i < path.length; i -= 3) {
+            for (let i = path.length - 3; i < path.length && i >= 0; i -= 3) {
                 if (path[i]?.type === this.view.state.schema.nodes.paragraph) {
                     return path[i].attrs.align || "left";
                 }
