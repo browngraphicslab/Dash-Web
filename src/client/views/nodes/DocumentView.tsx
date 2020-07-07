@@ -43,7 +43,12 @@ import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { LinkCreatedBox } from './LinkCreatedBox';
+<<<<<<< HEAD
 import { Hypothesis } from '../../apis/hypothesis/HypothesisApiUtils';
+=======
+import { LinkDescriptionPopup } from './LinkDescriptionPopup';
+import { LinkManager } from '../../util/LinkManager';
+>>>>>>> 3f704ee2941fef77dd0eafebeb0a6ffb0a946a8b
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -643,30 +648,46 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
+            const linkDoc = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
+            LinkManager.currentLink = linkDoc;
+
             runInAction(() => {
                 LinkCreatedBox.popupX = de.x;
-                LinkCreatedBox.popupY = de.y;
+                LinkCreatedBox.popupY = de.y - 33;
                 LinkCreatedBox.linkCreated = true;
+
+                LinkDescriptionPopup.popupX = de.x;
+                LinkDescriptionPopup.popupY = de.y;
+                LinkDescriptionPopup.descriptionPopup = true;
+
                 setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
             });
-
-            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
 
-            runInAction(() => {
-                LinkCreatedBox.popupX = de.x;
-                LinkCreatedBox.popupY = de.y;
-                LinkCreatedBox.linkCreated = true;
-                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-            });
+            if (de.complete.linkDragData.linkSourceDocument !== this.props.Document) {
+                const linkDoc = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
+                    { doc: this.props.Document }, `link`);
+                LinkManager.currentLink = linkDoc;
 
-            de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
-                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
-                    { doc: this.props.Document }, `link`)); // TODODO this is where in text links get passed
+                de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
+                    (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
+                runInAction(() => {
+                    LinkCreatedBox.popupX = de.x;
+                    LinkCreatedBox.popupY = de.y - 33;
+                    LinkCreatedBox.linkCreated = true;
+
+                    LinkDescriptionPopup.popupX = de.x;
+                    LinkDescriptionPopup.popupY = de.y;
+                    LinkDescriptionPopup.descriptionPopup = true;
+
+                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                });
+            }
+
         }
     }
 

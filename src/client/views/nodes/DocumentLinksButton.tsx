@@ -15,6 +15,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Document } from "../../../fields/documentSchemas";
 import { StrCast } from "../../../fields/Types";
 
+import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
+import { LinkManager } from "../../util/LinkManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -75,6 +77,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         return false;
     }
 
+
     onLinkButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
             if (doubleTap && this.props.InMenu) {
@@ -110,17 +113,23 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     //     Doc.UnBrushDoc(this.props.View.Document);
                     // });
                 } else {
-                    DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
-                        (DocumentLinksButton.AnnotationId ?
+                    if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
+                        const linkDoc = DocumentLinksButton.AnnotationId ?
                             DocUtils.MakeHypothesisLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "hypothesis annotation", DocumentLinksButton.AnnotationId) :
-                            DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag"));
+                            DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                        LinkManager.currentLink = linkDoc;
+                        runInAction(() => {
+                            LinkCreatedBox.popupX = e.screenX;
+                            LinkCreatedBox.popupY = e.screenY - 133;
+                            LinkCreatedBox.linkCreated = true;
 
-                    runInAction(() => {
-                        LinkCreatedBox.popupX = e.screenX;
-                        LinkCreatedBox.popupY = e.screenY - 120;
-                        LinkCreatedBox.linkCreated = true;
-                        setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-                    });
+                            LinkDescriptionPopup.popupX = e.screenX;
+                            LinkDescriptionPopup.popupY = e.screenY - 100;
+                            LinkDescriptionPopup.descriptionPopup = true;
+
+                            setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                        });
+                    }
                 }
             }
         }));
@@ -135,17 +144,23 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             //     Doc.UnBrushDoc(this.props.View.Document);
             // });
         } else {
-            DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
-                (DocumentLinksButton.AnnotationId ?
+            if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
+                const linkDoc = DocumentLinksButton.AnnotationId ?
                     DocUtils.MakeHypothesisLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "hypothesis annotation", DocumentLinksButton.AnnotationId) :
-                    DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag"));
+                    DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                LinkManager.currentLink = linkDoc;
+                runInAction(() => {
+                    LinkCreatedBox.popupX = e.screenX;
+                    LinkCreatedBox.popupY = e.screenY - 133;
+                    LinkCreatedBox.linkCreated = true;
 
-            runInAction(() => {
-                LinkCreatedBox.popupX = e.screenX;
-                LinkCreatedBox.popupY = e.screenY - 120;
-                LinkCreatedBox.linkCreated = true;
-                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-            });
+                    LinkDescriptionPopup.popupX = e.screenX;
+                    LinkDescriptionPopup.popupY = e.screenY - 100;
+                    LinkDescriptionPopup.descriptionPopup = true;
+
+                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                });
+            }
         }
     }
 
@@ -156,10 +171,14 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @computed
     get linkButton() {
         const links = DocListCast(this.props.View.props.Document.links);
+
+        const title = this.props.InMenu ? "Drag or tap to create links" : "Tap to view links";
+
         return (!links.length || links[0].hidden) && !this.props.AlwaysOn ? (null) :
-            <div title="Drag(create link) Tap(view links)" ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
+            <div title={title} ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
                 <div className={"documentLinksButton"} style={{
-                    backgroundColor: DocumentLinksButton.StartLink ? "transparent" : "",
+                    backgroundColor: DocumentLinksButton.StartLink ? "transparent" : this.props.InMenu ? "black" : "",
+                    color: this.props.InMenu ? "white" : "black",
                     width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
                 }}
                     onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}

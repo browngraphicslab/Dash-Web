@@ -551,7 +551,7 @@ export default class GestureOverlay extends Touchable {
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
                 // we don't want to create a link between ink strokes (doing so makes drawing a t very hard)
                 if (this._d1.type !== "ink" && doc.type !== "ink") {
-                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link");
+                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link", "");
                     actionPerformed = true;
                 }
             }

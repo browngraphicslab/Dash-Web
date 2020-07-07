@@ -15,6 +15,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -89,6 +90,21 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         DocumentLinksButton.StartLink = undefined;
     }
 
+    @action
+    changeDescriptionSetting = () => {
+        if (LinkDescriptionPopup.showDescriptions) {
+            if (LinkDescriptionPopup.showDescriptions === "ON") {
+                LinkDescriptionPopup.showDescriptions = "OFF";
+                LinkDescriptionPopup.descriptionPopup = false;
+            } else {
+                LinkDescriptionPopup.showDescriptions = "ON";
+            }
+        } else {
+            LinkDescriptionPopup.showDescriptions = "OFF";
+            LinkDescriptionPopup.descriptionPopup = false;
+        }
+    }
+
     render() {
         const guid = Utils.GenerateGuid();
         const flexDir: any = StrCast(this.Document.flexDirection);
@@ -154,7 +170,14 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
+<<<<<<< HEAD
                         Creating link from: {(DocumentLinksButton.AnnotationId ? "Annotation in " : "")} {DocumentLinksButton.StartLink.title} </span>
+=======
+                        Creating link from: {DocumentLinksButton.StartLink.title} </span>
+                    <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
+                    > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                    </span>
+>>>>>>> 3f704ee2941fef77dd0eafebeb0a6ffb0a946a8b
                     <span className="bottomPopup-exit" onClick={this.exitLongLinks}
                     >Exit</span>
 
