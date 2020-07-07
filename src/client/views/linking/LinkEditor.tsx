@@ -1,14 +1,18 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
+import { action, observable, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { StrCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
 import './LinkEditor.scss';
 import React = require("react");
+import { DocumentView } from "../nodes/DocumentView";
+import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
+import { EditableView } from "../EditableView";
+import { RefObject } from "react";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -281,27 +285,113 @@ interface LinkEditorProps {
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
+
+    @observable description = StrCast(LinkManager.currentLink?.description);
+    @observable openDropdown: boolean = false;
+
+    @observable followBehavior = this.props.linkDoc.follow ? this.props.linkDoc.follow : "Default";
+
+
+    //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
+
     @action
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         this.props.showLinks();
     }
 
+    @action
+    setDescripValue = (value: string) => {
+        if (LinkManager.currentLink) {
+            LinkManager.currentLink.description = value;
+            return true;
+        }
+    }
+
+    @computed
+    get editDescription() {
+        return <div className="linkEditor-description">
+            <div className="linkEditor-description-label">
+                Link Description:</div>
+            <div className="linkEditor-description-input">
+                <EditableView
+                    GetValue={() => StrCast(LinkManager.currentLink?.description)}
+                    SetValue={value => { this.setDescripValue(value); return false; }}
+                    contents={LinkManager.currentLink?.description}
+                    placeholder={"(optional) enter link description"}
+                    color={"rgb(88, 88, 88)"}
+                ></EditableView></div></div>;
+    }
+
+    @action
+    changeDropdown = () => {
+        this.openDropdown = !this.openDropdown;
+    }
+
+    @action
+    changeFollowBehavior = (follow: string) => {
+        this.openDropdown = false;
+        this.followBehavior = follow;
+        this.props.linkDoc.follow = follow;
+    }
+
+    @computed
+    get followingDropdown() {
+        return <div className="linkEditor-followingDropdown">
+            <div className="linkEditor-followingDropdown-label">
+                Follow Behavior:</div>
+            <div className="linkEditor-followingDropdown-dropdown">
+                <div className="linkEditor-followingDropdown-header"
+                    onPointerDown={this.changeDropdown}>
+                    {this.followBehavior}
+                    <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
+                        icon={this.openDropdown ? "chevron-up" : "chevron-down"}
+                        size={"lg"} onPointerDown={this.changeDropdown} />
+                </div>
+                <div className="linkEditor-followingDropdown-optionsList"
+                    style={{ display: this.openDropdown ? "" : "none" }}>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("Default")}>
+                        Default
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("Always open in right tab")}>
+                        Always open in right tab
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("Always open in new tab")}>
+                        Always open in new tab
+                        </div>
+                </div>
+            </div>
+        </div>;
+    }
+
     render() {
         const destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
         const groups = [this.props.linkDoc].map(groupDoc => {
-            return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.linkRelationship)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
+            return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.linkRelationship)} linkDoc={this.props.linkDoc}
+                sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
 
         return !destination ? (null) : (
             <div className="linkEditor">
-                {this.props.hideback ? (null) : <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>}
                 <div className="linkEditor-info">
-                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
-                    <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    <button className="linkEditor-button-back"
+                        style={{ display: this.props.hideback ? "none" : "" }}
+                        onClick={this.props.showLinks}>
+                        <FontAwesomeIcon icon="arrow-left" size="sm" /> </button>
+                    <p className="linkEditor-linkedTo">editing link to: <b>{
+                        destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
+                    <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
+                        <FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
-                {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
+
+                <div>{this.editDescription}</div>
+                <div>{this.followingDropdown}</div>
+
+                {/* {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>} */}
             </div>
 
         );
