@@ -46,13 +46,36 @@
         height: 100%;
         position: relative;
 
-        .recording {
-            width: 100%;
-            height: 100%;
+        
+    }
+
+    .recording {
+        margin-top: auto;
+        margin-bottom: auto;
+        width: 100%;
+        height: 80%;
+        position: relative;
+        padding-right: 5px;
+        display: flex;
+
+        .time {
             position: relative;
-            display: flex;
-            padding-left: 2px;
-            background: lightgrey;
+            height: 100%;
+            width: 100%;
+            font-size: 20;
+            text-align: center;
+        }
+
+        .buttons {
+            position: relative;
+            margin-top: auto;
+            margin-bottom: auto;
+            width: 25px;
+            padding: 5px;
+        }
+
+        .buttons:hover {
+            background-color: darkgrey;
         }
     }
 

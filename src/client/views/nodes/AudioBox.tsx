@@ -50,8 +50,12 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _recordStart = 0;
+    _pauseStart = 0;
+    _pauseEnd = 0;
+    _pausedTime = 0;
     _stream: MediaStream | undefined;
 
+    @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
     @observable private _repeat: boolean = false;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
@@ -139,8 +143,13 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
 
     updateRecordTime = () => {
         if (this.audioState === "recording") {
-            setTimeout(this.updateRecordTime, 30);
-            this.layoutDoc.currentTimecode = (new Date().getTime() - this._recordStart) / 1000;
+            if (this._paused) {
+                setTimeout(this.updateRecordTime, 30);
+                this._pausedTime += (new Date().getTime() - this._recordStart) / 1000;
+            } else {
+                setTimeout(this.updateRecordTime, 30);
+                this.layoutDoc.currentTimecode = (new Date().getTime() - this._recordStart - this.pauseTime) / 1000;
+            }
         }
     }
 
@@ -172,7 +181,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     stopRecording = action(() => {
         this._recorder.stop();
         this._recorder = undefined;
-        this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
+        this.dataDoc.duration = (new Date().getTime() - this._recordStart - this.pauseTime) / 1000;
         this.audioState = "paused";
         this._stream?.getAudioTracks()[0].stop();
         const ind = DocUtils.ActiveRecordings.indexOf(this.props.Document);
@@ -233,6 +242,28 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         e.stopPropagation();
     }
 
+    @action
+    recordPause = (e: React.MouseEvent) => {
+        this._pauseStart = new Date().getTime();
+        this._paused = true;
+        this._recorder.pause();
+        e.stopPropagation();
+
+    }
+
+    @action
+    recordPlay = (e: React.MouseEvent) => {
+        this._pauseEnd = new Date().getTime();
+        this._paused = false;
+        this._recorder.resume();
+        e.stopPropagation();
+
+    }
+
+    @computed get pauseTime() {
+        return (this._pauseEnd - this._pauseStart);
+    }
+
     render() {
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
@@ -241,14 +272,28 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                     <div className="audiobox-dictation" onClick={this.onFile}>
                         <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
-                    <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
+                    {/* <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "lightgrey" : "black" }}>
                         {this.audioState === "recording" ?
-                            <div className="recording" >
+                            <div className="recording" style={{}}>
                                 10:00
-                                
                                     <FontAwesomeIcon style={{ width: "100%" }} icon={"stop-circle"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
-                                    <FontAwesomeIcon style={{ width: "100%" }} icon={"pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /> </div> : "RECORD"}
-                    </button>
+                                <FontAwesomeIcon style={{ width: "100%" }} icon={"pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /> </div> : "RECORD"}
+                    </button> */}
+                    {this.audioState === "recording" ?
+                        <div className="recording" onClick={e => e.stopPropagation()}>
+                            <div className="buttons" onClick={this.recordClick}>
+                                <FontAwesomeIcon style={{ width: "100%" }} icon={"stop"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                            </div>
+                            <div className="buttons" onClick={this._paused ? this.recordPlay : this.recordPause}>
+                                <FontAwesomeIcon style={{ width: "100%" }} icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                            </div>
+                            <div className="time">{NumCast(this.layoutDoc.currentTimecode).toFixed(1)}</div>
+                        </div>
+
+                        :
+                        <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
+                            RECORD
+                            </button>}
                 </div> :
                 <div className="audiobox-controls" onClick={this.layoutDoc.playOnSelect ? this.onPlay : undefined}>
                     <div className="audiobox-player" >
