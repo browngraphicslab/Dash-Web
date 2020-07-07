@@ -41,9 +41,9 @@
     }
 
     .linkEditor-description-input {
-        border: 1px solid rgb(114, 162, 179);
+        border: 1px solid grey;
         border-radius: 4px;
-        background-color: lightblue;
+        background-color: rgb(236, 236, 236);
         padding-left: 2px;
         padding-right: 2px;
         color: grey;
@@ -60,9 +60,9 @@
 
         .linkEditor-followingDropdown-header {
 
-            border: 1px solid rgb(114, 162, 179);
+            border: 1px solid grey;
             border-radius: 4px;
-            background-color: lightblue;
+            background-color: rgb(236, 236, 236);
             padding-left: 2px;
             padding-right: 2px;
             color: grey;
@@ -78,8 +78,8 @@
             padding-right: 3px;
 
             .linkEditor-followingDropdown-option {
-                border: 0.25px dotted rgb(114, 162, 179);
-                background-color: lightblue;
+                border: 0.25px dotted grey;
+                background-color: rgb(236, 236, 236);
                 padding-left: 2px;
                 padding-right: 2px;
                 color: grey;
@@ -87,7 +87,7 @@
                 font-size: 9px;
 
                 &:hover {
-                    background-color: rgb(141, 197, 216);
+                    background-color: rgb(211, 210, 210);
                 }
             }
 

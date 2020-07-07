@@ -155,9 +155,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             if (this.props.linkDoc.follow === "Default") {
                 DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
             } else if (this.props.linkDoc.follow === "Always open in right tab") {
-                this.props.addDocTab(this.props.sourceDoc, "onRight");
+                this.props.addDocTab(this.props.destinationDoc, "onRight");
             } else if (this.props.linkDoc.follow === "Always open in new tab") {
-                this.props.addDocTab(this.props.sourceDoc, "inTab");
+                this.props.addDocTab(this.props.destinationDoc, "inTab");
             }
         } else {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
