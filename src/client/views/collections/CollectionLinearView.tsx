@@ -154,7 +154,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
-                        Creating link from: {DocumentLinksButton.StartLink.title} </span>
+                        Creating link from: {(DocumentLinksButton.AnnotationId ? "Annotation in " : "")} {DocumentLinksButton.StartLink.title} </span>
                     <span className="bottomPopup-exit" onClick={this.exitLongLinks}
                     >Exit</span>
 

@@ -50,6 +50,7 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
 import { Upload } from "../../server/SharedMediaTypes";
+import { Hypothesis } from "../apis/hypothesis/HypothesisApiUtils";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -882,6 +883,24 @@ export namespace DocUtils {
         return linkDoc;
     }
 
+    export function MakeHypothesisLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", sourceAnnotationId: string, id?: string) {
+        const sv = DocumentManager.Instance.getDocumentView(source.doc);
+        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
+        if (target.doc === Doc.UserDoc()) return undefined;
+
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
+
+        console.log("sourceAnnotationId, should be url?", sourceAnnotationId, StrCast(source.doc.data));
+        Doc.GetProto(linkDoc).sourceRedirectUrl = Hypothesis.makeAnnotationUrl(sourceAnnotationId, StrCast(source.doc.data));
+        // Doc.GetProto(linkDoc).targetRedirectUrl = undefined;
+
+        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
+
+        return linkDoc;
+    }
 
     export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
         let created: Doc | undefined;

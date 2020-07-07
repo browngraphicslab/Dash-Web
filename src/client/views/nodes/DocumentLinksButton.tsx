@@ -7,12 +7,13 @@ import { UndoManager } from "../../util/UndoManager";
 import './DocumentLinksButton.scss';
 import { DocumentView } from "./DocumentView";
 import React = require("react");
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
 import { LinkCreatedBox } from "./LinkCreatedBox";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Document } from "../../../fields/documentSchemas";
+import { StrCast } from "../../../fields/Types";
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -29,6 +30,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     private _linkButton = React.createRef<HTMLDivElement>();
 
     @observable public static StartLink: DocumentView | undefined;
+    @observable public static AnnotationId: string | undefined;
 
     componentDidMount() {
         // window.addEventListener("linkStarted", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
@@ -37,12 +39,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         //         DocumentLinksButton.StartLink = element;
         //     }));
         // });
-        window.addEventListener("fakeLinkStarted", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
-            console.log("Helo fake link");
-            SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
-                DocumentLinksButton.StartLink = element;
-            }));
-        });
+        window.addEventListener("fakeLinkStarted", action((e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
+            console.log("Helo fake started link");
+            const id = e.detail;
+            const source = SelectionManager.SelectedDocuments()[0];
+            DocumentLinksButton.AnnotationId = id;
+            DocumentLinksButton.StartLink = source;
+        }));
     }
 
     @action
@@ -101,12 +104,16 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (doubleTap) {
                 if (DocumentLinksButton.StartLink === this.props.View) {
                     DocumentLinksButton.StartLink = undefined;
+                    DocumentLinksButton.AnnotationId = undefined;
+                    console.log("reset to undefined (completeLink)");
                     // action((e: React.PointerEvent<HTMLDivElement>) => {
                     //     Doc.UnBrushDoc(this.props.View.Document);
                     // });
                 } else {
                     DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
-                        DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                        (DocumentLinksButton.AnnotationId ?
+                            DocUtils.MakeHypothesisLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "hypothesis annotation", DocumentLinksButton.AnnotationId) :
+                            DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag"));
 
                     runInAction(() => {
                         LinkCreatedBox.popupX = e.screenX;
@@ -123,12 +130,15 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     finishLinkClick = (e: React.MouseEvent) => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
+            console.log("reset to undefined (finisheLinkClick)");
             // action((e: React.PointerEvent<HTMLDivElement>) => {
             //     Doc.UnBrushDoc(this.props.View.Document);
             // });
         } else {
             DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View &&
-                DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                (DocumentLinksButton.AnnotationId ?
+                    DocUtils.MakeHypothesisLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "hypothesis annotation", DocumentLinksButton.AnnotationId) :
+                    DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag"));
 
             runInAction(() => {
                 LinkCreatedBox.popupX = e.screenX;

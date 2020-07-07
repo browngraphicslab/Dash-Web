@@ -776,7 +776,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: "pretend we made an annotation", event: () => {
                 document.dispatchEvent(new CustomEvent("fakeLinkStarted", {
-                    detail: "hello this is fake",
+                    detail: "fakefakefakeid",
                     bubbles: true
                 }));
             }, icon: "eye"
