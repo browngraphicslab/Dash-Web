@@ -341,11 +341,12 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor-followingDropdown-label">
                 Follow Behavior:</div>
             <div className="linkEditor-followingDropdown-dropdown">
-                <div className="linkEditor-followingDropdown-header">
+                <div className="linkEditor-followingDropdown-header"
+                    onPointerDown={this.changeDropdown}>
                     {this.followBehavior}
                     <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
                         icon={this.openDropdown ? "chevron-up" : "chevron-down"}
-                        size={"sm"} onPointerDown={this.changeDropdown} />
+                        size={"lg"} onPointerDown={this.changeDropdown} />
                 </div>
                 <div className="linkEditor-followingDropdown-optionsList"
                     style={{ display: this.openDropdown ? "" : "none" }}>
