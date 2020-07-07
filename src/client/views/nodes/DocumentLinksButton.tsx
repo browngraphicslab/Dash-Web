@@ -146,10 +146,14 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @computed
     get linkButton() {
         const links = DocListCast(this.props.View.props.Document.links);
+
+        const title = this.props.InMenu ? "Drag or tap to create links" : "Tap to view links";
+
         return (!links.length || links[0].hidden) && !this.props.AlwaysOn ? (null) :
-            <div title="Drag(create link) Tap(view links)" ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
+            <div title={title} ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
                 <div className={"documentLinksButton"} style={{
-                    backgroundColor: DocumentLinksButton.StartLink ? "transparent" : "",
+                    backgroundColor: DocumentLinksButton.StartLink ? "transparent" : this.props.InMenu ? "black" : "",
+                    color: this.props.InMenu ? "white" : "black",
                     width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
                 }}
                     onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}

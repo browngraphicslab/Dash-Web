@@ -3,6 +3,7 @@
 .linkMenu {
     width: 100%;
     height: auto;
+    border: 1px solid black;
 
     &:hover {
         width: calc(auto + 26px);
@@ -10,11 +11,12 @@
 }
 
 .linkMenu-list {
+    border: 1px solid black;
     max-height: 200px;
     overflow-y: scroll;
     position: absolute;
     z-index: 10;
-    background: $link-color;
+    background: white;
     min-width: 150px;
     border-radius: 5px;
     padding-top: 6.5px;

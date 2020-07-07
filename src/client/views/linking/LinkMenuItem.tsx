@@ -201,7 +201,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
                             <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
-                                <FontAwesomeIcon className="fa-icon" icon="pencil-alt" size="sm" /></div>
+                                <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
                                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             {/* <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>

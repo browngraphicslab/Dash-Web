@@ -16,7 +16,7 @@
 
             .linkMenu-destination-title {
                 text-decoration: none;
-                color: rgb(46, 82, 160);
+                color: rgb(85, 120, 196);
                 font-size: 14px;
                 padding-bottom: 2px;
             }
@@ -62,8 +62,9 @@
 
             .linkMenu-destination-title {
                 text-decoration: underline;
-                color: rgb(15, 57, 148);
-                display: inline;
+                color: rgb(60, 90, 156);
+                //display: inline;
+                text-overflow: break;
             }
 
             &.expand-two p {
