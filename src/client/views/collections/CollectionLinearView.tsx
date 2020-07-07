@@ -170,14 +170,10 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
-<<<<<<< HEAD
-                        Creating link from: {(DocumentLinksButton.AnnotationId ? "Annotation in " : "")} {DocumentLinksButton.StartLink.title} </span>
-=======
                         Creating link from: {DocumentLinksButton.StartLink.title} </span>
                     <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
                     > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
                     </span>
->>>>>>> 3f704ee2941fef77dd0eafebeb0a6ffb0a946a8b
                     <span className="bottomPopup-exit" onClick={this.exitLongLinks}
                     >Exit</span>
 

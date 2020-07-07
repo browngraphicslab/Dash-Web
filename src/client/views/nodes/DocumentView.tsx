@@ -43,12 +43,9 @@ import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { LinkCreatedBox } from './LinkCreatedBox';
-<<<<<<< HEAD
 import { Hypothesis } from '../../apis/hypothesis/HypothesisApiUtils';
-=======
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { LinkManager } from '../../util/LinkManager';
->>>>>>> 3f704ee2941fef77dd0eafebeb0a6ffb0a946a8b
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
