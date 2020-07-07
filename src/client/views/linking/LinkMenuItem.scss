@@ -4,6 +4,13 @@
     // border-top: 0.5px solid $main-accent; 
     position: relative;
     display: flex;
+    border-bottom: 0.5px solid black;
+
+    padding-left: 6.5px;
+    padding-right: 2px;
+
+    padding-top: 6.5px;
+    padding-bottom: 6.5px;
 
 
     .linkMenu-name {
@@ -96,7 +103,8 @@
         width: 20px;
         height: 20px;
         margin: 0;
-        margin-right: 6px;
+        //margin-right: 6px;
+        padding-right: 6px;
         border-radius: 50%;
         pointer-events: auto;
         background-color: $dark-color;

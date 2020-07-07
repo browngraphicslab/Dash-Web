@@ -29,6 +29,8 @@ export class LinkMenu extends React.Component<Props> {
     @observable private _linkMenuRef = React.createRef<HTMLDivElement>();
     private _editorRef = React.createRef<HTMLDivElement>();
 
+    @observable private _numLinks: number = 0;
+
     @action
     onClick = (e: PointerEvent) => {
 
@@ -69,6 +71,9 @@ export class LinkMenu extends React.Component<Props> {
                     showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)}
                     addDocTab={this.props.addDocTab} />
             );
+            group.forEach((item) => {
+                this._numLinks++;
+            });
         });
 
         // if source doc has no links push message
@@ -77,12 +82,16 @@ export class LinkMenu extends React.Component<Props> {
         return linkItems;
     }
 
+    @action
     render() {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         return <div className="linkMenu" ref={this._linkMenuRef} >
             <div className="linkMenu-list"
-                style={{ left: this.props.location[0], top: this.props.location[1] }}>
+                style={{
+                    left: this.props.location[0], top: this.props.location[1],
+                    overflowY: this._numLinks > 4 ? "scroll" : "auto"
+                }}>
                 {!this._editingLink ?
                     this.renderAllGroups(groups) :
                     <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}
