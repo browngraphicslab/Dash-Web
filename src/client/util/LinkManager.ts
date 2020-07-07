@@ -1,4 +1,4 @@
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
@@ -23,6 +23,10 @@ import { Scripting } from "./Scripting";
 export class LinkManager {
 
     private static _instance: LinkManager;
+
+
+    public static currentLink: Opt<Doc>;
+
     public static get Instance(): LinkManager {
         return this._instance || (this._instance = new this());
     }
