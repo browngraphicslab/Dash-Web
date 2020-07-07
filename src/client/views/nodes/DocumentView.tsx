@@ -1121,7 +1121,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
             this.props.dontRegisterView ? (null) : // view that are not registered
-            DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            DocUtils.FilterDocs(DocListCast(this.Document.links), this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
                 <DocumentView {...this.props} key={i + 1}
                     Document={d}
                     ContainingCollectionView={this.props.ContainingCollectionView}
