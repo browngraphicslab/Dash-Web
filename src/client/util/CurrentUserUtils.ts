@@ -424,6 +424,7 @@ export class CurrentUserUtils {
             { title: "Drag a document previewer", label: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
             { title: "Toggle a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
             { title: "Connect a Google Account", label: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
+            { title: "Connect a Hypothesis Account", label: "Hypothesis Account", icon: "houzz", click: 'HypothesisAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }

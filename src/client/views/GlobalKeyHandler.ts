@@ -7,6 +7,7 @@ import { List } from "../../fields/List";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, PromiseValue } from "../../fields/Types";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
+import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import { DocServer } from "../DocServer";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DictationManager } from "../util/DictationManager";
@@ -104,6 +105,7 @@ export default class KeyManager {
                 DictationManager.Controls.stop();
                 // RecommendationsBox.Instance.closeMenu();
                 GoogleAuthenticationManager.Instance.cancel();
+                HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 break;
             case "delete":
