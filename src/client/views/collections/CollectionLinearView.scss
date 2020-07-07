@@ -35,6 +35,18 @@
             font-size: 12.5px;
         }
 
+        .bottomPopup-descriptions {
+            display: inline;
+            white-space: nowrap;
+            padding-left: 8px;
+            padding-right: 8px;
+            vertical-align: middle;
+            background-color: lightgrey;
+            border-radius: 5.5px;
+            color: black;
+            margin-right: 5px;
+        }
+
         .bottomPopup-exit {
             display: inline;
             white-space: nowrap;

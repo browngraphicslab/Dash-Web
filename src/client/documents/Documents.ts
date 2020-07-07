@@ -94,6 +94,7 @@ export interface DocumentOptions {
     label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
+    description?: string; // added for links
     _viewScale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
@@ -259,7 +260,7 @@ export namespace Docs {
             }],
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
-                options: { _height: 150 }
+                options: { _height: 150, description: "" }
             }],
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
@@ -829,6 +830,47 @@ export namespace Docs {
 }
 
 export namespace DocUtils {
+    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
+        const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+            if (!filterFacets[key]) {
+                filterFacets[key] = {};
+            }
+            filterFacets[key][value] = modifiers;
+        }
+
+        const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            for (const facetKey of Object.keys(filterFacets)) {
+                const facet = filterFacets[facetKey];
+                const satisfiesFacet = Object.keys(facet).some(value => {
+                    if (facet[value] === "match") {
+                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                    }
+                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                });
+                if (!satisfiesFacet) {
+                    return false;
+                }
+            }
+            return true;
+        }) : childDocs;
+        const rangeFilteredDocs = filteredDocs.filter(d => {
+            for (let i = 0; i < docRangeFilters.length; i += 3) {
+                const key = docRangeFilters[i];
+                const min = Number(docRangeFilters[i + 1]);
+                const max = Number(docRangeFilters[i + 2]);
+                const val = Cast(d[key], "number", null);
+                if (val !== undefined && (val < min || val > max)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return rangeFilteredDocs;
+    }
 
     export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
         targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
@@ -867,12 +909,12 @@ export namespace DocUtils {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
 
-    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
+    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 

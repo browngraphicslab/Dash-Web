@@ -26,6 +26,7 @@ interface LinkMenuItemProps {
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
     addDocTab: (document: Doc, where: string) => boolean;
+    menuRef: React.Ref<HTMLDivElement>;
 }
 
 // drag links and drop link targets (aliasing them if needed)
@@ -77,6 +78,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action toggleShowMore(e: React.PointerEvent) { e.stopPropagation(); this._showMore = !this._showMore; }
 
     onEdit = (e: React.PointerEvent): void => {
+        LinkManager.currentLink = this.props.linkDoc;
         setupMoveUpEvents(this, e, this.editMoved, emptyFunction, () => this.props.showEditor(this.props.linkDoc));
     }
 
@@ -110,7 +112,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         document.removeEventListener("pointerup", this.onLinkButtonUp);
         document.addEventListener("pointerup", this.onLinkButtonUp);
 
-        if (this._buttonRef && this._buttonRef.current?.contains(e.target as any)) {
+        if (this._buttonRef && !!!this._buttonRef.current?.contains(e.target as any)) {
+            console.log("outside click");
             LinkDocPreview.LinkInfo = undefined;
         }
     }
@@ -147,7 +150,18 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         console.log("FOLLOWWW");
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
-        DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
+
+        if (this.props.linkDoc.follow) {
+            if (this.props.linkDoc.follow === "Default") {
+                DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
+            } else if (this.props.linkDoc.follow === "Always open in right tab") {
+                this.props.addDocTab(this.props.destinationDoc, "onRight");
+            } else if (this.props.linkDoc.follow === "Always open in new tab") {
+                this.props.addDocTab(this.props.destinationDoc, "inTab");
+            }
+        } else {
+            DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
+        }
     }
 
     @action
@@ -174,18 +188,24 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             Location: [e.clientX, e.clientY + 20]
                         }))}
                         onPointerDown={this.onLinkButtonDown}>
-                        <p >{StrCast(this.props.destinationDoc.title)}</p>
+
+                        <div className="linkMenu-text">
+                            <p className="linkMenu-destination-title"
+                                onPointerDown={this.followDefault}>
+                                {StrCast(this.props.destinationDoc.title)}</p>
+                            {this.props.linkDoc.description !== "" ? <p className="linkMenu-description">
+                                {StrCast(this.props.linkDoc.description)}</p> : null} </div>
+
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            {/* <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
-                                <FontAwesomeIcon className="fa-icon" icon="pencil-alt" size="sm" /></div> */}
+                            <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
+                                <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
                                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
-                            <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
-                                <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
-                            </div>
+                            {/* <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
+                                <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}
