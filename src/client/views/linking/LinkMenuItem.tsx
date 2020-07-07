@@ -78,7 +78,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action toggleShowMore(e: React.PointerEvent) { e.stopPropagation(); this._showMore = !this._showMore; }
 
     onEdit = (e: React.PointerEvent): void => {
+
+        console.log("Edit");
         LinkManager.currentLink = this.props.linkDoc;
+        console.log(this.props.linkDoc);
         setupMoveUpEvents(this, e, this.editMoved, emptyFunction, () => this.props.showEditor(this.props.linkDoc));
     }
 

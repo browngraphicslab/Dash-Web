@@ -3,7 +3,8 @@
 .linkMenu {
     width: 100%;
     height: auto;
-    //border: 1px solid black;
+
+    border: 1px solid black;
 
     // &:hover {
     //     width: calc(auto + 26px);
@@ -11,9 +12,13 @@
 }
 
 .linkMenu-list {
+
     border: 1px solid black;
+
+    box-shadow: 3px 3px 1.5px grey;
+
     max-height: 170px;
-    //overflow-y: scroll;
+    overflow-y: scroll;
     position: absolute;
     z-index: 10;
     background: white;
@@ -33,6 +38,10 @@
 .linkMenu-group {
     border-bottom: 0.5px solid lightgray;
     //@extend: 5px 0;
+
+    &:last-child {
+        border-bottom: none;
+    }
 
     .linkMenu-group-name {
         display: flex;

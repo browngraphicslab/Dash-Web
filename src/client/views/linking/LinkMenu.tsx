@@ -1,4 +1,4 @@
-import { action, observable } from "mobx";
+import { action, observable, computed } from "mobx";
 import { observer } from "mobx-react";
 import { DocumentView } from "../nodes/DocumentView";
 import { LinkEditor } from "./LinkEditor";
@@ -29,7 +29,14 @@ export class LinkMenu extends React.Component<Props> {
     @observable private _linkMenuRef = React.createRef<HTMLDivElement>();
     private _editorRef = React.createRef<HTMLDivElement>();
 
-    @observable private _numLinks: number = 0;
+    //@observable private _numLinks: number = 0;
+
+    // @computed get overflow() {
+    //     if (this._numLinks) {
+    //         return "scroll";
+    //     }
+    //     return "auto";
+    // }
 
     @action
     onClick = (e: PointerEvent) => {
@@ -71,9 +78,6 @@ export class LinkMenu extends React.Component<Props> {
                     showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)}
                     addDocTab={this.props.addDocTab} />
             );
-            group.forEach((item) => {
-                this._numLinks++;
-            });
         });
 
         // if source doc has no links push message
@@ -82,7 +86,6 @@ export class LinkMenu extends React.Component<Props> {
         return linkItems;
     }
 
-    @action
     render() {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
@@ -90,7 +93,7 @@ export class LinkMenu extends React.Component<Props> {
             <div className="linkMenu-list"
                 style={{
                     left: this.props.location[0], top: this.props.location[1],
-                    overflowY: this._numLinks > 4 ? "scroll" : "auto"
+                    //overflowY: "scroll",
                 }}>
                 {!this._editingLink ?
                     this.renderAllGroups(groups) :
