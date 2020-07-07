@@ -61,6 +61,7 @@ import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { Fade } from '@material-ui/core';
 import { LinkCreatedBox } from './nodes/LinkCreatedBox';
+import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -601,6 +602,7 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
+            <HypothesisAuthenticationManager />
             <DocumentDecorations />
             <GestureOverlay>
                 <RichTextMenu key="rich" />

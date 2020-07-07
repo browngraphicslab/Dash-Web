@@ -829,6 +829,47 @@ export namespace Docs {
 }
 
 export namespace DocUtils {
+    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
+        const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+            if (!filterFacets[key]) {
+                filterFacets[key] = {};
+            }
+            filterFacets[key][value] = modifiers;
+        }
+
+        const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            for (const facetKey of Object.keys(filterFacets)) {
+                const facet = filterFacets[facetKey];
+                const satisfiesFacet = Object.keys(facet).some(value => {
+                    if (facet[value] === "match") {
+                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                    }
+                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                });
+                if (!satisfiesFacet) {
+                    return false;
+                }
+            }
+            return true;
+        }) : childDocs;
+        const rangeFilteredDocs = filteredDocs.filter(d => {
+            for (let i = 0; i < docRangeFilters.length; i += 3) {
+                const key = docRangeFilters[i];
+                const min = Number(docRangeFilters[i + 1]);
+                const max = Number(docRangeFilters[i + 2]);
+                const val = Cast(d[key], "number", null);
+                if (val !== undefined && (val < min || val > max)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return rangeFilteredDocs;
+    }
 
     export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
         targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
