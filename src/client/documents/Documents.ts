@@ -906,7 +906,7 @@ export namespace DocUtils {
     export let ActiveRecordings: Doc[] = [];
 
     export function MakeLinkToActiveAudio(doc: Doc) {
-        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "", "audio timeline"));
+        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
 
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string) {
