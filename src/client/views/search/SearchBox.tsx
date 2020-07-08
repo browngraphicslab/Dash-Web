@@ -590,6 +590,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
+        let headers = new Set<string>();
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             this._visibleElements = [<div className="no-result">No Search Results</div>];
             //this._visibleDocuments= Docs.Create.
@@ -636,44 +637,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0]._height = 46;
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
-                            let headers: string[];
-                            //Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).forEach((item) => headers.push(item.heading));
-                            //this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
-                            let schemaheaders: SchemaHeaderField[] = [];
-                            //highlights.forEach((item) => headers.includes(item) ? undefined : schemaheaders.push(new SchemaHeaderField(`New field ${index ? "(" + index + ")" : ""}`, "#f1efeb")))
-                            highlights.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")))
-
-                            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
-
-
+                            highlights.forEach((item) => headers.add(item));
                             this._visibleDocuments[i] = result[0];
                             this._isSearch[i] = "search";
-                            if (this._numTotalResults > 3 && this.expandedBucket === false) {
-                                let doctype = StrCast(result[0].type);
-                                console.log(doctype);
-                                if (doctype === this.firststring) {
-                                    if (this.bucketcount[1] < 3) {
-                                        result[0].parent = this.buckets![1];
-                                        Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
-                                        this.bucketcount[1] += 1;
-                                    }
-                                }
-                                else if (doctype === this.secondstring) {
-                                    if (this.bucketcount[2] < 3) {
-                                        result[0].parent = this.buckets![2];
-                                        Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
-                                        this.bucketcount[2] += 1;
-                                    }
-                                }
-                                else if (this.bucketcount[0] < 3) {
-                                    //Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
-                                    //this.bucketcount[0]+=1;
-                                    Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                                }
-                            }
-                            else {
-                                Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                            }
+                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                         }
                     }
                     else {
@@ -681,12 +648,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             let lines = new List<string>(result[2]);
+                            highlights.forEach((item) => headers.add(item));
                             result[0]._height = 46;
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             if (i < this._visibleDocuments.length) {
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";
+                                console.log("WHYYYY");
                                 Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
 
                             }
@@ -695,12 +664,20 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
         }
+
+        this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
+        let schemaheaders: SchemaHeaderField[] = [];
+        this.headerscale = headers.size;
+        headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")))
+        this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
             this._visibleDocuments.length = this._results.length;
             this._isSearch.length = this._results.length;
         }
     }
+
+    @observable headerscale: number = 0;
 
     findCommonElements(arr2: string[]) {
         let arr1 = ["layout", "data"];
@@ -1146,12 +1123,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         {this.keyButtons}
                     </div>
                 </div>
-                <CollectionView {...this.props}
+                {this.headerscale > 0 ? <CollectionView {...this.props}
                     Document={this.props.Document}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
                     focus={this.selectElement}
-                    ScreenToLocalTransform={Transform.Identity} />
+                    ScreenToLocalTransform={Transform.Identity} /> : undefined}
+
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "auto" : this.resultHeight,
