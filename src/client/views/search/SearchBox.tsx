@@ -38,6 +38,7 @@ import { makeInterface, createSchema } from '../../../fields/Schema';
 import { listSpec } from '../../../fields/Schema';
 import * as _ from "lodash";
 import { checkIfStateModificationsAreAllowed } from 'mobx/lib/internal';
+import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 
 
 library.add(faTimes);
@@ -635,6 +636,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0]._height = 46;
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
+                            let headers: string[];
+                            //Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).forEach((item) => headers.push(item.heading));
+                            //this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
+                            let schemaheaders: SchemaHeaderField[] = [];
+                            //highlights.forEach((item) => headers.includes(item) ? undefined : schemaheaders.push(new SchemaHeaderField(`New field ${index ? "(" + index + ")" : ""}`, "#f1efeb")))
+                            highlights.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")))
+
+                            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
+
+
                             this._visibleDocuments[i] = result[0];
                             this._isSearch[i] = "search";
                             if (this._numTotalResults > 3 && this.expandedBucket === false) {

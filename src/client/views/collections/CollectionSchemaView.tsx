@@ -628,7 +628,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 {({ measureRef }) => <div ref={measureRef}> {menuContent} </div>}
             </Measure>
         </div>;
-
         return <div className="collectionSchemaView-container"
             style={{
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,

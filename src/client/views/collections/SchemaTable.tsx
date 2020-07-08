@@ -451,9 +451,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
         const rerender = [...this.textWrappedRows]; // TODO: get component to rerender on text wrap change without needign to console.log :((((
-
+        let overflow = "auto";
+        StrCast(this.props.Document.type) === "search" ? overflow = "overlay" : "auto";
         return <ReactTable
-            style={{ position: "relative" }}
+            style={{ position: "relative", overflow: overflow }}
             data={children}
             page={0}
             pageSize={children.length}
@@ -576,7 +577,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return <div className="collectionSchemaView-table" onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
-            <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+            {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+                : undefined}
             {!this._showDoc ? (null) :
                 <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}
                     style={{
