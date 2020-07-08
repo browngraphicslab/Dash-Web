@@ -13,11 +13,8 @@ export default class HypothesisManager extends ApiManager {
             method: Method.GET,
             subscription: "/readHypothesisAccessToken",
             secureHandler: async ({ user, res }) => {
-                if (existsSync(serverPathToFile(Directory.hypothesis, user.id))) {
-                    const read = readFileSync(serverPathToFile(Directory.hypothesis, user.id), "base64") || "";
-                    console.log("READ = " + read);
-                    res.send(read);
-                } else res.send("");
+                const credentials = await Database.Auxiliary.HypothesisAccessToken.Fetch(user.id);
+                res.send(credentials?.hypothesisApiKey ?? "");
             }
         });
 
@@ -25,9 +22,8 @@ export default class HypothesisManager extends ApiManager {
             method: Method.POST,
             subscription: "/writeHypothesisAccessToken",
             secureHandler: async ({ user, req, res }) => {
-                const write = req.body.authenticationCode;
-                console.log("WRITE = " + write);
-                res.send(await writeFile(serverPathToFile(Directory.hypothesis, user.id), write, "base64", () => { }));
+                await Database.Auxiliary.HypothesisAccessToken.Write(user.id, req.body.authenticationCode);
+                res.send();
             }
         });
 
@@ -35,7 +31,7 @@ export default class HypothesisManager extends ApiManager {
             method: Method.GET,
             subscription: "/revokeHypothesisAccessToken",
             secureHandler: async ({ user, res }) => {
-                await Database.Auxiliary.GoogleAccessToken.Revoke("dash-hyp-" + user.id);
+                await Database.Auxiliary.HypothesisAccessToken.Revoke(user.id);
                 res.send();
             }
         });
