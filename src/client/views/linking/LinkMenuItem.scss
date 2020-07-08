@@ -26,6 +26,8 @@
                 color: rgb(85, 120, 196);
                 font-size: 14px;
                 padding-bottom: 2px;
+                padding-right: 4px;
+                margin-right: 4px;
             }
 
             .linkMenu-description {
@@ -36,11 +38,15 @@
             }
 
             p {
-                //padding: 4px 2px;
+                padding-right: 4px;
                 line-height: 12px;
                 border-radius: 5px;
-                overflow-wrap: break-word;
+                //overflow-wrap: break-word;
                 user-select: none;
+            }
+
+            &:hover {
+                padding-right: 8px;
             }
         }
 
@@ -60,6 +66,7 @@
 
     &:hover {
 
+        width: calc(100% + 58px);
 
         .linkMenu-item-buttons {
             display: flex;
@@ -74,19 +81,13 @@
                 text-overflow: break;
             }
 
-            &.expand-two p {
-                width: calc(100% - 52px);
-                //text-decoration: underline;
-                //color: rgb(15, 57, 148);
-                //background-color: lightgray;
-            }
+            // &.expand-two p {
+            //     width: calc(100% - 63px);
+            // }
 
-            &.expand-three p {
-                width: calc(100% - 84px);
-                //text-decoration: underline;
-                //color: rgb(15, 57, 148);
-                //background-color: lightgray;
-            }
+            // &.expand-three p {
+            //     width: calc(100% - 93px);
+            // }
         }
     }
 }

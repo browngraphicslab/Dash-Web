@@ -40,6 +40,10 @@
     font-size: 9px;
     //font-style: italic;
     text-decoration-color: grey;
+
+    .button {
+        color: black;
+    }
 }
 
 .linkEditor-description {
@@ -61,7 +65,7 @@
             //border-radius: 4px;
             padding-left: 2px;
             padding-right: 2px;
-            margin-right: 4px;
+            //margin-right: 4px;
             color: black;
             text-decoration-color: grey;
         }
@@ -69,14 +73,14 @@
         .linkEditor-description-add-button {
             display: inline;
             /* float: right; */
-            border-radius: 9px;
+            border-radius: 7px;
             font-size: 9px;
             background-color: black;
             /* padding: 3px; */
             padding-top: 4px;
-            padding-left: 3px;
+            padding-left: 7px;
             padding-bottom: 4px;
-            padding-right: 5px;
+            padding-right: 8px;
             height: 80%;
             color: white;
         }
@@ -102,10 +106,11 @@
             padding-left: 2px;
             padding-right: 2px;
             text-decoration-color: black;
-            color: black;
+            color: rgb(94, 94, 94);
 
             .linkEditor-followingDropdown-icon {
                 float: right;
+                color: black;
             }
         }
 

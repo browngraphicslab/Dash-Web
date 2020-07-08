@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
@@ -15,7 +15,7 @@ import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
-library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt);
+library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
 interface LinkMenuItemProps {
@@ -179,6 +179,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
         const canExpand = keys ? keys.length > 0 : false;
 
+        const eyeIcon = this.props.linkDoc.shown ? "eye-slash" : "eye";
+
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
@@ -202,6 +204,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         <div className="linkMenu-item-buttons" ref={this._buttonRef} >
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
+
+                            <div title="Show link" className="button" ref={this._editRef} onPointerDown={emptyFunction}>
+                                <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
+
 
                             <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                 <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>

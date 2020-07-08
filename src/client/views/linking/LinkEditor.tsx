@@ -339,6 +339,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor-description-input">
                 <div className="linkEditor-description-editing">
                     <input
+                        style={{ width: "100%" }}
                         id="input"
                         value={this.description}
                         placeholder={"enter link label"}
@@ -420,7 +421,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
                     {/* <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
                         <FontAwesomeIcon icon="trash" size="sm" /></button> */}
-                    <FontAwesomeIcon icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} />
+                    <FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} />
                 </div>
                 {this.showInfo ? <div className="linkEditor-moreInfo">
                     <div>{this.props.linkDoc.author ? <div> <b>Author:</b> {this.props.linkDoc.author}</div> : null}</div>

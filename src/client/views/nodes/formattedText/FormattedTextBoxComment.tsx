@@ -241,52 +241,22 @@ export class FormattedTextBoxComment {
                             }
                             if (target?.author) {
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
-                                const docPreview = <div style={{ backgroundColor: "white", border: "8px solid white" }}>
+
+
+                                const docPreview = <div className="FormattedTextBoxComment-title">
                                     {target.title}
                                     <div className="wrapper" style={{ float: "right" }}>
-                                        <div title="Delete link" className="FormattedTextBoxComment-button" style={{
-                                            display: "inline",
-                                            paddingLeft: "6px",
-                                            paddingRight: "6px",
-                                            paddingTop: "2.5px",
-                                            paddingBottom: "2.5px",
-                                            width: "20px",
-                                            height: "20px",
-                                            margin: 0,
-                                            marginRight: "6px",
-                                            borderRadius: "50%",
-                                            pointerEvents: "auto",
-                                            backgroundColor: "rgb(38, 40, 41)",
-                                            color: "rgb(178, 181, 184)",
-                                            transition: "transform 0.2s",
-                                            textAlign: "center",
-                                            position: "relative"
-                                        }} ref={(r) => this._deleteRef = r}>
-                                            <FontAwesomeIcon className="FormattedTextBox-fa-icon" icon="trash"
+                                        <div title="Delete link" className="FormattedTextBoxComment-button"
+                                            ref={(r) => this._deleteRef = r}>
+                                            <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="trash" color="white"
                                                 size="sm" /></div>
-                                        <div title="Follow link" className="FormattedTextBoxComment-button" style={{
-                                            display: "inline",
-                                            paddingLeft: "6px",
-                                            paddingRight: "6px",
-                                            paddingTop: "2.5px",
-                                            paddingBottom: "2.5px",
-                                            width: "20px",
-                                            height: "20px",
-                                            margin: 0,
-                                            marginRight: "6px",
-                                            borderRadius: "50%",
-                                            pointerEvents: "auto",
-                                            backgroundColor: "rgb(38, 40, 41)",
-                                            color: "rgb(178, 181, 184)",
-                                            transition: "transform 0.2s",
-                                            textAlign: "center",
-                                            position: "relative"
-                                        }} ref={(r) => this._followRef = r}>
-                                            <FontAwesomeIcon className="FormattedTextBox-fa-icon" icon="arrow-right"
+                                        <div title="Follow link" className="FormattedTextBoxComment-button"
+                                            ref={(r) => this._followRef = r}>
+                                            <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="arrow-right" color="white"
                                                 size="sm" />
                                         </div>
                                     </div>
-                                    <div className="wrapper" style={{
+                                    <div className="FormattedTextBoxComment-preview-wrapper" style={{
                                         maxWidth: "180px", maxHeight: "168px", overflow: "hidden",
                                         overflowY: "hidden", paddingTop: "5px"
                                     }}>
@@ -318,6 +288,9 @@ export class FormattedTextBoxComment {
                                         />
                                     </div>
                                 </div>;
+
+
+
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
 
                                 ReactDOM.render(docPreview, FormattedTextBoxComment.tooltipText);
