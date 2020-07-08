@@ -934,9 +934,9 @@ export namespace DocUtils {
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
-        console.log("sourceAnnotationId, should be url?", sourceAnnotationId, StrCast(source.doc.data));
-        Doc.GetProto(linkDoc).sourceRedirectUrl = Hypothesis.makeAnnotationUrl(sourceAnnotationId, StrCast(source.doc.data));
-        // Doc.GetProto(linkDoc).targetRedirectUrl = undefined;
+        const sourceUrl = StrCast(source.doc.data.url); // The URL of the annotation's source web page
+        console.log("sourceAnnotationId, url", sourceAnnotationId, sourceUrl);
+        Doc.GetProto(linkDoc).annotationUrl = Hypothesis.makeAnnotationUrl(sourceAnnotationId, sourceUrl);
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");

@@ -15,6 +15,7 @@ import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
+import { WebField } from '../../../fields/URLField';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt);
 
 
@@ -150,6 +151,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         console.log("FOLLOWWW");
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
+
+        const redirectUrl = StrCast(this.props.linkDoc.annotationUrl, null);
+        redirectUrl && (this.props.destinationDoc.data = new WebField(redirectUrl)); // If the link is to an annotation, go to annotation
+        console.log(redirectUrl, "redirectUrl");
 
         if (this.props.linkDoc.follow) {
             if (this.props.linkDoc.follow === "Default") {
