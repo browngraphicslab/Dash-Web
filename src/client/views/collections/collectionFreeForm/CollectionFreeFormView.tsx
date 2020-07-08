@@ -1143,16 +1143,31 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
+
+        const handler = (e: Event) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+
+        document.addEventListener("dashDragging", handler);
     }
+
     componentWillUnmount() {
         this._layoutComputeReaction?.();
+
+        const handler = (e: Event) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+        document.removeEventListener("dashDragging", handler);
     }
+
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;
 
     @action
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
+    }
+
+    @action
+    handleDragging = (e: Event, de: DragEvent) => {
+        console.log(de.clientX);
+        console.log(de.clientX);
     }
 
     promoteCollection = undoBatch(action(() => {
