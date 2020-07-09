@@ -1172,7 +1172,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     // <div ref={this._marqueeRef}>
 
-    _lastClientY = 0;
+    _lastClientY: number | undefined = 0;
     @action
     handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
         if ((e as any).handlePan) return;
@@ -1233,7 +1233,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     continueYPan = (delta: number) => {
         setTimeout(() => {
             const dragY = this._lastClientY;
-            if (this._lastClientY !== undefined && this._marqueeRef.current) {
+            if (dragY !== undefined && this._marqueeRef.current) {
                 const bounds = this._marqueeRef.current.getBoundingClientRect()!;
                 this.Document._panY = NumCast(this.Document._panY) + delta;
                 (dragY - bounds.top < 25 || bounds.bottom - dragY < 25) && this.continueYPan(delta);
