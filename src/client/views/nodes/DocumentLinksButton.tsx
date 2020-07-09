@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../fields/Doc";
 import { emptyFunction, setupMoveUpEvents, returnFalse } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
-import { UndoManager } from "../../util/UndoManager";
+import { UndoManager, undoBatch } from "../../util/UndoManager";
 import './DocumentLinksButton.scss';
 import { DocumentView } from "./DocumentView";
 import React = require("react");
@@ -29,7 +29,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @observable public static StartLink: DocumentView | undefined;
 
-    @action
+    @action @undoBatch
     onLinkButtonMoved = (e: PointerEvent) => {
         if (this._linkButton.current !== null) {
             const linkDrag = UndoManager.StartBatch("Drag Link");
@@ -56,7 +56,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         return false;
     }
 
-
+    @undoBatch
     onLinkButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
             if (doubleTap && this.props.InMenu) {

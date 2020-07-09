@@ -944,6 +944,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             frag.forEach(node => nodes.push(marker(node)));
             return Fragment.fromArray(nodes);
         }
+
+
         function addLinkMark(node: Node, title: string, linkId: string) {
             if (!node.isText) {
                 const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title, linkId));

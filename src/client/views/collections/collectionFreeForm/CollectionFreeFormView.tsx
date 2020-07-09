@@ -1174,47 +1174,55 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     handleDragging = (e: Event, de: DragEvent) => {
 
-        const nw = NumCast(this.Document._nativeWidth, this.props.NativeWidth());
-        const nh = NumCast(this.Document._nativeHeight, this.props.NativeHeight());
-        const hscale = nh ? this.props.PanelHeight() / nh : 1;
-        const wscale = nw ? this.props.PanelWidth() / nw : 1;
+        const top = this.panX();
+        const left = this.panY();
+
+        const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
+
+        const scale = this.getLocalTransform().inverse().Scale;
 
         if (this._marqueeRef) {
+
             if (this._marqueeRef.current) {
 
+                // console.log("top: " + this._marqueeRef.current.clientTop);
                 // console.log("left: " + this._marqueeRef.current.clientLeft);
                 // console.log("width: " + this._marqueeRef.current.clientWidth);
-                // console.log("client x: " + de.clientX);
-
-                // console.log("top: " + this._marqueeRef.current.clientTop);
                 // console.log("height: " + this._marqueeRef.current.clientHeight);
-                // console.log("client y: " + de.clientY);
+
+                console.log("width: " + this._marqueeRef.current.getBoundingClientRect().width);
+                console.log("height: " + this._marqueeRef.current.getBoundingClientRect().width);
+                console.log("x: " + this._marqueeRef.current.getBoundingClientRect().x);
+                console.log("y: " + this._marqueeRef.current.getBoundingClientRect().y);
+
+                // console.log("mouse x: " + de.screenX);
+                // console.log("mouse y: " + de.screenY);
 
 
                 if (this._marqueeRef.current.clientWidth > 0) {
                     if (de.clientX - 315 - this._marqueeRef.current.clientLeft < 25) {
                         console.log("PAN left ");
-                        if (this.canPanX) {
-                            this.Document._panX = de.clientX - 20 - this._marqueeRef.current.clientLeft;
-                            setTimeout(action(() => {
-                                this.canPanX = true;
-                                this.panX();
-                            }), 2500);
-                            this.canPanX = false;
-                        }
+
+                        // if (this.canPanX) {
+                        //     this.Document._panX = left - 5;
+                        //     setTimeout(action(() => {
+                        //         this.canPanX = true;
+                        //         this.panX();
+                        //     }), 250);
+                        //     this.canPanX = false;
+                        // }
                     } else if (de.clientX - 315 - this._marqueeRef.current.clientLeft -
                         this._marqueeRef.current.clientWidth < 25) {
                         console.log("PAN right ");
-                        if (this.canPanX) {
-                            this.Document._panX = de.clientX - 315 - this._marqueeRef.current.clientLeft -
-                                this._marqueeRef.current.clientWidth;
 
-                            setTimeout(action(() => {
-                                this.panX();
-                                this.canPanX = true;
-                            }), 2500);
-                            this.canPanX = false;
-                        }
+                        // if (this.canPanX) {
+                        //     this.Document._panX = left + 5;
+                        //     setTimeout(action(() => {
+                        //         this.panX();
+                        //         this.canPanX = true;
+                        //     }), 250);
+                        //     this.canPanX = false;
+                        // }
 
                     }
                 }
@@ -1222,27 +1230,27 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 if (this._marqueeRef.current.clientHeight > 0) {
                     if (de.clientY - 120 - this._marqueeRef.current.clientTop < 25) {
                         console.log("PAN top ");
-                        if (this.canPanY) {
-                            this.Document._panY = de.clientY - 20 - this._marqueeRef.current.clientTop;
-                            setTimeout(action(() => {
-                                this.canPanY = true;
-                                this.panY();
-                            }), 2500);
-                            this.canPanY = false;
-                        }
+
+                        // if (this.canPanY) {
+                        //     this.Document._panY = top - 5;
+                        //     setTimeout(action(() => {
+                        //         this.canPanY = true;
+                        //         this.panY();
+                        //     }), 250);
+                        //     this.canPanY = false;
+                        // }
                     } else if (de.clientY - 120 - this._marqueeRef.current.clientTop -
                         this._marqueeRef.current.clientHeight < 25) {
                         console.log("PAN bottom ");
-                        if (this.canPanY) {
-                            this.Document._panY = de.clientY - 120 - this._marqueeRef.current.clientTop -
-                                this._marqueeRef.current.clientHeight;
 
-                            setTimeout(action(() => {
-                                this.panY();
-                                this.canPanY = true;
-                            }), 2500);
-                            this.canPanY = false;
-                        }
+                        // if (this.canPanY) {
+                        //     this.Document._panY = top + 5;
+                        //     setTimeout(action(() => {
+                        //         this.panY();
+                        //         this.canPanY = true;
+                        //     }), 250);
+                        //     this.canPanY = false;
+                        // }
 
                     }
 
