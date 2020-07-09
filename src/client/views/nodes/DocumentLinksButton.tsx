@@ -69,7 +69,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         }));
     }
 
-    @action
+    @action @undoBatch
     onLinkClick = (e: React.MouseEvent): void => {
         if (this.props.InMenu) {
             DocumentLinksButton.StartLink = this.props.View;
@@ -80,7 +80,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         }
     }
 
-    @action
+    @action @undoBatch
     completeLink = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e, doubleTap) => {
             if (doubleTap) {
@@ -111,7 +111,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         }));
     }
 
-    @action
+    @action @undoBatch
     finishLinkClick = (e: React.MouseEvent) => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
