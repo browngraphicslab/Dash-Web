@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclSym, AclReadonly, AclPrivate } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';

@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, DocListCast, AclSym, AclReadonly, AclAddonly } from '../../fields/Doc';
+import { Doc, Opt, DataSym, DocListCast, AclReadonly, AclAddonly } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
