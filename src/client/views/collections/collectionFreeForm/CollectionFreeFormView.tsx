@@ -1183,7 +1183,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (this._marqueeRef?.current) {
             const dragX = e.detail.clientX;
             const dragY = e.detail.clientY;
-            const bounds = this._marqueeRef.current?.getBoundingClientRect()!;
+            const bounds = this._marqueeRef.current?.getBoundingClientRect();
+
+            console.log("bottom: " + bounds.bottom);
+            console.log("right: " + bounds.right);
 
             if (dragX - bounds.left < 25) {
                 console.log("PAN left ");

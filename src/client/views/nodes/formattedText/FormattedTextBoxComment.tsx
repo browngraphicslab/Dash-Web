@@ -84,8 +84,8 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
-            FormattedTextBoxComment.tooltip.style.maxWidth = "200px";
-            FormattedTextBoxComment.tooltip.style.maxHeight = "206px";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "190px";
+            FormattedTextBoxComment.tooltip.style.maxHeight = "220px";
             FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
             FormattedTextBoxComment.tooltip.style.overflow = "hidden";
@@ -256,10 +256,7 @@ export class FormattedTextBoxComment {
                                                 size="sm" />
                                         </div>
                                     </div>
-                                    <div className="FormattedTextBoxComment-preview-wrapper" style={{
-                                        maxWidth: "180px", maxHeight: "168px", overflow: "hidden",
-                                        overflowY: "hidden", paddingTop: "5px"
-                                    }}>
+                                    <div className="FormattedTextBoxComment-preview-wrapper">
                                         <ContentFittingDocumentView
                                             Document={target}
                                             LibraryPath={emptyPath}
@@ -277,14 +274,14 @@ export class FormattedTextBoxComment {
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}
                                             renderDepth={0}
-                                            PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
-                                            PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
+                                            PanelWidth={() => 170} //Math.min(350, NumCast(target._width, 350))}
+                                            PanelHeight={() => 170} //Math.min(250, NumCast(target._height, 250))}
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}
                                             ContentScaling={returnOne}
-                                            NativeWidth={returnZero}
-                                            NativeHeight={returnZero}
+                                            NativeWidth={() => target._nativeWidth ? NumCast(target._nativeWidth) : 0}
+                                            NativeHeight={() => target._nativeHeight ? NumCast(target._nativeHeight) : 0}
                                         />
                                     </div>
                                 </div>;
