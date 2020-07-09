@@ -925,25 +925,6 @@ export namespace DocUtils {
         return linkDoc;
     }
 
-    export function MakeHypothesisLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", sourceAnnotationId: string, id?: string) {
-        const sv = DocumentManager.Instance.getDocumentView(source.doc);
-        if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
-        if (target.doc === Doc.UserDoc()) return undefined;
-
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
-        linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
-
-        const sourceUrl = StrCast(source.doc.data.url); // The URL of the annotation's source web page
-        console.log("sourceAnnotationId, url", sourceAnnotationId, sourceUrl);
-        Doc.GetProto(linkDoc).annotationUrl = Hypothesis.makeAnnotationUrl(sourceAnnotationId, sourceUrl);
-
-        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
-        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
-
-        return linkDoc;
-    }
-
     export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
         let created: Doc | undefined;
         let layout: ((fieldKey: string) => string) | undefined;

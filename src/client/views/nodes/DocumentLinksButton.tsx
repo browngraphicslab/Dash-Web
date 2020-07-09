@@ -1,7 +1,7 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../fields/Doc";
-import { emptyFunction, setupMoveUpEvents, returnFalse } from "../../../Utils";
+import { emptyFunction, setupMoveUpEvents, returnFalse, Utils } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { UndoManager } from "../../util/UndoManager";
 import './DocumentLinksButton.scss';
@@ -17,6 +17,7 @@ import { StrCast } from "../../../fields/Types";
 
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { LinkManager } from "../../util/LinkManager";
+import { Hypothesis } from "../../apis/hypothesis/HypothesisApiUtils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -35,19 +36,25 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static AnnotationId: string | undefined;
 
     componentDidMount() {
-        // window.addEventListener("linkStarted", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
-        //     const annotatedUrl = e.details;
-        //     SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
-        //         DocumentLinksButton.StartLink = element;
-        //     }));
+        // window.addEventListener("annotationCreated", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
+        //     const id = e.details;
+        //     const source = SelectionManager.SelectedDocuments()[0];
+        //     runInAction(() => {
+        //         DocumentLinksButton.AnnotationId = id;
+        //         DocumentLinksButton.StartLink = source;
+        //     });
         // });
-        window.addEventListener("fakeLinkStarted", action((e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
-            console.log("Helo fake started link");
-            const id = e.detail;
+        console.log("window", window);
+        window.addEventListener("fakeAnnotationCreated", async (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
+            console.log("Helo fake annotation make");
+            // const id = e.detail;
+            const id = await Hypothesis.getPlaceholderId("melissaz", "placeholder"); // delete once eventListening between client & Dash works
             const source = SelectionManager.SelectedDocuments()[0];
-            DocumentLinksButton.AnnotationId = id;
-            DocumentLinksButton.StartLink = source;
-        }));
+            runInAction(() => {
+                DocumentLinksButton.AnnotationId = id;
+                DocumentLinksButton.StartLink = source;
+            });
+        });
     }
 
     @action
@@ -114,9 +121,17 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     // });
                 } else {
                     if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
-                        const linkDoc = DocumentLinksButton.AnnotationId ?
-                            DocUtils.MakeHypothesisLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "hypothesis annotation", DocumentLinksButton.AnnotationId) :
-                            DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                        const sourceDoc = DocumentLinksButton.StartLink.props.Document;
+                        const targetDoc = this.props.View.props.Document;
+                        const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
+
+                        // if the link's source is a Hypothes.is annotation
+                        if (DocumentLinksButton.AnnotationId) {
+                            const sourceUrl = StrCast(sourceDoc.data.url); // the URL of the annotation's source web page
+                            Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
+                            Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc.Id), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                        }
+
                         LinkManager.currentLink = linkDoc;
                         runInAction(() => {
                             LinkCreatedBox.popupX = e.screenX;
@@ -139,15 +154,25 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     finishLinkClick = (e: React.MouseEvent) => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
+            DocumentLinksButton.AnnotationId = undefined;
             console.log("reset to undefined (finisheLinkClick)");
             // action((e: React.PointerEvent<HTMLDivElement>) => {
             //     Doc.UnBrushDoc(this.props.View.Document);
             // });
         } else {
             if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
-                const linkDoc = DocumentLinksButton.AnnotationId ?
-                    DocUtils.MakeHypothesisLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "hypothesis annotation", DocumentLinksButton.AnnotationId) :
-                    DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                const sourceDoc = DocumentLinksButton.StartLink.props.Document;
+                const targetDoc = this.props.View.props.Document;
+                const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
+
+                // if the link is to a Hypothes.is annotation
+                if (DocumentLinksButton.AnnotationId) {
+                    const sourceUrl = StrCast(sourceDoc.data.url); // the URL of the annotation's source web page
+                    console.log("sourceAnnotationId, url", DocumentLinksButton.AnnotationId, sourceUrl);
+                    Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
+                    Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc.Id), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                }
+
                 LinkManager.currentLink = linkDoc;
                 runInAction(() => {
                     LinkCreatedBox.popupX = e.screenX;

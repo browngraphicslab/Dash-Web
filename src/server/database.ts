@@ -417,7 +417,7 @@ export namespace Database {
             }
 
             /**
-             * Writes the @param enrichedCredentials to the database, associated
+             * Writes the @param hypothesisApiKey to the database, associated
              * with @param userId for later retrieval and updating. 
              */
             export const Write = async (userId: string, hypothesisApiKey: string) => {

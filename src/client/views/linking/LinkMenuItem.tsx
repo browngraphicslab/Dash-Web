@@ -153,8 +153,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         LinkDocPreview.LinkInfo = undefined;
 
         const redirectUrl = StrCast(this.props.linkDoc.annotationUrl, null);
-        redirectUrl && (this.props.destinationDoc.data = new WebField(redirectUrl)); // If the link is to an annotation, go to annotation
-        console.log(redirectUrl, "redirectUrl");
+        redirectUrl && (Doc.GetProto(this.props.destinationDoc).data = new WebField(redirectUrl)); // if destination is a Hypothes.is annotation, redirect website to the annotation's URL to scroll to the annotation
 
         if (this.props.linkDoc.follow) {
             if (this.props.linkDoc.follow === "Default") {
