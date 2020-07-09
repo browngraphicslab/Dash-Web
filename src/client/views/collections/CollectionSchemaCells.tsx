@@ -32,6 +32,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DateField } from "../../../fields/DateField";
+import { indexOf } from "lodash";
 const path = require('path');
 
 library.add(faExpand);
@@ -244,14 +245,17 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         // );   
         trace();
 
+        if (type === "string") {
+            let search = StrCast(this.props.Document._searchString)
+            let start = contents.indexOf(search);
+            console.log(contents.slice(start, search.length));
+        }
 
-
+        StrCast(this.props.Document._searchString) ? console.log(StrCast(this.props.Document._searchString)) : undefined;
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
-
-
                         <EditableView
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
