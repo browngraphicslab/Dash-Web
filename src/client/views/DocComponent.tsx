@@ -7,7 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { getEffectiveAcl } from '../../fields/util';
+import { GetEffectiveAcl } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -138,7 +138,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const targetDataDoc = this.props.Document[DataSym];
             const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
-            const effectiveAcl = getEffectiveAcl(this.dataDoc);
+            const effectiveAcl = GetEffectiveAcl(this.dataDoc);
             if (added.length) {
                 if (effectiveAcl === AclReadonly) {
                     return false;

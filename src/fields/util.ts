@@ -108,15 +108,13 @@ export function OVERRIDE_ACL(val: boolean) {
 }
 
 let currentUserGroups: string[] = [];
-let currentUserEmail: string;// = Doc.CurrentUserEmail;
 
 export function setGroups(groups: string[]) {
     currentUserGroups = groups;
-    currentUserEmail = Doc.CurrentUserEmail;
 }
 
 
-export function getEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
+export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
 
     const HierarchyMapping = new Map<symbol, number>([
         [AclPrivate, 0],
@@ -131,7 +129,7 @@ export function getEffectiveAcl(target: any, in_prop?: string | symbol | number)
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        if (target.author === currentUserEmail) return AclEdit;
+        if (target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclEdit;
 
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
@@ -141,13 +139,11 @@ export function getEffectiveAcl(target: any, in_prop?: string | symbol | number)
         let aclPresent = false;
 
         for (const [key, value] of Object.entries(target[AclSym])) {
-            if (key.startsWith("ACL-")) {
-                if (currentUserGroups.includes(key.substring(4)) || currentUserEmail === key.substring(4).replace("_", ".")) {
-                    if (HierarchyMapping.get(value as symbol)! >= HierarchyMapping.get(effectiveAcl)!) {
-                        aclPresent = true;
-                        effectiveAcl = value as symbol;
-                        if (effectiveAcl === AclEdit) break;
-                    }
+            if (currentUserGroups.includes(key.substring(4)) || Doc.CurrentUserEmail === key.substring(4).replace("_", ".")) {
+                if (HierarchyMapping.get(value as symbol)! >= HierarchyMapping.get(effectiveAcl)!) {
+                    aclPresent = true;
+                    effectiveAcl = value as symbol;
+                    if (effectiveAcl === AclEdit) break;
                 }
             }
         }
@@ -163,7 +159,7 @@ const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHe
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    if (getEffectiveAcl(target, in_prop) !== AclEdit) {
+    if (GetEffectiveAcl(target, in_prop) !== AclEdit) {
         return true;
     }
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
@@ -185,7 +181,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
     if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
-    if (getEffectiveAcl(target) === AclPrivate && !_overrideAcl) return undefined;
+    if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return undefined;
     if (prop === LayoutSym) {
         return target.__LAYOUT__;
     }
@@ -222,7 +218,7 @@ function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreP
     }
     if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getFieldImpl(target, "proto", receiver, true);//TODO tfs: instead of receiver we could use target[SelfProxy]... I don't which semantics we want or if it really matters
-        if (proto instanceof Doc && getEffectiveAcl(proto) !== AclPrivate) {
+        if (proto instanceof Doc && GetEffectiveAcl(proto) !== AclPrivate) {
             return getFieldImpl(proto[Self], prop, receiver, ignoreProto);
         }
         return undefined;

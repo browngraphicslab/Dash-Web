@@ -1,7 +1,7 @@
 import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocListCast } from "../../fields/Doc";
+import { Doc, Opt, DocListCastAsync } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../fields/Types";
 import * as RequestPromise from "request-promise";
@@ -43,19 +43,6 @@ export enum SharingPermissions {
 //     [SharingPermissions.Edit, "green"]
 // ]);
 
-// export const HierarchyMapping = new Map<string, number>([
-//     [SharingPermissions.None, 0],
-//     [SharingPermissions.View, 1],
-//     [SharingPermissions.Add, 2],
-//     [SharingPermissions.Edit, 3]
-
-//     // ["0", SharingPermissions.None],
-//     // ["1", SharingPermissions.View],
-//     // ["2", SharingPermissions.Add],
-//     // ["3", SharingPermissions.Edit]
-
-// ]);
-
 interface GroupOptions {
     label: string;
     options: UserOptions[];
@@ -88,8 +75,6 @@ export default class SharingManager extends React.Component<{}> {
     @observable private overlayOpacity = 0.4;
     @observable private selectedUsers: UserOptions[] | null = null;
     @observable private permissions: SharingPermissions = SharingPermissions.Edit;
-    @observable private sharedUsers: ValidatedUser[] = [];
-    @observable private sharedGroups: Doc[] = [];
 
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -162,13 +147,16 @@ export default class SharingManager extends React.Component<{}> {
 
         target[ACL] = permission;
 
-        group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
+        group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
+        // group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
 
         users.forEach(({ notificationDoc }) => {
 
-            if (permission !== SharingPermissions.None) Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
-            else Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
-
+            DocListCastAsync(notificationDoc[storage]).then(res => console.log(res));
+            DocListCastAsync(notificationDoc[storage]).then(resolved => {
+                if (permission !== SharingPermissions.None) Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
+                else Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+            });
         });
     }
 
@@ -176,7 +164,12 @@ export default class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(user => user.user.email === email)!;
 
         if (group.docsShared) {
-            DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
+            DocListCastAsync(group.docsShared).then(docsShared => {
+                docsShared?.forEach(doc => {
+                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
+                });
+            });
+            // DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
         }
     }
 
@@ -184,20 +177,28 @@ export default class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(user => user.user.email === email)!;
 
         if (group.docsShared) {
-            DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
+            DocListCastAsync(group.docsShared).then(docsShared => {
+                docsShared?.forEach(doc => {
+                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
+                });
+            });
+            // DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
         }
     }
 
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
-            DocListCast(group.docsShared).forEach(doc => {
-                const ACL = `ACL-${StrCast(group.groupName)}`;
-                doc[ACL] = "Not Shared";
+            DocListCastAsync(group.docsShared).then(resolved => {
+                resolved?.forEach(doc => {
+                    const ACL = `ACL-${StrCast(group.groupName)}`;
+                    doc[ACL] = "Not Shared";
 
-                const members: string[] = JSON.parse(StrCast(group.members));
-                const users: ValidatedUser[] = this.users.filter(user => members.includes(user.user.email));
+                    const members: string[] = JSON.parse(StrCast(group.members));
+                    const users: ValidatedUser[] = this.users.filter(user => members.includes(user.user.email));
 
-                users.forEach(user => Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
+                    users.forEach(user => Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
+                });
+
             });
         }
     }
@@ -217,14 +218,16 @@ export default class SharingManager extends React.Component<{}> {
 
 
         if (permission !== SharingPermissions.None) {
-            !this.sharedUsers.includes(recipient) && this.sharedUsers.push(recipient);
-
-            Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
+            console.log(target);
+            console.log(notificationDoc);
+            DocListCastAsync(notificationDoc[storage]).then(resolved => {
+                Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
+            });
         }
         else {
-            const index = this.sharedUsers.findIndex(user => user === recipient);
-            index !== -1 && this.sharedUsers.splice(index, 1);
-            Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+            DocListCastAsync(notificationDoc[storage]).then(resolved => {
+                Doc.IndexOf(target, resolved!) === -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+            });
         }
 
     }
