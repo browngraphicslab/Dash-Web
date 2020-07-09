@@ -29,13 +29,27 @@
             }
 
 
-            .linkMenu-destination-title {
-                text-decoration: none;
-                color: rgb(85, 120, 196);
-                font-size: 14px;
-                padding-bottom: 2px;
-                padding-right: 4px;
-                margin-right: 4px;
+            .linkMenu-title-wrapper {
+
+                display: flex;
+
+                .destination-icon {
+                    float: left;
+                    width: 12px;
+                    height: 12px;
+                    padding-right: 3px;
+                    margin-right: 3px;
+                }
+
+                .linkMenu-destination-title {
+                    text-decoration: none;
+                    color: rgb(85, 120, 196);
+                    font-size: 14px;
+                    padding-bottom: 2px;
+                    padding-right: 4px;
+                    margin-right: 4px;
+                    float: right;
+                }
             }
 
             .linkMenu-description {

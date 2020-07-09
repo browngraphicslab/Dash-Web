@@ -181,9 +181,26 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         const eyeIcon = this.props.linkDoc.shown ? "eye-slash" : "eye";
 
+        const destinationIcon = this.props.destinationDoc.type === "image" ? "image" :
+            this.props.destinationDoc.type === "comparison" ? "columns" :
+                this.props.destinationDoc.type === "rtf" ? "font" :
+                    this.props.destinationDoc.type === "collection" ? "folder" :
+                        this.props.destinationDoc.type === "web" ? "globe-asia" :
+                            this.props.destinationDoc.type === "screenshot" ? "photo-video" :
+                                this.props.destinationDoc.type === "webcam" ? "video" :
+                                    this.props.destinationDoc.type === "audio" ? "microphone" :
+                                        this.props.destinationDoc.type === "button" ? "lightning" :
+                                            this.props.destinationDoc.type === "presentation" ? "tv" :
+                                                this.props.destinationDoc.type === "query" ? "search" :
+                                                    this.props.destinationDoc.type === "script" ? "terminal" :
+                                                        this.props.destinationDoc.type === "import" ? "cloud-upload-alt" :
+                                                            this.props.destinationDoc.type === "docholder" ? "expand" : "question";
+
+
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
+
                     <div ref={this._drag} className="linkMenu-name" //title="drag to view target. click to customize."
                         onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
                         onPointerEnter={action(e => this.props.linkDoc && (LinkDocPreview.LinkInfo = {
@@ -197,9 +214,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         <div className="linkMenu-text">
                             {this.props.linkDoc.linkedText ? <p className="linkMenu-source-title">
                                 Source: <b>{StrCast(this.props.linkDoc.linkedText)}</b></p> : null}
-                            <p className="linkMenu-destination-title"
-                                onPointerDown={this.followDefault}>
-                                {StrCast(this.props.destinationDoc.title)}</p>
+                            <div className="linkMenu-title-wrapper">
+                                <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" />
+                                <p className="linkMenu-destination-title"
+                                    onPointerDown={this.followDefault}>
+                                    {StrCast(this.props.destinationDoc.title)}</p>
+                            </div>
                             {this.props.linkDoc.description !== "" ? <p className="linkMenu-description">
                                 {StrCast(this.props.linkDoc.description)}</p> : null} </div>
 
