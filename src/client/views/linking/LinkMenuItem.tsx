@@ -189,7 +189,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             this.props.destinationDoc.type === "screenshot" ? "photo-video" :
                                 this.props.destinationDoc.type === "webcam" ? "video" :
                                     this.props.destinationDoc.type === "audio" ? "microphone" :
-                                        this.props.destinationDoc.type === "button" ? "lightning" :
+                                        this.props.destinationDoc.type === "button" ? "bolt" :
                                             this.props.destinationDoc.type === "presentation" ? "tv" :
                                                 this.props.destinationDoc.type === "query" ? "search" :
                                                     this.props.destinationDoc.type === "script" ? "terminal" :

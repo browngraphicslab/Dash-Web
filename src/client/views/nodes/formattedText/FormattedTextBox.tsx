@@ -176,9 +176,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     doLinkOnDeselect() {
 
         console.log("link on deselect");
+
         Array.from(this.linkOnDeselect.entries()).map(entry => {
             const key = entry[0];
             const value = entry[1];
+
             const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
             DocServer.GetRefField(value).then(doc => {
                 DocServer.GetRefField(id).then(linkDoc => {

@@ -1181,16 +1181,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const left = this.panY();
         this._lastClientY = e.detail.clientY;
 
+        console.log("draggg");
+
         const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
         const scale = this.getLocalTransform().inverse().Scale;
 
         if (this._marqueeRef?.current) {
+
+            console.log("hellp");
+
             const dragX = e.detail.clientX;
             const dragY = e.detail.clientY;
             const bounds = this._marqueeRef.current?.getBoundingClientRect();
-
-            console.log("bottom: " + bounds.bottom);
-            console.log("right: " + bounds.right);
 
             if (dragX - bounds.left < 25) {
                 console.log("PAN left ");
