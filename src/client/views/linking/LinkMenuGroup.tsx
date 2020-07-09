@@ -82,11 +82,13 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
         return (
             <div className="linkMenu-group" ref={this._menuRef}>
+
                 {/* <div className="linkMenu-group-name">
                     <p ref={this._drag} onPointerDown={this.onLinkButtonDown}
                         className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} > {this.props.groupType}:</p>
                     {this.props.groupType === "*" || this.props.groupType === "" ? <></> : this.viewGroupAsTable(this.props.groupType)}
                 </div> */}
+
                 <div className="linkMenu-group-wrapper">
                     {groupItems}
                 </div>

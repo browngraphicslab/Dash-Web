@@ -195,6 +195,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         onPointerDown={this.onLinkButtonDown}>
 
                         <div className="linkMenu-text">
+                            {this.props.linkDoc.linkedText ? <p className="linkMenu-source-title">
+                                Source: <b>{StrCast(this.props.linkDoc.linkedText)}</b></p> : null}
                             <p className="linkMenu-destination-title"
                                 onPointerDown={this.followDefault}>
                                 {StrCast(this.props.destinationDoc.title)}</p>
@@ -207,7 +209,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
                             <div title="Show link" className="button" ref={this._editRef} onPointerDown={emptyFunction}>
                                 <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
-
 
                             <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                 <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
