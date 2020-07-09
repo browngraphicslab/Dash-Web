@@ -579,6 +579,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        this._lastClientY = undefined;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -1171,11 +1172,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     // <div ref={this._marqueeRef}>
 
+    _lastClientY = 0;
     @action
     handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
-
+        if ((e as any).handlePan) return;
+        (e as any).handlePan = true;
         const top = this.panX();
         const left = this.panY();
+        this._lastClientY = e.detail.clientY;
 
         const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
         const scale = this.getLocalTransform().inverse().Scale;
@@ -1191,54 +1195,50 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             if (dragX - bounds.left < 25) {
                 console.log("PAN left ");
 
-                // if (this.canPanX) {
-                //     this.Document._panX = left - 5;
-                //     setTimeout(action(() => {
-                //         this.canPanX = true;
-                //         this.panX();
-                //     }), 250);
-                //     this.canPanX = false;
-                // }
+                if (this.canPanX) {
+                    this.Document._panX = left - 5;
+                    setTimeout(action(() => {
+                        this.canPanX = true;
+                        this.panX();
+                    }), 250);
+                    this.canPanX = false;
+                }
             } else if (bounds.right - dragX < 25) {
                 console.log("PAN right ");
 
-                // if (this.canPanX) {
-                //     this.Document._panX = left + 5;
-                //     setTimeout(action(() => {
-                //         this.panX();
-                //         this.canPanX = true;
-                //     }), 250);
-                //     this.canPanX = false;
-                // }
+                if (this.canPanX) {
+                    this.Document._panX = left + 5;
+                    setTimeout(action(() => {
+                        this.panX();
+                        this.canPanX = true;
+                    }), 250);
+                    this.canPanX = false;
+                }
 
             }
 
             if (dragY - bounds.top < 25) {
                 console.log("PAN top ");
-
-                // if (this.canPanY) {
-                //     this.Document._panY = top - 5;
-                //     setTimeout(action(() => {
-                //         this.canPanY = true;
-                //         this.panY();
-                //     }), 250);
-                //     this.canPanY = false;
-                // }
+                this.continueYPan(-2);
             } else if (bounds.bottom - dragY < 25) {
                 console.log("PAN bottom ");
-
-                // if (this.canPanY) {
-                //     this.Document._panY = top + 5;
-                //     setTimeout(action(() => {
-                //         this.panY();
-                //         this.canPanY = true;
-                //     }), 250);
-                //     this.canPanY = false;
-                // }
-
+                this.continueYPan(2);
             }
         }
+        e.stopPropagation();
     }
+
+    continueYPan = (delta: number) => {
+        setTimeout(() => {
+            const dragY = this._lastClientY;
+            if (this._lastClientY !== undefined && this._marqueeRef.current) {
+                const bounds = this._marqueeRef.current.getBoundingClientRect()!;
+                this.Document._panY = NumCast(this.Document._panY) + delta;
+                (dragY - bounds.top < 25 || bounds.bottom - dragY < 25) && this.continueYPan(delta);
+            } else this._lastClientY !== undefined && this.continueYPan(delta);
+        }, 50);
+    }
+
 
     promoteCollection = undoBatch(action(() => {
         const childDocs = this.childDocs.slice();
