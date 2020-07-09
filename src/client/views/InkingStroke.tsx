@@ -42,7 +42,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
 
     @action
     private formatShape = () => {
-        console.log("Clicked");
         FormatShapePane.Instance.Pinned = true;
         FormatShapePane.Instance.selected();
 

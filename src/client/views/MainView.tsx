@@ -453,7 +453,6 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
-        console.log('${ ANTIMODEMENU_HEIGHT }');
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",

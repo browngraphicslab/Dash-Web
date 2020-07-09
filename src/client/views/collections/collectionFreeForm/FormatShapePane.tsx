@@ -315,7 +315,6 @@ export default class FormatShapePane extends AntimodeMenu {
                     this._solidLine = false;
                     this._dashLine = false;
                 } else {
-                    console.log(doc.strokeWidth);
                     this._currWidth = String(doc.strokeWidth);
                     this._currColor = String(doc.color);
                     if (doc.dash === "0") {
