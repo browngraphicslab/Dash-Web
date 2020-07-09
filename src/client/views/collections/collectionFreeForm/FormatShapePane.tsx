@@ -3,12 +3,9 @@ import AntimodeMenu from "../../AntimodeMenu";
 import { observer } from "mobx-react";
 import { observable, action, computed } from "mobx";
 import "./FormatShapePane.scss";
-import { ActiveInkColor, ActiveInkBezierApprox, ActiveFillColor, ActiveArrowStart, ActiveArrowEnd, SetActiveInkWidth, SetActiveInkColor, SetActiveBezierApprox, SetActiveFillColor, SetActiveArrowStart, SetActiveArrowEnd, ActiveDash, SetActiveDash } from "../../InkingStroke";
+import { SetActiveInkWidth } from "../../InkingStroke";
 import { Scripting } from "../../../util/Scripting";
-import { InkTool, InkField } from "../../../../fields/InkField";
-import { ColorState } from "react-color";
-import { Utils } from "../../../../Utils";
-import GestureOverlay from "../../GestureOverlay";
+import { InkField } from "../../../../fields/InkField";
 import { Doc } from "../../../../fields/Doc";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { DocumentView } from "../../../views/nodes/DocumentView";
@@ -19,9 +16,6 @@ import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faRulerCombined, faFillDrip, faPenNib } from "@fortawesome/free-solid-svg-icons";
 import { Cast, StrCast, BoolCast, NumCast } from "../../../../fields/Types";
 import e = require("express");
-import { ChangeEvent } from "mongodb";
-import { black } from "colors";
-
 
 library.add(faRulerCombined, faFillDrip, faPenNib);
 
@@ -33,63 +27,42 @@ export default class FormatShapePane extends AntimodeMenu {
     private _width = ["1", "5", "10", "100"];
     private _mode = ["fill-drip", "ruler-combined"];
     private _subMenu = ["fill", "line", "size", "position"];
-    private _headIcon = ["⎯", "←"];
-    private _endIcon = ["⎯", "→"];
-    private _head = ["none", "arrowHead"];
-    private _end = ["none", "arrowEnd"];
-
     @observable private _subOpen = [false, false, false, false];
-
     @observable private collapsed: boolean = false;
     @observable private currMode: string = "fill-drip";
     @observable _fillBtn = false;
     @observable _lineBtn = false;
-
     @observable _selectDoc: DocumentView[] = [];
-
     @observable _noFill = false;
     @observable _solidFill = false;
     @observable _noLine = false;
     @observable _solidLine = false;
     @observable _dashLine = false;
     @observable _lock = false;
-
     @observable _multiple = false;
-
     @observable _widthBtn = false;
-
-    @observable _currWidth = "10";
-
     @observable _single = false;
-    @observable _currFill = "#D0021B";
-    @observable _currColor = "#D0021B";
-
     @observable _arrowHead = false;
     @observable _arrowEnd = false;
-
-
     @observable _currSizeHeight = "10";
     @observable _currSizeWidth = "10";
     @observable _currRotation = "10";
-
     @observable _currPositionHorizontal = "10";
     @observable _currPositionVertical = "10";
-
+    @observable _currWidth = "10";
+    @observable _currFill = "#D0021B";
+    @observable _currColor = "#D0021B";
 
     constructor(props: Readonly<{}>) {
         super(props);
         FormatShapePane.Instance = this;
-        this._canFade = false; // don't let the inking menu fade away
+        this._canFade = false;
         this.Pinned = BoolCast(Doc.UserDoc()["formatShapePane-pinned"]);
-
     }
 
     @action
     toggleMenuPin = (e: React.MouseEvent) => {
         Doc.UserDoc()["formatShapePane-pinned"] = this.Pinned = !this.Pinned;
-        if (!this.Pinned) {
-            // this.fadeOut(true);
-        }
     }
 
     @action
@@ -105,9 +78,9 @@ export default class FormatShapePane extends AntimodeMenu {
     closePane = () => {
         this.jumpTo(-300, -300);
         this.Pinned = false;
-
     }
 
+    //if multiple inks are selected and do not share the same prop, leave blank
     @action
     checkSame = () => {
         const docs = SelectionManager.SelectedDocuments();
@@ -117,18 +90,6 @@ export default class FormatShapePane extends AntimodeMenu {
                 inks.push(docs[i]);
             }
         }
-        const firstWidth = Document(inks[0].rootDoc).strokeWidth;
-        const firstColor = Document(inks[0].rootDoc).color;
-        const firstFill = Document(inks[0].rootDoc).fillColor;
-        // const firstBezier
-        const firstRotation = Document(inks[0].rootDoc).rotation;
-        const firstArrowStart = Document(inks[0].rootDoc).arrowStart;
-        const firstArrowEnd = Document(inks[0].rootDoc).arrowEnd;
-        const firstDash = Document(inks[0].rootDoc).dash;
-        const firstWidthSize = Document(inks[0].rootDoc)._width;
-        const firstHeightSize = Document(inks[0].rootDoc)._height;
-        const firstHorizontal = Document(inks[0].rootDoc).x;
-        const firstVertical = Document(inks[0].rootDoc).y;
         this._noFill = Document(inks[0].rootDoc).fillColor === "none" ? true : false;
         this._solidFill = Document(inks[0].rootDoc).fillColor === "none" ? false : true;
         this._noLine = Document(inks[0].rootDoc).color === "none" ? true : false;
@@ -142,11 +103,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
             }
         }
-        // this._solidLine = (Document(inks[0].rootDoc).color === "none") ? false : Document(inks[0].rootDoc).dash === 0 ? true : false;
-        // this._dashLine = (Document(inks[0].rootDoc).color === "none") ? false : Document(inks[0].rootDoc).dash !== 0 ? true : false;
-        // // this._widthBtn = false;    
         this._currWidth = String(Document(inks[0].rootDoc).strokeWidth);
-        // this._single = false;
         this._currFill = String(Document(inks[0].rootDoc).fillColor);
         this._currColor = String(Document(inks[0].rootDoc).color);
         this._arrowHead = Document(inks[0].rootDoc).arrowStart === "none" ? false : true;
@@ -157,44 +114,42 @@ export default class FormatShapePane extends AntimodeMenu {
         this._currPositionHorizontal = String(Document(inks[0].rootDoc).x);
         this._currPositionVertical = String(Document(inks[0].rootDoc).y);
         for (var i = 0; i < inks.length; i++) {
-            if (Document(inks[i].rootDoc).strokeWidth !== firstWidth) {
+            if (Document(inks[i].rootDoc).strokeWidth !== Document(inks[0].rootDoc).strokeWidth) {
                 this._currWidth = "";
             }
-            if (Document(inks[i].rootDoc).color !== firstColor) {
+            if (Document(inks[i].rootDoc).color !== Document(inks[0].rootDoc).color) {
                 this._noLine = false;
                 this._solidLine = false;
                 this._dashLine = false;
             }
-            if (Document(inks[i].rootDoc).fillColor !== firstFill) {
+            if (Document(inks[i].rootDoc).fillColor !== Document(inks[0].rootDoc).fillColor) {
                 this._solidFill = false;
                 this._noFill = false;
             }
-            if (Document(inks[i].rootDoc).arrowStart !== firstArrowStart) {
+            if (Document(inks[i].rootDoc).arrowStart !== Document(inks[0].rootDoc).arrowStart) {
                 this._arrowHead = false;
             }
-            if (Document(inks[i].rootDoc).arrowEnd !== firstArrowEnd) {
+            if (Document(inks[i].rootDoc).arrowEnd !== Document(inks[0].rootDoc).arrowEnd) {
                 this._arrowEnd = false;
             }
-            if (Document(inks[i].rootDoc).x !== firstHorizontal) {
+            if (Document(inks[i].rootDoc).x !== Document(inks[0].rootDoc).x) {
                 this._currPositionHorizontal = "";
             }
-            if (Document(inks[i].rootDoc).y !== firstVertical) {
+            if (Document(inks[i].rootDoc).y !== Document(inks[0].rootDoc).y) {
                 this._currPositionVertical = "";
             }
-            if (Document(inks[i].rootDoc)._width !== firstWidthSize) {
+            if (Document(inks[i].rootDoc)._width !== Document(inks[0].rootDoc)._width) {
                 this._currSizeWidth = "";
             }
-            if (Document(inks[i].rootDoc)._height !== firstHeightSize) {
+            if (Document(inks[i].rootDoc)._height !== Document(inks[0].rootDoc)._height) {
                 this._currSizeHeight = "";
             }
-            if (Document(inks[i].rootDoc).rotation !== firstRotation) {
+            if (Document(inks[i].rootDoc).rotation !== Document(inks[0].rootDoc).rotation) {
                 this._currRotation = "";
             }
         }
-
-
-
     }
+
 
     @action
     upDownButtons = (dirs: string, field: string) => {
@@ -206,14 +161,12 @@ export default class FormatShapePane extends AntimodeMenu {
                         if (doc.strokeWidth) {
                             doc.strokeWidth = dirs === "up" ? doc.strokeWidth + 1 : doc.strokeWidth - 1;
                             SetActiveInkWidth(String(doc.strokeWidth));
-
                         }
                         break;
                     case "sizeWidth":
                         if (doc._width && doc._height) {
                             const oldWidth = doc._width;
                             const oldHeight = doc._height;
-
                             doc._width = dirs === "up" ? doc._width + 10 : doc._width - 10;
                             if (this._lock) {
                                 doc._height = (doc._width * oldHeight) / oldWidth;
@@ -240,18 +193,16 @@ export default class FormatShapePane extends AntimodeMenu {
                             doc.y = dirs === "up" ? doc.y + 10 : doc.y - 10;
                         }
                     case "rotation":
-
                         this.rotate(dirs === "up" ? Number(doc.rotation) + Number(0.1) : Number(doc.rotation) - Number(0.1));
-
                         break;
                     default:
                         break;
                 }
                 this.selected();
-
             }
         }));
     }
+
 
     @action
     editProperties = (value: any, field: string) => {
@@ -270,7 +221,6 @@ export default class FormatShapePane extends AntimodeMenu {
                         doc.fillColor = String(value);
                         break;
                     case "bezier":
-                        // doc.strokeBezier === 300 ? doc.strokeBezier = 0 : doc.strokeBezier = 300;
                         break;
                     case "arrowStart":
                         doc.arrowStart = String(value);
@@ -285,7 +235,6 @@ export default class FormatShapePane extends AntimodeMenu {
                         if (doc._width && doc._height) {
                             const oldWidth = doc._width;
                             const oldHeight = doc._height;
-
                             doc._width = Number(value);
                             if (this._lock) {
                                 doc._height = (doc._width * oldHeight) / oldWidth;
@@ -296,7 +245,6 @@ export default class FormatShapePane extends AntimodeMenu {
                         if (doc._width && doc._height) {
                             const oldWidth = doc._width;
                             const oldHeight = doc._height;
-
                             doc._height = Number(value);
                             if (this._lock) {
                                 doc._width = (doc._height * oldWidth) / oldHeight;
@@ -308,7 +256,6 @@ export default class FormatShapePane extends AntimodeMenu {
                         break;
                     case "vertical":
                         doc.y = Number(value);
-
                         break;
                     default:
                         break;
@@ -331,13 +278,14 @@ export default class FormatShapePane extends AntimodeMenu {
         return close;
     }
 
+    //select either coor&fill or size&position
     @computed get modes() {
         const modes = <div className="antimodeMenu-button-tab">
             {this._mode.map(mode => {
                 return <button
                     className="antimodeMenu-button"
                     key={mode}
-                    onPointerDown={action(() => { console.log("mode"); this.currMode = mode; })}
+                    onPointerDown={action(() => { this.currMode = mode; })}
                     style={{ backgroundColor: this.currMode === mode ? "121212" : "", position: "relative", top: 30 }}>
                     <FontAwesomeIcon icon={mode as IconProp} size="lg" />
                 </button>;
@@ -346,6 +294,7 @@ export default class FormatShapePane extends AntimodeMenu {
         return modes;
     }
 
+    //detects currently selected document and change value in pane
     @action
     selected = () => {
         this._selectDoc = SelectionManager.SelectedDocuments();
@@ -353,7 +302,6 @@ export default class FormatShapePane extends AntimodeMenu {
             this._single = true;
             const doc = Document(this._selectDoc[0].rootDoc);
             if (doc.type === DocumentType.INK) {
-                console.log(doc.fillColor);
                 if (doc.fillColor === "none") {
                     this._noFill = true;
                     this._solidFill = false;
@@ -382,11 +330,8 @@ export default class FormatShapePane extends AntimodeMenu {
 
                     this._arrowHead = doc.arrowStart === "none" ? false : true;
                     this._arrowEnd = doc.arrowEnd === "none" ? false : true;
-
-
                     this._currPositionHorizontal = String(doc.x);
                     this._currPositionVertical = String(doc.y);
-                    console.log(doc.rotation);
                     this._currRotation = String(doc.rotation);
                     this._currSizeHeight = String(doc._height);
                     this._currSizeWidth = String(doc._width);
@@ -418,8 +363,6 @@ export default class FormatShapePane extends AntimodeMenu {
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
-                // doc.rotation = (Number(doc.rotation) + (Number(angle) * 180 / Math.PI));
-                // console.log(doc.rotation);
                 const angle = Number(degrees) - Number(doc.rotation);
                 doc.rotation = Number(degrees);
                 const ink = Cast(doc.data, InkField)?.inkData;
@@ -446,10 +389,8 @@ export default class FormatShapePane extends AntimodeMenu {
                     const top2 = Math.min(...ys2);
                     const right2 = Math.max(...xs2);
                     const bottom2 = Math.max(...ys2);
-
                     doc._height = (bottom2 - top2) * element.props.ScreenToLocalTransform().Scale;
                     doc._width = (right2 - left2) * element.props.ScreenToLocalTransform().Scale;
-
                 }
             }
         }));
@@ -854,14 +795,11 @@ export default class FormatShapePane extends AntimodeMenu {
         return positionVerticalInput;
     }
 
-
+    //change inputs
     @action
     onChange = (val: string, property: string): void => {
         if (!Number.isNaN(Number(val)) && Number(val) !== null && val !== " ") {
 
-            // if (val === "") {
-            //     val = "0";
-            // }
             switch (property) {
                 case "width":
                     this._currWidth = val;
@@ -909,35 +847,6 @@ export default class FormatShapePane extends AntimodeMenu {
                     break;
             }
         }
-    }
-
-
-
-
-    // @action
-    // changeWidth = (event: React.ChangeEvent<HTMLInputElement>) => {
-    //     console.log(event.target.value);
-    //     this._currWidth = NumCast(event.target.value);
-
-    // }
-
-    @computed get upDown() {
-        const upDown = <div>
-            <button
-                className="antiMenu-Button"
-                key="up"
-                onPointerDown={action(() => { console.log("up"); })}>
-                up
-            </button>
-            <br></br>
-            <button
-                className="antiMenu-Button"
-                key="up"
-                onPointerDown={action(() => { console.log("dpwm"); })}>
-                down
-            </button>
-        </div>;
-        return upDown;
     }
 
 
