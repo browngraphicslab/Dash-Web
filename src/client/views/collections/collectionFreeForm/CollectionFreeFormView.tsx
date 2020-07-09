@@ -1172,89 +1172,67 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     // <div ref={this._marqueeRef}>
 
     @action
-    handleDragging = (e: Event, de: DragEvent) => {
+    handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
 
         const top = this.panX();
         const left = this.panY();
 
         const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
-
         const scale = this.getLocalTransform().inverse().Scale;
 
-        if (this._marqueeRef) {
+        if (this._marqueeRef?.current) {
+            const dragX = e.detail.clientX;
+            const dragY = e.detail.clientY;
+            const bounds = this._marqueeRef.current?.getBoundingClientRect()!;
 
-            if (this._marqueeRef.current) {
+            if (dragX - bounds.left < 25) {
+                console.log("PAN left ");
 
-                // console.log("top: " + this._marqueeRef.current.clientTop);
-                // console.log("left: " + this._marqueeRef.current.clientLeft);
-                // console.log("width: " + this._marqueeRef.current.clientWidth);
-                // console.log("height: " + this._marqueeRef.current.clientHeight);
+                // if (this.canPanX) {
+                //     this.Document._panX = left - 5;
+                //     setTimeout(action(() => {
+                //         this.canPanX = true;
+                //         this.panX();
+                //     }), 250);
+                //     this.canPanX = false;
+                // }
+            } else if (bounds.right - dragX < 25) {
+                console.log("PAN right ");
 
-                console.log("width: " + this._marqueeRef.current.getBoundingClientRect().width);
-                console.log("height: " + this._marqueeRef.current.getBoundingClientRect().width);
-                console.log("x: " + this._marqueeRef.current.getBoundingClientRect().x);
-                console.log("y: " + this._marqueeRef.current.getBoundingClientRect().y);
+                // if (this.canPanX) {
+                //     this.Document._panX = left + 5;
+                //     setTimeout(action(() => {
+                //         this.panX();
+                //         this.canPanX = true;
+                //     }), 250);
+                //     this.canPanX = false;
+                // }
 
-                // console.log("mouse x: " + de.screenX);
-                // console.log("mouse y: " + de.screenY);
+            }
 
+            if (dragY - bounds.top < 25) {
+                console.log("PAN top ");
 
-                if (this._marqueeRef.current.clientWidth > 0) {
-                    if (de.clientX - 315 - this._marqueeRef.current.clientLeft < 25) {
-                        console.log("PAN left ");
+                // if (this.canPanY) {
+                //     this.Document._panY = top - 5;
+                //     setTimeout(action(() => {
+                //         this.canPanY = true;
+                //         this.panY();
+                //     }), 250);
+                //     this.canPanY = false;
+                // }
+            } else if (bounds.bottom - dragY < 25) {
+                console.log("PAN bottom ");
 
-                        // if (this.canPanX) {
-                        //     this.Document._panX = left - 5;
-                        //     setTimeout(action(() => {
-                        //         this.canPanX = true;
-                        //         this.panX();
-                        //     }), 250);
-                        //     this.canPanX = false;
-                        // }
-                    } else if (de.clientX - 315 - this._marqueeRef.current.clientLeft -
-                        this._marqueeRef.current.clientWidth < 25) {
-                        console.log("PAN right ");
+                // if (this.canPanY) {
+                //     this.Document._panY = top + 5;
+                //     setTimeout(action(() => {
+                //         this.panY();
+                //         this.canPanY = true;
+                //     }), 250);
+                //     this.canPanY = false;
+                // }
 
-                        // if (this.canPanX) {
-                        //     this.Document._panX = left + 5;
-                        //     setTimeout(action(() => {
-                        //         this.panX();
-                        //         this.canPanX = true;
-                        //     }), 250);
-                        //     this.canPanX = false;
-                        // }
-
-                    }
-                }
-
-                if (this._marqueeRef.current.clientHeight > 0) {
-                    if (de.clientY - 120 - this._marqueeRef.current.clientTop < 25) {
-                        console.log("PAN top ");
-
-                        // if (this.canPanY) {
-                        //     this.Document._panY = top - 5;
-                        //     setTimeout(action(() => {
-                        //         this.canPanY = true;
-                        //         this.panY();
-                        //     }), 250);
-                        //     this.canPanY = false;
-                        // }
-                    } else if (de.clientY - 120 - this._marqueeRef.current.clientTop -
-                        this._marqueeRef.current.clientHeight < 25) {
-                        console.log("PAN bottom ");
-
-                        // if (this.canPanY) {
-                        //     this.Document._panY = top + 5;
-                        //     setTimeout(action(() => {
-                        //         this.panY();
-                        //         this.canPanY = true;
-                        //     }), 250);
-                        //     this.canPanY = false;
-                        // }
-
-                    }
-
-                }
             }
         }
     }
