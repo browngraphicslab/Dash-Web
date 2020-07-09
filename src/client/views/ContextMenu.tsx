@@ -224,6 +224,7 @@ export class ContextMenu extends React.Component {
     }
 
     render() {
+        console.log("context");
         if (!this._display) {
             return null;
         }

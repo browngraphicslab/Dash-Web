@@ -36,14 +36,15 @@ export default class InkOptionsMenu extends AntimodeMenu {
     // private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
     // private _arrowIcons = ["→", "↔︎", "•", "••", " "];
     private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
-    private _head = ["none", "arrowHead", "arrowHead", "none", "arrowHead", "arrowHead", "none", "none", "none"];
-    private _end = ["none", "none", "arrowEnd", "none", "none", "arrowEnd", "none", "none", "none"];
+    private _head = ["none", "none", "arrowHead", "none", "none", "arrowHead", "none", "none", "none"];
+    private _end = ["none", "arrowEnd", "arrowEnd", "none", "arrowEnd", "arrowEnd", "none", "none", "none"];
     private _shape = ["", "", "", "", "", "", "rectangle", "circle", "triangle"];
 
     @observable _shapesNum = this._shape.length;
     @observable _selected = this._shapesNum;
 
     @observable private collapsed: boolean = false;
+    @observable _double = "";
 
     @observable _colorBtn = false;
     @observable _widthBtn = false;
@@ -155,7 +156,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                     className="antimodeMenu-button"
                     key={icon}
                     onPointerDown={action(() => {
-                        console.log(this._selected);
+                        this._double = "";
 
                         if (this._selected !== i) {
                             this._selected = i;
@@ -176,6 +177,31 @@ export default class InkOptionsMenu extends AntimodeMenu {
 
                         }
                         console.log(this._selected);
+
+                    })}
+                    onDoubleClick={action(() => {
+                        console.log("double");
+                        this._double = this._draw[i];
+                        if (this._selected !== i) {
+                            this._selected = i;
+                            Doc.SetSelectedTool(InkTool.Pen);
+                            SetActiveArrowStart(this._head[i]);
+                            SetActiveArrowEnd(this._end[i]);
+                            SetActiveBezierApprox("300");
+
+                            //  this.editProperties(this._head[i], "arrowStart"), this.editProperties(this._end[i], "arrowEnd"); 
+                            GestureOverlay.Instance.InkShape = this._shape[i];
+                        } else {
+                            this._selected = this._shapesNum;
+                            Doc.SetSelectedTool(InkTool.None);
+                            SetActiveArrowStart("none");
+                            SetActiveArrowEnd("none");
+                            GestureOverlay.Instance.InkShape = "";
+                            SetActiveBezierApprox("0");
+
+                        }
+
+
 
                     })}
                     style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
@@ -235,7 +261,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                         className="antimodeMenu-button"
                         key={wid}
                         onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
-                        style={{ backgroundColor: this._widthBtn ? "121212" : "" }}>
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001 }}>
                         {wid}
                     </button>;
                 })}
@@ -265,7 +291,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                         className="antimodeMenu-button"
                         key={color}
                         onPointerDown={action(() => { this.changeColor(color, "color"); this._colorBtn = false; this.editProperties(color, "color"); })}
-                        style={{ backgroundColor: this._colorBtn ? "121212" : "" }}>
+                        style={{ backgroundColor: this._colorBtn ? "121212" : "", zIndex: 1001 }}>
                         {/* <FontAwesomeIcon icon="pen-nib" size="lg" /> */}
                         <div className="color-previewII" style={{ backgroundColor: color }}></div>
                     </button>;
@@ -286,14 +312,14 @@ export default class InkOptionsMenu extends AntimodeMenu {
             <div className="color-previewI" style={{ backgroundColor: ActiveFillColor() ?? "121212" }}></div>
         </button>;
         if (this._fillBtn) {
-            fillPicker = <div className="btn-group" key="fill">
+            fillPicker = <div className="btn-group" key="fill" >
                 {fillPicker}
                 {this._palette.map(color => {
                     return <button
                         className="antimodeMenu-button"
                         key={color}
                         onPointerDown={action(() => { this.changeColor(color, "fill"); this._fillBtn = false; this.editProperties(color, "fill"); })}
-                        style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
+                        style={{ backgroundColor: this._fillBtn ? "121212" : "", zIndex: 1001 }}>
                         <div className="color-previewII" style={{ backgroundColor: color }}></div>
                     </button>;
                 })}

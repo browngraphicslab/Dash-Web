@@ -58,7 +58,7 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
-
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
@@ -453,12 +453,13 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
-        console.log(InkOptionsMenu.Instance?.Pinned);
+        console.log('${ ANTIMODEMENU_HEIGHT }');
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                height: (RichTextMenu.Instance?.Pinned || InkOptionsMenu.Instance?.Pinned) ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
-
+                //change to times 2 for both pinned
+                height: (RichTextMenu.Instance?.Pinned || InkOptionsMenu.Instance?.Pinned) ? (RichTextMenu.Instance?.Pinned && InkOptionsMenu.Instance?.Pinned) ? `calc(100% - 2*${ANTIMODEMENU_HEIGHT})` : `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%",
+                width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
@@ -597,7 +598,10 @@ export class MainView extends React.Component {
             <DocumentDecorations />
             <InkOptionsMenu />
 
+
             <GestureOverlay >
+                <FormatShapePane />
+
 
                 <RichTextMenu key="rich" />
                 {this.mainContent}
@@ -608,6 +612,7 @@ export class MainView extends React.Component {
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
             <ContextMenu />
+            <FormatShapePane />
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />

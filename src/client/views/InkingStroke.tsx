@@ -15,6 +15,8 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { Scripting } from "../util/Scripting";
 import { Doc } from "../../fields/Doc";
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
+import { action } from "mobx";
 
 library.add(faPaintBrush);
 
@@ -38,10 +40,19 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document.isInkMask = true;
     }
 
+    @action
+    private formatShape = () => {
+        console.log("Clicked");
+        FormatShapePane.Instance.Pinned = true;
+        FormatShapePane.Instance.selected();
+
+    }
+
     render() {
         TraceMobx();
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
-        const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
+        // const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
+        const strokeWidth = Number(this.layoutDoc.strokeWidth);
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
         const left = Math.min(...xs) - strokeWidth / 2;
@@ -74,6 +85,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 onContextMenu={() => {
                     ContextMenu.Instance.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
                     ContextMenu.Instance.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                    ContextMenu.Instance.addItem({ description: "Format Shape", event: this.formatShape, icon: "paint-brush" });
+
                 }}
             ><defs>
                 </defs>

@@ -1,6 +1,7 @@
 import React = require("react");
 import { observable, action } from "mobx";
 import "./AntimodeMenu.scss";
+import { inherits } from "util";
 
 /**
  * This is an abstract class that serves as the base for a PDF-style or Marquee-style
@@ -142,6 +143,23 @@ export default abstract class AntimodeMenu extends React.Component {
                     position: this.Pinned ? "unset" : undefined
                 }}>
                 <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />
+                {buttons}
+            </div>
+        );
+    }
+
+    protected getElementVert(buttons: JSX.Element[]) {
+        return (
+            <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
+                style={{
+                    left: this.Pinned ? undefined : this._left,
+                    top: this.Pinned ? 0 : this._top,
+                    right: this.Pinned ? 0 : undefined,
+                    height: "inherit",
+                    width: 200,
+                    opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
+                    position: this.Pinned ? "absolute" : undefined
+                }}>
                 {buttons}
             </div>
         );

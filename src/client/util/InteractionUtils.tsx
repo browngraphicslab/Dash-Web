@@ -3,6 +3,7 @@ import * as beziercurve from 'bezier-curve';
 import * as fitCurve from 'fit-curve';
 import "./InteractionUtils.scss";
 import { Utils } from "../../Utils";
+import InkOptionsMenu from "../views/collections/collectionFreeForm/InkOptionsMenu";
 
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
@@ -94,6 +95,13 @@ export namespace InteractionUtils {
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
         dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
+
+        // if (InkOptionsMenu.Instance.Pinned) {
+        //     for (var i = 0; i < points.length; i++) {
+        //         points[i].Y -= 35;
+        //     }
+        // }
+
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);

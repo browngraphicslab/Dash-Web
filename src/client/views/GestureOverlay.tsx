@@ -633,7 +633,8 @@ export default class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (this.InkShape !== "noRec") {
+                if (InkOptionsMenu.Instance._double === "") {
+
                     this.InkShape = "";
                 }
             }
@@ -687,12 +688,14 @@ export default class GestureOverlay extends Touchable {
         }
         //get out of ink mode after each stroke=
         console.log("now");
-        Doc.SetSelectedTool(InkTool.None);
-        InkOptionsMenu.Instance._selected = InkOptionsMenu.Instance._shapesNum;
-        SetActiveArrowStart("none");
-        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
-        SetActiveArrowEnd("none");
-        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        if (InkOptionsMenu.Instance._double === "") {
+            Doc.SetSelectedTool(InkTool.None);
+            InkOptionsMenu.Instance._selected = InkOptionsMenu.Instance._shapesNum;
+            SetActiveArrowStart("none");
+            GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
+            SetActiveArrowEnd("none");
+            GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
 

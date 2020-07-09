@@ -293,6 +293,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
+                doc.rotation = Number(doc.rotation) + Number(angle);
+                console.log(doc.rotation);
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
 

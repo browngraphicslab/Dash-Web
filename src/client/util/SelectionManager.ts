@@ -5,6 +5,7 @@ import { computedFn } from "mobx-utils";
 import { List } from "../../fields/List";
 import { Scripting } from "./Scripting";
 import { DocumentManager } from "./DocumentManager";
+import FormatShapePane from "../views/collections/collectionFreeForm/FormatShapePane";
 
 export namespace SelectionManager {
 
@@ -14,6 +15,8 @@ export namespace SelectionManager {
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
+            console.log("select"
+            );
             // if doc is not in SelectedDocuments, add it
             if (!manager.SelectedDocuments.get(docView)) {
                 if (!ctrlPressed) {
@@ -29,6 +32,8 @@ export namespace SelectionManager {
                 manager.SelectedDocuments.set(docView, true);
             }
             Doc.UserDoc().activeSelection = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+            FormatShapePane.Instance.selected();
+
         }
         @action
         DeselectDoc(docView: DocumentView): void {
