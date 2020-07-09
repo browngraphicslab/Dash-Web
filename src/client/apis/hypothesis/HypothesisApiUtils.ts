@@ -40,7 +40,7 @@ export namespace Hypothesis {
     };
 
     // Find the most recent placeholder annotation created, and return its ID
-    export const getPlaceholderId = async (username: String, searchKeyWord: String) => {
+    export const getPlaceholderId = async (username: string, searchKeyWord: string) => {
         const getResponse = await Hypothesis.searchAnnotation(username, searchKeyWord);
         const id = getResponse.rows.length > 0 ? getResponse.rows[0].id : undefined;
         return StrCast(id);
