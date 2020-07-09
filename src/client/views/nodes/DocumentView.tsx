@@ -26,7 +26,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { Scripting } from '../../util/Scripting';
 import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
-import SharingManager from '../../util/SharingManager';
+import SharingManager, { SharingPermissions } from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
@@ -725,7 +725,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly" | "write") => {
+    setAcl = (acl: SharingPermissions) => {
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
             if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
@@ -735,7 +735,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @undoBatch
     @action
-    testAcl = (acl: "readOnly" | "addOnly" | "ownerOnly" | "write") => {
+    testAcl = (acl: SharingPermissions) => {
         this.dataDoc.author = this.props.Document.author = "ADMIN";
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
@@ -845,12 +845,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const existingAcls = cm.findByDescription("Privacy...");
         const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
-        aclItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Make Editable", event: () => this.setAcl("write"), icon: "concierge-bell" });
-        aclItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Add Only", event: () => this.setAcl(SharingPermissions.Add), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Read Only", event: () => this.setAcl(SharingPermissions.View), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Private", event: () => this.setAcl(SharingPermissions.None), icon: "concierge-bell" });
+        aclItems.push({ description: "Make Editable", event: () => this.setAcl(SharingPermissions.Edit), icon: "concierge-bell" });
+        aclItems.push({ description: "Test Private", event: () => this.testAcl(SharingPermissions.None), icon: "concierge-bell" });
+        aclItems.push({ description: "Test Readonly", event: () => this.testAcl(SharingPermissions.View), icon: "concierge-bell" });
         !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
 
         // const recommender_subitems: ContextMenuProps[] = [];
@@ -1206,9 +1206,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
-        console.log("here");
-        if (getEffectiveAcl(this.props.Document) === AclPrivate) return (null);
         if (!(this.props.Document instanceof Doc)) return (null);
+        if (getEffectiveAcl(this.props.Document) === AclPrivate) return (null);
+        if (this.props.Document.hidden) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
         const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;

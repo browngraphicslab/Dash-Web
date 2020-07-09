@@ -138,7 +138,6 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const targetDataDoc = this.props.Document[DataSym];
             const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
-            console.log("here");
             const effectiveAcl = getEffectiveAcl(this.dataDoc);
             if (added.length) {
                 if (effectiveAcl === AclReadonly) {

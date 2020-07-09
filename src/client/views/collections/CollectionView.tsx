@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt, AclEdit } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -132,8 +132,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
-        console.log("here");
-        const effectiveAcl = getEffectiveAcl(this.dataDoc);
+        const effectiveAcl = getEffectiveAcl(this.props.Document);
         if (added.length) {
             if (effectiveAcl === AclReadonly) {
                 return false;
@@ -167,13 +166,15 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
-        const targetDataDoc = this.props.Document[DataSym];
-        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-        const result = value.filter(v => !docs.includes(v));
-        if (result.length !== value.length) {
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
-            return true;
+        if (getEffectiveAcl(this.props.Document) === AclEdit) {
+            const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+            const targetDataDoc = this.props.Document[DataSym];
+            const value = DocListCast(targetDataDoc[this.props.fieldKey]);
+            const result = value.filter(v => !docs.includes(v));
+            if (result.length !== value.length) {
+                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+                return true;
+            }
         }
         return false;
     }

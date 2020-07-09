@@ -51,7 +51,7 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                                     }}
                                 />
                             </div>
-                            <button onClick={() => console.log(GroupManager.Instance.deleteGroup(this.props.group))}>Delete group</button>
+                            <button onClick={() => GroupManager.Instance.deleteGroup(this.props.group)}>Delete group</button>
                         </div> :
                         null}
                 </div>

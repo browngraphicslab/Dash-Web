@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult, UpdatingFromServer, LayoutSym, AclSym, AclPrivate, AclEdit, AclReadonly, AclAddonly } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, fetchProto } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -9,7 +9,6 @@ import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast } from "./Types";
-import GroupManager from "../client/util/GroupManager";
 
 
 function _readOnlySetter(): never {
@@ -108,57 +107,65 @@ export function OVERRIDE_ACL(val: boolean) {
     _overrideAcl = val;
 }
 
-const HierarchyMapping = new Map<symbol, number>([
-    [AclPrivate, 0],
-    [AclReadonly, 1],
-    [AclAddonly, 2],
-    [AclEdit, 3]
-]);
+let currentUserGroups: string[] = [];
+let currentUserEmail: string;// = Doc.CurrentUserEmail;
 
-export function getEffectiveAcl(target: any): symbol {
+export function setGroups(groups: string[]) {
+    currentUserGroups = groups;
+    currentUserEmail = Doc.CurrentUserEmail;
+}
 
-    console.log("in getEffectiveAcl");
 
-    if (target[AclSym].ACL) return target[AclSym].ACL;
+export function getEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
 
-    let effectiveAcl = AclEdit;
+    const HierarchyMapping = new Map<symbol, number>([
+        [AclPrivate, 0],
+        [AclReadonly, 1],
+        [AclAddonly, 2],
+        [AclEdit, 3]
+    ]);
 
-    for (const [key, value] of Object.entries(target[AclSym])) {
-        if (key.startsWith("ACL-")) {
-            if (GroupManager.Instance.currentUserGroups.includes(key.substring(4)) || Doc.CurrentUserEmail === key.substring(4).replace("_", ".")) {
-                if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
-                    effectiveAcl = value as symbol;
-                    if (effectiveAcl === AclEdit) break;
+    if (!target[AclSym] && target instanceof Doc) {
+        fetchProto(target);
+    }
+
+    if (target[AclSym] && Object.keys(target[AclSym]).length) {
+
+        if (target.author === currentUserEmail) return AclEdit;
+
+        if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
+
+        if (target[AclSym].ACL) return target[AclSym].ACL;
+
+        let effectiveAcl = AclPrivate;
+        let aclPresent = false;
+
+        for (const [key, value] of Object.entries(target[AclSym])) {
+            if (key.startsWith("ACL-")) {
+                if (currentUserGroups.includes(key.substring(4)) || currentUserEmail === key.substring(4).replace("_", ".")) {
+                    if (HierarchyMapping.get(value as symbol)! >= HierarchyMapping.get(effectiveAcl)!) {
+                        aclPresent = true;
+                        effectiveAcl = value as symbol;
+                        if (effectiveAcl === AclEdit) break;
+                    }
                 }
             }
         }
+        return aclPresent ? effectiveAcl : AclEdit;
     }
-
-    return effectiveAcl;
+    else {
+        return AclEdit;
+    }
 }
 
-function testPermission(target: any, in_prop: string | symbol | number): boolean {
-
-    console.log("here");
-    // if (target[AclSym].ACL !== AclEdit && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return false;
-    if (target[AclSym].ACL === AclEdit) return true;
-    for (const [key, value] of Object.entries(target[AclSym])) {
-        if (key.startsWith("ACL-")) {
-            if (GroupManager.Instance.currentUserGroups.includes(key.substring(4))) {
-                if (value === AclEdit) return true;
-            }
-        }
-    }
-    return _overrideAcl || DocServer.PlaygroundFields.includes(in_prop.toString());
-}
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
-    console.log("in setter")
     let prop = in_prop;
-    // if (target[AclSym] && !_overrideAcl && !DocServer.PlaygroundFields.includes(in_prop.toString())) return true; // generalise to a testpermission function
-    if (!testPermission(target, in_prop)) return true;
+    if (getEffectiveAcl(target, in_prop) !== AclEdit) {
+        return true;
+    }
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
@@ -176,11 +183,9 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 }
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
-    console.log("in getter")
     let prop = in_prop;
-    const effectiveAcl = getEffectiveAcl(target);
-    if (in_prop === AclSym) return _overrideAcl ? undefined : effectiveAcl;
-    if (effectiveAcl === AclPrivate && !_overrideAcl) return undefined;
+    if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
+    if (getEffectiveAcl(target) === AclPrivate && !_overrideAcl) return undefined;
     if (prop === LayoutSym) {
         return target.__LAYOUT__;
     }
@@ -217,7 +222,6 @@ function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreP
     }
     if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getFieldImpl(target, "proto", receiver, true);//TODO tfs: instead of receiver we could use target[SelfProxy]... I don't which semantics we want or if it really matters
-        console.log("here");
         if (proto instanceof Doc && getEffectiveAcl(proto) !== AclPrivate) {
             return getFieldImpl(proto[Self], prop, receiver, ignoreProto);
         }

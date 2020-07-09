@@ -22,6 +22,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
+import GroupManager from "../util/GroupManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -107,6 +108,7 @@ export default class KeyManager {
                 GoogleAuthenticationManager.Instance.cancel();
                 HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
+                GroupManager.Instance.close();
                 break;
             case "delete":
             case "backspace":

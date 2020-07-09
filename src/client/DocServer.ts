@@ -40,7 +40,6 @@ export namespace DocServer {
 
     export var PlaygroundFields: string[];
     export function setPlaygroundFields(livePlaygroundFields: string[]) {
-        console.log("here");
         DocServer.PlaygroundFields = livePlaygroundFields;
         livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
     }

@@ -227,7 +227,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
             // if (!this.dataDoc[AclSym]) { // what?
-            console.log("here");
             if (getEffectiveAcl(this.dataDoc) === AclEdit) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;

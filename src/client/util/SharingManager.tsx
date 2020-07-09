@@ -359,8 +359,6 @@ export default class SharingManager extends React.Component<{}> {
     share = () => {
         this.selectedUsers?.forEach(user => {
             if (user.value.includes(indType)) {
-                console.log(user);
-                console.log(this.users.find(u => u.user.email === user.label));
                 this.setInternalSharing(this.users.find(u => u.user.email === user.label)!, this.permissions);
             }
             else {

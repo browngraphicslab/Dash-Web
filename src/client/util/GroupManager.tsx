@@ -14,6 +14,7 @@ import Select from 'react-select';
 import "./GroupManager.scss";
 import { StrCast } from "../../fields/Types";
 import GroupMemberView from "./GroupMemberView";
+import { setGroups } from "../../fields/util";
 
 library.add(fa.faWindowClose);
 
@@ -54,7 +55,7 @@ export default class GroupManager extends React.Component<{}> {
                 if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
             });
         })
-            .finally(() => console.log(this.currentUserGroups));
+            .finally(() => setGroups(this.currentUserGroups));
 
         // (this.GroupManagerDoc?.data as List<Doc>).forEach(group => {
         //     Promise.resolve(group).then(resolvedGroup => {
@@ -178,6 +179,10 @@ export default class GroupManager extends React.Component<{}> {
         groupDoc.groupName = groupName;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
         groupDoc.members = JSON.stringify(memberEmails);
+        if (memberEmails.includes(Doc.CurrentUserEmail)) {
+            this.currentUserGroups.push(groupName);
+            setGroups(this.currentUserGroups);
+        }
         this.addGroup(groupDoc);
     }
 
@@ -204,6 +209,12 @@ export default class GroupManager extends React.Component<{}> {
                 // SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
                 SharingManager.Instance.removeGroup(group);
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) {
+                    const index = this.currentUserGroups.findIndex(groupName => groupName === group.groupName);
+                    index !== -1 && this.currentUserGroups.splice(index, 1);
+                    setGroups(this.currentUserGroups);
+                }
                 if (group === this.currentGroup) {
                     runInAction(() => this.currentGroup = undefined);
                 }

@@ -109,7 +109,6 @@ const AclMap = new Map<string, symbol>([
 ]);
 
 export function fetchProto(doc: Doc) {
-    console.log("in fetchproto");
     if (doc.author !== Doc.CurrentUserEmail) { // storing acls for groups needs to be extended here - AclSym should store a datastructure that stores information about permissions
 
         const permissions: { [key: string]: symbol } = {};
@@ -118,22 +117,8 @@ export function fetchProto(doc: Doc) {
             if (key.startsWith("ACL")) permissions[key] = AclMap.get(StrCast(doc[key]))!;
         });
 
-        doc[AclSym] = permissions;
 
-        // const acl = Doc.Get(doc, "ACL", true);
-        // switch (acl) {
-        //     case "ownerOnly":
-        //         doc[AclSym] = AclPrivate;
-        //         return undefined;
-        //     case "readOnly":
-        //         doc[AclSym] = AclReadonly;
-        //         break;
-        //     case "addOnly":
-        //         doc[AclSym] = AclAddonly;
-        //         break;
-        //     // case "edit":
-        //     //     doc[AclSym] = AclEdit;
-        // }
+        if (Object.keys(permissions).length) doc[AclSym] = permissions;
     }
 
     if (doc.proto instanceof Promise) {
@@ -208,7 +193,7 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [AclSym]: any;
+    public [AclSym]: { [key: string]: symbol };
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
@@ -232,8 +217,8 @@ export class Doc extends RefField {
             return Cast(this[SelfProxy][renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
         }
         return undefined;
-    }
 
+    }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -840,7 +825,6 @@ export namespace Doc {
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
-        console.log("here");
         if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
@@ -850,7 +834,6 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
-        console.log("here");
         if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
@@ -888,7 +871,6 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        console.log("here");
         if (!doc || getEffectiveAcl(doc) === AclPrivate || getEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return false;
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
