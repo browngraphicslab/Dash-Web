@@ -6,6 +6,7 @@ import { Opt } from "../../fields/Doc";
 import { Networking } from "../Network";
 import "./HypothesisAuthenticationManager.scss";
 import { Scripting } from "../util/Scripting";
+import { Hypothesis } from "./hypothesis/HypothesisApiUtils";
 
 const prompt = "Paste authorization code here...";
 
@@ -44,12 +45,13 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                 this.disposer = reaction(
                     () => this.authenticationCode,
                     async authenticationCode => {
-                        if (authenticationCode) {
+                        const userProfile = authenticationCode && await Hypothesis.fetchUser(authenticationCode);
+                        if (userProfile && userProfile.userid !== null) {
                             this.disposer?.();
                             Networking.PostToServer("/writeHypothesisAccessToken", { authenticationCode });
                             runInAction(() => {
                                 this.success = true;
-                                this.credentials = response;
+                                this.credentials = Hypothesis.extractUsername(userProfile.userid); // extract username from profile
                             });
                             this.resetState();
                             resolve(authenticationCode);

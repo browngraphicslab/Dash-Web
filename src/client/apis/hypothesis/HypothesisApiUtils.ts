@@ -14,7 +14,7 @@ export namespace Hypothesis {
      * Searches for annotations made by @param username that 
      * contain @param searchKeyWord 
      */
-    export const searchAnnotation = async (username: String, searchKeyWord: String) => {
+    export const searchAnnotation = async (username: string, searchKeyWord: string) => {
         const base = 'https://api.hypothes.is/api/search';
         const request = base + `?user=acct:${username}@hypothes.is&text=${searchKeyWord}`;
         console.log("DASH Querying " + request);
@@ -23,6 +23,19 @@ export namespace Hypothesis {
             return response.json();
         } else {
             throw new Error('DASH: Error in searchAnnotation GET request');
+        }
+    };
+
+    export const fetchUser = async (apiKey: string) => {
+        const response = await fetch('https://api.hypothes.is/api/profile', {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+            },
+        });
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('DASH: Error in fetchUser GET request');
         }
     };
 
@@ -54,9 +67,9 @@ export namespace Hypothesis {
         return `https://hyp.is/${annotationId}/${baseUrl}`;
     };
 
-    // export const checkValidApiKey = async (apiKey: string) => {
-    //     const response = await fetch("https://api.hypothes.is/api/profile", {
-
-    //     });
-    // };
+    // Extract username from Hypothe.is's userId format
+    export const extractUsername = (userid: string) => {
+        const exp: RegExp = /(?<=\:)(.*?)(?=\@)/;
+        return exp.exec(userid)![0];
+    };
 }
