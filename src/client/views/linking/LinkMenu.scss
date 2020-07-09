@@ -30,13 +30,10 @@
 
         overflow-x: hidden;
 
+        width: 240px;
+
         &:last-child {
             border-bottom: none;
-        }
-
-        &:hover {
-            padding-right: 65px;
-            display: inline-block;
         }
     }
 
@@ -67,7 +64,6 @@
     }
 
     .linkMenu-group-name {
-        display: flex;
 
 
         &:hover {

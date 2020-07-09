@@ -15,6 +15,7 @@
 
     .linkMenu-name {
         position: relative;
+        width: auto;
 
         .linkMenu-text {
 
@@ -26,6 +27,8 @@
                 color: rgb(43, 43, 43);
                 font-size: 7px;
                 padding-bottom: 0.75px;
+
+                margin-left: 20px;
             }
 
 
@@ -33,12 +36,19 @@
 
                 display: flex;
 
-                .destination-icon {
-                    float: left;
-                    width: 12px;
-                    height: 12px;
-                    padding-right: 3px;
-                    margin-right: 3px;
+                .destination-icon-wrapper {
+                    //border: 0.5px solid rgb(161, 161, 161);
+                    margin-right: 2px;
+                    padding-right: 2px;
+
+                    .destination-icon {
+                        float: left;
+                        width: 12px;
+                        height: 12px;
+                        padding: 1px;
+                        margin-right: 3px;
+                        color: rgb(161, 161, 161);
+                    }
                 }
 
                 .linkMenu-destination-title {
@@ -49,6 +59,13 @@
                     padding-right: 4px;
                     margin-right: 4px;
                     float: right;
+
+                    &:hover {
+                        text-decoration: underline;
+                        color: rgb(60, 90, 156);
+                        //display: inline;
+                        text-overflow: break;
+                    }
                 }
             }
 
@@ -57,6 +74,7 @@
                 font-style: italic;
                 color: rgb(95, 97, 102);
                 font-size: 10px;
+                margin-left: 20px;
             }
 
             p {
@@ -67,9 +85,6 @@
                 user-select: none;
             }
 
-            &:hover {
-                padding-right: 8px;
-            }
         }
 
     }
@@ -88,8 +103,6 @@
 
     &:hover {
 
-        width: calc(100% + 58px);
-
         .linkMenu-item-buttons {
             display: flex;
         }
@@ -102,14 +115,6 @@
                 //display: inline;
                 text-overflow: break;
             }
-
-            // &.expand-two p {
-            //     width: calc(100% - 63px);
-            // }
-
-            // &.expand-three p {
-            //     width: calc(100% - 93px);
-            // }
         }
     }
 }
