@@ -1065,7 +1065,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     doFreeformLayout(poolData: Map<string, PoolData>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
-        const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
+        const initResult = this.Document.arrangeInit?.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         const state = initResult?.success ? initResult.result.scriptState : undefined;
         const elements = initResult?.success ? this.viewDefsToJSX(initResult.result.views) : [];
 

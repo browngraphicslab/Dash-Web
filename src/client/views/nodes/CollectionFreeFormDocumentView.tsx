@@ -73,9 +73,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
         return ({
-            x: Cast(doc["x-indexed"], listSpec("number"), []).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
-            y: Cast(doc["y-indexed"], listSpec("number"), []).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            opacity: Cast(doc["opacity-indexed"], listSpec("number"), []).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
+            x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
+            y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
+            opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
 
