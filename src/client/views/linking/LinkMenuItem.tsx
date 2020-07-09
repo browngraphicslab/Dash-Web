@@ -152,8 +152,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
 
-        const redirectUrl = StrCast(this.props.linkDoc.annotationUrl, null);
-        redirectUrl && (Doc.GetProto(this.props.destinationDoc).data = new WebField(redirectUrl)); // if destination is a Hypothes.is annotation, redirect website to the annotation's URL to scroll to the annotation
+        this.props.linkDoc.linksToAnnotation && (Doc.GetProto(this.props.destinationDoc).data = new WebField(StrCast(this.props.linkDoc.annotationUrl))); // if destination is a Hypothes.is annotation, redirect website to the annotation's URL to scroll to the annotation
 
         if (this.props.linkDoc.follow) {
             if (this.props.linkDoc.follow === "Default") {
@@ -196,7 +195,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         <div className="linkMenu-text">
                             <p className="linkMenu-destination-title"
                                 onPointerDown={this.followDefault}>
-                                {StrCast(this.props.destinationDoc.title)}</p>
+                                {(this.props.linkDoc.linksToAnnotation ? "Annotation in " : "") + StrCast(this.props.destinationDoc.title)}</p>
                             {this.props.linkDoc.description !== "" ? <p className="linkMenu-description">
                                 {StrCast(this.props.linkDoc.description)}</p> : null} </div>
 

@@ -775,23 +775,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!cm) return;
 
         cm.addItem({
-            description: "make hypothesis link", event: async () => {
-                const docUrl = Utils.prepend("/doc/" + this.props.Document[Id]);
-                const docTitle = StrCast(this.layoutDoc.title);
-                const getResponse = await Hypothesis.getAnnotation("melissaz", "placeholder");
-                if (getResponse && getResponse.rows.length > 0) {
-                    const annotationId = getResponse.rows[0].id;
-                    document.dispatchEvent(new CustomEvent<{ url: string, title: string, id: string }>("linkRequest", {
-                        detail: { url: docUrl, title: docTitle, id: annotationId },
-                        bubbles: true
-                    }));
-                } else {
-                    console.log("no placeholder annotation found");
-                }
-            }, icon: "eye"
-        });
-
-        cm.addItem({
             description: "pretend we made an annotation", event: () => {
                 document.dispatchEvent(new CustomEvent("fakeAnnotationCreated", {
                     detail: "fakefakefakeid",

@@ -18,6 +18,7 @@ import { StrCast } from "../../../fields/Types";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { LinkManager } from "../../util/LinkManager";
 import { Hypothesis } from "../../apis/hypothesis/HypothesisApiUtils";
+import { Id } from "../../../fields/FieldSymbols";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -128,8 +129,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         // if the link's source is a Hypothes.is annotation
                         if (DocumentLinksButton.AnnotationId) {
                             const sourceUrl = StrCast(sourceDoc.data.url); // the URL of the annotation's source web page
+                            Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                             Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
-                            Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc.Id), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                            Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
                         }
 
                         LinkManager.currentLink = linkDoc;
@@ -169,8 +171,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 if (DocumentLinksButton.AnnotationId) {
                     const sourceUrl = StrCast(sourceDoc.data.url); // the URL of the annotation's source web page
                     console.log("sourceAnnotationId, url", DocumentLinksButton.AnnotationId, sourceUrl);
+                    Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                     Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
-                    Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc.Id), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                    Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
                 }
 
                 LinkManager.currentLink = linkDoc;
