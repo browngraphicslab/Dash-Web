@@ -101,6 +101,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
 
+    @observable _marqueeRef = React.createRef<HTMLDivElement>();
+    @observable canPanX: boolean = true;
+    @observable canPanY: boolean = true;
+
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
@@ -1164,10 +1168,87 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+
+    // <div ref={this._marqueeRef}>
+
     @action
     handleDragging = (e: Event, de: DragEvent) => {
-        console.log(de.clientX);
-        console.log(de.clientX);
+
+        const nw = NumCast(this.Document._nativeWidth, this.props.NativeWidth());
+        const nh = NumCast(this.Document._nativeHeight, this.props.NativeHeight());
+        const hscale = nh ? this.props.PanelHeight() / nh : 1;
+        const wscale = nw ? this.props.PanelWidth() / nw : 1;
+
+        if (this._marqueeRef) {
+            if (this._marqueeRef.current) {
+
+                // console.log("left: " + this._marqueeRef.current.clientLeft);
+                // console.log("width: " + this._marqueeRef.current.clientWidth);
+                // console.log("client x: " + de.clientX);
+
+                // console.log("top: " + this._marqueeRef.current.clientTop);
+                // console.log("height: " + this._marqueeRef.current.clientHeight);
+                // console.log("client y: " + de.clientY);
+
+
+                if (this._marqueeRef.current.clientWidth > 0) {
+                    if (de.clientX - 315 - this._marqueeRef.current.clientLeft < 25) {
+                        console.log("PAN left ");
+                        if (this.canPanX) {
+                            this.Document._panX = de.clientX - 20 - this._marqueeRef.current.clientLeft;
+                            setTimeout(action(() => {
+                                this.canPanX = true;
+                                this.panX();
+                            }), 2500);
+                            this.canPanX = false;
+                        }
+                    } else if (de.clientX - 315 - this._marqueeRef.current.clientLeft -
+                        this._marqueeRef.current.clientWidth < 25) {
+                        console.log("PAN right ");
+                        if (this.canPanX) {
+                            this.Document._panX = de.clientX - 315 - this._marqueeRef.current.clientLeft -
+                                this._marqueeRef.current.clientWidth;
+
+                            setTimeout(action(() => {
+                                this.panX();
+                                this.canPanX = true;
+                            }), 2500);
+                            this.canPanX = false;
+                        }
+
+                    }
+                }
+
+                if (this._marqueeRef.current.clientHeight > 0) {
+                    if (de.clientY - 120 - this._marqueeRef.current.clientTop < 25) {
+                        console.log("PAN top ");
+                        if (this.canPanY) {
+                            this.Document._panY = de.clientY - 20 - this._marqueeRef.current.clientTop;
+                            setTimeout(action(() => {
+                                this.canPanY = true;
+                                this.panY();
+                            }), 2500);
+                            this.canPanY = false;
+                        }
+                    } else if (de.clientY - 120 - this._marqueeRef.current.clientTop -
+                        this._marqueeRef.current.clientHeight < 25) {
+                        console.log("PAN bottom ");
+                        if (this.canPanY) {
+                            this.Document._panY = de.clientY - 120 - this._marqueeRef.current.clientTop -
+                                this._marqueeRef.current.clientHeight;
+
+                            setTimeout(action(() => {
+                                this.panY();
+                                this.canPanY = true;
+                            }), 2500);
+                            this.canPanY = false;
+                        }
+
+                    }
+
+                }
+            }
+        }
     }
 
     promoteCollection = undoBatch(action(() => {
@@ -1351,7 +1432,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return false;
     });
     @computed get marqueeView() {
-        return <MarqueeView {...this.props}
+        return <MarqueeView
+            {...this.props}
             nudge={this.nudge}
             addDocTab={this.addDocTab}
             activeDocuments={this.getActiveDocuments}
@@ -1361,14 +1443,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getContainerTransform={this.getContainerTransform}
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
-            <CollectionFreeFormViewPannableContents
-                centeringShiftX={this.centeringShiftX}
-                centeringShiftY={this.centeringShiftY}
-                transition={Cast(this.layoutDoc._viewTransition, "string", null)}
-                viewDefDivClick={this.props.viewDefDivClick}
-                zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                {this.children}
-            </CollectionFreeFormViewPannableContents>
+            <div ref={this._marqueeRef}>
+                <CollectionFreeFormViewPannableContents
+                    centeringShiftX={this.centeringShiftX}
+                    centeringShiftY={this.centeringShiftY}
+                    transition={Cast(this.layoutDoc._viewTransition, "string", null)}
+                    viewDefDivClick={this.props.viewDefDivClick}
+                    zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                    {this.children}
+                </CollectionFreeFormViewPannableContents></div>
             {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }
