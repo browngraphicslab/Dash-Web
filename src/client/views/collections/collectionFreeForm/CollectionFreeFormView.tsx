@@ -205,7 +205,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
             const d = docDragData.droppedDocuments[i];
             const layoutDoc = Doc.Layout(d);
-            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
+            if (this.Document.currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
                 CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.opacity);
             } else {
@@ -1065,7 +1065,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     doFreeformLayout(poolData: Map<string, PoolData>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
-        const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
+        const initResult = this.Document.arrangeInit?.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         const state = initResult?.success ? initResult.result.scriptState : undefined;
         const elements = initResult?.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
