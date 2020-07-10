@@ -65,7 +65,8 @@ export namespace Hypothesis {
 
     // Construct an URL which will scroll the web page to a specific annotation's position
     export const makeAnnotationUrl = (annotationId: string, baseUrl: string) => {
-        return `https://hyp.is/${annotationId}/${baseUrl}`;
+        return `https://hyp.is/${annotationId}/${baseUrl}`; // embeds the generic version of Hypothes.is client, not the Dash version
+        // return baseUrl + '#annotations:' + annotationId;
     };
 
     // Extract username from Hypothe.is's userId format

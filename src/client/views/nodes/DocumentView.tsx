@@ -774,15 +774,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const cm = ContextMenu.Instance;
         if (!cm) return;
 
-        cm.addItem({
-            description: "pretend we made an annotation", event: () => {
-                document.dispatchEvent(new CustomEvent("fakeAnnotationCreated", {
-                    detail: "fakefakefakeid",
-                    bubbles: true
-                }));
-            }, icon: "eye"
-        });
-
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
             cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));

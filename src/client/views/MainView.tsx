@@ -111,10 +111,6 @@ export class MainView extends React.Component {
                 }
             });
         });
-        // document.addEventListener("linkComplete", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an annotation has been linked
-        //     const annotatedUrl = e.details;
-        //     console.log("This website " + annotatedUrl + " has a linked annotation");
-        // });
     }
 
     componentWillUnMount() {

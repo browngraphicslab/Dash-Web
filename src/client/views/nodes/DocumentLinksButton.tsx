@@ -38,27 +38,17 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static AnnotationUri: string | undefined;
 
     componentDidMount() {
-        // window.addEventListener("annotationCreated", (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
-        //     const id = e.details;
-        //     const source = SelectionManager.SelectedDocuments()[0];
-        //     runInAction(() => {
-        //         DocumentLinksButton.AnnotationId = id;
-        //         DocumentLinksButton.StartLink = source;
-        //     });
-        // });
-        console.log("window", window);
-        window.addEventListener("fakeAnnotationCreated", async (e: any) => { // event used by Hypothes.is plugin to tell Dash when an unlinked annotation has been created
-            if (e.handled) return;
-            e.handled = true;
-            console.log("Helo fake annotation make");
-            // const id = e.detail;
-            const response = await Hypothesis.getPlaceholderId("bobzel", "placeholder"); // delete once eventListening between client & Dash works
-            const source = SelectionManager.SelectedDocuments()[0];
-            response && runInAction(() => {
-                DocumentLinksButton.AnnotationId = response.id;
-                DocumentLinksButton.AnnotationUri = response.uri;
-                DocumentLinksButton.StartLink = source;
-            });
+        window.addEventListener("message", async (e: any) => {
+            if (e.origin === "http://localhost:1050" && e.data.message === "annotation created") {
+                console.log("DASH RECEIVED MESSAGE:", e.data.message);
+                const response = await Hypothesis.getPlaceholderId("melissaz", "placeholder"); // delete once eventListening between client & Dash works
+                const source = SelectionManager.SelectedDocuments()[0];
+                response && runInAction(() => {
+                    DocumentLinksButton.AnnotationId = response.id;
+                    DocumentLinksButton.AnnotationUri = response.uri;
+                    DocumentLinksButton.StartLink = source;
+                });
+            }
         });
     }
 
@@ -174,7 +164,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 // if the link is to a Hypothes.is annotation
                 if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
                     const sourceUrl = DocumentLinksButton.AnnotationUri; // the URL of the annotation's source web page
-                    console.log("sourceAnnotationId, url", DocumentLinksButton.AnnotationId, sourceUrl);
                     Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                     Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
                     Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
