@@ -21,7 +21,7 @@ import { action } from "mobx";
 import { LinkManager } from "../../../util/LinkManager";
 import { LinkDocPreview } from "../LinkDocPreview";
 import { DocumentLinksButton } from "../DocumentLinksButton";
-import Tooltip from "@material-ui/core/Tooltip";
+import { Tooltip } from "@material-ui/core";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -271,14 +271,14 @@ export class FormattedTextBoxComment {
                                         <div className="wrapper" style={{ float: "right" }}>
 
                                             <Tooltip title="Delete Link" placement="top">
-                                                <div title="Delete link" className="FormattedTextBoxComment-button"
+                                                <div className="FormattedTextBoxComment-button"
                                                     ref={(r) => this._deleteRef = r}>
                                                     <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="trash" color="white"
                                                         size="sm" /></div>
                                             </Tooltip>
 
                                             <Tooltip title="Follow Link" placement="top">
-                                                <div title="Follow link" className="FormattedTextBoxComment-button"
+                                                <div className="FormattedTextBoxComment-button"
                                                     ref={(r) => this._followRef = r}>
                                                     <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="arrow-right" color="white"
                                                         size="sm" />

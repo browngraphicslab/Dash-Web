@@ -15,7 +15,8 @@ import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
-import Tooltip from '@material-ui/core/Tooltip';
+import { Tooltip } from '@material-ui/core';
+import { RichTextField } from '../../../fields/RichTextField';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
@@ -203,6 +204,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         console.log(StrCast(this.props.destinationDoc.title).length);
 
+        //  ...
+        // from anika to bob: here's where the text that is specifically linked would show up (linkDoc.storedText)
+        // ...
+        const source = this.props.sourceDoc.type === "rtf" ? this.props.linkDoc.storedText ?
+            "stored text would show up here" : undefined : undefined;
+
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
@@ -218,8 +225,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         onPointerDown={this.onLinkButtonDown}>
 
                         <div className="linkMenu-text">
-                            {this.props.linkDoc.linkedText ? <p className="linkMenu-source-title">
-                                <b>Source: {StrCast(this.props.linkDoc.linkedText)}</b></p> : null}
+                            {source ? <p className="linkMenu-source-title">
+                                <b>Source: {source}</b></p> : null}
                             <div className="linkMenu-title-wrapper">
                                 <div className="destination-icon-wrapper" >
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
@@ -236,16 +243,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
                             <Tooltip title="Show Link">
-                                <div title="Show link" className="button" ref={this._editRef} onPointerDown={emptyFunction}>
+                                <div className="button" ref={this._editRef} onPointerDown={emptyFunction}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>
 
                             <Tooltip title="Edit Link">
-                                <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                     <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             </Tooltip>
                             <Tooltip title="Delete Link">
-                                <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
+                                <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>
                             {/* <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>

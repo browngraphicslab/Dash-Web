@@ -175,8 +175,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     doLinkOnDeselect() {
 
-        console.log("link on deselect");
-
         Array.from(this.linkOnDeselect.entries()).map(entry => {
             const key = entry[0];
             const value = entry[1];
@@ -186,11 +184,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 DocServer.GetRefField(id).then(linkDoc => {
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
-                    if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    if (linkDoc) {
+                        (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc;
+                    } else {
+                        DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    }
                 });
             });
         });
+
         this.linkOnDeselect.clear();
     }
 

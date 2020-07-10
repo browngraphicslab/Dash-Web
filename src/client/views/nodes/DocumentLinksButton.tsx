@@ -150,7 +150,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
         const title = this.props.InMenu ? "Drag or tap to create links" : "Tap to view links";
 
-        const linkButton = <div title={title} ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
+        const linkButton = <div ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
             <div className={"documentLinksButton"} style={{
                 backgroundColor: DocumentLinksButton.StartLink && !!!this.props.InMenu ? "transparent" : this.props.InMenu ? "black" : "",
                 color: this.props.InMenu ? "white" : "black",
