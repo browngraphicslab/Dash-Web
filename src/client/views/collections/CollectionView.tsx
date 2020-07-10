@@ -136,7 +136,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (added.length) {
             if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                 return false;
-            } else if (effectiveAcl === AclAddonly && !getPlaygroundMode()) {
+            } else if (effectiveAcl === AclAddonly) {
                 added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
             } else {
                 added.map(doc => {

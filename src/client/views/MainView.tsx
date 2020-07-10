@@ -88,7 +88,7 @@ export class MainView extends React.Component {
     public isPointerDown = false;
 
     componentDidMount() {
-        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         const tag = document.createElement('script');
 
@@ -453,9 +453,6 @@ export class MainView extends React.Component {
                 <div className="buttonContainer" >
                     <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                         <FontAwesomeIcon icon="cog" size="lg" />
-                    </button>
-                    <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
-                        <FontAwesomeIcon icon="columns" size="lg" />
                     </button>
                 </div>
             </div>

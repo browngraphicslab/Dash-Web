@@ -81,12 +81,10 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         }
         //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
 
-        // remove below lines to prevent saving changes to server
         if (writeToServer) {
             if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
             else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
         } else {
-            console.log("not writing to server")
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
         UndoManager.AddEvent({

@@ -11,6 +11,7 @@ import { Networking } from "../Network";
 import { CurrentUserUtils } from "./CurrentUserUtils";
 import { Utils } from "../../Utils";
 import { Doc } from "../../fields/Doc";
+import GroupManager from "./GroupManager";
 
 library.add(fa.faWindowClose);
 
@@ -100,6 +101,7 @@ export default class SettingsManager extends React.Component<{}> {
                         <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                             {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                         </button>
+                        <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
                     </div>
                     {this.settingsContent === "password" ?
                         <div className="settings-content">
