@@ -1194,7 +1194,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     continuePan = (deltaX: number, deltaY: number) => {
-        setTimeout(() => {
+        setTimeout(action(() => {
             const dragY = this._lastClientY;
             const dragX = this._lastClientX;
             if (dragY !== undefined && dragX !== undefined && this._marqueeRef.current) {
@@ -1205,7 +1205,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     this.continuePan(deltaX, deltaY);
                 }
             } else this._lastClientY !== undefined && this._lastClientX !== undefined && this.continuePan(deltaX, deltaY);
-        }, 50);
+        }), 50);
     }
 
     promoteCollection = undoBatch(action(() => {
