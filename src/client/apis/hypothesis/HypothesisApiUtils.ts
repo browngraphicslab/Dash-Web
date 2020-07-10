@@ -40,15 +40,16 @@ export namespace Hypothesis {
     };
 
     // Find the most recent placeholder annotation created, and return its ID
-    export const getPlaceholderId = async (username: String, searchKeyWord: String) => {
+    export const getPlaceholderId = async (username: string, searchKeyWord: string) => {
         const getResponse = await Hypothesis.searchAnnotation(username, searchKeyWord);
         const id = getResponse.rows.length > 0 ? getResponse.rows[0].id : undefined;
-        return StrCast(id);
+        const uri = getResponse.rows.length > 0 ? getResponse.rows[0].uri : undefined;
+        return id ? { id, uri } : undefined;
     };
 
     // Send request to Hypothes.is client to modify a placeholder annotation into a hyperlink to Dash
     export const dispatchLinkRequest = async (title: string, url: string, annotationId: string) => {
-        const apiKey = "6879-GHmtDG_P2kmWNKM3hcHptEUZX3VMOUePkamCaOrJbSw";
+        const apiKey = "6879-DnMTKjWjnnLPa0Php7f5Ra2kunZ_X0tMRDbTF220_q0";
 
         const oldAnnotation = await fetchAnnotation(annotationId);
         const oldText = StrCast(oldAnnotation.text);
