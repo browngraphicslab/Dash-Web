@@ -12,6 +12,8 @@
     padding-top: 6.5px;
     padding-bottom: 6.5px;
 
+    background-color: white;
+
 
     .linkMenu-name {
         position: relative;
@@ -102,6 +104,8 @@
     }
 
     &:hover {
+
+        background-color: rgb(201, 239, 252);
 
         .linkMenu-item-buttons {
             display: flex;

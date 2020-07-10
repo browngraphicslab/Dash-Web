@@ -213,10 +213,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
                         <div className="linkMenu-text">
                             {this.props.linkDoc.linkedText ? <p className="linkMenu-source-title">
-                                Source: <b>{StrCast(this.props.linkDoc.linkedText)}</b></p> : null}
-
-                            <p className="linkMenu-source-title">
-                                Source: <b>sample text</b></p>
+                                <b>Source: {StrCast(this.props.linkDoc.linkedText)}</b></p> : null}
                             <div className="linkMenu-title-wrapper">
                                 <div className="destination-icon-wrapper" >
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
