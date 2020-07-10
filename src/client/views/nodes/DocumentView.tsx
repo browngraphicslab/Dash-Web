@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclReadonly } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -12,7 +12,7 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { TraceMobx, GetEffectiveAcl } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, togglePlaygroundMode } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -852,6 +852,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         aclItems.push({ description: "Test Private", event: () => this.testAcl(SharingPermissions.None), icon: "concierge-bell" });
         aclItems.push({ description: "Test Readonly", event: () => this.testAcl(SharingPermissions.View), icon: "concierge-bell" });
         !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
+
+        cm.addItem({ description: `${getPlaygroundMode() ? "Disable" : "Enable"} playground mode`, event: togglePlaygroundMode, icon: "concierge-bell" });
 
         // const recommender_subitems: ContextMenuProps[] = [];
 

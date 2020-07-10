@@ -71,7 +71,8 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     const fromServer = target[UpdatingFromServer];
     const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
     const writeToDoc = sameAuthor || (writeMode !== DocServer.WriteMode.LiveReadonly);
-    const writeToServer = sameAuthor || (writeMode === DocServer.WriteMode.Default);
+    const writeToServer = (sameAuthor || (writeMode === DocServer.WriteMode.Default)) && !playgroundMode;
+
     if (writeToDoc) {
         if (value === undefined) {
             delete target.__fields[prop];
@@ -79,10 +80,13 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
             target.__fields[prop] = value;
         }
         //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
+
+        // remove below lines to prevent saving changes to server
         if (writeToServer) {
             if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
             else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
         } else {
+            console.log("not writing to server")
             DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
         }
         UndoManager.AddEvent({
@@ -107,12 +111,21 @@ export function OVERRIDE_ACL(val: boolean) {
     _overrideAcl = val;
 }
 
+let playgroundMode = false;
+
+export function togglePlaygroundMode() {
+    playgroundMode = !playgroundMode;
+}
+
+export function getPlaygroundMode() {
+    return playgroundMode;
+}
+
 let currentUserGroups: string[] = [];
 
 export function setGroups(groups: string[]) {
     currentUserGroups = groups;
 }
-
 
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
 
