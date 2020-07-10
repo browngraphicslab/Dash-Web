@@ -15,6 +15,7 @@ import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
+import Tooltip from '@material-ui/core/Tooltip';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
@@ -228,13 +229,19 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            <div title="Show link" className="button" ref={this._editRef} onPointerDown={emptyFunction}>
-                                <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
+                            <Tooltip title="Show Link">
+                                <div title="Show link" className="button" ref={this._editRef} onPointerDown={emptyFunction}>
+                                    <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
+                            </Tooltip>
 
-                            <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
-                                <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
-                                <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
+                            <Tooltip title="Edit Link">
+                                <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}>
+                                    <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
+                            </Tooltip>
+                            <Tooltip title="Delete Link">
+                                <div title="Delete link" className="button" onPointerDown={this.deleteLink}>
+                                    <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
+                            </Tooltip>
                             {/* <div title="Follow link" className="button" onPointerDown={this.followDefault} onContextMenu={this.onContextMenu}>
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>

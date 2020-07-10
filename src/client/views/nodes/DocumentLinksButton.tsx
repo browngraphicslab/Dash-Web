@@ -13,6 +13,7 @@ import { LinkDocPreview } from "./LinkDocPreview";
 import { LinkCreatedBox } from "./LinkCreatedBox";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { LinkManager } from "../../util/LinkManager";
+import { Tooltip } from "@material-ui/core";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -149,30 +150,33 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
         const title = this.props.InMenu ? "Drag or tap to create links" : "Tap to view links";
 
+        const linkButton = <div title={title} ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
+            <div className={"documentLinksButton"} style={{
+                backgroundColor: DocumentLinksButton.StartLink && !!!this.props.InMenu ? "transparent" : this.props.InMenu ? "black" : "",
+                color: this.props.InMenu ? "white" : "black",
+                width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
+            }}
+                onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}
+            // onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
+            // onPointerEnter={action(e => links.length && (LinkDocPreview.LinkInfo = {
+            //     addDocTab: this.props.View.props.addDocTab,
+            //     linkSrc: this.props.View.props.Document,
+            //     linkDoc: links[0],
+            //     Location: [e.clientX, e.clientY + 20]
+            // }))} 
+            >
+                {links.length && !!!this.props.InMenu ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
+            </div>
+            {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
+                style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
+                onPointerDown={this.completeLink} onClick={e => this.finishLinkClick(e)} /> : (null)}
+            {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-startLink"}
+                style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
+        </div>;
         return (!links.length || links[0].hidden) && !this.props.AlwaysOn ? (null) :
-            <div title={title} ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
-                <div className={"documentLinksButton"} style={{
-                    backgroundColor: DocumentLinksButton.StartLink && !!!this.props.InMenu ? "transparent" : this.props.InMenu ? "black" : "",
-                    color: this.props.InMenu ? "white" : "black",
-                    width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
-                }}
-                    onPointerDown={this.onLinkButtonDown} onClick={this.onLinkClick}
-                // onPointerLeave={action(() => LinkDocPreview.LinkInfo = undefined)}
-                // onPointerEnter={action(e => links.length && (LinkDocPreview.LinkInfo = {
-                //     addDocTab: this.props.View.props.addDocTab,
-                //     linkSrc: this.props.View.props.Document,
-                //     linkDoc: links[0],
-                //     Location: [e.clientX, e.clientY + 20]
-                // }))} 
-                >
-                    {links.length && !!!this.props.InMenu ? links.length : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
-                </div>
-                {DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
-                    style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
-                    onPointerDown={this.completeLink} onClick={e => this.finishLinkClick(e)} /> : (null)}
-                {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-startLink"}
-                    style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
-            </div>;
+            <Tooltip title={title}>
+                {linkButton}
+            </Tooltip>;
     }
     render() {
         return this.linkButton;
