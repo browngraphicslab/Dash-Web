@@ -201,6 +201,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
         // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
+        //this.layoutDoc.showAllLinks = true;
+
         if (!this.props.dontRegisterView) {
             DocumentManager.Instance.DocumentViews.push(this);
         }
@@ -646,6 +648,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             const linkDoc = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
             LinkManager.currentLink = linkDoc;
+            linkDoc ? linkDoc.hidden = true : null;
+            linkDoc ? linkDoc.linkDisplay = true : null;
 
             runInAction(() => {
                 LinkCreatedBox.popupX = de.x;
@@ -668,6 +672,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const linkDoc = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
                     { doc: this.props.Document }, `link`);
                 LinkManager.currentLink = linkDoc;
+                linkDoc ? linkDoc.hidden = true : null;
+                linkDoc ? linkDoc.linkDisplay = true : null;
 
                 de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                     (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
@@ -783,8 +789,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
-        optionItems.push({ description: "Toggle Show Each Link Dot", event: () => this.layoutDoc.showLinks = !this.layoutDoc.showLinks, icon: "eye" });
+        optionItems.push({
+            description: "Toggle Show Each Link Dot", event: () => { this.layoutDoc.showAllLinks = !this.layoutDoc.showAllLinks; }, icon: "eye"
+        });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+
 
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -1084,7 +1093,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 select={this.select}
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
-            {this.layoutDoc.showLinks ? this.anchors : (null)}
+            {this.layoutDoc.showAllLinks ? this.allAnchors : null}
             {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
@@ -1107,7 +1116,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    @computed get anchors() {
+
+    @computed get allAnchors() {
         TraceMobx();
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
@@ -1133,7 +1143,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this.props.treeViewDoc && !this.props.LayoutTemplateString) {  // this happens when the document is a tree view label (but not an anchor dot)
             return <div className="documentView-treeView" style={{ maxWidth: this.props.PanelWidth() || undefined }}>
                 {StrCast(this.props.Document.title)}
-                {this.anchors}
+                {this.allAnchors}
             </div>;
         }
 

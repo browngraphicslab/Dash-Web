@@ -95,6 +95,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                         const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                         LinkManager.currentLink = linkDoc;
+                        linkDoc ? linkDoc.hidden = true : null;
+                        linkDoc ? linkDoc.linkDisplay = true : null;
+
                         runInAction(() => {
                             LinkCreatedBox.popupX = e.screenX;
                             LinkCreatedBox.popupY = e.screenY - 133;
@@ -123,6 +126,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                 const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                 LinkManager.currentLink = linkDoc;
+                linkDoc ? linkDoc.hidden = true : null;
+                linkDoc ? linkDoc.linkDisplay = true : null;
+
                 runInAction(() => {
                     LinkCreatedBox.popupX = e.screenX;
                     LinkCreatedBox.popupY = e.screenY - 133;
@@ -173,7 +179,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             {DocumentLinksButton.StartLink === this.props.View ? <div className={"documentLinksButton-startLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
         </div>;
-        return (!links.length || links[0].hidden) && !this.props.AlwaysOn ? (null) :
+        return (!links.length) && !this.props.AlwaysOn ? (null) :
             <Tooltip title={title}>
                 {linkButton}
             </Tooltip>;

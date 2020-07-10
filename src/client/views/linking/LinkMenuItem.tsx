@@ -177,11 +177,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
     }
 
+    @action
+    showLink = () => {
+        this.props.linkDoc.hidden = !this.props.linkDoc.hidden;
+    }
+
     render() {
         const keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
         const canExpand = keys ? keys.length > 0 : false;
 
-        const eyeIcon = this.props.linkDoc.shown ? "eye-slash" : "eye";
+        const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
 
         const destinationIcon = this.props.destinationDoc.type === "image" ? "image" :
             this.props.destinationDoc.type === "comparison" ? "columns" :
@@ -208,7 +213,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         // from anika to bob: here's where the text that is specifically linked would show up (linkDoc.storedText)
         // ...
         const source = this.props.sourceDoc.type === "rtf" ? this.props.linkDoc.storedText ?
-            "stored text would show up here" : undefined : undefined;
+            StrCast(this.props.linkDoc.storedText).length > 17 ?
+                StrCast(this.props.linkDoc.storedText).substr(0, 18)
+                : this.props.linkDoc.storedText : undefined : undefined;
 
         return (
             <div className="linkMenu-item">
@@ -243,7 +250,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
                             <Tooltip title="Show Link">
-                                <div className="button" ref={this._editRef} onPointerDown={emptyFunction}>
+                                <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>
 
