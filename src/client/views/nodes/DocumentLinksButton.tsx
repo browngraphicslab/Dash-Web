@@ -41,7 +41,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         window.addEventListener("message", async (e: any) => {
             if (e.origin === "http://localhost:1050" && e.data.message === "annotation created") {
                 console.log("DASH RECEIVED MESSAGE:", e.data.message);
-                const response = await Hypothesis.getPlaceholderId("melissaz", "placeholder"); // delete once eventListening between client & Dash works
+                const response = await Hypothesis.getPlaceholderId("placeholder"); // delete once eventListening between client & Dash works
                 const source = SelectionManager.SelectedDocuments()[0];
                 response && runInAction(() => {
                     DocumentLinksButton.AnnotationId = response.id;

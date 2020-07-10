@@ -413,6 +413,7 @@ export namespace Database {
             interface StoredCredentials {
                 userId: string;
                 hypothesisApiKey: string;
+                hypothesisUsername: string;
                 _id?: string;
             }
 
@@ -420,8 +421,8 @@ export namespace Database {
              * Writes the @param hypothesisApiKey to the database, associated
              * with @param userId for later retrieval and updating. 
              */
-            export const Write = async (userId: string, hypothesisApiKey: string) => {
-                return Instance.insert({ userId, hypothesisApiKey }, AuxiliaryCollections.HypothesisAccess);
+            export const Write = async (userId: string, hypothesisApiKey: string, hypothesisUsername: string) => {
+                return Instance.insert({ userId, hypothesisApiKey, hypothesisUsername }, AuxiliaryCollections.HypothesisAccess);
             };
 
             /**

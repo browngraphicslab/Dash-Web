@@ -19,7 +19,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
     @observable private showPasteTargetState = false;
     @observable private success: Opt<boolean> = undefined;
     @observable private displayLauncher = true;
-    @observable private credentials: string;
+    @observable private credentials: { username: string, apiKey: string } | undefined;
     private disposer: Opt<IReactionDisposer>;
 
     private set isOpen(value: boolean) {
@@ -35,9 +35,10 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
     }
 
     public fetchAccessToken = async (displayIfFound = false) => {
-        let response: any = await Networking.FetchFromServer("/readHypothesisAccessToken");
+        const jsonResponse = await Networking.FetchFromServer("/readHypothesisAccessToken");
+        const response = jsonResponse !== "" ? JSON.parse(jsonResponse) : undefined;
         // if this is an authentication url, activate the UI to register the new access token
-        if (!response) { // new RegExp(AuthenticationUrl).test(response)) {
+        if (!response) {
             this.isOpen = true;
             this.authenticationLink = response;
             return new Promise<string>(async resolve => {
@@ -48,10 +49,11 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                         const userProfile = authenticationCode && await Hypothesis.fetchUser(authenticationCode);
                         if (userProfile && userProfile.userid !== null) {
                             this.disposer?.();
-                            Networking.PostToServer("/writeHypothesisAccessToken", { authenticationCode });
+                            const hypothesisUsername = Hypothesis.extractUsername(userProfile.userid); // extract username from profile
+                            Networking.PostToServer("/writeHypothesisAccessToken", { authenticationCode, hypothesisUsername });
                             runInAction(() => {
                                 this.success = true;
-                                this.credentials = Hypothesis.extractUsername(userProfile.userid); // extract username from profile
+                                this.credentials = response;
                             });
                             this.resetState();
                             resolve(authenticationCode);
@@ -69,7 +71,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
             this.resetState(-1, -1);
             this.isOpen = true;
         }
-        return response.access_token;
+        return response;
     }
 
     resetState = action((visibleForMS: number = 3000, fadesOutInMS: number = 500) => {
@@ -78,7 +80,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                 this.isOpen = false;
                 this.success = undefined;
                 this.displayLauncher = true;
-                this.credentials = "";
+                this.credentials = undefined;
                 this.shouldShowPasteTarget = false;
                 this.authenticationCode = undefined;
             });
@@ -93,7 +95,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                 setTimeout(action(() => {
                     this.success = undefined;
                     this.displayLauncher = true;
-                    this.credentials = "";
+                    this.credentials = undefined;
                 }), fadesOutInMS);
             }), visibleForMS);
         }
@@ -124,7 +126,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                     <>
                         <span
                             className={'welcome'}
-                        >Welcome to Dash, {this.credentials}
+                        >Welcome to Dash, {this.credentials.username}
                         </span>
                         <div
                             className={'disconnect'}

@@ -14,7 +14,7 @@ export default class HypothesisManager extends ApiManager {
             subscription: "/readHypothesisAccessToken",
             secureHandler: async ({ user, res }) => {
                 const credentials = await Database.Auxiliary.HypothesisAccessToken.Fetch(user.id);
-                res.send(credentials?.hypothesisApiKey ?? "");
+                res.send(credentials ? { username: credentials.hypothesisUsername, apiKey: credentials.hypothesisApiKey } : "");
             }
         });
 
@@ -22,7 +22,7 @@ export default class HypothesisManager extends ApiManager {
             method: Method.POST,
             subscription: "/writeHypothesisAccessToken",
             secureHandler: async ({ user, req, res }) => {
-                await Database.Auxiliary.HypothesisAccessToken.Write(user.id, req.body.authenticationCode);
+                await Database.Auxiliary.HypothesisAccessToken.Write(user.id, req.body.authenticationCode, req.body.hypothesisUsername);
                 res.send();
             }
         });
