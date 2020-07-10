@@ -84,6 +84,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _lastClientY: number | undefined = 0;
+    private _lastClientX: number | undefined = 0;
     private _inkToTextStartX: number | undefined;
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
@@ -579,7 +581,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        this._lastClientY = undefined;
+        this._lastClientY = this._lastClientX = undefined;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -1172,75 +1174,39 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     // <div ref={this._marqueeRef}>
 
-    _lastClientY: number | undefined = 0;
     @action
     handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
         if ((e as any).handlePan) return;
         (e as any).handlePan = true;
-        const top = this.panX();
-        const left = this.panY();
         this._lastClientY = e.detail.clientY;
-
-        console.log("draggg");
-
-        const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
-        const scale = this.getLocalTransform().inverse().Scale;
+        this._lastClientX = e.detail.clientX;
 
         if (this._marqueeRef?.current) {
-
-            console.log("hellp");
-
             const dragX = e.detail.clientX;
             const dragY = e.detail.clientY;
             const bounds = this._marqueeRef.current?.getBoundingClientRect();
 
-            if (dragX - bounds.left < 25) {
-                console.log("PAN left ");
-
-                if (this.canPanX) {
-                    this.Document._panX = left - 5;
-                    setTimeout(action(() => {
-                        this.canPanX = true;
-                        this.panX();
-                    }), 250);
-                    this.canPanX = false;
-                }
-            } else if (bounds.right - dragX < 25) {
-                console.log("PAN right ");
-
-                if (this.canPanX) {
-                    this.Document._panX = left + 5;
-                    setTimeout(action(() => {
-                        this.panX();
-                        this.canPanX = true;
-                    }), 250);
-                    this.canPanX = false;
-                }
-
-            }
-
-            if (dragY - bounds.top < 25) {
-                console.log("PAN top ");
-                this.continueYPan(-2);
-            } else if (bounds.bottom - dragY < 25) {
-                console.log("PAN bottom ");
-                this.continueYPan(2);
-            }
+            let deltaX = dragX - bounds.left < 25 ? -2 : bounds.right - dragX < 25 ? 2 : 0;
+            let deltaY = dragY - bounds.top < 25 ? -2 : bounds.bottom - dragY < 25 ? 2 : 0;
+            (deltaX !== 0 || deltaY !== 0) && this.continuePan(deltaX, deltaY);
         }
         e.stopPropagation();
     }
 
-    continueYPan = (delta: number) => {
+    continuePan = (deltaX: number, deltaY: number) => {
         setTimeout(() => {
             const dragY = this._lastClientY;
-            if (dragY !== undefined && this._marqueeRef.current) {
+            const dragX = this._lastClientX;
+            if (dragY !== undefined && dragX !== undefined && this._marqueeRef.current) {
                 const bounds = this._marqueeRef.current.getBoundingClientRect()!;
-                this.Document._panY = NumCast(this.Document._panY) + delta;
-                (dragY - bounds.top < 25 || bounds.bottom - dragY < 25) && this.continueYPan(delta);
-            } else this._lastClientY !== undefined && this.continueYPan(delta);
+                this.Document._panY = NumCast(this.Document._panY) + deltaY;
+                this.Document._panX = NumCast(this.Document._panX) + deltaX;
+                if (dragY - bounds.top < 25 || bounds.bottom - dragY < 25 || dragX - bounds.left < 25 || bounds.right - dragX < 25) {
+                    this.continuePan(deltaX, deltaY);
+                }
+            } else this._lastClientY !== undefined && this._lastClientX !== undefined && this.continuePan(deltaX, deltaY);
         }, 50);
     }
-
 
     promoteCollection = undoBatch(action(() => {
         const childDocs = this.childDocs.slice();
