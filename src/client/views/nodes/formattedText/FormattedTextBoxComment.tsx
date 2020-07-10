@@ -85,7 +85,7 @@ export class FormattedTextBoxComment {
             FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
             FormattedTextBoxComment.tooltip.className = "FormattedTextBox-tooltip";
             FormattedTextBoxComment.tooltip.style.pointerEvents = "all";
-            FormattedTextBoxComment.tooltip.style.maxWidth = "190px";
+            FormattedTextBoxComment.tooltip.style.maxWidth = "200px";
             FormattedTextBoxComment.tooltip.style.maxHeight = "235px";
             FormattedTextBoxComment.tooltip.style.width = "100%";
             FormattedTextBoxComment.tooltip.style.height = "100%";
@@ -257,11 +257,14 @@ export class FormattedTextBoxComment {
                             if (target?.author) {
                                 FormattedTextBoxComment.showCommentbox("", view, nbef);
 
+                                const title = StrCast(target.title).length > 16 ?
+                                    StrCast(target.title).substr(0, 16) + "..." : target.title;
+
 
                                 const docPreview = <div className="FormattedTextBoxComment">
                                     <div className="FormattedTextBoxComment-info">
                                         <div className="FormattedTextBoxComment-title">
-                                            {target.title}
+                                            {title}
                                             {FormattedTextBoxComment.linkDoc.description !== "" ? <p className="FormattedTextBoxComment-description">
                                                 {StrCast(FormattedTextBoxComment.linkDoc.description)}</p> : null}
                                         </div>
@@ -300,8 +303,8 @@ export class FormattedTextBoxComment {
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}
                                             renderDepth={0}
-                                            PanelWidth={() => 170} //Math.min(350, NumCast(target._width, 350))}
-                                            PanelHeight={() => 170} //Math.min(250, NumCast(target._height, 250))}
+                                            PanelWidth={() => 175} //Math.min(350, NumCast(target._width, 350))}
+                                            PanelHeight={() => 175} //Math.min(250, NumCast(target._height, 250))}
                                             focus={emptyFunction}
                                             whenActiveChanged={returnFalse}
                                             bringToFront={returnFalse}

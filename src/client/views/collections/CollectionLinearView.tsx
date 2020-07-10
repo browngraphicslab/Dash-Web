@@ -16,6 +16,7 @@ import { Id } from '../../../fields/FieldSymbols';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
+import { Tooltip } from '@material-ui/core';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -171,11 +172,17 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
                         Creating link from: {DocumentLinksButton.StartLink.title} </span>
-                    <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
-                    > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
-                    </span>
-                    <span className="bottomPopup-exit" onClick={this.exitLongLinks}
-                    >Exit</span>
+                    <Tooltip title={LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :
+                        "Turn on description pop-up"} placement="top">
+                        <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
+                        > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                        </span>
+                    </Tooltip>
+
+                    <Tooltip title="Exit link clicking mode" placement="top">
+                        <span className="bottomPopup-exit" onClick={this.exitLongLinks}
+                        >Exit</span>
+                    </Tooltip>
 
                     {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
                         onClick={this.exitLongLinks} /> */}

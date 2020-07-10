@@ -197,6 +197,11 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                                         this.props.destinationDoc.type === "import" ? "cloud-upload-alt" :
                                                             this.props.destinationDoc.type === "docholder" ? "expand" : "question";
 
+        const title = StrCast(this.props.destinationDoc.title).length > 18 ?
+            StrCast(this.props.destinationDoc.title).substr(0, 19) + "..." : this.props.destinationDoc.title;
+
+
+        console.log(StrCast(this.props.destinationDoc.title).length);
 
         return (
             <div className="linkMenu-item">
@@ -220,7 +225,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
                                 <p className="linkMenu-destination-title"
                                     onPointerDown={this.followDefault}>
-                                    {StrCast(this.props.destinationDoc.title)}</p>
+                                    {title}
+                                </p>
                             </div>
                             {this.props.linkDoc.description !== "" ? <p className="linkMenu-description">
                                 {StrCast(this.props.linkDoc.description)}</p> : null} </div>
