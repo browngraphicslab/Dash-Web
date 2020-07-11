@@ -2,13 +2,13 @@ import React = require("react");
 import { FieldViewProps, FieldView } from './FieldView';
 import { observer } from "mobx-react";
 import "./AudioBox.scss";
-import { Cast, DateCast, NumCast } from "../../../fields/Types";
+import { Cast, DateCast, NumCast, FieldValue } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../fields/Schema";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero } from "../../../Utils";
-import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
+import { runInAction, observable, reaction, IReactionDisposer, computed, action, trace } from "mobx";
 import { DateField } from "../../../fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Doc, DocListCast } from "../../../fields/Doc";
@@ -21,6 +21,9 @@ import { Docs, DocUtils } from "../../documents/Documents";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Networking } from "../../Network";
 import { LinkAnchorBox } from "./LinkAnchorBox";
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
+import { RichTextField } from "../../../fields/RichTextField";
+
 
 // testing testing 
 
@@ -54,7 +57,12 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     _pauseEnd = 0;
     _pausedTime = 0;
     _stream: MediaStream | undefined;
+    _start: number = 0;
+    _hold: boolean = false;
 
+    @observable private _duration = 0;
+    @observable private _rect: Array<any> = []
+    @observable private _markers: Array<any> = [];
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
     @observable private _repeat: boolean = false;
@@ -122,7 +130,12 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     playFromTime = (absoluteTime: number) => {
         this.recordingStart && this.playFrom((absoluteTime - this.recordingStart) / 1000);
     }
-    playFrom = (seekTimeInSeconds: number) => {
+
+    @action
+    playFrom = (seekTimeInSeconds: number, endTime: number = this.dataDoc.duration) => {
+        let play;
+        clearTimeout(play);
+        this._duration = endTime - seekTimeInSeconds;
         if (this._ele && AudioBox.Enabled) {
             if (seekTimeInSeconds < 0) {
                 if (seekTimeInSeconds > -1) {
@@ -131,9 +144,13 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                     this.pause();
                 }
             } else if (seekTimeInSeconds <= this._ele.duration) {
+                console.log("playing");
                 this._ele.currentTime = seekTimeInSeconds;
                 this._ele.play();
                 runInAction(() => this.audioState = "playing");
+                if (endTime !== this.dataDoc.duration) {
+                    play = setTimeout(() => this.pause(), (this._duration) * 1000);
+                }
             } else {
                 this.pause();
             }
@@ -264,6 +281,25 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         return (this._pauseEnd - this._pauseStart);
     }
 
+    @action
+    newMarker(marker: number) {
+        this._markers.push(marker);
+    }
+
+    start(marker: number) {
+        console.log("start!");
+        this._hold = true;
+        this._start = marker;
+    }
+
+    @action
+    end(marker: number) {
+        console.log("end!");
+        this._hold = false;
+        this._markers.push([this._start, marker]);
+        this._start = 0;
+    }
+
     render() {
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
@@ -304,12 +340,40 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                             onPointerDown={e => {
                                 if (e.button === 0 && !e.ctrlKey) {
                                     const rect = (e.target as any).getBoundingClientRect();
+
                                     const wasPaused = this.audioState === "paused";
                                     this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
                                     wasPaused && this.pause();
-                                    e.stopPropagation();
+
                                 }
-                            }} >
+                                if (e.button === 0 && e.altKey) {
+                                    this.newMarker(this._ele!.currentTime);
+                                }
+
+                                if (e.button === 0 && e.shiftKey) {
+                                    const rect = (e.target as any).getBoundingClientRect();
+                                    this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                    this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
+                                }
+                            }}>
+                            {this._markers.map((m, i) => {
+                                let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
+                                let rect;
+                                (m.length > 1) ?
+
+                                    rect =
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} key={i} style={{ left: `${m[0] / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(m[1] - m[0]) / NumCast(this.dataDoc.duration, 1) * 100}%` }} onClick={e => { this.playFrom(m[0], m[1]); e.stopPropagation() }}>
+                                        {/* <FormattedTextBox {...this.props} key={"label" + i} Document={text} /> */}
+                                    </div>
+                                    :
+                                    rect =
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={i} style={{ left: `${m / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                        {/* <DocumentView {...this.props}
+                                            Document={text}
+                                            parentActive={returnTrue} /> */}
+                                    </div>;
+                                return rect
+                            })}
                             {DocListCast(this.dataDoc.links).map((l, i) => {
                                 let la1 = l.anchor1 as Doc;
                                 let la2 = l.anchor2 as Doc;
@@ -319,8 +383,10 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                     la2 = l.anchor1 as Doc;
                                     linkTime = NumCast(l.anchor1_timecode);
                                 }
+
+
                                 return !linkTime ? (null) :
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(this.dataDoc.duration - linkTime) / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
                                         <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
                                             <DocumentView {...this.props}
                                                 Document={l}

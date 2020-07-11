@@ -196,6 +196,33 @@
                     }
                 }
 
+                .audiobox-marker-container1,
+                .audiobox-marker-minicontainer {
+                    position: absolute;
+                    width: 10px;
+                    height: 90%;
+                    top: 2.5%;
+                    background: gray;
+                    border-radius: 5px;
+                    box-shadow: black 2px 2px 1px;
+                    opacity: 0.3;
+
+                    .audiobox-marker {
+                        position: relative;
+                        height: calc(100% - 15px);
+                        margin-top: 15px;
+                    }
+
+                    .audio-marker:hover {
+                        border: orange 2px solid;
+                    }
+                }
+
+                .audiobox-marker-container1:hover,
+                .audiobox-marker-minicontainer:hover {
+                    opacity: 1;
+                }
+
                 .audiobox-marker-minicontainer {
                     width: 5px;
                     border-radius: 1px;
