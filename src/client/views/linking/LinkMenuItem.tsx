@@ -217,6 +217,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 StrCast(this.props.linkDoc.storedText).substr(0, 18)
                 : this.props.linkDoc.storedText : undefined : undefined;
 
+        const showTitle = this.props.linkDoc.hidden ? "Show link" : "Hide link";
+
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
@@ -249,7 +251,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            <Tooltip title="Show Link">
+                            <Tooltip title={showTitle}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>

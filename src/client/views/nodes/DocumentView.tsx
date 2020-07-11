@@ -652,15 +652,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             linkDoc ? linkDoc.linkDisplay = true : null;
 
             runInAction(() => {
-                LinkCreatedBox.popupX = de.x;
-                LinkCreatedBox.popupY = de.y - 33;
-                LinkCreatedBox.linkCreated = true;
+                if (linkDoc) {
+                    LinkCreatedBox.popupX = de.x;
+                    LinkCreatedBox.popupY = de.y - 33;
+                    LinkCreatedBox.linkCreated = true;
 
-                LinkDescriptionPopup.popupX = de.x;
-                LinkDescriptionPopup.popupY = de.y;
-                LinkDescriptionPopup.descriptionPopup = true;
+                    LinkDescriptionPopup.popupX = de.x;
+                    LinkDescriptionPopup.popupY = de.y;
+                    LinkDescriptionPopup.descriptionPopup = true;
 
-                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                }
             });
         }
         if (de.complete.linkDragData) {
@@ -678,15 +680,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                     (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
                 runInAction(() => {
-                    LinkCreatedBox.popupX = de.x;
-                    LinkCreatedBox.popupY = de.y - 33;
-                    LinkCreatedBox.linkCreated = true;
 
-                    LinkDescriptionPopup.popupX = de.x;
-                    LinkDescriptionPopup.popupY = de.y;
-                    LinkDescriptionPopup.descriptionPopup = true;
+                    if (linkDoc) {
+                        LinkCreatedBox.popupX = de.x;
+                        LinkCreatedBox.popupY = de.y - 33;
+                        LinkCreatedBox.linkCreated = true;
 
-                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                        LinkDescriptionPopup.popupX = de.x;
+                        LinkDescriptionPopup.popupY = de.y;
+                        LinkDescriptionPopup.descriptionPopup = true;
+
+                        setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                    }
+
                 });
             }
 
@@ -1094,6 +1100,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.showAllLinks ? this.allAnchors : null}
+            {/* {this.allAnchors} */}
             {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );

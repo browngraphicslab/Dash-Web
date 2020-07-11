@@ -99,15 +99,18 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         linkDoc ? linkDoc.linkDisplay = true : null;
 
                         runInAction(() => {
-                            LinkCreatedBox.popupX = e.screenX;
-                            LinkCreatedBox.popupY = e.screenY - 133;
-                            LinkCreatedBox.linkCreated = true;
+                            if (linkDoc) {
+                                LinkCreatedBox.popupX = e.screenX;
+                                LinkCreatedBox.popupY = e.screenY - 133;
+                                LinkCreatedBox.linkCreated = true;
 
-                            LinkDescriptionPopup.popupX = e.screenX;
-                            LinkDescriptionPopup.popupY = e.screenY - 100;
-                            LinkDescriptionPopup.descriptionPopup = true;
+                                LinkDescriptionPopup.popupX = e.screenX;
+                                LinkDescriptionPopup.popupY = e.screenY - 100;
+                                LinkDescriptionPopup.descriptionPopup = true;
 
-                            setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                            }
+
                         });
                     }
                 }
@@ -130,17 +133,19 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 linkDoc ? linkDoc.linkDisplay = true : null;
 
                 runInAction(() => {
-                    LinkCreatedBox.popupX = e.screenX;
-                    LinkCreatedBox.popupY = e.screenY - 133;
-                    LinkCreatedBox.linkCreated = true;
+                    if (linkDoc) {
+                        LinkCreatedBox.popupX = e.screenX;
+                        LinkCreatedBox.popupY = e.screenY - 133;
+                        LinkCreatedBox.linkCreated = true;
 
-                    if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
-                        LinkDescriptionPopup.popupX = e.screenX;
-                        LinkDescriptionPopup.popupY = e.screenY - 100;
-                        LinkDescriptionPopup.descriptionPopup = true;
+                        if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
+                            LinkDescriptionPopup.popupX = e.screenX;
+                            LinkDescriptionPopup.popupY = e.screenY - 100;
+                            LinkDescriptionPopup.descriptionPopup = true;
+                        }
+
+                        setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
                     }
-
-                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
                 });
             }
         }
