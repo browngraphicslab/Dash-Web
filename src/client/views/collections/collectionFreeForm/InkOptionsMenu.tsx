@@ -25,19 +25,19 @@ library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSup
 export default class InkOptionsMenu extends AntimodeMenu {
     static Instance: InkOptionsMenu;
 
-    private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", "none"];
+    private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
     // private _buttons = ["circle", "triangle", "rectangle", "arrow", "line"];
     // private _icons = ["O", "∆", "ロ", "➜", "-"];
     // private _buttons = ["circle", "triangle", "rectangle", "line", "noRec", "",];
     // private _icons = ["O", "∆", "ロ", "⎯⎯⎯", "✖︎", " "];
     //arrowStart and arrowEnd must match and defs must exist in Inking Stroke
-    // private _arrowStart = ["arrowHead", "arrowHead", "dot", "dot", "none"];
+    // private _arrowStart = ["arrowStart", "arrowStart", "dot", "dot", "none"];
     // private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
     // private _arrowIcons = ["→", "↔︎", "•", "••", " "];
     private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
-    private _head = ["none", "none", "arrowHead", "none", "none", "arrowHead", "none", "none", "none"];
-    private _end = ["none", "arrowEnd", "arrowEnd", "none", "arrowEnd", "arrowEnd", "none", "none", "none"];
+    private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
+    private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
     private _shape = ["", "", "", "", "", "", "rectangle", "circle", "triangle"];
 
     @observable _shapesNum = this._shape.length;
@@ -122,12 +122,6 @@ export default class InkOptionsMenu extends AntimodeMenu {
                     case "bezier":
                         // doc.strokeBezier === 300 ? doc.strokeBezier = 0 : doc.strokeBezier = 300;
                         break;
-                    case "arrowStart":
-                        doc.arrowStart = String(value);
-                        break;
-                    case "arrowEnd":
-                        doc.arrowEnd = String(value);
-                        break;
                     case "dash":
                         doc.dash = Number(value);
                     default:
@@ -165,13 +159,12 @@ export default class InkOptionsMenu extends AntimodeMenu {
                             SetActiveArrowEnd(this._end[i]);
                             SetActiveBezierApprox("300");
 
-                            //  this.editProperties(this._head[i], "arrowStart"), this.editProperties(this._end[i], "arrowEnd"); 
                             GestureOverlay.Instance.InkShape = this._shape[i];
                         } else {
                             this._selected = this._shapesNum;
                             Doc.SetSelectedTool(InkTool.None);
-                            SetActiveArrowStart("none");
-                            SetActiveArrowEnd("none");
+                            SetActiveArrowStart("");
+                            SetActiveArrowEnd("");
                             GestureOverlay.Instance.InkShape = "";
                             SetActiveBezierApprox("0");
 
@@ -189,13 +182,12 @@ export default class InkOptionsMenu extends AntimodeMenu {
                             SetActiveArrowEnd(this._end[i]);
                             SetActiveBezierApprox("300");
 
-                            //  this.editProperties(this._head[i], "arrowStart"), this.editProperties(this._end[i], "arrowEnd"); 
                             GestureOverlay.Instance.InkShape = this._shape[i];
                         } else {
                             this._selected = this._shapesNum;
                             Doc.SetSelectedTool(InkTool.None);
-                            SetActiveArrowStart("none");
-                            SetActiveArrowEnd("none");
+                            SetActiveArrowStart("");
+                            SetActiveArrowEnd("");
                             GestureOverlay.Instance.InkShape = "";
                             SetActiveBezierApprox("0");
 

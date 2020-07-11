@@ -1,7 +1,6 @@
 import React = require("react");
 import { observable, action } from "mobx";
 import "./AntimodeMenu.scss";
-import { inherits } from "util";
 
 /**
  * This is an abstract class that serves as the base for a PDF-style or Marquee-style

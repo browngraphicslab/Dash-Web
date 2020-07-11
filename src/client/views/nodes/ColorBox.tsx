@@ -14,7 +14,6 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { ActiveInkPen, ActiveInkWidth, ActiveInkBezierApprox, SetActiveInkColor, SetActiveInkWidth, SetActiveBezierApprox } from "../InkingStroke";
 import "./ColorBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
-import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 
 type ColorDocument = makeInterface<[typeof documentSchema]>;
 const ColorDocument = makeInterface(documentSchema);
