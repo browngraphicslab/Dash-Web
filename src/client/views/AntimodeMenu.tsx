@@ -51,18 +51,15 @@ export default abstract class AntimodeMenu extends React.Component {
             if (this._opacity === 0.2) {
                 this._transitionProperty = "opacity";
                 this._transitionDuration = "0.1s";
-                this._transitionDelay = "";
-                this._opacity = 0;
-                this._left = this._top = -300;
             }
 
             if (forceOut) {
                 this._transitionProperty = "";
                 this._transitionDuration = "";
-                this._transitionDelay = "";
-                this._opacity = 0;
-                this._left = this._top = -300;
             }
+            this._transitionDelay = "";
+            this._opacity = 0;
+            this._left = this._top = -300;
         }
     }
 
@@ -131,7 +128,7 @@ export default abstract class AntimodeMenu extends React.Component {
     }
 
     protected getDragger = () => {
-        return <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />;
+        return <div className="antimodeMenu-dragger" key="dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />;
     }
 
     protected getElement(buttons: JSX.Element[]) {

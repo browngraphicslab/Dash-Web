@@ -10,6 +10,11 @@ import { Transform } from "../../util/Transform";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import React = require("react");
 import { DocumentView } from './DocumentView';
+import { sortAndDeduplicateDiagnostics } from 'typescript';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { LinkManager } from '../../util/LinkManager';
+import { DocumentLinksButton } from './DocumentLinksButton';
+import { ContextMenu } from '../ContextMenu';
 
 interface Props {
     linkDoc?: Doc;
@@ -24,6 +29,31 @@ export class LinkDocPreview extends React.Component<Props> {
     @observable public static LinkInfo: Opt<{ linkDoc?: Doc; addDocTab: (document: Doc, where: string) => boolean, linkSrc: Doc; href?: string; Location: number[] }>;
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
+    _editRef = React.createRef<HTMLDivElement>();
+
+    @action
+    deleteLink = (): void => {
+        this.props.linkDoc ? LinkManager.Instance.deleteLink(this.props.linkDoc) : null;
+        //this.props.showLinks();
+        LinkDocPreview.LinkInfo = undefined;
+        DocumentLinksButton.EditLink = undefined;
+    }
+
+    @action
+    onContextMenu = (e: React.MouseEvent) => {
+        DocumentLinksButton.EditLink = undefined;
+        LinkDocPreview.LinkInfo = undefined;
+        e.preventDefault();
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    @action.bound
+    async followDefault() {
+        DocumentLinksButton.EditLink = undefined;
+        LinkDocPreview.LinkInfo = undefined;
+        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, doc => this.props.addDocTab(doc, "onRight"), false) : null;
+    }
 
     componentDidUpdate() { this.updatePreview(); }
     componentDidMount() { this.updatePreview(); }
@@ -56,15 +86,30 @@ export class LinkDocPreview extends React.Component<Props> {
             this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, UseCors: true }), "onRight");
         }
     }
-    width = () => Math.min(350, NumCast(this._targetDoc?.[WidthSym](), 350));
-    height = () => Math.min(350, NumCast(this._targetDoc?.[HeightSym](), 350));
+    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
+    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
     @computed get targetDocView() {
         return !this._targetDoc ?
-            <div style={{ pointerEvents: "all", maxWidth: 350, maxHeight: 250, width: "100%", height: "100%", overflow: "hidden" }}>
+            <div style={{
+                pointerEvents: "all", maxWidth: 225, maxHeight: 225, width: "100%", height: "100%",
+                overflow: "hidden"
+            }}>
                 <div style={{ width: "100%", height: "100%", textOverflow: "ellipsis", }} onPointerDown={this.pointerDown}>
                     {this._toolTipText}
                 </div>
             </div> :
+            // <div style={{
+            //     border: "6px solid white",
+            // }}>
+            //     <div style={{ backgroundColor: "white" }}> {this._targetDoc.title}
+            //         <div className="wrapper" style={{ float: "right" }}>
+            //             <div title="Delete link" className="button" style={{ display: "inline" }} ref={this._editRef} onPointerDown={this.deleteLink}>
+            //                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
+            //             <div title="Follow link" className="button" style={{ display: "inline" }} onClick={this.followDefault} onContextMenu={this.onContextMenu}>
+            //                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
+            //             </div>
+            //         </div>
+            //     </div>
             <ContentFittingDocumentView
                 Document={this._targetDoc}
                 LibraryPath={emptyPath}
@@ -92,6 +137,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 NativeWidth={returnZero}
                 NativeHeight={returnZero}
             />;
+        //</div>;
     }
 
     render() {
@@ -99,7 +145,7 @@ export class LinkDocPreview extends React.Component<Props> {
             style={{
                 position: "absolute", left: this.props.location[0],
                 top: this.props.location[1], width: this.width(), height: this.height(),
-                boxShadow: "black 2px 2px 1em"
+                boxShadow: "black 2px 2px 1em", zIndex: 1000
             }}>
             {this.targetDocView}
         </div>;

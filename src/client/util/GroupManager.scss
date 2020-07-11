@@ -1,0 +1,136 @@
+@import "../views/globalCssVariables";
+
+.group-interface {
+    background-color: whitesmoke !important;
+    color: grey;
+    width: 450px;
+    height: 300px;
+
+    .dialogue-box {
+        width: 450;
+        height: 300;
+    }
+
+    button {
+        background: $lighter-alt-accent;
+        outline: none;
+        border-radius: 5px;
+        border: 0px;
+        color: #fcfbf7;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 75%;
+        padding: 10px;
+        margin: 10px;
+        transition: transform 0.2s;
+        margin: 2px;
+    }
+}
+
+.group-interface {
+    display: flex;
+    flex-direction: column;
+
+    .overlay {
+        transform: translate(-20px, -20px);
+        border-radius: 10px;
+    }
+
+    button {
+        width: 100%;
+        align-self: center;
+        background: $darker-alt-accent;
+    }
+
+    .delete-button {
+        background: rgb(227, 86, 86);
+    }
+
+    .close-button {
+        position: absolute;
+        right: 1em;
+        top: 1em;
+        cursor: pointer;
+        z-index: 999;
+    }
+
+    .group-heading {
+        letter-spacing: .5em;
+    }
+
+
+    .group-body {
+        display: flex;
+        justify-content: space-between;
+        max-height: 80%;
+
+        .group-create {
+            display: flex;
+            flex-direction: column;
+            flex-basis: 30%;
+            margin-left: 5px;
+
+            input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
+                min-width: 100%;
+                margin: 4px 0 4px 0;
+            }
+
+        }
+
+        .group-content {
+            padding-left: 1em;
+            padding-right: 1em;
+            justify-content: space-around;
+            text-align: left;
+
+            overflow-y: auto;
+            width: 100%;
+
+            .group-row {
+                display: flex;
+                position: relative;
+                margin-bottom: 5px;
+                min-height: 40px;
+                border: 1px solid;
+                border-radius: 10px;
+                align-items: center;
+
+                .group-name {
+                    position: relative;
+                    max-width: 65%;
+                    left: 10;
+                }
+
+                button {
+                    position: absolute;
+                    width: 30%;
+                    right: 2;
+                    margin-top: 0;
+                }
+            }
+
+            ::placeholder {
+                color: $intermediate-color;
+            }
+
+            input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
+                min-width: 100%;
+                margin: 2px 0;
+            }
+
+        }
+    }
+
+    h1 {
+        color: $dark-color;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 120%;
+    }
+}

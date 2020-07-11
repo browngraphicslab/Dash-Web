@@ -26,6 +26,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
     private _drag = React.createRef<HTMLDivElement>();
     private _table = React.createRef<HTMLDivElement>();
+    private _menuRef = React.createRef<HTMLDivElement>();
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -74,17 +75,18 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
                     linkDoc={linkDoc}
                     sourceDoc={this.props.sourceDoc}
                     destinationDoc={destination}
-                    showEditor={this.props.showEditor} />;
+                    showEditor={this.props.showEditor}
+                    menuRef={this._menuRef} />;
             }
         });
 
         return (
-            <div className="linkMenu-group">
-                <div className="linkMenu-group-name">
+            <div className="linkMenu-group" ref={this._menuRef}>
+                {/* <div className="linkMenu-group-name">
                     <p ref={this._drag} onPointerDown={this.onLinkButtonDown}
                         className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} > {this.props.groupType}:</p>
                     {this.props.groupType === "*" || this.props.groupType === "" ? <></> : this.viewGroupAsTable(this.props.groupType)}
-                </div>
+                </div> */}
                 <div className="linkMenu-group-wrapper">
                     {groupItems}
                 </div>

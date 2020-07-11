@@ -1,5 +1,5 @@
-import { runInAction } from "mobx";
-import { extname } from "path";
+import { runInAction, action } from "mobx";
+import { extname, basename } from "path";
 import { DateField } from "../../fields/DateField";
 import { Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../fields/Doc";
 import { HtmlField } from "../../fields/HtmlField";
@@ -48,6 +48,8 @@ import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
+import { Networking } from "../Network";
+import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -92,6 +94,7 @@ export interface DocumentOptions {
     label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
+    description?: string; // added for links
     _viewScale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
@@ -257,7 +260,7 @@ export namespace Docs {
             }],
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
-                options: { _height: 150 }
+                options: { _height: 150, description: "" }
             }],
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
@@ -312,6 +315,14 @@ export namespace Docs {
             [DocumentType.COMPARISON, {
                 layout: { view: ComparisonBox, dataField: defaultDataKey },
             }],
+            [DocumentType.GROUPDB, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Group Database" }
+            }],
+            [DocumentType.GROUP, {
+                layout: { view: EmptyBox, dataField: defaultDataKey }
+            }]
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -375,6 +386,13 @@ export namespace Docs {
         }
 
         /**
+         * A collection of all groups in the database
+         */
+        export function MainGroupDocument() {
+            return Prototypes.get(DocumentType.GROUPDB);
+        }
+
+        /**
          * This is a convenience method that is used to initialize
          * prototype documents for the first time.
          * 
@@ -399,7 +417,7 @@ export namespace Docs {
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
-            options.layout = layout.view.LayoutString(layout.dataField);
+            options.layout = layout.view?.LayoutString(layout.dataField);
             const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
@@ -813,6 +831,47 @@ export namespace Docs {
 }
 
 export namespace DocUtils {
+    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
+        const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+            if (!filterFacets[key]) {
+                filterFacets[key] = {};
+            }
+            filterFacets[key][value] = modifiers;
+        }
+
+        const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            for (const facetKey of Object.keys(filterFacets)) {
+                const facet = filterFacets[facetKey];
+                const satisfiesFacet = Object.keys(facet).some(value => {
+                    if (facet[value] === "match") {
+                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                    }
+                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                });
+                if (!satisfiesFacet) {
+                    return false;
+                }
+            }
+            return true;
+        }) : childDocs;
+        const rangeFilteredDocs = filteredDocs.filter(d => {
+            for (let i = 0; i < docRangeFilters.length; i += 3) {
+                const key = docRangeFilters[i];
+                const min = Number(docRangeFilters[i + 1]);
+                const max = Number(docRangeFilters[i + 2]);
+                const val = Cast(d[key], "number", null);
+                if (val !== undefined && (val < min || val > max)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return rangeFilteredDocs;
+    }
 
     export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
         targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
@@ -850,17 +909,19 @@ export namespace DocUtils {
     export function MakeLinkToActiveAudio(doc: Doc) {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
-    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
+
+    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
+
         return linkDoc;
     }
 
@@ -963,7 +1024,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().dockedBtns, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
@@ -1089,6 +1150,32 @@ export namespace DocUtils {
             }
         });
         return optionsCollection;
+    }
+
+    export async function uploadFilesToDocs(files: File[], options: DocumentOptions) {
+        const generatedDocuments: Doc[] = [];
+        for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
+            if (result instanceof Error) {
+                alert(`Upload failed: ${result.message}`);
+                return [];
+            }
+            const full = { ...options, _width: 400, title: name };
+            const pathname = Utils.prepend(result.accessPaths.agnostic.client);
+            const doc = await DocUtils.DocumentFromType(type, pathname, full);
+            if (!doc) {
+                continue;
+            }
+            const proto = Doc.GetProto(doc);
+            proto.text = result.rawText;
+            proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+            if (Upload.isImageInformation(result)) {
+                proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
+                proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
+                proto.contentSize = result.contentSize;
+            }
+            generatedDocuments.push(doc);
+        }
+        return generatedDocuments;
     }
 }
 

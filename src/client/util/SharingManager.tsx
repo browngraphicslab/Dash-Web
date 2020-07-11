@@ -17,6 +17,8 @@ import { SelectionManager } from "./SelectionManager";
 import { DocumentManager } from "./DocumentManager";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DictationOverlay } from "../views/DictationOverlay";
+import GroupManager from "./GroupManager";
+import GroupMemberView from "./GroupMemberView";
 
 library.add(fa.faCopy);
 
@@ -28,15 +30,28 @@ export interface User {
 export enum SharingPermissions {
     None = "Not Shared",
     View = "Can View",
-    Comment = "Can Comment",
+    Add = "Can Add",
     Edit = "Can Edit"
 }
 
 const ColorMapping = new Map<string, string>([
     [SharingPermissions.None, "red"],
     [SharingPermissions.View, "maroon"],
-    [SharingPermissions.Comment, "blue"],
+    [SharingPermissions.Add, "blue"],
     [SharingPermissions.Edit, "green"]
+]);
+
+const HierarchyMapping = new Map<string, string>([
+    [SharingPermissions.None, "0"],
+    [SharingPermissions.View, "1"],
+    [SharingPermissions.Add, "2"],
+    [SharingPermissions.Edit, "3"],
+
+    ["0", SharingPermissions.None],
+    ["1", SharingPermissions.View],
+    ["2", SharingPermissions.Add],
+    ["3", SharingPermissions.Edit]
+
 ]);
 
 const SharingKey = "sharingPermissions";
@@ -55,11 +70,13 @@ export default class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false;
     @observable private users: ValidatedUser[] = [];
+    @observable private groups: Doc[] = [];
     @observable private targetDoc: Doc | undefined;
     @observable private targetDocView: DocumentView | undefined;
     @observable private copied = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
+    @observable private groupToView: Opt<Doc>;
 
     private get linkVisible() {
         return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -76,6 +93,8 @@ export default class SharingManager extends React.Component<{}> {
                 this.sharingDoc = new Doc;
             }
         }));
+
+        runInAction(() => this.groups = GroupManager.Instance.getAllGroupsCopy());
     }
 
     public close = action(() => {
@@ -121,26 +140,71 @@ export default class SharingManager extends React.Component<{}> {
         return Promise.all(evaluating);
     }
 
-    setInternalSharing = async (recipient: ValidatedUser, state: string) => {
+    setInternalGroupSharing = (group: Doc, permission: string) => {
+        const members: string[] = JSON.parse(StrCast(group.members));
+        const users: ValidatedUser[] = this.users.filter(user => members.includes(user.user.email));
+
+        const sharingDoc = this.sharingDoc!;
+        if (permission === SharingPermissions.None) {
+            const metadata = sharingDoc[StrCast(group.groupName)];
+            if (metadata) sharingDoc[StrCast(group.groupName)] = undefined;
+        }
+        else {
+            sharingDoc[StrCast(group.groupName)] = permission;
+        }
+
+        users.forEach(user => {
+            this.setInternalSharing(user, permission, group);
+        });
+    }
+
+    setInternalSharing = async (recipient: ValidatedUser, state: string, group: Opt<Doc>) => {
         const { user, notificationDoc } = recipient;
         const target = this.targetDoc!;
         const manager = this.sharingDoc!;
         const key = user.userDocumentId;
-        if (state === SharingPermissions.None) {
-            const metadata = (await DocCastAsync(manager[key]));
-            if (metadata) {
-                const sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
-                Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
-                manager[key] = undefined;
-            }
-        } else {
-            const sharedAlias = Doc.MakeAlias(target);
-            Doc.AddDocToList(notificationDoc, storage, sharedAlias);
-            const metadata = new Doc;
-            metadata.permissions = state;
-            metadata.sharedAlias = sharedAlias;
-            manager[key] = metadata;
+
+        let metadata = await DocCastAsync(manager[key]);
+        const permissions: { [key: string]: number } = metadata?.permissions ? JSON.parse(StrCast(metadata.permissions)) : {};
+        permissions[StrCast(group ? group.groupName : Doc.CurrentUserEmail)] = parseInt(HierarchyMapping.get(state)!);
+        const max = Math.max(...Object.values(permissions));
+
+        // let max = 0;
+        // const keys: string[] = [];
+        // for (const [key, value] of Object.entries(permissions)) {
+        //     if (value === max && max !== 0) {
+        //         keys.push(key);
+        //     }
+        //     else if (value > max) {
+        //         keys.splice(0, keys.length);
+        //         keys.push(key);
+        //         max = value;
+        //     }
+        // }
+
+        switch (max) {
+            case 0:
+                if (metadata) {
+                    const sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
+                    Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
+                    manager[key] = undefined;
+                }
+                break;
+
+            case 1: case 2: case 3:
+                if (!metadata) {
+                    metadata = new Doc;
+                    const sharedAlias = Doc.MakeAlias(target);
+                    Doc.AddDocToList(notificationDoc, storage, sharedAlias);
+                    metadata.sharedAlias = sharedAlias;
+                    manager[key] = metadata;
+                }
+                metadata.permissions = JSON.stringify(permissions);
+                // metadata.usersShared = JSON.stringify(keys);
+                break;
         }
+
+        if (metadata) metadata.maxPermission = HierarchyMapping.get(`${max}`);
     }
 
     private setExternalSharing = (state: string) => {
@@ -211,17 +275,27 @@ export default class SharingManager extends React.Component<{}> {
         if (!sharingDoc) {
             return SharingPermissions.None;
         }
-        const metadata = sharingDoc[userKey] as Doc;
+        const metadata = sharingDoc[userKey] as Doc | string;
         if (!metadata) {
             return SharingPermissions.None;
         }
-        return StrCast(metadata.permissions, SharingPermissions.None);
+        return StrCast(metadata instanceof Doc ? metadata.maxPermission : metadata, SharingPermissions.None);
     }
 
     private get sharingInterface() {
         const existOtherUsers = this.users.length > 0;
+        const existGroups = this.groups.length > 0;
+
+        // const manager = this.sharingDoc!;
+
         return (
             <div className={"sharing-interface"}>
+                {this.groupToView ?
+                    <GroupMemberView
+                        group={this.groupToView}
+                        onCloseButtonClick={action(() => this.groupToView = undefined)}
+                    /> :
+                    null}
                 <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
                 {!this.linkVisible ? (null) :
                     <div className={"link-container"}>
@@ -252,31 +326,77 @@ export default class SharingManager extends React.Component<{}> {
                     </select>
                 </div>
                 <div className={"hr-substitute"} />
-                <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
-                <div className={"users-list"} style={{ display: existOtherUsers ? "block" : "flex", minHeight: existOtherUsers ? undefined : 200 }}>
-                    {!existOtherUsers ? "There are no other users in your database." :
-                        this.users.map(({ user, notificationDoc }) => {
-                            const userKey = user.userDocumentId;
-                            const permissions = this.computePermissions(userKey);
-                            const color = ColorMapping.get(permissions);
-                            return (
-                                <div
-                                    key={userKey}
-                                    className={"container"}
-                                >
-                                    <select
-                                        className={"permissions-dropdown"}
-                                        value={permissions}
-                                        style={{ color, borderColor: color }}
-                                        onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
-                                    >
-                                        {this.sharingOptions}
-                                    </select>
-                                    <span className={"padding"}>{user.email}</span>
-                                </div>
-                            );
-                        })
-                    }
+                <div className="sharing-contents">
+                    <div className={"individual-container"}>
+                        <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
+                        <div className={"users-list"} style={{ display: existOtherUsers ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
+                            {!existOtherUsers ? "There are no other users in your database." :
+                                this.users.map(({ user, notificationDoc }) => { // can't use async here
+                                    const userKey = user.userDocumentId;
+                                    const permissions = this.computePermissions(userKey);
+                                    const color = ColorMapping.get(permissions);
+
+                                    // console.log(manager);
+                                    // const metadata = manager[userKey] as Doc;
+                                    // const usersShared = StrCast(metadata?.usersShared, "");
+                                    // console.log(usersShared)
+
+
+                                    return (
+                                        <div
+                                            key={userKey}
+                                            className={"container"}
+                                        >
+                                            <span className={"padding"}>{user.email}</span>
+                                            {/* <div className={"shared-by"}>{usersShared}</div> */}
+                                            <div className="edit-actions">
+                                                <select
+                                                    className={"permissions-dropdown"}
+                                                    value={permissions}
+                                                    style={{ color, borderColor: color }}
+                                                    onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value, undefined)}
+                                                >
+                                                    {this.sharingOptions}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            }
+                        </div>
+                    </div>
+                    <div className={"group-container"}>
+                        <p className={"share-groups"}>Privately share {this.focusOn("this document")} with a group...</p>
+                        <div className={"groups-list"} style={{ display: existGroups ? "block" : "flex", minHeight: existOtherUsers ? undefined : 150 }}>{/*200*/}
+                            {!existGroups ? "There are no groups in your database." :
+                                this.groups.map(group => {
+                                    const permissions = this.computePermissions(StrCast(group.groupName));
+                                    const color = ColorMapping.get(permissions);
+                                    return (
+                                        <div
+                                            key={StrCast(group.groupName)}
+                                            className={"container"}
+                                        >
+                                            <span className={"padding"}>{group.groupName}</span>
+                                            <div className="edit-actions">
+                                                <select
+                                                    className={"permissions-dropdown"}
+                                                    value={permissions}
+                                                    style={{ color, borderColor: color }}
+                                                    onChange={e => this.setInternalGroupSharing(group, e.currentTarget.value)}
+                                                >
+                                                    {this.sharingOptions}
+                                                </select>
+                                                <button onClick={action(() => this.groupToView = group)}>Edit</button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+
+                            }
+
+                        </div>
+                    </div>
                 </div>
                 <div className={"close-button"} onClick={this.close}>Done</div>
             </div>
@@ -284,6 +404,7 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     render() {
+        // console.log(this.sharingDoc);
         return (
             <MainViewModal
                 contents={this.sharingInterface}

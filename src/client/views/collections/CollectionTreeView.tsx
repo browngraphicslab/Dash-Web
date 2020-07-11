@@ -207,7 +207,7 @@ class TreeView extends React.Component<TreeViewProps> {
         if (complete.linkDragData) {
             const sourceDoc = complete.linkDragData.linkSourceDocument;
             const destDoc = this.doc;
-            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link");
+            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link", "");
             e.stopPropagation();
         }
         const docDragData = complete.docDragData;
@@ -304,7 +304,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     rtfWidth = () => Math.min(this.layoutDoc?.[WidthSym](), this.props.panelWidth() - 20);
-    rtfHeight = () => this.rtfWidth() < this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
+    rtfHeight = () => this.rtfWidth() <= this.layoutDoc?.[WidthSym]() ? Math.min(this.layoutDoc?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
 
     @computed get renderContent() {
         TraceMobx();
@@ -332,8 +332,8 @@ class TreeView extends React.Component<TreeViewProps> {
             </div></ul>;
         } else {
             const layoutDoc = this.layoutDoc;
-            const panelHeight = layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight;
-            const panelWidth = layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth;
+            const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
+            const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.doc[Id]}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
@@ -386,8 +386,8 @@ class TreeView extends React.Component<TreeViewProps> {
         e.stopPropagation();
     }
 
-    @computed
-    get renderBullet() {
+    @computed get renderBullet() {
+        TraceMobx();
         const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className="bullet"
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}

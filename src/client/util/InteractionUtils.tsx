@@ -27,7 +27,7 @@ export namespace InteractionUtils {
     export interface MultiTouchEventDisposer { (): void; }
 
     /**
-     * 
+     *
      * @param element - element to turn into a touch target
      * @param startFunc - event handler, typically Touchable.onTouchStart (classes that inherit touchable can pass in this.onTouchStart)
      */
@@ -120,7 +120,7 @@ export namespace InteractionUtils {
         const dashArray = String(Number(width) * Number(dash));
         const defGuid = Utils.GenerateGuid();
         const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
-        return (<svg fill={!fill || fill === "none" ? color : fill}> {/* setting the svg fill sets the arrowStart fill */}
+        return (<svg fill={color}> {/* setting the svg fill sets the arrowStart fill */}
             {nodefs ? (null) : <defs>
                 {arrowStart !== "dot" && arrowEnd !== "dot" ? (null) : <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
                     <circle r={1} fill="context-stroke" />
@@ -279,8 +279,8 @@ export namespace InteractionUtils {
 
     /**
      * Returns euclidean distance between two points
-     * @param pt1 
-     * @param pt2 
+     * @param pt1
+     * @param pt2
      */
     export function TwoPointEuclidist(pt1: React.Touch, pt2: React.Touch): number {
         return Math.sqrt(Math.pow(pt1.clientX - pt2.clientX, 2) + Math.pow(pt1.clientY - pt2.clientY, 2));

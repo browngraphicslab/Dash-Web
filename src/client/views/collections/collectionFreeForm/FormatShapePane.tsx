@@ -5,149 +5,84 @@ import { observable, action, computed } from "mobx";
 import "./FormatShapePane.scss";
 import { Scripting } from "../../../util/Scripting";
 import { InkField } from "../../../../fields/InkField";
-import { Doc, Opt } from "../../../../fields/Doc";
+import { Doc, Opt, Field } from "../../../../fields/Doc";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { DocumentView } from "../../../views/nodes/DocumentView";
 import { Document } from "../../../../fields/documentSchemas";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faRulerCombined, faFillDrip, faPenNib } from "@fortawesome/free-solid-svg-icons";
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { Cast, StrCast, BoolCast, NumCast } from "../../../../fields/Types";
-
-library.add(faRulerCombined, faFillDrip, faPenNib);
 
 @observer
 export default class FormatShapePane extends AntimodeMenu {
     static Instance: FormatShapePane;
 
+    private _lastFill = "#D0021B";
+    private _lastLine = "#D0021B";
+    private _lastDash = "2";
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF"];
-    private _width = ["1", "5", "10", "100"];
     private _mode = ["fill-drip", "ruler-combined"];
     private _subMenu = ["fill", "line", "size", "position"];
+
+    @observable private _subOpen = [false, false, false, false];
+    @observable private _currMode: string = "fill-drip";
+    @observable private _lock = false;
+    @observable private _fillBtn = false;
+    @observable private _lineBtn = false;
+
+    getField(key: string) {
+        return this.inks?.reduce((p, i) =>
+            (p === undefined || (p && p === i.rootDoc[key])) && i.rootDoc[key] !== "0" ? Field.toString(i.rootDoc[key] as Field) : "", undefined as Opt<string>)
+    }
+
     @computed get inks() {
-        const inks: DocumentView[] = [];
-        const docs = SelectionManager.SelectedDocuments();
-        for (var i = 0; i < docs.length; i++) {
-            if (Document(docs[i].rootDoc).type === DocumentType.INK) {
-                inks.push(docs[i]);
-            }
-        }
+        const inks = SelectionManager.SelectedDocuments().filter(i => Document(i.rootDoc).type === DocumentType.INK);
         return inks.length ? inks : undefined;
     }
-    @observable private _subOpen = [false, false, false, false];
-    @observable private collapsed: boolean = false;
-    @observable private currMode: string = "fill-drip";
-    @observable _lock = false;
-    @observable _fillBtn = false;
-    @observable _lineBtn = false;
-    _lastFill = "#D0021B";
-    _lastLine = "#D0021B";
-    _lastDash = "2";
-
-    @computed get _noFill() {
-        return this.inks?.reduce((p, i) => p && !i.rootDoc.fillColor ? true : false, true) || false;
-    }
-    @computed get _solidFill() {
-        return this.inks?.reduce((p, i) => p && i.rootDoc.fillColor ? true : false, true) || false;
-    }
+    @computed get _noFill() { return this.inks?.reduce((p, i) => p && !i.rootDoc.fillColor ? true : false, true) || false; }
+    @computed get _solidFill() { return this.inks?.reduce((p, i) => p && i.rootDoc.fillColor ? true : false, true) || false; }
+    @computed get _noLine() { return this.inks?.reduce((p, i) => p && !i.rootDoc.color ? true : false, true) || false; }
+    @computed get _solidLine() { return this.inks?.reduce((p, i) => p && i.rootDoc.color && (!i.rootDoc.dash || i.rootDoc.dash === "0") ? true : false, true) || false; }
+    @computed get _arrowStart() { return this.getField("arrowStart") || ""; }
+    @computed get _arrowEnd() { return this.getField("arrowEnd") || ""; }
+    @computed get _dashLine() { return !this._noLine && this.getField("dash") || ""; }
+    @computed get _currSizeHeight() { return this.getField("_height"); }
+    @computed get _currSizeWidth() { return this.getField("_width"); }
+    @computed get _currRotation() { return this.getField("rotation"); }
+    @computed get _currXpos() { return this.getField("x"); }
+    @computed get _currYpos() { return this.getField("y"); }
+    @computed get _currStrokeWidth() { return this.getField("strokeWidth"); }
+    @computed get _currFill() { const cfill = this.getField("fillColor") || ""; cfill && (this._lastFill = cfill); return cfill; }
+    @computed get _currColor() { const ccol = this.getField("color") || ""; ccol && (this._lastLine = ccol); return ccol; }
     set _noFill(value) { this._currFill = value ? "" : this._lastFill; }
     set _solidFill(value) { this._noFill = !value; }
-
-    @computed get _noLine() {
-        return this.inks?.reduce((p, i) => p && !i.rootDoc.color ? true : false, true) || false;
-    }
-    @computed get _solidLine() {
-        return this.inks?.reduce((p, i) => p &&
-            i.rootDoc.color && (i.rootDoc.dash === undefined || i.rootDoc.dash === "0") ? true : false, true) || false;
-    }
-    @computed get _dashLine() {
-        return !this._noLine && this.inks?.reduce((p, i) =>
-            (p === undefined || (p && p === i.rootDoc.dash)) && i.rootDoc.dash !== "0" ? StrCast(i.rootDoc.dash) : "", undefined as Opt<string>) || "";
-    }
+    set _currFill(value) { value && (this._lastFill = value); this.inks?.forEach(i => i.rootDoc.fillColor = value ? value : undefined); }
+    set _currColor(value) { value && (this._lastLine = value); this.inks?.forEach(i => i.rootDoc.color = value ? value : undefined); }
+    set _arrowStart(value) { this.inks?.forEach(i => i.rootDoc.arrowStart = value); }
+    set _arrowEnd(value) { this.inks?.forEach(i => i.rootDoc.arrowEnd = value); }
     set _noLine(value) { this._currColor = value ? "" : this._lastLine; }
     set _solidLine(value) { this._dashLine = ""; this._noLine = !value; }
     set _dashLine(value) {
-        value && (this._lastDash = value); this._noLine = false;
-        this.inks?.forEach(i => i.rootDoc.dash = value ? this._lastDash : undefined)
+        value && (this._lastDash = value) && (this._noLine = false);
+        this.inks?.forEach(i => i.rootDoc.dash = value ? this._lastDash : undefined);
     }
-
-    @computed get _currFill() {
-        const cfill = this._noFill || !this.inks ? "" : StrCast(this.inks[0].rootDoc.fillColor);
-        cfill && (this._lastFill = cfill);
-        return cfill;
-    }
-    @computed get _currColor() {
-        const ccol = this._noLine || !this.inks ? "" : StrCast(this.inks[0].rootDoc.color, "");
-        this._lastLine = ccol ? ccol : this._lastLine;
-        return ccol;
-    }
-    set _currFill(value) { value && (this._lastFill = value); this.inks?.forEach(i => i.rootDoc.fillColor = value); }
-    set _currColor(value) { value && (this._lastLine = value); this.inks?.forEach(i => i.rootDoc.color = value ? value : undefined) }
-
-    @computed get _arrowStart() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p && p === i.rootDoc.arrowStart)) ? StrCast(i.rootDoc.arrowStart) : "", undefined as Opt<string>) || "";
-    }
-    @computed get _arrowEnd() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p && p === i.rootDoc.arrowEnd)) ? StrCast(i.rootDoc.arrowEnd) : "", undefined as Opt<string>) || ""
-    }
-    set _arrowStart(value) { this.inks?.forEach(i => i.rootDoc.arrowStart = value); }
-    set _arrowEnd(value) { this.inks?.forEach(i => i.rootDoc.arrowEnd = value); }
-
-    @computed get _currSizeHeight() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p === NumCast(i.rootDoc._height).toString())) ? NumCast(i.rootDoc._height).toString() : "", undefined as Opt<string>) || ""
-    }
-    @computed get _currSizeWidth() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p === NumCast(i.rootDoc._width).toString())) ? NumCast(i.rootDoc._width).toString() : "", undefined as Opt<string>) || ""
-    }
-    @computed get _currRotation() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p === NumCast(i.rootDoc.rotation).toString())) ? NumCast(i.rootDoc.rotation).toString() : "", undefined as Opt<string>) || ""
-    }
-    @computed get _currPositionHorizontal() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p === NumCast(i.rootDoc.x).toString())) ? NumCast(i.rootDoc.x).toString() : "", undefined as Opt<string>) || ""
-    }
-    @computed get _currPositionVertical() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p === NumCast(i.rootDoc.y).toString())) ? NumCast(i.rootDoc.y).toString() : "", undefined as Opt<string>) || ""
-    }
-    @computed get _currStrokeWidth() {
-        return this.inks?.reduce((p, i) =>
-            (p === undefined || (p === NumCast(i.rootDoc.strokeWidth).toString())) ? NumCast(i.rootDoc.strokeWidth).toString() : "", undefined as Opt<string>) || ""
-    }
-    set _currPositionHorizontal(value) { this.inks?.forEach(i => i.rootDoc.x = Number(value)); }
-    set _currPositionVertical(value) { this.inks?.forEach(i => i.rootDoc.y = Number(value)); }
+    set _currXpos(value) { this.inks?.forEach(i => i.rootDoc.x = Number(value)); }
+    set _currYpos(value) { this.inks?.forEach(i => i.rootDoc.y = Number(value)); }
     set _currRotation(value) { this.inks?.forEach(i => i.rootDoc.rotation = Number(value)); }
     set _currStrokeWidth(value) { this.inks?.forEach(i => i.rootDoc.strokeWidth = Number(value)); }
     set _currSizeWidth(value) {
-        this.inks?.forEach(i => {
-            const doc = i.rootDoc;
-            if (doc._width && doc._height) {
-                const oldWidth = NumCast(doc._width);
-                const oldHeight = NumCast(doc._height);
-                doc._width = Number(value);
-                if (this._lock) {
-                    doc._height = (doc._width * oldHeight) / oldWidth;
-                }
-            }
+        this.inks?.filter(i => i.rootDoc._width && i.rootDoc._height).forEach(i => {
+            const oldWidth = NumCast(i.rootDoc._width);
+            i.rootDoc._width = Number(value);
+            this._lock && (i.rootDoc._height = (i.rootDoc._width * NumCast(i.rootDoc._height)) / oldWidth);
         });
     }
     set _currSizeHeight(value) {
-        this.inks?.forEach(i => {
-            const doc = i.rootDoc;
-            if (doc._width && doc._height) {
-                const oldWidth = NumCast(doc._width);
-                const oldHeight = NumCast(doc._height);
-                doc._height = Number(value);
-                if (this._lock) {
-                    doc._width = (doc._height * oldWidth) / oldHeight;
-                }
-            }
+        this.inks?.filter(i => i.rootDoc._width && i.rootDoc._height).forEach(i => {
+            const oldHeight = NumCast(i.rootDoc._height);
+            i.rootDoc._height = Number(value);
+            this._lock && (i.rootDoc._width = (i.rootDoc._height * NumCast(i.rootDoc._width)) / oldHeight);
         });
     }
 
@@ -156,20 +91,6 @@ export default class FormatShapePane extends AntimodeMenu {
         FormatShapePane.Instance = this;
         this._canFade = false;
         this.Pinned = BoolCast(Doc.UserDoc()["formatShapePane-pinned"]);
-    }
-
-    @action
-    toggleMenuPin = (e: React.MouseEvent) => {
-        Doc.UserDoc()["formatShapePane-pinned"] = this.Pinned = !this.Pinned;
-    }
-
-    @action
-    protected toggleCollapse = (e: React.MouseEvent) => {
-        this.collapsed = !this.collapsed;
-        setTimeout(() => {
-            const x = Math.min(this._left, window.innerWidth - FormatShapePane.Instance.width);
-            FormatShapePane.Instance.jumpTo(x, this._top, true);
-        }, 0);
     }
 
     @action
@@ -203,7 +124,7 @@ export default class FormatShapePane extends AntimodeMenu {
                     const doc = i.rootDoc;
                     if (doc._width && doc._height) {
                         const oldWidth = NumCast(doc._width);
-                        const oldHeight = NumCast(doc._height)
+                        const oldHeight = NumCast(doc._height);
                         doc._height = NumCast(doc._height) + (dirs === "up" ? 10 : - 10);
                         if (this._lock) {
                             doc._width = (NumCast(doc._height) * oldWidth) / oldHeight;
@@ -215,30 +136,20 @@ export default class FormatShapePane extends AntimodeMenu {
     }
 
     @computed get close() {
-        const close = <button
-            className="antimodeMenu-button"
-            key="close"
-            onPointerDown={action(() => { this.closePane(); })}
-            style={{ right: 0, position: "absolute" }}>
+        return <button className="antimodeMenu-button" key="close" onPointerDown={action(() => this.closePane())} style={{ right: 0 }}>
             X
-                </button>;
-        return close;
+        </button>;
     }
 
     //select either coor&fill or size&position
     @computed get modes() {
-        const modes = <div className="antimodeMenu-button-tab">
-            {this._mode.map(mode => {
-                return <button
-                    className="antimodeMenu-button"
-                    key={mode}
-                    onPointerDown={action(() => { this.currMode = mode; })}
-                    style={{ backgroundColor: this.currMode === mode ? "121212" : "", position: "relative", top: 30 }}>
+        return <div className="antimodeMenu-button-tab" key="modes">
+            {this._mode.map(mode =>
+                <button className="antimodeMenu-button" key={mode} onPointerDown={action(() => { this._currMode = mode; })}
+                    style={{ backgroundColor: this._currMode === mode ? "121212" : "", position: "relative", top: 30 }}>
                     <FontAwesomeIcon icon={mode as IconProp} size="lg" />
-                </button>;
-            })
-            }</div>;
-        return modes;
+                </button>)}
+        </div>;
     }
 
     @action
@@ -280,7 +191,7 @@ export default class FormatShapePane extends AntimodeMenu {
     }
 
     @computed get subMenu() {
-        const fillCheck = <div style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
+        const fillCheck = <div key="fill" style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
             <input id="nofill" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._noFill} onChange={action(() => this._noFill = true)} />
             No Fill
             <br />
@@ -291,16 +202,18 @@ export default class FormatShapePane extends AntimodeMenu {
             {this._solidFill ? "Color" : ""}
             {this._solidFill ? this.fillButton : ""}
             {this._fillBtn && this._solidFill ? this.fillPicker : ""}
-
         </div>;
-        const arrows = <> <input id="arrowStart" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._arrowStart !== ""} onChange={action(() => this._arrowStart = this._arrowStart ? "" : "arrow")} />
-         Arrow Head
-            <br />
 
-            <input id="arrowEnd" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._arrowEnd !== ""} onChange={action(() => this._arrowEnd = this._arrowEnd ? "" : "arrow")} />
-         Arrow End
-            <br /></>;
-        const lineCheck = <div style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
+        const arrows = <>
+            <input id="arrowStart" key="arrowstart" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._arrowStart !== ""} onChange={action(() => this._arrowStart = this._arrowStart ? "" : "arrow")} />
+            Arrow Head
+            <br />
+            <input id="arrowEnd" key="arrowend" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._arrowEnd !== ""} onChange={action(() => this._arrowEnd = this._arrowEnd ? "" : "arrow")} />
+            Arrow End
+            <br />
+        </>;
+
+        const lineCheck = <div key="lineCheck" style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
             <input id="noLine" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._noLine} onChange={action(() => this._noLine = true)} />
                 No Line
             <br />
@@ -320,14 +233,12 @@ export default class FormatShapePane extends AntimodeMenu {
             <br />
             <br />
             {(this._solidLine || this._dashLine) ? arrows : ""}
-
         </div>;
 
-        const sizeCheck = <div style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
+        const sizeCheck = <div key="sizeCheck" style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
             Height {this.sizeHeightInput}
             <br />
             <br />
-
 
             Width {this.sizeWidthInput}
             <br />
@@ -338,14 +249,12 @@ export default class FormatShapePane extends AntimodeMenu {
             <br />
             <br />
 
-
             Rotation {this.rotationInput}
             <br />
             <br />
-
-
         </div>;
-        const positionCheck = <div style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
+
+        const positionCheck = <div key="posCheck" style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
             Horizontal {this.positionHorizontalInput}
             <br />
             <br />
@@ -353,280 +262,88 @@ export default class FormatShapePane extends AntimodeMenu {
             Vertical {this.positionVerticalInput}
             <br />
             <br />
-
-
         </div>;
 
-        const subMenu = <div className="antimodeMenu-sub" style={{ position: "absolute", width: "inherit", top: 60 }}>
+        return <div className="antimodeMenu-sub" key="submenu" style={{ position: "absolute", width: "inherit", top: 60 }}>
             {this._subMenu.map((subMenu, i) => {
                 if (subMenu === "fill" || subMenu === "line") {
-                    return <div style={{ width: "inherit" }}><button
-                        className="antimodeMenu-button"
-                        key={subMenu}
-                        onPointerDown={action(() => { this._subOpen[i] = this._subOpen[i] ? false : true; })}
-                        style={{ backgroundColor: "121212", display: this.currMode === "fill-drip" ? "" : "none", width: "inherit", textAlign: "left" }}>
-                        {this._subOpen[i] ? "▼" : "▶︎"}
-                        {subMenu}
-                    </button>
-                        {this.currMode === "fill-drip" && subMenu === "fill" && this._subOpen[0] ? fillCheck : ""}
-                        {this.currMode === "fill-drip" && subMenu === "line" && this._subOpen[1] ? lineCheck : ""}
-
+                    return <div key={subMenu} style={{ width: "inherit" }}>
+                        <button className="antimodeMenu-button"
+                            onPointerDown={action(() => { this._subOpen[i] = this._subOpen[i] ? false : true; })}
+                            style={{ backgroundColor: "121212", position: "relative", display: this._currMode === "fill-drip" ? "" : "none", width: "inherit" }}>
+                            {this._subOpen[i] ? "▼" : "▶︎"}
+                            {subMenu}
+                        </button>
+                        {this._currMode === "fill-drip" && subMenu === "fill" && this._subOpen[0] ? fillCheck : ""}
+                        {this._currMode === "fill-drip" && subMenu === "line" && this._subOpen[1] ? lineCheck : ""}
                     </div>;
                 }
                 else if (subMenu === "size" || subMenu === "position") {
-                    return <div style={{ width: "inherit" }}><button
-                        className="antimodeMenu-button"
-                        key={subMenu}
-                        onPointerDown={action(() => { this._subOpen[i] = this._subOpen[i] ? false : true; })}
-                        style={{ backgroundColor: "121212", display: this.currMode === "ruler-combined" ? "" : "none", width: "inherit", textAlign: "left" }}>
-                        {this._subOpen[i] ? "▼" : "▶︎"}
-                        {subMenu}
-                    </button>
-                        {this.currMode === "ruler-combined" && subMenu === "size" && this._subOpen[2] ? sizeCheck : ""}
-                        {this.currMode === "ruler-combined" && subMenu === "position" && this._subOpen[3] ? positionCheck : ""}
-
-                    </div>
-                        ;
-
+                    return <div key={subMenu} style={{ width: "inherit" }}>
+                        <button className="antimodeMenu-button"
+                            onPointerDown={action(() => { this._subOpen[i] = this._subOpen[i] ? false : true; })}
+                            style={{ backgroundColor: "121212", position: "relative", display: this._currMode === "ruler-combined" ? "" : "none", width: "inherit" }}>
+                            {this._subOpen[i] ? "▼" : "▶︎"}
+                            {subMenu}
+                        </button>
+                        {this._currMode === "ruler-combined" && subMenu === "size" && this._subOpen[2] ? sizeCheck : ""}
+                        {this._currMode === "ruler-combined" && subMenu === "position" && this._subOpen[3] ? positionCheck : ""}
+                    </div>;
                 }
-            })
-            }</div>;
-        return subMenu;
+            })}
+        </div>;
     }
 
-    @computed get fillButton() {
+    colorPicker(setter: (color: string) => {}) {
+        return <div className="btn-group-palette" key="colorpicker" >
+            {this._palette.map(color =>
+                <button className="antimodeMenu-button" key={color} onPointerDown={action(() => setter(color))} style={{ zIndex: 1001, position: "relative" }}>
+                    <div className="color-previewII" style={{ backgroundColor: color }} />
+                </button>)}
+        </div>;
+    }
+    inputBox = (key: string, value: any, setter: (val: string) => {}) => {
         return <>
-            <button
-                className="antimodeMenu-button"
-                key="fill"
-                title="fillChanger"
-                onPointerDown={action(e => this._fillBtn = !this._fillBtn)}
-                style={{
-                    // backgroundColor: "121212",
-                    position: "absolute", right: 80
-                }}>
+            <input style={{ color: "black", width: 80, position: "absolute", right: 20 }}
+                type="text" value={value}
+                onChange={e => setter(e.target.value)}
+                autoFocus />
+            <button className="antiMenu-Buttonup" key="up" onPointerDown={action(() => this.upDownButtons("up", key))}>
+                ˄
+            </button>
+            <br />
+            <button className="antiMenu-Buttonup" key="down" onPointerDown={action(() => this.upDownButtons("down", key))} style={{ marginTop: -8 }}>
+                ˅
+            </button>
+        </>;
+    }
+
+    colorButton(value: string, setter: () => {}) {
+        return <>
+            <button className="antimodeMenu-button" key="fill" onPointerDown={action(e => setter())} style={{ right: 80 }}>
                 <FontAwesomeIcon icon="fill-drip" size="lg" />
-                <div className="color-previewI" style={{ backgroundColor: this._currFill ?? "121212" }}></div>
+                <div className="color-previewI" style={{ backgroundColor: value ?? "121212" }} />
             </button>
             <br></br>
             <br></br>
         </>;
     }
-    @computed get fillPicker() {
-        return <div className="btn-group-palette" key="fill" >
-            {this._palette.map(color => {
-                return <button
-                    className="antimodeMenu-button"
-                    key={color}
-                    onPointerDown={action(() => this._currFill = color)}
-                    style={{
-                        // backgroundColor: this._fillBtn ? "121212" : "",
-                        zIndex: 1001
-                    }}>
-                    <div className="color-previewII" style={{ backgroundColor: color }}></div>
-                </button>;
-            })}
 
-        </div>;
-    }
+    @computed get fillButton() { return this.colorButton(this._currFill, () => this._fillBtn = !this._fillBtn); }
+    @computed get lineButton() { return this.colorButton(this._currColor, () => this._lineBtn = !this._lineBtn); }
 
-    @computed get lineButton() {
-        return <>
-            <button
-                className="antimodeMenu-button"
-                key="line"
-                title="lineChanger"
-                onPointerDown={action(e => this._lineBtn = !this._lineBtn)}
-                style={{
-                    // backgroundColor: "121212",
-                    position: "absolute", right: 80
-                }}>
-                <FontAwesomeIcon icon="pen-nib" size="lg" />
-                <div className="color-previewI" style={{ backgroundColor: this._currColor ?? "121212" }}></div>
-            </button>
-            <br />
-            <br />
-        </>;
-    }
-    @computed get linePicker() {
-        return <div className="btn-group-palette" key="line" >
-            {this._palette.map(color => {
-                return <button
-                    className="antimodeMenu-button"
-                    key={color}
-                    onPointerDown={action(() => this._currColor = color)}
-                    style={{
-                        // backgroundColor: this._lineBtn ? "121212" : "",
-                        zIndex: 1001
-                    }}>
-                    <div className="color-previewII" style={{ backgroundColor: color }}></div>
-                </button>;
-            })}
+    @computed get fillPicker() { return this.colorPicker((color: string) => this._currFill = color); }
+    @computed get linePicker() { return this.colorPicker((color: string) => this._currColor = color); }
 
-        </div>;
-    }
-    @computed get widthInput() {
-        const widthInput = <>
-            <input
-                style={{ color: "black", width: 80, position: "absolute", right: 20 }}
-                type="text" value={this._currStrokeWidth}
-                onChange={e => this._currStrokeWidth = e.target.value}
-                autoFocus />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("up", "width"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0 }}>
-                ˄
-            </button>
-            <br />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("down", "width"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0, marginTop: -8 }}>
-                ˅
-            </button></>;
-        return widthInput;
-    }
-    @computed get sizeHeightInput() {
-        const sizeHeightInput = <>
-            <input
-                style={{ color: "black", width: 80, position: "absolute", right: 20 }}
-                type="text" value={this._currSizeHeight}
-                onChange={e => this._currSizeHeight = e.target.value}
-                autoFocus />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("up", "sizeHeight"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0 }}>
-                ˄
-            </button>
-            <br />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("down", "sizeHeight"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0, marginTop: -8 }}>
-                ˅
-            </button>
-        </>;
-        return sizeHeightInput;
-    }
-
-    @computed get sizeWidthInput() {
-        const sizeWidthInput = <>
-            <input
-                style={{ color: "black", width: 80, position: "absolute", right: 20 }}
-                type="text" value={this._currSizeWidth}
-                onChange={e => this._currSizeWidth = e.target.value}
-                autoFocus />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("up", "sizeWidth"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0 }}>
-                ˄
-            </button>
-            <br />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("down", "sizeWidth"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0, marginTop: -8 }}>
-                ˅
-            </button></>;
-        return sizeWidthInput;
-    }
-
-    @computed get rotationInput() {
-        const rotationInput =
-            <>
-                <input
-                    style={{ color: "black", width: 80, position: "absolute", right: 20 }}
-                    type="text" value={this._currRotation}
-                    onChange={e => this._currRotation = e.target.value}
-                    autoFocus></input>
-                <button
-                    className="antiMenu-Buttonup"
-                    key="up"
-                    onPointerDown={action(() => { this.upDownButtons("up", "rotation"); })}
-                    style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0 }}>
-                    ˄
-            </button>
-                <br />
-                <button
-                    className="antiMenu-Buttonup"
-                    key="up"
-                    onPointerDown={action(() => { this.upDownButtons("down", "rotation"); })}
-                    style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0, marginTop: -8 }}>
-                    ˅
-            </button></>;
-        return rotationInput;
-    }
-
-    @computed get positionHorizontalInput() {
-        return <>
-            <input
-                style={{ color: "black", width: 80, position: "absolute", right: 20 }}
-                type="text" value={this._currPositionHorizontal}
-                onChange={e => this._currPositionHorizontal = e.target.value}
-                autoFocus
-            />
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("up", "horizontal"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0 }}>
-                ˄
-                </button>
-            <br></br>
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("down", "horizontal"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0, marginTop: -8 }}>
-                ˅
-            </button>
-        </>;
-    }
-
-    @computed get positionVerticalInput() {
-        return <>
-            <input
-                style={{ color: "black", width: 80, position: "absolute", right: 20 }}
-                type="text" value={this._currPositionVertical}
-                onChange={e => this._currPositionVertical = e.target.value}
-                autoFocus></input>
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("down", "vertical"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0 }}>
-                ˄
-            </button>
-            <br></br>
-            <button
-                className="antiMenu-Buttonup"
-                key="up"
-                onPointerDown={action(() => { this.upDownButtons("up", "vertical"); })}
-                style={{ position: "absolute", width: 20, height: 10, right: 0, padding: 0, marginTop: -8 }}>
-                ˅
-            </button>
-        </>;
-    }
+    @computed get widthInput() { return this.inputBox("width", this._currStrokeWidth, (val: string) => this._currStrokeWidth = val); }
+    @computed get sizeHeightInput() { return this.inputBox("height", this._currSizeHeight, (val: string) => this._currSizeHeight = val); }
+    @computed get sizeWidthInput() { return this.inputBox("height", this._currSizeWidth, (val: string) => this._currSizeWidth = val); }
+    @computed get rotationInput() { return this.inputBox("rotation", this._currRotation, (val: string) => this._currRotation = val); }
+    @computed get positionHorizontalInput() { return this.inputBox("horizontal", this._currXpos, (val: string) => this._currXpos = val); }
+    @computed get positionVerticalInput() { return this.inputBox("vertical", this._currYpos, (val: string) => this._currYpos = val); }
 
     render() {
-        const buttons = [
-
-            this.close,
-            this.modes,
-            this.subMenu
-
-        ];
-
-        return this.getElementVert(buttons);
+        return this.getElementVert([this.close, this.modes, this.subMenu]);
     }
 }
 Scripting.addGlobal(function activatePen2(penBtn: any) {
@@ -635,11 +352,9 @@ Scripting.addGlobal(function activatePen2(penBtn: any) {
         // Doc.SetSelectedTool(InkTool.Pen);
         FormatShapePane.Instance.jumpTo(300, 300);
         FormatShapePane.Instance.Pinned = true;
-
     } else {
         // Doc.SetSelectedTool(InkTool.None);
         FormatShapePane.Instance.Pinned = false;
         FormatShapePane.Instance.fadeOut(true);
-
     }
 });

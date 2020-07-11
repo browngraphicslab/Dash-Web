@@ -43,3 +43,34 @@
         background-position: left center;
     }
 }
+
+@media only screen and (max-device-width: 480px) {
+    .antimodeMenu-cont {
+        height: 100px;
+        width: 100vw;
+
+        &.with-rows {
+            flex-direction: column-reverse;
+        }
+
+        .antimodeMenu-row {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        .antimodeMenu-button {
+            background-color: transparent;
+            width: 100px;
+            height: 100px;
+
+            &.active {
+                background-color: #121212;
+            }
+        }
+
+        .antimodeMenu-button:hover {
+            background-color: #121212;
+        }
+    }
+}

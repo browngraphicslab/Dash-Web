@@ -202,7 +202,6 @@ export namespace DragManager {
             dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
             return dropDoc;
         };
-        const batch = UndoManager.StartBatch("dragging");
         const finishDrag = (e: DragCompleteEvent) => {
             const docDragData = e.docDragData;
             if (docDragData && !docDragData.droppedDocuments.length) {
@@ -216,7 +215,6 @@ export namespace DragManager {
                     const remProps = (dragData?.removeDropProperties || []).concat(Array.from(dragProps));
                     remProps.map(prop => drop[prop] = undefined);
                 });
-                batch.end();
             }
             return e;
         };
@@ -315,6 +313,7 @@ export namespace DragManager {
     export let docsBeingDragged: Doc[] = [];
     export let CanEmbed = false;
     export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
+        const batch = UndoManager.StartBatch("dragging");
         eles = eles.filter(e => e);
         CanEmbed = false;
         if (!dragDiv) {
@@ -449,6 +448,7 @@ export namespace DragManager {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
             SnappingManager.clearSnapLines();
+            batch.end();
         });
 
         AbortDrag = () => {

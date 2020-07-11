@@ -1,4 +1,4 @@
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
@@ -23,6 +23,10 @@ import { Scripting } from "./Scripting";
 export class LinkManager {
 
     private static _instance: LinkManager;
+
+
+    public static currentLink: Opt<Doc>;
+
     public static get Instance(): LinkManager {
         return this._instance || (this._instance = new this());
     }
@@ -41,24 +45,17 @@ export class LinkManager {
     }
 
     public addLink(linkDoc: Doc): boolean {
-        const linkList = LinkManager.Instance.getAllLinks();
-        linkList.push(linkDoc);
         if (LinkManager.Instance.LinkManagerDoc) {
-            LinkManager.Instance.LinkManagerDoc.data = new List<Doc>(linkList);
+            Doc.AddDocToList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
             return true;
         }
         return false;
     }
 
     public deleteLink(linkDoc: Doc): boolean {
-        const linkList = LinkManager.Instance.getAllLinks();
-        const index = LinkManager.Instance.getAllLinks().indexOf(linkDoc);
-        if (index > -1) {
-            linkList.splice(index, 1);
-            if (LinkManager.Instance.LinkManagerDoc) {
-                LinkManager.Instance.LinkManagerDoc.data = new List<Doc>(linkList);
-                return true;
-            }
+        if (LinkManager.Instance.LinkManagerDoc && linkDoc instanceof Doc) {
+            Doc.RemoveDocFromList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
+            return true;
         }
         return false;
     }

@@ -4,8 +4,9 @@ import {
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
-    faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown
+    faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
+    faHeading, faRulerCombined, faFillDrip
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -30,6 +31,7 @@ import { HistoryUtil } from '../util/History';
 import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { Scripting } from '../util/Scripting';
 import SettingsManager from '../util/SettingsManager';
+import GroupManager from '../util/GroupManager';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -58,7 +60,11 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
+import { LinkCreatedBox } from './nodes/LinkCreatedBox';
+import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
+import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
+
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
@@ -81,7 +87,6 @@ export class MainView extends React.Component {
 
     public isPointerDown = false;
 
-
     componentDidMount() {
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType"]); // can play with these fields on someone else's
 
@@ -98,7 +103,7 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("paste", KeyManager.Instance.paste as any);
-        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on 
+        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on
             const id = FormattedTextBox.GetDocFromUrl(e.detail);
             DocServer.GetRefField(id).then(doc => {
                 if (doc instanceof Doc) {
@@ -137,11 +142,12 @@ export class MainView extends React.Component {
         }
 
         library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
-            faTerminal, faToggleOn, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard, fileSolid,
+            faTerminal, faToggleOn, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faTimesCircle, faWindowMaximize, faAddressCard, fileSolid,
             faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
             faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
-            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown);
+            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
+            faHeading, faRulerCombined, faFillDrip);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -382,7 +388,8 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
+    sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
         const sidebarContent = this.userDoc?.["tabs-panelContainer"];
@@ -401,7 +408,7 @@ export class MainView extends React.Component {
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
                     onClick={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
+                    ScreenToLocalTransform={this.sidebarScreenToLocal}
                     ContentScaling={returnOne}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
@@ -443,9 +450,14 @@ export class MainView extends React.Component {
                     docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
-                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                    <FontAwesomeIcon icon="cog" size="lg" />
-                </button>
+                <div className="buttonContainer" >
+                    <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                        <FontAwesomeIcon icon="cog" size="lg" />
+                    </button>
+                    <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
+                        <FontAwesomeIcon icon="columns" size="lg" />
+                    </button>
+                </div>
             </div>
             {this.docButtons}
         </div>;
@@ -593,7 +605,9 @@ export class MainView extends React.Component {
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
+            <GroupManager />
             <GoogleAuthenticationManager />
+            <HypothesisAuthenticationManager />
             <DocumentDecorations />
             <InkOptionsMenu />
 
@@ -606,6 +620,8 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
+            <LinkCreatedBox />
+            {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}

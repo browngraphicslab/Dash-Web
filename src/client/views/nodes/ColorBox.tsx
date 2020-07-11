@@ -70,4 +70,4 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
             </div>
         </div>;
     }
-} 
+}
