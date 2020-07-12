@@ -73,6 +73,9 @@ export const documentSchema = createSchema({
     opacity: "number",          // opacity of document
     strokeWidth: "number",
     strokeBezier: "number",
+    strokeStartMarker: "string",
+    strokeEndMarker: "string",
+    strokeDash: "string",
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree

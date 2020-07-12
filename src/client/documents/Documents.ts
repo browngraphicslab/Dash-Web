@@ -671,12 +671,12 @@ export namespace Docs {
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
+            I.fillColor = fillColor;
             I.strokeWidth = Number(strokeWidth);
             I.strokeBezier = strokeBezier;
-            I.fillColor = fillColor;
-            I.arrowStart = arrowStart;
-            I.arrowEnd = arrowEnd;
-            I.dash = dash;
+            I.strokeStartMarker = arrowStart;
+            I.strokeEndMarker = arrowEnd;
+            I.strokeDash = dash;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -688,12 +688,6 @@ export namespace Docs {
             I.rotation = 0;
             I.data = new InkField(points);
             return I;
-            // return I;
-            // const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
-            // doc.color = color;
-            // doc.strokeWidth = strokeWidth;
-            // doc.tool = tool;
-            // return doc;
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
