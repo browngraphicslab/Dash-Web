@@ -612,16 +612,16 @@ export class MainView extends React.Component {
             <InkOptionsMenu />
             <FormatShapePane />
             <RichTextMenu key="rich" />
-            <GestureOverlay >
-                {this.mainContent}
-            </GestureOverlay>
-            <PreviewCursor />
-            <LinkCreatedBox />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
+            <GestureOverlay >
+                {this.mainContent}
+            </GestureOverlay>
+            <PreviewCursor />
+            <LinkCreatedBox />
             <ContextMenu />
             <FormatShapePane />
             <RadialMenu />

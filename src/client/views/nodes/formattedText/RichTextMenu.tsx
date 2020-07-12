@@ -358,11 +358,11 @@ export default class RichTextMenu extends AntimodeMenu {
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
-                    <option value={label} title={title} key={label} style={style ? style : {}} selected hidden>{label}</option> :
+                    <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option> :
                     <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
             }
             return label === activeOption ?
-                <option value={label} title={title} key={label} style={style ? style : {}} selected>{label}</option> :
+                <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option> :
                 <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option>;
         });
 
@@ -385,11 +385,11 @@ export default class RichTextMenu extends AntimodeMenu {
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return label === activeOption ?
-                    <option value={label} title={title} key={label} style={style ? style : {}} selected hidden>{label}</option> :
+                    <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option> :
                     <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
             }
             return label === activeOption ?
-                <option value={label} title={title} key={label} style={style ? style : {}} selected>{label}</option> :
+                <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option> :
                 <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option>;
         });
 
@@ -882,22 +882,22 @@ export default class RichTextMenu extends AntimodeMenu {
 
     render() {
         TraceMobx();
-        const row1 = <div className="antimodeMenu-row" key="row1" style={{ display: this.collapsed ? "none" : undefined }}>{[
+        const row1 = <div className="antimodeMenu-row" key="row 1" style={{ display: this.collapsed ? "none" : undefined }}>{[
             !this.collapsed ? this.getDragger() : (null),
-            !this.Pinned ? (null) : <> {[
+            !this.Pinned ? (null) : <div key="frag1"> {[
                 this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
                 this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
                 this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
                 this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
                 this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
                 this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
-                <div className="richTextMenu-divider" />
-            ]}</>,
+                <div className="richTextMenu-divider" key="divider" />
+            ]}</div>,
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
             this.createBrushButton(),
-            <div className="richTextMenu-divider" />,
+            <div className="richTextMenu-divider" key="divider 2" />,
             this.createButton("align-left", "Align Left", this.activeAlignment === "left", this.alignLeft),
             this.createButton("align-center", "Align Center", this.activeAlignment === "center", this.alignCenter),
             this.createButton("align-right", "Align Right", this.activeAlignment === "right", this.alignRight),
@@ -907,20 +907,20 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
         ]}</div>;
 
-        const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
+        const row2 = <div className="antimodeMenu-row row-2" key="row2">
             {this.collapsed ? this.getDragger() : (null)}
-            <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
-                <div className="richTextMenu-divider" />,
+            <div key="row 2" style={{ display: this.collapsed ? "none" : undefined }}>
+                <div className="richTextMenu-divider" key="divider 3" />,
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
-                <div className="richTextMenu-divider" />,
+                <div className="richTextMenu-divider" key="divider 4" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes"),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
-                <div className="richTextMenu-divider" />,]}
+                <div className="richTextMenu-divider" key="divider 5" />,]}
             </div>
-            <div key="button">
+            <div key="collapser">
                 {/* <div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
                         <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />

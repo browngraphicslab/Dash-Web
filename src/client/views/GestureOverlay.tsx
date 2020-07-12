@@ -845,7 +845,7 @@ export default class GestureOverlay extends Touchable {
 
     render() {
         return (
-            <div className="gestureOverlay-cont" style={{ position: "relative" }} ref={this._overlayRef}
+            <div className="gestureOverlay-cont" ref={this._overlayRef}
                 onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.elements}

@@ -639,49 +639,37 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             alert("linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
+        const makeLink = action((linkDoc: Doc) => {
+            LinkManager.currentLink = linkDoc;
+            linkDoc.hidden = true;
+            linkDoc.linkDisplay = true;
+
+            LinkCreatedBox.popupX = de.x;
+            LinkCreatedBox.popupY = de.y - 33;
+            LinkCreatedBox.linkCreated = true;
+
+            LinkDescriptionPopup.popupX = de.x;
+            LinkDescriptionPopup.popupY = de.y;
+            LinkDescriptionPopup.descriptionPopup = true;
+
+            setTimeout(action(() => LinkCreatedBox.linkCreated = false), 2500);
+        });
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
             const linkDoc = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
-            LinkManager.currentLink = linkDoc;
-
-            runInAction(() => {
-                LinkCreatedBox.popupX = de.x;
-                LinkCreatedBox.popupY = de.y - 33;
-                LinkCreatedBox.linkCreated = true;
-
-                LinkDescriptionPopup.popupX = de.x;
-                LinkDescriptionPopup.popupY = de.y;
-                LinkDescriptionPopup.descriptionPopup = true;
-
-                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-            });
+            linkDoc && makeLink(linkDoc);
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
-            // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
-            // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-
             if (de.complete.linkDragData.linkSourceDocument !== this.props.Document) {
                 const linkDoc = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
                     { doc: this.props.Document }, `link`);
-                LinkManager.currentLink = linkDoc;
-
                 de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                     (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
-                runInAction(() => {
-                    LinkCreatedBox.popupX = de.x;
-                    LinkCreatedBox.popupY = de.y - 33;
-                    LinkCreatedBox.linkCreated = true;
-
-                    LinkDescriptionPopup.popupX = de.x;
-                    LinkDescriptionPopup.popupY = de.y;
-                    LinkDescriptionPopup.descriptionPopup = true;
-
-                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-                });
+                linkDoc && makeLink(linkDoc);
             }
 
         }
@@ -783,8 +771,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
-        optionItems.push({ description: "Toggle Show Each Link Dot", event: () => this.layoutDoc.showLinks = !this.layoutDoc.showLinks, icon: "eye" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+
 
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -839,7 +827,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const help = cm.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument("http://localhost:1050/assets/cheat-sheet.pdf", { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
+        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
         helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Help...", subitems: helpItems, icon: "question" });
 
@@ -1084,7 +1072,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 select={this.select}
                 onClick={this.onClickHandler}
                 layoutKey={this.finalLayoutKey} />
-            {this.layoutDoc.showLinks ? this.anchors : (null)}
+            {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
+            {/* {this.allAnchors} */}
             {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
@@ -1107,8 +1096,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
-    @computed get anchors() {
+
+    @computed get allAnchors() {
         TraceMobx();
+        if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
             this.props.dontRegisterView ? (null) : // view that are not registered
@@ -1130,10 +1121,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get innards() {
         TraceMobx();
-        if (this.props.treeViewDoc && !this.props.LayoutTemplateString) {  // this happens when the document is a tree view label (but not an anchor dot)
+        if (this.props.treeViewDoc && !this.props.LayoutTemplateString?.includes("LinkAnchorBox")) {  // this happens when the document is a tree view label (but not an anchor dot)
             return <div className="documentView-treeView" style={{ maxWidth: this.props.PanelWidth() || undefined }}>
                 {StrCast(this.props.Document.title)}
-                {this.anchors}
+                {this.allAnchors}
             </div>;
         }
 

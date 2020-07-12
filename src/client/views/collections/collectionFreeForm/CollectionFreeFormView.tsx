@@ -84,6 +84,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _lastClientY: number | undefined = 0;
+    private _lastClientX: number | undefined = 0;
     private _inkToTextStartX: number | undefined;
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
@@ -100,6 +102,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
+
+    @observable _marqueeRef = React.createRef<HTMLDivElement>();
+    @observable canPanX: boolean = true;
+    @observable canPanY: boolean = true;
 
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
@@ -575,6 +581,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        this._lastClientY = this._lastClientX = undefined;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -1143,16 +1150,62 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
+
+        const handler = (e: Event) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+
+        document.addEventListener("dashDragging", handler);
     }
+
     componentWillUnmount() {
         this._layoutComputeReaction?.();
+
+        const handler = (e: Event) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+        document.removeEventListener("dashDragging", handler);
     }
+
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;
 
     @action
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
+    }
+
+
+    // <div ref={this._marqueeRef}>
+
+    @action
+    handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
+        if ((e as any).handlePan) return;
+        (e as any).handlePan = true;
+        this._lastClientY = e.detail.clientY;
+        this._lastClientX = e.detail.clientX;
+
+        if (this._marqueeRef?.current) {
+            const dragX = e.detail.clientX;
+            const dragY = e.detail.clientY;
+            const bounds = this._marqueeRef.current?.getBoundingClientRect();
+
+            let deltaX = dragX - bounds.left < 25 ? -2 : bounds.right - dragX < 25 ? 2 : 0;
+            let deltaY = dragY - bounds.top < 25 ? -2 : bounds.bottom - dragY < 25 ? 2 : 0;
+            (deltaX !== 0 || deltaY !== 0) && this.continuePan(deltaX, deltaY);
+        }
+        e.stopPropagation();
+    }
+
+    continuePan = (deltaX: number, deltaY: number) => {
+        setTimeout(action(() => {
+            const dragY = this._lastClientY;
+            const dragX = this._lastClientX;
+            if (dragY !== undefined && dragX !== undefined && this._marqueeRef.current) {
+                const bounds = this._marqueeRef.current.getBoundingClientRect()!;
+                this.Document._panY = NumCast(this.Document._panY) + deltaY;
+                this.Document._panX = NumCast(this.Document._panX) + deltaX;
+                if (dragY - bounds.top < 25 || bounds.bottom - dragY < 25 || dragX - bounds.left < 25 || bounds.right - dragX < 25) {
+                    this.continuePan(deltaX, deltaY);
+                }
+            } else this._lastClientY !== undefined && this._lastClientX !== undefined && this.continuePan(deltaX, deltaY);
+        }), 50);
     }
 
     promoteCollection = undoBatch(action(() => {
@@ -1336,7 +1389,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return false;
     });
     @computed get marqueeView() {
-        return <MarqueeView {...this.props}
+        return <MarqueeView
+            {...this.props}
             nudge={this.nudge}
             addDocTab={this.addDocTab}
             activeDocuments={this.getActiveDocuments}
@@ -1346,14 +1400,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getContainerTransform={this.getContainerTransform}
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
-            <CollectionFreeFormViewPannableContents
-                centeringShiftX={this.centeringShiftX}
-                centeringShiftY={this.centeringShiftY}
-                transition={Cast(this.layoutDoc._viewTransition, "string", null)}
-                viewDefDivClick={this.props.viewDefDivClick}
-                zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                {this.children}
-            </CollectionFreeFormViewPannableContents>
+            <div ref={this._marqueeRef}>
+                <CollectionFreeFormViewPannableContents
+                    centeringShiftX={this.centeringShiftX}
+                    centeringShiftY={this.centeringShiftY}
+                    transition={Cast(this.layoutDoc._viewTransition, "string", null)}
+                    viewDefDivClick={this.props.viewDefDivClick}
+                    zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                    {this.children}
+                </CollectionFreeFormViewPannableContents></div>
             {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }

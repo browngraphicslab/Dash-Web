@@ -23,6 +23,7 @@ import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
+import { Tooltip } from '@material-ui/core';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -118,18 +119,18 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         const published = targetDoc && Doc.GetProto(targetDoc)[GoogleRef] !== undefined;
         const animation = this.isAnimatingPulse ? "shadow-pulse 1s linear infinite" : "none";
-        return !targetDoc ? (null) : <div
-            title={`${published ? "Push" : "Publish"} to Google Docs`}
-            className="documentButtonBar-linker"
-            style={{ animation }}
-            onClick={async () => {
-                await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
-                !published && runInAction(() => this.isAnimatingPulse = true);
-                DocumentButtonBar.hasPushedHack = false;
-                targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
-            }}>
-            <FontAwesomeIcon className="documentdecorations-icon" icon={published ? (this.pushIcon as any) : cloud} size={published ? "sm" : "xs"} />
-        </div>;
+        return !targetDoc ? (null) : <Tooltip title={`${published ? "Push" : "Publish"} to Google Docs`}>
+            <div
+                className="documentButtonBar-linker"
+                style={{ animation }}
+                onClick={async () => {
+                    await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
+                    !published && runInAction(() => this.isAnimatingPulse = true);
+                    DocumentButtonBar.hasPushedHack = false;
+                    targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
+                }}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon={published ? (this.pushIcon as any) : cloud} size={published ? "sm" : "xs"} />
+            </div></Tooltip>;
     }
 
     @computed
@@ -137,7 +138,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         const dataDoc = targetDoc && Doc.GetProto(targetDoc);
         const animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
-        return !targetDoc || !dataDoc || !dataDoc[GoogleRef] ? (null) : <div className="documentButtonBar-linker"
+        return !targetDoc || !dataDoc || !dataDoc[GoogleRef] ? (null) : <Tooltip
             title={(() => {
                 switch (this.openHover) {
                     default:
@@ -146,6 +147,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                     case UtilityButtonState.OpenExternally: return "Open in new Browser Tab";
                 }
             })()}
+        ><div className="documentButtonBar-linker"
             style={{ backgroundColor: this.pullColor }}
             onPointerEnter={action(e => {
                 if (e.altKey) {
@@ -176,43 +178,43 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                     dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
                 }
             }}>
-            <FontAwesomeIcon className="documentdecorations-icon" size="sm"
-                style={{ WebkitAnimation: animation, MozAnimation: animation }}
-                icon={(() => {
-                    switch (this.openHover) {
-                        default:
-                        case UtilityButtonState.Default: return dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
-                        case UtilityButtonState.OpenRight: return "arrow-alt-circle-right";
-                        case UtilityButtonState.OpenExternally: return "share";
-                    }
-                })()}
-            />
-        </div>;
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm"
+                    style={{ WebkitAnimation: animation, MozAnimation: animation }}
+                    icon={(() => {
+                        switch (this.openHover) {
+                            default:
+                            case UtilityButtonState.Default: return dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
+                            case UtilityButtonState.OpenRight: return "arrow-alt-circle-right";
+                            case UtilityButtonState.OpenExternally: return "share";
+                        }
+                    })()}
+                />
+            </div></Tooltip>;
     }
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <div className="documentButtonBar-linker"
-            title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
-            style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-            onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
-            <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
-            />
-        </div>;
+        return !targetDoc ? (null) : <Tooltip title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}>
+            <div className="documentButtonBar-linker"
+                style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
+                onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
+                />
+            </div></Tooltip>;
     }
 
     @computed
     get metadataButton() {
         const view0 = this.view0;
-        return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
+        return !view0 ? (null) : <Tooltip title="Show metadata panel"><div className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<MetadataEntryMenu docs={() => this.props.views().filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
             </Flyout>
-        </div>;
+        </div></Tooltip>;
     }
 
     @computed
@@ -253,14 +255,15 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
         return !view0 ? (null) :
-            <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
-                <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                    content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                    <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
-                        {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
-                    </div>
-                </Flyout>
-            </div>;
+            <Tooltip title="Tap: Customize layout.  Drag: Create alias" >
+                <div className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                        content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                        <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+                            {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
+                        </div>
+                    </Flyout>
+                </div></Tooltip>;
     }
 
     render() {

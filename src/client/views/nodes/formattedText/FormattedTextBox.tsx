@@ -174,19 +174,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     linkOnDeselect: Map<string, string> = new Map();
 
     doLinkOnDeselect() {
+
         Array.from(this.linkOnDeselect.entries()).map(entry => {
             const key = entry[0];
             const value = entry[1];
+
             const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
             DocServer.GetRefField(value).then(doc => {
                 DocServer.GetRefField(id).then(linkDoc => {
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
-                    if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    if (linkDoc) {
+                        (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc;
+                    } else {
+                        DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    }
                 });
             });
         });
+
         this.linkOnDeselect.clear();
     }
 
@@ -944,6 +950,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             frag.forEach(node => nodes.push(marker(node)));
             return Fragment.fromArray(nodes);
         }
+
+
         function addLinkMark(node: Node, title: string, linkId: string) {
             if (!node.isText) {
                 const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title, linkId));

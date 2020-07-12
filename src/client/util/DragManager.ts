@@ -427,6 +427,54 @@ export namespace DragManager {
                 }, dragData.droppedDocuments);
             }
 
+            const target = document.elementFromPoint(e.x, e.y);
+
+            const complete = new DragCompleteEvent(false, dragData);
+
+            if (target) {
+                target.dispatchEvent(
+                    new CustomEvent<React.DragEvent>("dashDragging", {
+                        bubbles: true,
+                        detail: {
+                            shiftKey: e.shiftKey,
+                            altKey: e.altKey,
+                            metaKey: e.metaKey,
+                            ctrlKey: e.ctrlKey,
+                            clientX: e.clientX,
+                            clientY: e.clientY,
+                            dataTransfer: new DataTransfer,
+                            button: e.button,
+                            buttons: e.buttons,
+                            getModifierState: e.getModifierState,
+                            movementX: e.movementX,
+                            movementY: e.movementY,
+                            pageX: e.pageX,
+                            pageY: e.pageY,
+                            relatedTarget: e.relatedTarget,
+                            screenX: e.screenX,
+                            screenY: e.screenY,
+                            detail: e.detail,
+                            view: e.view ? e.view : new Window,
+                            nativeEvent: new DragEvent("dashDragging"),
+                            currentTarget: target,
+                            target: target,
+                            bubbles: true,
+                            cancelable: true,
+                            defaultPrevented: true,
+                            eventPhase: e.eventPhase,
+                            isTrusted: true,
+                            preventDefault: e.preventDefault,
+                            isDefaultPrevented: () => true,
+                            stopPropagation: e.stopPropagation,
+                            isPropagationStopped: () => true,
+                            persist: emptyFunction,
+                            timeStamp: e.timeStamp,
+                            type: "dashDragging"
+                        }
+                    })
+                );
+            }
+
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
 
             const moveX = thisX - lastX;
