@@ -6,7 +6,7 @@ import {
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
     faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
-    faHeading
+    faHeading, faRulerCombined, faFillDrip
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -60,9 +60,9 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
-import { Fade } from '@material-ui/core';
 import { LinkCreatedBox } from './nodes/LinkCreatedBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 
 @observer
@@ -147,7 +147,7 @@ export class MainView extends React.Component {
             faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
-            faHeading);
+            faHeading, faRulerCombined, faFillDrip);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -468,7 +468,9 @@ export class MainView extends React.Component {
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                height: RichTextMenu.Instance?.Pinned ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
+                //change to times 2 for both pinned
+                height: (RichTextMenu.Instance?.Pinned || InkOptionsMenu.Instance?.Pinned) ? (RichTextMenu.Instance?.Pinned && InkOptionsMenu.Instance?.Pinned) ? `calc(100% - 2*${ANTIMODEMENU_HEIGHT})` : `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%",
+                width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
@@ -607,7 +609,13 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
-            <GestureOverlay>
+            <InkOptionsMenu />
+
+
+            <GestureOverlay >
+                <FormatShapePane />
+
+
                 <RichTextMenu key="rich" />
                 {this.mainContent}
             </GestureOverlay>
@@ -619,10 +627,11 @@ export class MainView extends React.Component {
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
             <ContextMenu />
+            <FormatShapePane />
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
-            <InkOptionsMenu />
+
             <OverlayView />
             <TimelineMenu />
             {this.snapLines}

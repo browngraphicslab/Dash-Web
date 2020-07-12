@@ -24,6 +24,7 @@ import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import HeightLabel from "./collections/collectionMulticolumn/MultirowHeightLabel";
+import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -623,7 +624,8 @@ export default class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (this.InkShape !== "noRec") {
+                if (InkOptionsMenu.Instance._double === "") {
+
                     this.InkShape = "";
                 }
             }
@@ -675,12 +677,19 @@ export default class GestureOverlay extends Touchable {
         } else {
             this._points = [];
         }
-        SetActiveArrowStart("none");
-        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
-        SetActiveArrowEnd("none");
-        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        //get out of ink mode after each stroke=
+        console.log("now");
+        if (InkOptionsMenu.Instance._double === "") {
+            Doc.SetSelectedTool(InkTool.None);
+            InkOptionsMenu.Instance._selected = InkOptionsMenu.Instance._shapesNum;
+            SetActiveArrowStart("none");
+            GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
+            SetActiveArrowEnd("none");
+            GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
@@ -876,7 +885,9 @@ export default class GestureOverlay extends Touchable {
 
     render() {
         return (
-            <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
+
+            <div className="gestureOverlay-cont" style={{ position: "relative" }}
+                onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.elements}
 

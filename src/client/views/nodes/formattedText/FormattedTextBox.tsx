@@ -1168,7 +1168,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             } else if ([this._editorView!.state.schema.nodes.ordered_list, this._editorView!.state.schema.nodes.listItem].includes(node?.type) &&
                 node !== (this._editorView!.state.selection as NodeSelection)?.node && pcords) {
-                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos!)));
+                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos)));
             }
         }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }

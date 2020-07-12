@@ -671,7 +671,7 @@ export namespace Docs {
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
-            I.strokeWidth = strokeWidth;
+            I.strokeWidth = Number(strokeWidth);
             I.strokeBezier = strokeBezier;
             I.fillColor = fillColor;
             I.arrowStart = arrowStart;
@@ -685,6 +685,7 @@ export namespace Docs {
             I._width = options._width;
             I._height = options._height;
             I.author = Doc.CurrentUserEmail;
+            I.rotation = 0;
             I.data = new InkField(points);
             return I;
             // return I;
