@@ -25,8 +25,13 @@
     /* Make the buttons appear below each other */
 }
 
+.btn-draw {
+    display: inline;
+    /* Make the buttons appear below each other */
+}
+
 .btn2-group {
-    display: block;
+    display: grid;
     background: #323232;
     grid-template-columns: auto;
 
