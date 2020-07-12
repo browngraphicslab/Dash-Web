@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, } from "@fortawesome/free-solid-svg-icons";
 import { Cast, StrCast, BoolCast } from "../../../../fields/Types";
+import FormatShapePane from "./FormatShapePane";
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve);
 
@@ -40,7 +41,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
     private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
     private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
     private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
-    private _shape = ["", "", "", "", "", "", "rectangle", "circle", "triangle"];
+    private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
 
     @observable _shapesNum = this._shape.length;
     @observable _selected = this._shapesNum;
@@ -127,7 +128,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                         // doc.strokeBezier === 300 ? doc.strokeBezier = 0 : doc.strokeBezier = 300;
                         break;
                     case "dash":
-                        doc.dash = Number(value);
+                        doc.strokeDash = Number(value);
                     default:
                         break;
                 }
@@ -144,7 +145,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
     @action
     changeDash = (e: React.PointerEvent): void => {
         SetActiveDash(ActiveDash() === "0" ? "2" : "0");
-        this.editProperties(ActiveDash(), "dash");
+        this.editProperties(ActiveDash(), "strokeDash");
     }
 
     @computed get drawButtons() {
@@ -296,6 +297,14 @@ export default class InkOptionsMenu extends AntimodeMenu {
         }
         return colorPicker;
     }
+    @computed get formatPane() {
+        return <button className="antimodeMenu-button" key="format"
+            title="toggle foramatting pane"
+            onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
+            style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
+            <FontAwesomeIcon icon="chevron-right" size="lg" />
+        </button>;
+    }
 
     @computed get fillPicker() {
         var fillPicker = <button
@@ -403,12 +412,12 @@ export default class InkOptionsMenu extends AntimodeMenu {
             this.colorPicker,
             this.fillPicker,
             this.drawButtons,
+            this.formatPane,
             // this.arrowPicker,
             // this.dashButton,
             <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                 <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
             </button>
-
         ];
 
         // return this.getElement(buttons);

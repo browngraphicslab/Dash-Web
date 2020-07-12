@@ -43,10 +43,10 @@ export default class FormatShapePane extends AntimodeMenu {
     @computed get _noFill() { return this.inks?.reduce((p, i) => p && !i.rootDoc.fillColor ? true : false, true) || false; }
     @computed get _solidFill() { return this.inks?.reduce((p, i) => p && i.rootDoc.fillColor ? true : false, true) || false; }
     @computed get _noLine() { return this.inks?.reduce((p, i) => p && !i.rootDoc.color ? true : false, true) || false; }
-    @computed get _solidLine() { return this.inks?.reduce((p, i) => p && i.rootDoc.color && (!i.rootDoc.dash || i.rootDoc.dash === "0") ? true : false, true) || false; }
-    @computed get _arrowStart() { return this.getField("arrowStart") || ""; }
-    @computed get _arrowEnd() { return this.getField("arrowEnd") || ""; }
-    @computed get _dashLine() { return !this._noLine && this.getField("dash") || ""; }
+    @computed get _solidLine() { return this.inks?.reduce((p, i) => p && i.rootDoc.color && (!i.rootDoc.strokeDash || i.rootDoc.strokeDash === "0") ? true : false, true) || false; }
+    @computed get _arrowStart() { return this.getField("strokeArrowStart") || ""; }
+    @computed get _arrowEnd() { return this.getField("strokeArrowEnd") || ""; }
+    @computed get _dashLine() { return !this._noLine && this.getField("strokeDash") || ""; }
     @computed get _currSizeHeight() { return this.getField("_height"); }
     @computed get _currSizeWidth() { return this.getField("_width"); }
     @computed get _currRotation() { return this.getField("rotation"); }
@@ -59,13 +59,13 @@ export default class FormatShapePane extends AntimodeMenu {
     set _solidFill(value) { this._noFill = !value; }
     set _currFill(value) { value && (this._lastFill = value); this.inks?.forEach(i => i.rootDoc.fillColor = value ? value : undefined); }
     set _currColor(value) { value && (this._lastLine = value); this.inks?.forEach(i => i.rootDoc.color = value ? value : undefined); }
-    set _arrowStart(value) { this.inks?.forEach(i => i.rootDoc.arrowStart = value); }
-    set _arrowEnd(value) { this.inks?.forEach(i => i.rootDoc.arrowEnd = value); }
+    set _arrowStart(value) { this.inks?.forEach(i => i.rootDoc.strokeArrowStart = value); }
+    set _arrowEnd(value) { this.inks?.forEach(i => i.rootDoc.strokeArrowEnd = value); }
     set _noLine(value) { this._currColor = value ? "" : this._lastLine; }
     set _solidLine(value) { this._dashLine = ""; this._noLine = !value; }
     set _dashLine(value) {
         value && (this._lastDash = value) && (this._noLine = false);
-        this.inks?.forEach(i => i.rootDoc.dash = value ? this._lastDash : undefined);
+        this.inks?.forEach(i => i.rootDoc.strokeDash = value ? this._lastDash : undefined);
     }
     set _currXpos(value) { this.inks?.forEach(i => i.rootDoc.x = Number(value)); }
     set _currYpos(value) { this.inks?.forEach(i => i.rootDoc.y = Number(value)); }
@@ -192,10 +192,10 @@ export default class FormatShapePane extends AntimodeMenu {
 
     @computed get subMenu() {
         const fillCheck = <div key="fill" style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
-            <input id="nofill" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._noFill} onChange={action(() => this._noFill = true)} />
+            <input id="nofill" style={{ width: "inherit", position: "absolute" }} type="radio" checked={this._noFill} onChange={action(() => this._noFill = true)} />
             No Fill
             <br />
-            <input id="solidfill" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._solidFill} onChange={action(() => this._solidFill = true)} />
+            <input id="solidfill" style={{ width: "inherit", position: "absolute" }} type="radio" checked={this._solidFill} onChange={action(() => this._solidFill = true)} />
             Solid Fill
             <br />
             <br />
@@ -214,13 +214,13 @@ export default class FormatShapePane extends AntimodeMenu {
         </>;
 
         const lineCheck = <div key="lineCheck" style={{ width: "inherit", backgroundColor: "#323232", color: "white", }}>
-            <input id="noLine" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._noLine} onChange={action(() => this._noLine = true)} />
+            <input id="noLine" style={{ width: "inherit", position: "absolute" }} type="radio" checked={this._noLine} onChange={action(() => this._noLine = true)} />
                 No Line
             <br />
-            <input id="solidLine" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._solidLine} onChange={action(() => this._solidLine = true)} />
+            <input id="solidLine" style={{ width: "inherit", position: "absolute" }} type="radio" checked={this._solidLine} onChange={action(() => this._solidLine = true)} />
                 Solid Line
             <br />
-            <input id="dashLine" style={{ width: "inherit", position: "absolute" }} type="checkbox" checked={this._dashLine ? true : false} onChange={action(() => this._dashLine = "2")} />
+            <input id="dashLine" style={{ width: "inherit", position: "absolute" }} type="radio" checked={this._dashLine ? true : false} onChange={action(() => this._dashLine = "2")} />
                 Dash Line
             <br />
             <br />
@@ -230,6 +230,7 @@ export default class FormatShapePane extends AntimodeMenu {
             <br />
             {(this._solidLine || this._dashLine) ? "Width" : ""}
             {(this._solidLine || this._dashLine) ? this.widthInput : ""}
+            {(this._solidLine || this._dashLine) ? <input type="range" defaultValue={Number(this._currStrokeWidth || "1")} min={1} max={100} onChange={e => this._currStrokeWidth = e.target.value} /> : (null)}
             <br />
             <br />
             {(this._solidLine || this._dashLine) ? arrows : ""}
