@@ -20,18 +20,27 @@
     justify-content: center;
     align-items: center;
 
+    // &:hover {
+    //     background: deepskyblue;
+    //     transform: scale(1.05);
+    //     cursor: pointer;
+    // }
+}
+
+.documentLinksButton {
+    background-color: $link-color;
+}
+
+.documentLinksButton-endLink {
+    border: red solid 2px;
+
     &:hover {
         background: deepskyblue;
         transform: scale(1.05);
         cursor: pointer;
     }
 }
-.documentLinksButton {
-    background-color: $link-color;
-}
-.documentLinksButton-endLink {
-    border: red solid 2px;
-}
+
 .documentLinksButton-startLink {
     border: red solid 2px;
     background-color: rgba(255, 192, 203, 0.5);

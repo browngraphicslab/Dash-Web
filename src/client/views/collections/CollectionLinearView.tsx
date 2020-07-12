@@ -186,7 +186,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
                     <Tooltip title="Exit link clicking mode" placement="top">
                         <span className="bottomPopup-exit" onClick={this.exitLongLinks}
-                        >Exit</span>
+                        >Clear</span>
                     </Tooltip>
 
                     {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
