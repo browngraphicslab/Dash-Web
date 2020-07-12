@@ -610,13 +610,9 @@ export class MainView extends React.Component {
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
             <InkOptionsMenu />
-
-
+            <FormatShapePane />
+            <RichTextMenu key="rich" />
             <GestureOverlay >
-                <FormatShapePane />
-
-
-                <RichTextMenu key="rich" />
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
