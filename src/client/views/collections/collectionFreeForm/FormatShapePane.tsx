@@ -136,7 +136,7 @@ export default class FormatShapePane extends AntimodeMenu {
     }
 
     @computed get close() {
-        return <button className="antimodeMenu-button" key="close" onPointerDown={action(() => this.closePane())} style={{ right: 0 }}>
+        return <button className="antimodeMenu-button" key="close" onPointerDown={action(() => this.closePane())} style={{ position: "absolute", right: 0 }}>
             X
         </button>;
     }
@@ -320,7 +320,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
     colorButton(value: string, setter: () => {}) {
         return <>
-            <button className="antimodeMenu-button" key="fill" onPointerDown={action(e => setter())} style={{ right: 80 }}>
+            <button className="antimodeMenu-button" key="fill" onPointerDown={action(e => setter())} style={{ position: "absolute", right: 80 }}>
                 <FontAwesomeIcon icon="fill-drip" size="lg" />
                 <div className="color-previewI" style={{ backgroundColor: value ?? "121212" }} />
             </button>
