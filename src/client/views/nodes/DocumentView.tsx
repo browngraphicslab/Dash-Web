@@ -639,59 +639,37 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             alert("linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
+        const makeLink = action((linkDoc: Doc) => {
+            LinkManager.currentLink = linkDoc;
+            linkDoc.hidden = true;
+            linkDoc.linkDisplay = true;
+
+            LinkCreatedBox.popupX = de.x;
+            LinkCreatedBox.popupY = de.y - 33;
+            LinkCreatedBox.linkCreated = true;
+
+            LinkDescriptionPopup.popupX = de.x;
+            LinkDescriptionPopup.popupY = de.y;
+            LinkDescriptionPopup.descriptionPopup = true;
+
+            setTimeout(action(() => LinkCreatedBox.linkCreated = false), 2500);
+        });
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
             const linkDoc = DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
-            LinkManager.currentLink = linkDoc;
-            linkDoc ? linkDoc.hidden = true : null;
-            linkDoc ? linkDoc.linkDisplay = true : null;
-
-            runInAction(() => {
-                if (linkDoc) {
-                    LinkCreatedBox.popupX = de.x;
-                    LinkCreatedBox.popupY = de.y - 33;
-                    LinkCreatedBox.linkCreated = true;
-
-                    LinkDescriptionPopup.popupX = de.x;
-                    LinkDescriptionPopup.popupY = de.y;
-                    LinkDescriptionPopup.descriptionPopup = true;
-
-                    setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-                }
-            });
+            linkDoc && makeLink(linkDoc);
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
-            // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
-            // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-
             if (de.complete.linkDragData.linkSourceDocument !== this.props.Document) {
                 const linkDoc = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
                     { doc: this.props.Document }, `link`);
-                LinkManager.currentLink = linkDoc;
-                linkDoc ? linkDoc.hidden = true : null;
-                linkDoc ? linkDoc.linkDisplay = true : null;
-
                 de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                     (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
-                runInAction(() => {
-
-                    if (linkDoc) {
-                        LinkCreatedBox.popupX = de.x;
-                        LinkCreatedBox.popupY = de.y - 33;
-                        LinkCreatedBox.linkCreated = true;
-
-                        LinkDescriptionPopup.popupX = de.x;
-                        LinkDescriptionPopup.popupY = de.y;
-                        LinkDescriptionPopup.descriptionPopup = true;
-
-                        setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
-                    }
-
-                });
+                linkDoc && makeLink(linkDoc);
             }
 
         }

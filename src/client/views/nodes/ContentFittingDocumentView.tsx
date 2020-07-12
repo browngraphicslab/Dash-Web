@@ -2,7 +2,6 @@ import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Transform } from "nodemailer/lib/xoauth2";
-//import "react-table/react-table.css";
 import { Doc, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -10,7 +9,6 @@ import { TraceMobx } from "../../../fields/util";
 import { emptyFunction } from "../../../Utils";
 import { dropActionType } from "../../util/DragManager";
 import { CollectionView } from "../collections/CollectionView";
-
 import { DocumentView, DocumentViewProps } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
 

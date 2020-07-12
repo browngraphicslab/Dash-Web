@@ -17,6 +17,7 @@ import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import { Tooltip } from '@material-ui/core';
 import { RichTextField } from '../../../fields/RichTextField';
+import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
@@ -188,31 +189,32 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
 
-        const destinationIcon = this.props.destinationDoc.type === "image" ? "image" :
-            this.props.destinationDoc.type === "comparison" ? "columns" :
-                this.props.destinationDoc.type === "rtf" ? "font" :
-                    this.props.destinationDoc.type === "collection" ? "folder" :
-                        this.props.destinationDoc.type === "web" ? "globe-asia" :
-                            this.props.destinationDoc.type === "screenshot" ? "photo-video" :
-                                this.props.destinationDoc.type === "webcam" ? "video" :
-                                    this.props.destinationDoc.type === "audio" ? "microphone" :
-                                        this.props.destinationDoc.type === "button" ? "bolt" :
-                                            this.props.destinationDoc.type === "presentation" ? "tv" :
-                                                this.props.destinationDoc.type === "query" ? "search" :
-                                                    this.props.destinationDoc.type === "script" ? "terminal" :
-                                                        this.props.destinationDoc.type === "import" ? "cloud-upload-alt" :
-                                                            this.props.destinationDoc.type === "docholder" ? "expand" : "question";
+        let destinationIcon: string = "";;
+        switch (this.props.destinationDoc.type) {
+            case DocumentType.IMG: destinationIcon = "image"; break;
+            case DocumentType.COMPARISON: destinationIcon = "columns"; break;
+            case DocumentType.RTF: destinationIcon = "font"; break;
+            case DocumentType.COL: destinationIcon = "folder"; break;
+            case DocumentType.WEB: destinationIcon = "globe-asia"; break;
+            case DocumentType.SCREENSHOT: destinationIcon = "photo-video"; break;
+            case DocumentType.WEBCAM: destinationIcon = "video"; break;
+            case DocumentType.AUDIO: destinationIcon = "microphone"; break;
+            case DocumentType.BUTTON: destinationIcon = "bolt"; break;
+            case DocumentType.PRES: destinationIcon = "tv"; break;
+            case DocumentType.QUERY: destinationIcon = "search"; break;
+            case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
+            case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
+            case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
+            default: "question";
+        }
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
             StrCast(this.props.destinationDoc.title).substr(0, 19) + "..." : this.props.destinationDoc.title;
 
-
-        console.log(StrCast(this.props.destinationDoc.title).length);
-
         //  ...
         // from anika to bob: here's where the text that is specifically linked would show up (linkDoc.storedText)
         // ...
-        const source = this.props.sourceDoc.type === "rtf" ? this.props.linkDoc.storedText ?
+        const source = this.props.sourceDoc.type === DocumentType.RTF ? this.props.linkDoc.storedText ?
             StrCast(this.props.linkDoc.storedText).length > 17 ?
                 StrCast(this.props.linkDoc.storedText).substr(0, 18)
                 : this.props.linkDoc.storedText : undefined : undefined;
