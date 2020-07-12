@@ -44,8 +44,8 @@ export class LinkMenu extends React.Component<Props> {
         LinkDocPreview.LinkInfo = undefined;
 
 
-        if (this._linkMenuRef && !!!this._linkMenuRef.current?.contains(e.target as any)) {
-            if (this._editorRef && !!!this._editorRef.current?.contains(e.target as any)) {
+        if (this._linkMenuRef && !this._linkMenuRef.current?.contains(e.target as any)) {
+            if (this._editorRef && !this._editorRef.current?.contains(e.target as any)) {
                 console.log("outside click");
                 DocumentLinksButton.EditLink = undefined;
             }
@@ -90,14 +90,16 @@ export class LinkMenu extends React.Component<Props> {
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         return <div className="linkMenu" ref={this._linkMenuRef} >
-             {!this._editingLink ? <div className="linkMenu-list" style={{
-                  left: this.props.location[0], top: this.props.location[1] }}>
-              {this.renderAllGroups(groups)} 
-              </div> : <div className="linkMenu-listEditor" style={{
-                  left: this.props.location[0], top: this.props.location[1]}}>
+            {!this._editingLink ? <div className="linkMenu-list" style={{
+                left: this.props.location[0], top: this.props.location[1]
+            }}>
+                {this.renderAllGroups(groups)}
+            </div> : <div className="linkMenu-listEditor" style={{
+                left: this.props.location[0], top: this.props.location[1]
+            }}>
                     <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}
                         showLinks={action(() => this._editingLink = undefined)} />
-                </div> 
+                </div>
             }
 
         </div>;

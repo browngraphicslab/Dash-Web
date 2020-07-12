@@ -63,7 +63,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (doubleTap && this.props.InMenu) {
                 //action(() => Doc.BrushDoc(this.props.View.Document));
                 DocumentLinksButton.StartLink = this.props.View;
-            } else if (!!!this.props.InMenu) {
+            } else if (!this.props.InMenu) {
                 console.log("editing");
                 this.props.View ? console.log("view") : null;
                 DocumentLinksButton.EditLink = this.props.View;
@@ -77,7 +77,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (this.props.InMenu) {
             DocumentLinksButton.StartLink = this.props.View;
             //action(() => Doc.BrushDoc(this.props.View.Document));
-        } else if (!!!this.props.InMenu) {
+        } else if (!this.props.InMenu) {
             DocumentLinksButton.EditLink = this.props.View;
             DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
         }
