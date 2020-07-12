@@ -62,13 +62,13 @@ export default class InkOptionsMenu extends AntimodeMenu {
         super(props);
         InkOptionsMenu.Instance = this;
         this._canFade = false; // don't let the inking menu fade away
-        this.Pinned = BoolCast(Doc.UserDoc()["inkOptionsMenu-pinned"]);
+        this.Pinned = BoolCast(Doc.UserDoc()["menuInkOptions-pinned"]);
 
     }
 
     @action
     toggleMenuPin = (e: React.MouseEvent) => {
-        Doc.UserDoc()["inkOptionsMenu-pinned"] = this.Pinned = !this.Pinned;
+        Doc.UserDoc()["menuInkOptions-pinned"] = this.Pinned = !this.Pinned;
         if (!this.Pinned) {
             // this.fadeOut(true);
         }
@@ -426,15 +426,10 @@ export default class InkOptionsMenu extends AntimodeMenu {
 }
 Scripting.addGlobal(function activatePen(penBtn: any) {
     if (penBtn) {
-        //no longer changes to inkmode
-        // Doc.SetSelectedTool(InkTool.Pen);
         InkOptionsMenu.Instance.jumpTo(300, 300);
         InkOptionsMenu.Instance.Pinned = true;
-
     } else {
-        // Doc.SetSelectedTool(InkTool.None);
         InkOptionsMenu.Instance.Pinned = false;
         InkOptionsMenu.Instance.fadeOut(true);
-
     }
 });
