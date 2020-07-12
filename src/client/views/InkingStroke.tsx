@@ -15,6 +15,8 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { Scripting } from "../util/Scripting";
 import { Doc } from "../../fields/Doc";
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
+import { action } from "mobx";
 
 library.add(faPaintBrush);
 
@@ -38,10 +40,16 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document.isInkMask = true;
     }
 
+    @action
+    private formatShape = () => {
+        FormatShapePane.Instance.Pinned = true;
+    }
+
     render() {
         TraceMobx();
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
-        const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
+        // const strokeWidth = Number(StrCast(this.layoutDoc.strokeWidth, ActiveInkWidth()));
+        const strokeWidth = Number(this.layoutDoc.strokeWidth);
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
         const left = Math.min(...xs) - strokeWidth / 2;
@@ -52,14 +60,14 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const height = bottom - top;
         const scaleX = (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
         const scaleY = (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
-        const strokeColor = StrCast(this.layoutDoc.color, ActiveInkColor());
+        const strokeColor = StrCast(this.layoutDoc.color, "");
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()),
-            StrCast(this.layoutDoc.arrowStart, ActiveArrowStart()), StrCast(this.layoutDoc.arrowEnd, ActiveArrowEnd()),
-            StrCast(this.layoutDoc.dash, ActiveDash()), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeArrowStart), StrCast(this.layoutDoc.strokeArrowEnd),
+            StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
-            StrCast(this.layoutDoc.strokeBezier, ActiveInkBezierApprox()), StrCast(this.layoutDoc.fillColor, ActiveFillColor()),
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
             "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
         return (
             <svg className="inkingStroke"
@@ -72,8 +80,12 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     overflow: "visible",
                 }}
                 onContextMenu={() => {
-                    ContextMenu.Instance?.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
-                    ContextMenu.Instance?.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                    const cm = ContextMenu.Instance;
+                    if (cm) {
+                        cm.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
+                        cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                        cm.addItem({ description: "Format Shape", event: this.formatShape, icon: "paint-brush" });
+                    }
                 }}
             ><defs>
                 </defs>
@@ -94,9 +106,9 @@ export function SetActiveArrowEnd(value: string) { ActiveInkPen() && (ActiveInkP
 export function SetActiveDash(dash: string): void { !isNaN(parseInt(dash)) && ActiveInkPen() && (ActiveInkPen().activeDash = dash); }
 export function ActiveInkPen(): Doc { return Cast(Doc.UserDoc().activeInkPen, Doc, null); }
 export function ActiveInkColor(): string { return StrCast(ActiveInkPen()?.activeInkColor, "black"); }
-export function ActiveFillColor(): string { return StrCast(ActiveInkPen()?.activeFillColor, "none"); }
-export function ActiveArrowStart(): string { return StrCast(ActiveInkPen()?.activeArrowStart, "none"); }
-export function ActiveArrowEnd(): string { return StrCast(ActiveInkPen()?.activeArrowEnd, "none"); }
+export function ActiveFillColor(): string { return StrCast(ActiveInkPen()?.activeFillColor, ""); }
+export function ActiveArrowStart(): string { return StrCast(ActiveInkPen()?.activeArrowStart, ""); }
+export function ActiveArrowEnd(): string { return StrCast(ActiveInkPen()?.activeArrowEnd, ""); }
 export function ActiveDash(): string { return StrCast(ActiveInkPen()?.activeDash, "0"); }
 export function ActiveInkWidth(): string { return StrCast(ActiveInkPen()?.activeInkWidth, "1"); }
 export function ActiveInkBezierApprox(): string { return StrCast(ActiveInkPen()?.activeInkBezier); }

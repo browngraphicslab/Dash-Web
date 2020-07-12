@@ -820,9 +820,9 @@ export class CurrentUserUtils {
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
         doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
-        doc.activeFillColor = StrCast(doc.activeFillColor, "none");
-        doc.activeArrowStart = StrCast(doc.activeArrowStart, "none");
-        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "none");
+        doc.activeFillColor = StrCast(doc.activeFillColor, "");
+        doc.activeArrowStart = StrCast(doc.activeArrowStart, "");
+        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "");
         doc.activeDash = StrCast(doc.activeDash, "0");
         doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
