@@ -25,6 +25,7 @@ import { HtmlField } from '../../fields/HtmlField';
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { update } from 'serializr';
 import { Transform } from "../util/Transform";
+import { Tooltip } from '@material-ui/core';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -546,13 +547,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
-            <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
-                <FontAwesomeIcon size="lg" icon="cog" />
-            </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onClick={this.onCloseClick}>
-                    {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
-                </div>);
+            <Tooltip title="Show context menu" placement="top">
+                <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
+                    <FontAwesomeIcon size="lg" icon="cog" />
+                </div></Tooltip>) : (
+                <Tooltip title="Iconify" placement="top">
+                    <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
+                        {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
+                        <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                    </div></Tooltip>);
 
         const titleArea = this._edtingTitle ?
             <>
@@ -572,9 +575,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 </div>}
             </> :
             <>
-                {minimal ? (null) : <div className="documentDecorations-contextMenu" key="menu" title="Show context menu" onPointerDown={this.onSettingsDown}>
+                {minimal ? (null) : <Tooltip title="Show context menu" placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
-                </div>}
+                </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
                     <span style={{ width: "100%", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
                 </div>
@@ -611,12 +614,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     {maximizeIcon}
                     {titleArea}
                     {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                        <div className="documentDecorations-iconifyButton" title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} onPointerDown={this.onIconifyDown}>
-                            {"_"}
-                        </div>}
-                    <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
+                        <Tooltip title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} placement="top">
+                            <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
+                                {"_"}
+                            </div></Tooltip>}
+                    <Tooltip title="Open Document in Tab" placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
-                    </div>
+                    </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"
                         onPointerDown={this.onRotateDown}> ⟲ </div>
                     <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
@@ -637,10 +641,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                         onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                     {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                        <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
-                            title="tap to select containing document" onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
-                            <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
-                        </div>}
+                        <Tooltip title="tap to select containing document" placement="top">
+                            <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
+                                onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
+                                <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                            </div></Tooltip>}
                     <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
                         onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 

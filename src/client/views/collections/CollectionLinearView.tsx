@@ -111,17 +111,22 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const flexDir: any = StrCast(this.Document.flexDirection);
         const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
         const color = StrCast(this.props.Document.color, "white");
+
+        const menuOpener = <label htmlFor={`${guid}`} style={{
+            background: backgroundColor === color ? "black" : backgroundColor,
+            // width: "18px", height: "18px", fontSize: "12.5px",
+            // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
+            // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
+        }}
+            onPointerDown={e => e.stopPropagation()} >
+            <p>+</p>
+        </label>;
+
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <label htmlFor={`${guid}`} title="Close Menu" style={{
-                    background: backgroundColor === color ? "black" : backgroundColor,
-                    // width: "18px", height: "18px", fontSize: "12.5px",
-                    // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
-                    // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
-                }}
-                    onPointerDown={e => e.stopPropagation()} >
-                    <p>+</p>
-                </label>
+                <Tooltip title={BoolCast(this.props.Document.linearViewIsExpanded) ? "Close menu" : "Open menu"} placement="top">
+                    {menuOpener}
+                </Tooltip>
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
                     onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 

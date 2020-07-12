@@ -64,6 +64,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 //action(() => Doc.BrushDoc(this.props.View.Document));
                 DocumentLinksButton.StartLink = this.props.View;
             } else if (!!!this.props.InMenu) {
+                console.log("editing");
+                this.props.View ? console.log("view") : null;
                 DocumentLinksButton.EditLink = this.props.View;
                 DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
             }
@@ -159,7 +161,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     get linkButton() {
         const links = DocListCast(this.props.View.props.Document.links);
 
-        const title = this.props.InMenu ? "Drag or tap to create links" : "Tap to view links";
+        const title = this.props.InMenu ? "Drag or tap to create links" : DocumentLinksButton.StartLink ? "Tap to finish link" : "Tap to view links";
 
         const linkButton = <div ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
             <div className={"documentLinksButton"} style={{
