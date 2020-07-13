@@ -1116,7 +1116,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     @action
     onFocused = (e: React.FocusEvent): void => {
-        console.log("FOUCSS");
         FormattedTextBox.FocusedBox = this;
         this.tryUpdateHeight();
 

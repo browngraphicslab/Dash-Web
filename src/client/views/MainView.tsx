@@ -62,6 +62,8 @@ import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { Fade } from '@material-ui/core';
 import { LinkCreatedBox } from './nodes/LinkCreatedBox';
+import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
+import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -603,6 +605,7 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
+            <HypothesisAuthenticationManager />
             <DocumentDecorations />
             <GestureOverlay>
                 <RichTextMenu key="rich" />
@@ -610,6 +613,7 @@ export class MainView extends React.Component {
             </GestureOverlay>
             <PreviewCursor />
             <LinkCreatedBox />
+            {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}

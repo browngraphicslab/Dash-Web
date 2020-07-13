@@ -10,7 +10,7 @@ import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from '../CollectionSubView';
-import "./collectionMulticolumnView.scss";
+import "./CollectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
 import { List } from '../../../../fields/List';

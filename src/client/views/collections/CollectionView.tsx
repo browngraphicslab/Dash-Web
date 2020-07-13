@@ -147,7 +147,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                             _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
                         });
                         Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin");
+                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
                         const first = DocListCast(pushpin.links).find(d => d instanceof Doc);
                         first && (first.hidden = true);
                         pushpinLink && (Doc.GetProto(pushpinLink).isPushpin = true);

@@ -493,7 +493,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         summary._backgroundColor = "#e2ad32";
         portal.layoutKey = "layout_portal";
         portal.title = "document collection";
-        DocUtils.MakeLink({ doc: summary }, { doc: portal }, "summarizing");
+        DocUtils.MakeLink({ doc: summary }, { doc: portal }, "summarizing", "");
 
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);
