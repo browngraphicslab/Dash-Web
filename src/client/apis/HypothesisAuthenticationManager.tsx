@@ -53,7 +53,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                             Networking.PostToServer("/writeHypothesisAccessToken", { authenticationCode, hypothesisUsername });
                             runInAction(() => {
                                 this.success = true;
-                                this.credentials = response;
+                                this.credentials = { username: hypothesisUsername, apiKey: authenticationCode! };
                             });
                             this.resetState();
                             resolve(authenticationCode);
