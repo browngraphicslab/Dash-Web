@@ -55,7 +55,7 @@ export const documentSchema = createSchema({
     _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden
     _columnHeaders: listSpec(SchemaHeaderField), // header descriptions for stacking/masonry
     _schemaHeaders: listSpec(SchemaHeaderField), // header descriptions for schema views
-    _fontSize: "number",
+    _fontSize: "string",
     _fontFamily: "string",
     _sidebarWidthPercent: "string", // percent of text window width taken up by sidebar
 

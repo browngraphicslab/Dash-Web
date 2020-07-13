@@ -1247,7 +1247,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
-                fontSize: Cast(this.Document._fontSize, "number", null)
+                fontSize: Cast(this.Document._fontSize, "string", null)
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}

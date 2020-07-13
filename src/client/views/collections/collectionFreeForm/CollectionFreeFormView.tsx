@@ -1034,7 +1034,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const transform = `translate(${x}px, ${y}px)`;
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string"); // don't use NumCast, StrCast, etc since we want to test for undefined below
-            const fontSize = Cast(viewDef.fontSize, "number");
+            const fontSize = Cast(viewDef.fontSize, "string");
             return [text, x, y].some(val => val === undefined) ? undefined :
                 {
                     ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z + color} style={{ width, height, color, fontSize, transform }}>
