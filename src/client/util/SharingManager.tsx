@@ -146,6 +146,7 @@ export default class SharingManager extends React.Component<{}> {
         const ACL = `ACL-${StrCast(group.groupName)}`;
 
         target[ACL] = permission;
+        Doc.GetProto(target)[ACL] = permission;
 
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
         // group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
@@ -215,7 +216,7 @@ export default class SharingManager extends React.Component<{}> {
         // const permissions: { [key: string]: number } = target[ACL] ? JSON.parse(StrCast(target[ACL])) : {};
 
         target[ACL] = permission;
-
+        Doc.GetProto(target)[ACL] = permission;
 
         if (permission !== SharingPermissions.None) {
             console.log(target);

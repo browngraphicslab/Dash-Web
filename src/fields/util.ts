@@ -70,8 +70,8 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     const writeMode = DocServer.getFieldWriteMode(prop as string);
     const fromServer = target[UpdatingFromServer];
     const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
-    const writeToDoc = sameAuthor || (writeMode !== DocServer.WriteMode.LiveReadonly);
-    const writeToServer = (sameAuthor || (writeMode === DocServer.WriteMode.Default)) && !playgroundMode;
+    const writeToDoc = sameAuthor || GetEffectiveAcl(target) === AclEdit || (writeMode !== DocServer.WriteMode.LiveReadonly);
+    const writeToServer = (sameAuthor || GetEffectiveAcl(target) === AclEdit || writeMode === DocServer.WriteMode.Default) && !playgroundMode;
 
     if (writeToDoc) {
         if (value === undefined) {
@@ -91,8 +91,9 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
             redo: () => receiver[prop] = value,
             undo: () => receiver[prop] = curValue
         });
+        return true;
     }
-    return true;
+    return false;
 });
 
 let _setter: (target: any, prop: string | symbol | number, value: any, receiver: any) => boolean = _setterImpl;
@@ -126,6 +127,7 @@ export function setGroups(groups: string[]) {
 }
 
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
+    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclEdit;
 
     const HierarchyMapping = new Map<symbol, number>([
         [AclPrivate, 0],

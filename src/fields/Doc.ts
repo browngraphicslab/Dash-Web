@@ -1,4 +1,4 @@
-import { action, computed, observable, ObservableMap, runInAction } from "mobx";
+import { action, computed, observable, ObservableMap, runInAction, untracked } from "mobx";
 import { computedFn } from "mobx-utils";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
@@ -110,15 +110,13 @@ const AclMap = new Map<string, symbol>([
 
 export function fetchProto(doc: Doc) {
     if (doc.author !== Doc.CurrentUserEmail) { // storing acls for groups needs to be extended here - AclSym should store a datastructure that stores information about permissions
+        untracked(() => {
+            const permissions: { [key: string]: symbol } = {};
 
-        const permissions: { [key: string]: symbol } = {};
+            Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
 
-        Object.keys(doc).forEach(key => {
-            if (key.startsWith("ACL")) permissions[key] = AclMap.get(StrCast(doc[key]))!;
+            if (Object.keys(permissions).length) doc[AclSym] = permissions;
         });
-
-
-        if (Object.keys(permissions).length) doc[AclSym] = permissions;
     }
 
     if (doc.proto instanceof Promise) {
