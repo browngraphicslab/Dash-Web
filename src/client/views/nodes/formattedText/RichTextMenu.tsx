@@ -363,7 +363,7 @@ export default class RichTextMenu extends AntimodeMenu {
         );
     }
 
-    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[], key: string): JSX.Element {
+    createMarksDropdown(activeOption: string, options: { mark: Mark | null, title: string, label: string, command: (mark: Mark, view: EditorView) => void, hidden?: boolean, style?: {} }[], key: string, setter: (val: string) => {}): JSX.Element {
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
                 return <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
@@ -380,24 +380,24 @@ export default class RichTextMenu extends AntimodeMenu {
                 if (e.target.value === label && mark) {
                     if (!self.TextView.props.isSelected()) {
                         switch (mark.type) {
-                            case schema.marks.pFontFamily: Doc.UserDoc().fontFamily = mark.attrs.family; break;
-                            case schema.marks.pFontSize: Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "pt"; break;
+                            case schema.marks.pFontFamily: setter(Doc.UserDoc().fontFamily = mark.attrs.family); break;
+                            case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "pt"); break;
                         }
                     }
                     else UndoManager.RunInBatch(() => self.view && mark && command(mark, self.view), "text mark dropdown");
                 }
             });
         }
-        return <select onChange={onChange} defaultValue={activeOption} key={key}>{items}</select>;
+        return <select onChange={onChange} value={activeOption} key={key}>{items}</select>;
     }
 
     createNodesDropdown(activeMap: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[], key: string, setter: (val: string) => {}): JSX.Element {
         const activeOption = activeMap === "bullet" ? ":" : activeMap === "decimal" ? "1.1" : activeMap === "multi" ? "A.1" : "<none>";
         const items = options.map(({ title, label, hidden, style }) => {
             if (hidden) {
-                return <option value={label} selected={label === activeOption} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
+                return <option value={label} title={title} key={label} style={style ? style : {}} hidden>{label}</option>;
             }
-            return <option value={label} selected={label === activeOption} title={title} key={label} style={style ? style : {}}>{label}</option>;
+            return <option value={label} title={title} key={label} style={style ? style : {}}>{label}</option>;
         });
 
         const self = this;
@@ -412,7 +412,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        return <select defaultValue={activeOption} onChange={e => onChange(e.target.value)} key={key}>{items}</select>;
+        return <select value={activeOption} onChange={e => onChange(e.target.value)} key={key}>{items}</select>;
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
@@ -932,8 +932,8 @@ export default class RichTextMenu extends AntimodeMenu {
             {this.collapsed ? this.getDragger() : (null)}
             <div key="row 2" style={{ display: this.collapsed ? "none" : undefined }}>
                 <div className="richTextMenu-divider" key="divider 3" />,
-                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
-                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
+                {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => this.activeFontSize = val)),
+                this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => this.activeFontFamily = val)),
                 <div className="richTextMenu-divider" key="divider 4" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes", action((val: string) => this.activeListType = val)),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
