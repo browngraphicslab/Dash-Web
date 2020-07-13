@@ -110,10 +110,10 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        const text = StrCast(this.props.A.props.Document.linkRelationship);
+        const text = StrCast(this.props.A.props.Document.description);
         return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
             <text x={(Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3} y={(pt1[1] + pt2[1]) / 2}>
-                {text !== "-ungrouped-" ? text : ""}
+                {text}
             </text>
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />

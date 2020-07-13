@@ -211,7 +211,7 @@ export class CurrentUserUtils {
             details.text = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
 
             const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
-            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: 12 };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12pt" };
             const descriptionWrapperOpts = { title: "descriptions", _height: 300, _columnWidth: -1, treeViewHideTitle: true, _pivotField: "title" };
 
             const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
@@ -525,13 +525,13 @@ export class CurrentUserUtils {
     // Sets up the title of the button
     static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
         ...opts,
-        dropAction: undefined, title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
+        dropAction: undefined, title: buttonTitle, _fontSize: "37pt", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
     }) as any as Doc
 
     // Sets up the description of the button
     static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
         ...opts,
-        dropAction: undefined, title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
+        dropAction: undefined, title: "info", _fontSize: "25pt", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
     }) as any as Doc
 
 
@@ -598,7 +598,7 @@ export class CurrentUserUtils {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             })) as any as Doc;
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", _fontSize: 10,
+                _width: 35, _height: 25, title: "Tools", _fontSize: "10pt",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: toolsStack,
                 onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
@@ -663,7 +663,7 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: 10, targetDropAction: "same",
+                _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: libraryStack,
                 onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
@@ -681,7 +681,7 @@ export class CurrentUserUtils {
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", _fontSize: 10,
+                _width: 50, _height: 25, title: "Search", _fontSize: "10pt",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
                 searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
@@ -820,11 +820,12 @@ export class CurrentUserUtils {
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
         doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
-        doc.activeFillColor = StrCast(doc.activeFillColor, "none");
-        doc.activeArrowStart = StrCast(doc.activeArrowStart, "none");
-        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "none");
+        doc.activeFillColor = StrCast(doc.activeFillColor, "");
+        doc.activeArrowStart = StrCast(doc.activeArrowStart, "");
+        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "");
         doc.activeDash = StrCast(doc.activeDash, "0");
-        doc.fontSize = NumCast(doc.fontSize, 12);
+        doc.fontSize = StrCast(doc.fontSize, "12pt");
+        doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);

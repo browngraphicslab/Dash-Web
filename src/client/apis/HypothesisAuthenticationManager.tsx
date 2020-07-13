@@ -34,7 +34,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
     }
 
     public fetchAccessToken = async (displayIfFound = false) => {
-        let response: any = await Networking.FetchFromServer("/readHypothesisAccessToken");
+        const response: any = await Networking.FetchFromServer("/readHypothesisAccessToken");
         // if this is an authentication url, activate the UI to register the new access token
         if (!response) { // new RegExp(AuthenticationUrl).test(response)) {
             this.isOpen = true;

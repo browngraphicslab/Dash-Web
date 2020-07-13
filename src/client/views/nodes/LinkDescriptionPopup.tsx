@@ -19,15 +19,7 @@ export class LinkDescriptionPopup extends React.Component<{}> {
 
     @action
     descriptionChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.description = e.currentTarget.value;
-    }
-
-    @action
-    setDescription = () => {
-        if (LinkManager.currentLink) {
-            LinkManager.currentLink.description = this.description;
-        }
-        LinkDescriptionPopup.descriptionPopup = false;
+        LinkManager.currentLink && (LinkManager.currentLink.description = e.currentTarget.value);
     }
 
     @action
@@ -58,7 +50,7 @@ export class LinkDescriptionPopup extends React.Component<{}> {
                 left: LinkDescriptionPopup.popupX ? LinkDescriptionPopup.popupX : 700,
                 top: LinkDescriptionPopup.popupY ? LinkDescriptionPopup.popupY : 350,
             }}>
-            <input className="linkDescriptionPopup-input"
+            <input className="linkDescriptionPopup-input" onKeyPress={e => e.key === "Enter" && this.onDismiss()}
                 placeholder={"(optional) enter link label..."}
                 onChange={(e) => this.descriptionChanged(e)}>
             </input>
@@ -66,7 +58,7 @@ export class LinkDescriptionPopup extends React.Component<{}> {
                 <div className="linkDescriptionPopup-btn-dismiss"
                     onPointerDown={this.onDismiss}> Dismiss </div>
                 <div className="linkDescriptionPopup-btn-add"
-                    onPointerDown={this.setDescription}> Add </div>
+                    onPointerDown={this.onDismiss}> Add </div>
             </div>
         </div>;
     }

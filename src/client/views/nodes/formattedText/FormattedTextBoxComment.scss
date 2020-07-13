@@ -4,10 +4,74 @@
     z-index: 20;
     background: white;
     border: 1px solid silver;
-    border-radius: 2px;
+    border-radius: 7px;
     margin-bottom: 7px;
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
+    box-shadow: 3px 3px 1.5px grey;
+
+    .FormattedTextBoxComment {
+        background-color: white;
+        border: 8px solid white;
+
+        //display: flex;
+        .FormattedTextBoxComment-info {
+
+            margin-bottom: 9px;
+
+            .FormattedTextBoxComment-title {
+                padding-right: 4px;
+                float: left;
+
+                .FormattedTextBoxComment-description {
+                    text-decoration: none;
+                    font-style: italic;
+                    color: rgb(95, 97, 102);
+                    font-size: 10px;
+                    padding-bottom: 4px;
+                    margin-bottom: 5px;
+
+                }
+            }
+
+            .FormattedTextBoxComment-button {
+                display: inline;
+                padding-left: 6px;
+                padding-right: 6px;
+                padding-top: 2.5px;
+                padding-bottom: 2.5px;
+                width: 17px;
+                height: 17px;
+                margin: 0;
+                margin-right: 3px;
+                border-radius: 50%;
+                pointer-events: auto;
+                background-color: rgb(0, 0, 0);
+                color: rgb(255, 255, 255);
+                transition: transform 0.2s;
+                text-align: center;
+                position: relative;
+                font-size: 12px;
+
+                &:hover {
+                    background-color: rgb(77, 77, 77);
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .FormattedTextBoxComment-preview-wrapper {
+            width: 170px;
+            height: 170px;
+            overflow: hidden;
+            //padding-top: 5px;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            align-content: center;
+            justify-content: center;
+            background-color: rgb(160, 160, 160);
+        }
+    }
 }
 
 .FormattedTextBox-tooltip:before {
@@ -42,64 +106,4 @@
     top: 50%;
     right: 0;
     transform: translateY(-50%);
-
-    .FormattedTextBoxComment-button {
-        width: 20px;
-        height: 20px;
-        margin: 0;
-        margin-right: 6px;
-        border-radius: 50%;
-        pointer-events: auto;
-        background-color: rgb(38, 40, 41);
-        color: rgb(178, 181, 184);
-        font-size: 65%;
-        transition: transform 0.2s;
-        text-align: center;
-        position: relative;
-
-        // margin-top: "auto";
-        //     margin-bottom: "auto";
-        //     background: black;
-        //     color: white;
-        //     display: inline-block;
-        //     border-radius: 18px;
-        //     font-size: 12.5px;
-        //     width: 18px;
-        //     height: 18px;
-        //     margin-top: auto;
-        //     margin-bottom: auto;
-        //     margin-right: 3px;
-        //     cursor: pointer;
-        //     transition: transform 0.2s;
-
-        .FormattedTextBoxComment-fa-icon {
-            margin-top: "auto";
-            margin-bottom: "auto";
-            background: black;
-            color: white;
-            display: inline-block;
-            border-radius: 18px;
-            font-size: 12.5px;
-            width: 18px;
-            height: 18px;
-            margin-top: auto;
-            margin-bottom: auto;
-            margin-right: 3px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            // position: absolute;
-            // top: 50%;
-            // left: 50%;
-            // transform: translate(-50%, -50%);
-        }
-
-        &:last-child {
-            margin-right: 0;
-        }
-
-        &:hover {
-            background: rgb(53, 146, 199);
-            ;
-        }
-    }
 }

@@ -55,7 +55,7 @@ export const documentSchema = createSchema({
     _columnsHideIfEmpty: "boolean",   // whether empty stacking view column headings should be hidden
     _columnHeaders: listSpec(SchemaHeaderField), // header descriptions for stacking/masonry
     _schemaHeaders: listSpec(SchemaHeaderField), // header descriptions for schema views
-    _fontSize: "number",
+    _fontSize: "string",
     _fontFamily: "string",
     _sidebarWidthPercent: "string", // percent of text window width taken up by sidebar
 
@@ -73,6 +73,9 @@ export const documentSchema = createSchema({
     opacity: "number",          // opacity of document
     strokeWidth: "number",
     strokeBezier: "number",
+    strokeStartMarker: "string",
+    strokeEndMarker: "string",
+    strokeDash: "string",
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree

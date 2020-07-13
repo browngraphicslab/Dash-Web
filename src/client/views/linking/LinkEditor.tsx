@@ -1,10 +1,10 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, computed } from "mobx";
+import { action, observable, computed, toJS } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Opt } from "../../../fields/Doc";
-import { StrCast } from "../../../fields/Types";
+import { StrCast, DateCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
 import './LinkEditor.scss';
@@ -291,6 +291,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @observable followBehavior = this.props.linkDoc.follow ? this.props.linkDoc.follow : "Default";
 
+    @observable showInfo: boolean = false;
+
+    @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
+
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
@@ -308,19 +312,45 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         }
     }
 
+    @action
+    onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            this.setDescripValue(this.description);
+            document.getElementById('input')?.blur();
+        }
+    }
+
+    @action
+    onDown = () => {
+        this.setDescripValue(this.description);
+    }
+
+    @action
+    handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.description = e.target.value;
+    }
+
+
     @computed
     get editDescription() {
         return <div className="linkEditor-description">
             <div className="linkEditor-description-label">
-                Link Description:</div>
+                Link Label:</div>
             <div className="linkEditor-description-input">
-                <EditableView
-                    GetValue={() => StrCast(LinkManager.currentLink?.description)}
-                    SetValue={value => { this.setDescripValue(value); return false; }}
-                    contents={LinkManager.currentLink?.description}
-                    placeholder={"(optional) enter link description"}
-                    color={"rgb(88, 88, 88)"}
-                ></EditableView></div></div>;
+                <div className="linkEditor-description-editing">
+                    <input
+                        style={{ width: "100%" }}
+                        id="input"
+                        value={this.description}
+                        placeholder={"enter link label"}
+                        // color={"rgb(88, 88, 88)"}
+                        onKeyDown={this.onKey}
+                        onChange={this.handleChange}
+                    ></input>
+                </div>
+                <div className="linkEditor-description-add-button"
+                    onPointerDown={this.onDown}>Add</div>
+            </div></div>;
     }
 
     @action
@@ -346,7 +376,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     {this.followBehavior}
                     <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
                         icon={this.openDropdown ? "chevron-up" : "chevron-down"}
-                        size={"lg"} onPointerDown={this.changeDropdown} />
+                        size={"lg"} />
                 </div>
                 <div className="linkEditor-followingDropdown-optionsList"
                     style={{ display: this.openDropdown ? "" : "none" }}>
@@ -367,6 +397,11 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         </div>;
     }
 
+    @action
+    changeInfo = () => {
+        this.showInfo = !this.showInfo;
+    }
+
     render() {
         const destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
@@ -382,11 +417,17 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         style={{ display: this.props.hideback ? "none" : "" }}
                         onClick={this.props.showLinks}>
                         <FontAwesomeIcon icon="arrow-left" size="sm" /> </button>
-                    <p className="linkEditor-linkedTo">editing link to: <b>{
+                    <p className="linkEditor-linkedTo">Editing Link to: <b>{
                         destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
-                    <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
-                        <FontAwesomeIcon icon="trash" size="sm" /></button>
+                    {/* <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
+                        <FontAwesomeIcon icon="trash" size="sm" /></button> */}
+                    <FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} />
                 </div>
+                {this.showInfo ? <div className="linkEditor-moreInfo">
+                    <div>{this.props.linkDoc.author ? <div> <b>Author:</b> {this.props.linkDoc.author}</div> : null}</div>
+                    <div>{this.props.linkDoc.creationDate ? <div> <b>Creation Date:</b>
+                        {DateCast(this.props.linkDoc.creationDate).toString()}</div> : null}</div>
+                </div> : null}
 
                 <div>{this.editDescription}</div>
                 <div>{this.followingDropdown}</div>

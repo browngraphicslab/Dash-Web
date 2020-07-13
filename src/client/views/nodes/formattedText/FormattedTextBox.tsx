@@ -174,19 +174,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     linkOnDeselect: Map<string, string> = new Map();
 
     doLinkOnDeselect() {
+
         Array.from(this.linkOnDeselect.entries()).map(entry => {
             const key = entry[0];
             const value = entry[1];
+
             const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
             DocServer.GetRefField(value).then(doc => {
                 DocServer.GetRefField(id).then(linkDoc => {
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
-                    if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    if (linkDoc) {
+                        (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc;
+                    } else {
+                        DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    }
                 });
             });
         });
+
         this.linkOnDeselect.clear();
     }
 
@@ -944,6 +950,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             frag.forEach(node => nodes.push(marker(node)));
             return Fragment.fromArray(nodes);
         }
+
+
         function addLinkMark(node: Node, title: string, linkId: string) {
             if (!node.isText) {
                 const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title, linkId));
@@ -1168,7 +1176,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             } else if ([this._editorView!.state.schema.nodes.ordered_list, this._editorView!.state.schema.nodes.listItem].includes(node?.type) &&
                 node !== (this._editorView!.state.selection as NodeSelection)?.node && pcords) {
-                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos!)));
+                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos)));
             }
         }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
@@ -1343,9 +1351,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
-        if (this.props.isSelected()) {
-            setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), 0);
-        } else if (FormattedTextBoxComment.textBox === this) {
+        setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), this.props.isSelected() ? 10 : 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
+        if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
         const selPad = this.props.isSelected() ? -10 : 0;
@@ -1368,7 +1375,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
-                        fontSize: Cast(this.layoutDoc._fontSize, "number", null),
+                        fontSize: Cast(this.layoutDoc._fontSize, "string", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                         transition: "opacity 1s"
                     }}

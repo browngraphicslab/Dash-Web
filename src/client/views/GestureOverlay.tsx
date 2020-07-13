@@ -7,9 +7,8 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
-import { DocServer } from "../DocServer";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
@@ -23,7 +22,7 @@ import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import HeightLabel from "./collections/collectionMulticolumn/MultirowHeightLabel";
+import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -55,6 +54,7 @@ export default class GestureOverlay extends Touchable {
 
     @observable private showMobileInkOverlay: boolean = false;
 
+    private _overlayRef = React.createRef<HTMLDivElement>();
     private _d1: Doc | undefined;
     private _inkToTextDoc: Doc | undefined;
     private _thumbDoc: Doc | undefined;
@@ -497,39 +497,26 @@ export default class GestureOverlay extends Touchable {
     onPointerDown = (e: React.PointerEvent) => {
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
-            e.stopPropagation();
-            e.preventDefault();
-
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointerup", this.onPointerUp);
+            setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, emptyFunction);
         }
     }
 
     @action
     onPointerMove = (e: PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
-            this._points.push({ X: e.clientX, Y: e.clientY });
-            e.stopPropagation();
-            e.preventDefault();
+        this._points.push({ X: e.clientX, Y: e.clientY });
 
-
-            if (this._points.length > 1) {
-                const B = this.svgBounds;
-                const initialPoint = this._points[0.];
-                const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
-                const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
-                if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
-                    switch (this.Tool) {
-                        case ToolglassTools.RadialMenu:
-                            document.removeEventListener("pointermove", this.onPointerMove);
-                            document.removeEventListener("pointerup", this.onPointerUp);
-                        //this.handle1PointerHoldStart(e);
-                    }
+        if (this._points.length > 1) {
+            const B = this.svgBounds;
+            const initialPoint = this._points[0.];
+            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+            if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
+                switch (this.Tool) {
+                    case ToolglassTools.RadialMenu: return true;
                 }
             }
         }
+        return false;
     }
 
     handleLineGesture = (): boolean => {
@@ -588,8 +575,6 @@ export default class GestureOverlay extends Touchable {
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
-                        document.removeEventListener("pointermove", this.onPointerMove);
-                        document.removeEventListener("pointerup", this.onPointerUp);
                         this._strokes.push(new Array(...this._points));
                         this._points = [];
                         CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes).then((results) => {
@@ -623,7 +608,8 @@ export default class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (this.InkShape !== "noRec") {
+                if (InkOptionsMenu.Instance._double === "") {
+
                     this.InkShape = "";
                 }
             }
@@ -633,54 +619,35 @@ export default class GestureOverlay extends Touchable {
                 let actionPerformed = false;
                 if (result && result.Score > 0.7) {
                     switch (result.Name) {
-                        case GestureUtils.Gestures.Box:
-                            this.dispatchGesture(GestureUtils.Gestures.Box);
-                            actionPerformed = true;
-                            break;
-                        case GestureUtils.Gestures.StartBracket:
-                            this.dispatchGesture(GestureUtils.Gestures.StartBracket);
-                            actionPerformed = true;
-                            break;
-                        case GestureUtils.Gestures.EndBracket:
-                            this.dispatchGesture("endbracket");
-                            actionPerformed = true;
-                            break;
-                        case GestureUtils.Gestures.Line:
-                            actionPerformed = this.handleLineGesture();
-                            break;
-                        case GestureUtils.Gestures.Triangle:
-                            this.makePolygon("triangle", true);
-                            break;
-                        case GestureUtils.Gestures.Circle:
-                            this.makePolygon("circle", true);
-                            break;
-                        case GestureUtils.Gestures.Rectangle:
-                            this.makePolygon("rectangle", true);
-                            break;
-                        case GestureUtils.Gestures.Scribble:
-                            console.log("scribble");
-                            break;
-                    }
-                    if (actionPerformed) {
-                        this._points = [];
+                        case GestureUtils.Gestures.Box: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.Box); break;
+                        case GestureUtils.Gestures.StartBracket: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.StartBracket); break;
+                        case GestureUtils.Gestures.EndBracket: actionPerformed = this.dispatchGesture("endbracket"); break;
+                        case GestureUtils.Gestures.Line: actionPerformed = this.handleLineGesture(); break;
+                        case GestureUtils.Gestures.Triangle: actionPerformed = this.makePolygon("triangle", true); break;
+                        case GestureUtils.Gestures.Circle: actionPerformed = this.makePolygon("circle", true); break;
+                        case GestureUtils.Gestures.Rectangle: actionPerformed = this.makePolygon("rectangle", true); break;
+                        case GestureUtils.Gestures.Scribble: console.log("scribble"); break;
                     }
                 }
 
                 // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
-                    this._points = [];
                 }
+                this._points = [];
             }
         } else {
             this._points = [];
         }
-        SetActiveArrowStart("none");
-        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
-        SetActiveArrowEnd("none");
-        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
+        //get out of ink mode after each stroke=
+        if (InkOptionsMenu.Instance._double === "") {
+            Doc.SetSelectedTool(InkTool.None);
+            InkOptionsMenu.Instance._selected = InkOptionsMenu.Instance._shapesNum;
+            SetActiveArrowStart("none");
+            GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
+            SetActiveArrowEnd("none");
+            GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        }
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
@@ -691,7 +658,7 @@ export default class GestureOverlay extends Touchable {
         var bottom = Math.max(...ys);
         var top = Math.min(...ys);
         if (shape === "noRec") {
-            return;
+            return false;
         }
         if (!gesture) {
             //if shape options is activated in inkOptionMenu
@@ -772,11 +739,12 @@ export default class GestureOverlay extends Touchable {
                 this._points.push({ X: x2, Y: y2 });
             // this._points.push({ X: x1, Y: y1 - 1 });
         }
+        return true;
     }
 
     dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
         const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
-        target?.dispatchEvent(
+        return target?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                 {
                     bubbles: true,
@@ -788,7 +756,7 @@ export default class GestureOverlay extends Touchable {
                     }
                 }
             )
-        );
+        ) || false;
     }
 
     getBounds = (stroke: InkData) => {
@@ -807,10 +775,11 @@ export default class GestureOverlay extends Touchable {
 
     @computed get elements() {
         const width = Number(ActiveInkWidth());
+        const rect = this._overlayRef.current?.getBoundingClientRect();
         const B = this.svgBounds;
         B.left = B.left - width / 2;
         B.right = B.right + width / 2;
-        B.top = B.top - width / 2;
+        B.top = B.top - width / 2 - (rect?.y || 0);
         B.bottom = B.bottom + width / 2;
         B.width += width;
         B.height += width;
@@ -827,7 +796,7 @@ export default class GestureOverlay extends Touchable {
             }),
             this._points.length <= 1 ? (null) : <svg key="svg" width={B.width} height={B.height}
                 style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false, false)}
+                {InteractionUtils.CreatePolyline(this._points.map(p => ({ X: p.X, Y: p.Y - (rect?.y || 0) })), B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false, false)}
             </svg>]
         ];
     }
@@ -876,7 +845,8 @@ export default class GestureOverlay extends Touchable {
 
     render() {
         return (
-            <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
+            <div className="gestureOverlay-cont" ref={this._overlayRef}
+                onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.elements}
 
