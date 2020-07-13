@@ -253,16 +253,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            <Tooltip title={showTitle}>
+                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{showTitle}</div></React.Fragment>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>
 
-                            <Tooltip title="Edit Link">
+                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Edit Link</div></React.Fragment>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                     <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             </Tooltip>
-                            <Tooltip title="Delete Link">
+                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Delete Link</div></React.Fragment>}>
                                 <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>

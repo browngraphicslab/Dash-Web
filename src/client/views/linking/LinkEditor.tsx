@@ -13,6 +13,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
 import { EditableView } from "../EditableView";
 import { RefObject } from "react";
+import { Tooltip } from "@material-ui/core";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -285,15 +286,12 @@ interface LinkEditorProps {
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
-
     @observable description = StrCast(LinkManager.currentLink?.description);
     @observable openDropdown: boolean = false;
-
     @observable followBehavior = this.props.linkDoc.follow ? this.props.linkDoc.follow : "Default";
-
     @observable showInfo: boolean = false;
-
     @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
+    @observable private buttonColor: string = "black";
 
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
@@ -308,6 +306,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     setDescripValue = (value: string) => {
         if (LinkManager.currentLink) {
             LinkManager.currentLink.description = value;
+            this.buttonColor = "rgb(62, 133, 55)";
+            setTimeout(action(() => {
+                this.buttonColor = "black";
+            }), 750);
             return true;
         }
     }
@@ -349,7 +351,8 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     ></input>
                 </div>
                 <div className="linkEditor-description-add-button"
-                    onPointerDown={this.onDown}>Add</div>
+                    style={{ backgroundColor: this.buttonColor }}
+                    onPointerDown={this.onDown}>Set</div>
             </div></div>;
     }
 
@@ -413,15 +416,19 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         return !destination ? (null) : (
             <div className="linkEditor">
                 <div className="linkEditor-info">
-                    <button className="linkEditor-button-back"
-                        style={{ display: this.props.hideback ? "none" : "" }}
-                        onClick={this.props.showLinks}>
-                        <FontAwesomeIcon icon="arrow-left" size="sm" /> </button>
+                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Return to link menu</div></React.Fragment>} placement="top">
+                        <button className="linkEditor-button-back"
+                            style={{ display: this.props.hideback ? "none" : "" }}
+                            onClick={this.props.showLinks}>
+                            <FontAwesomeIcon icon="arrow-left" size="sm" /> </button>
+                    </Tooltip>
                     <p className="linkEditor-linkedTo">Editing Link to: <b>{
                         destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
                     {/* <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
                         <FontAwesomeIcon icon="trash" size="sm" /></button> */}
-                    <FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} />
+                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Show more link information</div></React.Fragment>} placement="top">
+                        <div className="linkEditor-downArrow"><FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} /></div>
+                    </Tooltip>
                 </div>
                 {this.showInfo ? <div className="linkEditor-moreInfo">
                     <div>{this.props.linkDoc.author ? <div> <b>Author:</b> {this.props.linkDoc.author}</div> : null}</div>
