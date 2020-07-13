@@ -5,7 +5,7 @@ import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface, listSpec } from '../../../fields/Schema';
-import { Cast, NumCast, BoolCast, ScriptCast } from "../../../fields/Types";
+import { Cast, NumCast, BoolCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero, numberRange } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
@@ -15,6 +15,7 @@ import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { PresBox } from "../nodes/PresBox";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -37,19 +38,18 @@ const PresDocument = makeInterface(presSchema, documentSchema);
 @observer
 export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDocument>(PresDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
-
     _heightDisposer: IReactionDisposer | undefined;
     // these fields are conditionally computed fields on the layout document that take this document as a parameter
     @computed get indexInPres() { return Number(this.lookupField("indexInPres")); }  // the index field is where this document is in the presBox display list (since this value is different for each presentation element, the value can't be stored on the layout template which is used by all display elements)
-    @computed get collapsedHeight() { return Number(this.lookupField("presCollapsedHeight")); } // the collapsed height changes depending on the state of the presBox.  We could store this on the presentation elemnt template if it's used by only one presentation - but if it's shared by multiple, then this value must be looked up
-    @computed get presStatus() { return BoolCast(this.lookupField("presStatus")); }
+    @computed get collapsedHeight() { return Number(this.lookupField("presCollapsedHeight")); } // the collapsed height changes depending on the state of the presBox.  We could store this on the presentation element template if it's used by only one presentation - but if it's shared by multiple, then this value must be looked up
+    @computed get presStatus() { return StrCast(this.lookupField("presStatus")); }
     @computed get itemIndex() { return NumCast(this.lookupField("_itemIndex")); }
     @computed get presBox() { return Cast(this.lookupField("presBox"), Doc, null); }
     @computed get targetDoc() { return Cast(this.rootDoc.presentationTargetDoc, Doc, null) || this.rootDoc; }
 
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight],
-            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 200 : 0), { fireImmediately: true });
+            params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : 0), { fireImmediately: true });
     }
     componentWillUnmount() {
         this._heightDisposer?.();
@@ -68,7 +68,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 this.targetDoc.opacity = 1;
             }
         } else {
-            if (this.presStatus && this.indexInPres > this.itemIndex && this.targetDoc) {
+            if (this.presStatus !== "edit" && this.indexInPres > this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 0;
             }
         }
@@ -89,7 +89,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
             }
         } else {
             if (this.rootDoc.presFadeButton) this.rootDoc.presFadeButton = false;
-            if (this.presStatus && this.indexInPres < this.itemIndex && this.targetDoc) {
+            if (this.presStatus !== "edit" && this.indexInPres < this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 0;
             }
         }
@@ -123,7 +123,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
             }
         } else {
             this.rootDoc.presHideAfterButton = false;
-            if (this.presStatus && (this.indexInPres < this.itemIndex) && this.targetDoc) {
+            if (this.presStatus !== "edit" && (this.indexInPres < this.itemIndex) && this.targetDoc) {
                 this.targetDoc.opacity = 0.5;
             }
         }
@@ -166,14 +166,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @action
     presExpandDocumentClick = () => {
-        const highlight = document.getElementById("presBox-hightlight");
         this.rootDoc.presExpandInlineButton = !this.rootDoc.presExpandInlineButton;
-        if (highlight && this.rootDoc.presExpandInlineButton) highlight.style.height = "156";
-        else if (highlight && !this.rootDoc.presExpandInlineButton) highlight.style.height = "58";
     }
 
-    embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
+    embedHeight = () => 100;
     embedWidth = () => this.props.PanelWidth() - 20;
+    // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
+    // embedWidth = () => this.props.PanelWidth() - 20;
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
@@ -220,7 +219,18 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
-                onClick={e => { this.props.focus(this.rootDoc); e.stopPropagation(); }}>
+                onClick={e => {
+                    if (e.ctrlKey || e.metaKey) {
+                        PresBox.Instance.multiSelect(this.rootDoc);
+                        console.log("cmmd click");
+                    } else if (e.shiftKey) {
+                        PresBox.Instance.shiftSelect(this.rootDoc);
+                    } else {
+                        this.props.focus(this.rootDoc); e.stopPropagation();
+                        console.log("normal click");
+                    }
+                }}
+                onPointerDown={e => e.stopPropagation()}>
                 {treecontainer ? (null) : <>
                     <div className="presElementBox-number">
                         {`${this.indexInPres + 1}.`}
@@ -228,6 +238,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presElementBox-name">
                         {`${this.targetDoc?.title}`}
                     </div>
+                    <div className="presElementBox-time">{"Transition speed: " + (this.targetDoc?.presTransition) + "ms"}</div>
+                    <div className="presElementBox-time" style={{ display: this.targetDoc.presDuration ? "block" : "none" }}>{"Duration: " + (this.targetDoc?.presDuration) + "ms"}</div>
                     <button
                         title="Close"
                         className="presElementBox-closeIcon"
@@ -236,21 +248,20 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             this.props.removeDocument?.(this.rootDoc);
                             e.stopPropagation();
                         }}>
-                        <FontAwesomeIcon icon={"times"} onPointerDown={e => e.stopPropagation()} />
+                        <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                     </button>
                     <button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                         <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
                     </button>
-                    <br />
                 </>}
+                <div className="presElementBox-highlight" style={{ display: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "block" : "none" }} />
                 <div className="presElementBox-buttons">
-                    <button title="Zoom" className={pbi + (this.rootDoc.presZoomButton ? "-selected" : "")} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} onPointerDown={e => e.stopPropagation()} /></button>
+                    <button title="Zoom" className={pbi + (this.rootDoc.presZoomButton ? "-selected" : "")} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search-plus"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Navigate" className={pbi + (this.rootDoc.presNavButton ? "-selected" : "")} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Hide Before" className={pbi + (this.rootDoc.presHideTillShownButton ? "-selected" : "")} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={"file"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Fade After" className={pbi + (this.rootDoc.presFadeButton ? "-selected" : "")} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
-                    {/* <button title="Group With Up" className={pbi + (this.rootDoc.presGroupButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.rootDoc.presGroupButton = !this.rootDoc.presGroupButton; }}><FontAwesomeIcon icon={"arrow-up"} onPointerDown={e => e.stopPropagation()} /></button> */}
-                    <button title="Progressivize" className={pbi + (this.rootDoc.pres ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button>
+                    <button title="Progressivize" className={pbi + (this.rootDoc.presProgressivize ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button>
                 </div>
                 {this.renderEmbeddedInline}
             </div>

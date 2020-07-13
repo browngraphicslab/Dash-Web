@@ -1,6 +1,9 @@
 .presElementBox-item {
-    display: inline-block;
-    background-color: #eeeeee;
+    display: grid;
+    grid-template-rows: max-content max-content max-content;
+    background-color: #d0d0d0;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    position: relative;
     pointer-events: all;
     width: 100%;
     height: 100%;
@@ -16,6 +19,15 @@
     transition: all .1s;
     padding: 0px;
     padding-bottom: 3px;
+
+    .presElementBox-highlight {
+        position: absolute;
+        transform: translate(-100px, -6px);
+        z-index: -1;
+        width: calc(100% + 200px);
+        height: calc(100% + 12px);
+        background-color: #AEDDF8;
+    }
 
     .documentView-node {
         position: absolute;
@@ -38,10 +50,9 @@
 }
 
 .presElementBox-active {
-    background: gray;
     color: black;
     border-radius: 6px;
-    box-shadow: black 2px 2px 5px;
+    border: solid 2px #5B9FDD;
 }
 
 .presElementBox-buttons {
@@ -86,6 +97,14 @@
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: pre;
+}
+
+.presElementBox-time {
+    position: relative;
+    font-size: 8;
+    font-style: italic;
+    letter-spacing: normal;
+    left: 10px;
 }
 
 .presElementBox-embedded {
