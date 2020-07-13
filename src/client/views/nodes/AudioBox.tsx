@@ -23,6 +23,7 @@ import { Networking } from "../../Network";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { RichTextField } from "../../../fields/RichTextField";
+import { AudioResizer } from "./AudioResizer";
 
 
 // testing testing 
@@ -59,6 +60,9 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     _stream: MediaStream | undefined;
     _start: number = 0;
     _hold: boolean = false;
+
+    private _isPointerDown = false;
+    private _currMarker: any;
 
     @observable private _duration = 0;
     @observable private _rect: Array<any> = []
@@ -300,6 +304,85 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         this._start = 0;
     }
 
+    onPointerDown = (e: React.PointerEvent, m: any): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = true;
+        console.log("click");
+        this._currMarker = m;
+
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointerup", this.onPointerUp);
+    }
+
+    onPointerUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = false;
+
+        const rect = (e.target as any).getBoundingClientRect();
+        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    onPointerMove = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log("drag");
+
+        if (!this._isPointerDown) {
+            return;
+        }
+
+        // let resize = document.getElementById("audiobox-marker-container1");
+
+        const rect = (e.target as any).getBoundingClientRect();
+        // let newWidth = parseFloat(`${(e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration)}%`);
+
+        // if (resize) {
+        //     console.log(parseFloat(resize.style.width));
+        //     console.log(newWidth);
+        //     console.log(e.movementX);
+        //     if (e.movementX < 0) {
+        //         resize.style.width = `${parseFloat(resize.style.width) - (newWidth)}%`;
+        //     } else {
+        //         resize.style.width = `${parseFloat(resize.style.width) + (newWidth)}%`;
+        //     }
+        // }
+
+        let newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+
+        this.changeMarker(this._currMarker, newTime);
+    }
+
+    @action
+    changeMarker = (m: any, time: any) => {
+        for (let i = 0; i < this._markers.length; i++) {
+            if (this.isSame(this._markers[i], m)) {
+                this._markers[i][1] = time;
+            }
+        }
+    }
+
+    isSame = (m1: any, m2: any) => {
+        if (m1[0] == m2[0] && m1[1] == m2[1]) {
+            return true;
+        }
+        return false;
+    }
+
+    formatTime = (time: number) => {
+        let hours = Math.floor(time / 60 / 60);
+        let minutes = Math.floor(time / 60) - (hours * 60);
+        let seconds = time % 60;
+
+        return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+    }
+
     render() {
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
@@ -357,13 +440,14 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                 }
                             }}>
                             {this._markers.map((m, i) => {
-                                let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
+                                // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
                                 let rect;
                                 (m.length > 1) ?
 
                                     rect =
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} key={i} style={{ left: `${m[0] / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(m[1] - m[0]) / NumCast(this.dataDoc.duration, 1) * 100}%` }} onClick={e => { this.playFrom(m[0], m[1]); e.stopPropagation() }}>
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} key={i} id={"audiobox-marker-container1"} style={{ left: `${m[0] / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(m[1] - m[0]) / NumCast(this.dataDoc.duration, 1) * 100}%` }} onClick={e => { this.playFrom(m[0], m[1]); e.stopPropagation() }} >
                                         {/* <FormattedTextBox {...this.props} key={"label" + i} Document={text} /> */}
+                                        <div className="resizer" onPointerDown={e => this.onPointerDown(e, m)}></div>
                                     </div>
                                     :
                                     rect =
@@ -372,7 +456,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                             Document={text}
                                             parentActive={returnTrue} /> */}
                                     </div>;
-                                return rect
+                                return rect;
                             })}
                             {DocListCast(this.dataDoc.links).map((l, i) => {
                                 let la1 = l.anchor1 as Doc;
@@ -407,6 +491,12 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                             })}
                             <div className="audiobox-current" style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
                             {this.audio}
+                        </div>
+                        <div className="current-time">
+                            {this.formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}
+                        </div>
+                        <div className="total-time">
+                            {this.formatTime(Math.round(NumCast(this.layoutDoc.duration)))}
                         </div>
                     </div>
                 </div>
