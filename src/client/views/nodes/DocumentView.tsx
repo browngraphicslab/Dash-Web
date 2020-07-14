@@ -379,7 +379,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) e.stopPropagation();
+                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler()) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -394,11 +394,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler()) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
 
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
-                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler())) {
                     this.cleanUpInteractions();
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
                 }
@@ -511,7 +511,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
+        if ((!e.nativeEvent.cancelBubble || this.onClickHandler() || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
             if ((this.active || this.layoutDoc.onDragStart) &&
@@ -539,7 +539,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler()) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, ((e.ctrlKey || e.altKey) && "alias") || (this.props.dropAction || this.Document.dropAction || undefined) as dropActionType);
@@ -587,7 +587,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
-        if (this.Document.isLinkButton || this.onClickHandler || this.Document.ignoreClick) {
+        if (this.Document.isLinkButton || this.onClickHandler() || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
             const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
             first && (first.hidden = false);
@@ -782,7 +782,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler() ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
 
@@ -1147,7 +1147,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const titleView = (!showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: showTextTitle ? "relative" : "absolute",
-                pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
+                pointerEvents: this.onClickHandler() || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}
                     contents={(this.props.DataDoc || this.props.Document)[showTitle]?.toString()}
@@ -1249,7 +1249,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                 fontSize: Cast(this.Document._fontSize, "string", null)
             }}>
-            {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
+            {this.onClickHandler() && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
                 <div className="documentView-contentBlocker" />
             </> :
