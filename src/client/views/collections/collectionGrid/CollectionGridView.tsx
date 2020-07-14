@@ -1,7 +1,7 @@
 import { action, computed, Lambda, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Doc, Opt } from '../../../../fields/Doc';
+import { Doc, Opt, WidthSym } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { Id } from '../../../../fields/FieldSymbols';
 import { makeInterface } from '../../../../fields/Schema';
@@ -248,8 +248,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     onContextMenu = () => {
         const displayOptionsMenu: ContextMenuProps[] = [];
-        displayOptionsMenu.push({ description: "Contents", event: () => this.props.Document.display = "contents", icon: "copy" });
-        displayOptionsMenu.push({ description: "Undefined", event: () => this.props.Document.display = undefined, icon: "exclamation" });
+        displayOptionsMenu.push({ description: "Toggle Content Display Style", event: () => this.props.Document.display = this.props.Document.display ? undefined : "contents", icon: "copy" });
         ContextMenu.Instance.addItem({ description: "Display", subitems: displayOptionsMenu, icon: "tv" });
     }
 

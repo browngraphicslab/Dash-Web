@@ -108,17 +108,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }, 1500);
     }
 
-    onContextMenu = (e: React.MouseEvent): void => {
-        // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped()) {
-            ContextMenu.Instance.addItem({
-                description: "Make Hero Image", event: () => {
-                    const index = NumCast(this.layoutDoc._itemIndex);
-                    (this.dataDoc || Doc.GetProto(this.props.Document)).hero = ObjectField.MakeCopy(this.childLayoutPairs[index].layout.data as ObjectField);
-                }, icon: "plus"
-            });
-        }
-    }
     _downX = 0;
     _downY = 0;
     onPointerDown = (e: React.PointerEvent) => {
@@ -184,7 +173,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const index = NumCast(this.layoutDoc._itemIndex);
         const translateX = (1 - index) / this.childLayoutPairs.length * 100;
 
-        return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
+        return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
             <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}%` }}>
                 {this.content}
             </div>

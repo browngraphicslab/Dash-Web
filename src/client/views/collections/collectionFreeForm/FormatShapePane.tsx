@@ -11,6 +11,7 @@ import { DocumentType } from "../../../documents/DocumentTypes";
 import { SelectionManager } from "../../../util/SelectionManager";
 import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
+import { undoBatch } from "../../../util/UndoManager";
 
 @observer
 export default class FormatShapePane extends AntimodeMenu {
@@ -118,6 +119,7 @@ export default class FormatShapePane extends AntimodeMenu {
         }
     }
 
+    @undoBatch
     @action
     rotate = (degrees: number) => {
         this.selectedInk?.forEach(action(inkView => {
@@ -160,7 +162,7 @@ export default class FormatShapePane extends AntimodeMenu {
     colorPicker(setter: (color: string) => {}) {
         return <div className="btn-group-palette" key="colorpicker" >
             {this._palette.map(color =>
-                <button className="antimodeMenu-button" key={color} onPointerDown={action(() => setter(color))} style={{ zIndex: 1001, position: "relative" }}>
+                <button className="antimodeMenu-button" key={color} onPointerDown={undoBatch(action(() => setter(color)))} style={{ zIndex: 1001, position: "relative" }}>
                     <div className="color-previewII" style={{ backgroundColor: color }} />
                 </button>)}
         </div>;
@@ -171,11 +173,11 @@ export default class FormatShapePane extends AntimodeMenu {
                 type="text" value={value}
                 onChange={e => setter(e.target.value)}
                 autoFocus />
-            <button className="antiMenu-Buttonup" key="up" onPointerDown={action(() => this.upDownButtons("up", key))}>
+            <button className="antiMenu-Buttonup" key="up" onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))}>
                 ˄
             </button>
             <br />
-            <button className="antiMenu-Buttonup" key="down" onPointerDown={action(() => this.upDownButtons("down", key))} style={{ marginTop: -8 }}>
+            <button className="antiMenu-Buttonup" key="down" onPointerDown={undoBatch(action(() => this.upDownButtons("down", key)))} style={{ marginTop: -8 }}>
                 ˅
             </button>
         </>;
@@ -183,7 +185,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
     colorButton(value: string, setter: () => {}) {
         return <>
-            <button className="antimodeMenu-button" key="fill" onPointerDown={action(e => setter())} style={{ position: "absolute", right: 80 }}>
+            <button className="antimodeMenu-button" key="fill" onPointerDown={undoBatch(action(e => setter()))} style={{ position: "absolute", right: 80 }}>
                 <FontAwesomeIcon icon="fill-drip" size="lg" />
                 <div className="color-previewI" style={{ backgroundColor: value ?? "121212" }} />
             </button>
@@ -206,10 +208,10 @@ export default class FormatShapePane extends AntimodeMenu {
 
     @computed get propertyGroupItems() {
         const fillCheck = <div key="fill" style={{ display: this._subOpen[0] ? "" : "none", width: "inherit", backgroundColor: "#323232", color: "white", }}>
-            <input className="formatShapePane-inputBtn" type="radio" checked={this.unFilled} onChange={action(() => this.unFilled = true)} />
+            <input className="formatShapePane-inputBtn" type="radio" checked={this.unFilled} onChange={undoBatch(action(() => this.unFilled = true))} />
                 No Fill
             <br />
-            <input className="formatShapePane-inputBtn" type="radio" checked={this.solidFil} onChange={action(() => this.solidFil = true)} />
+            <input className="formatShapePane-inputBtn" type="radio" checked={this.solidFil} onChange={undoBatch(action(() => this.solidFil = true))} />
                 Solid Fill
             <br /> <br />
             {this.solidFil ? "Color" : ""}
@@ -218,22 +220,22 @@ export default class FormatShapePane extends AntimodeMenu {
         </div>;
 
         const markers = <>
-            <input key="markHead" className="formatShapePane-inputBtn" type="checkbox" checked={this.markHead !== ""} onChange={action(() => this.markHead = this.markHead ? "" : "arrow")} />
+            <input key="markHead" className="formatShapePane-inputBtn" type="checkbox" checked={this.markHead !== ""} onChange={undoBatch(action(() => this.markHead = this.markHead ? "" : "arrow"))} />
                 Arrow Head
             <br />
-            <input key="markTail" className="formatShapePane-inputBtn" type="checkbox" checked={this.markTail !== ""} onChange={action(() => this.markTail = this.markTail ? "" : "arrow")} />
+            <input key="markTail" className="formatShapePane-inputBtn" type="checkbox" checked={this.markTail !== ""} onChange={undoBatch(action(() => this.markTail = this.markTail ? "" : "arrow"))} />
                 Arrow End
             <br />
         </>;
 
         const lineCheck = <div key="lineCheck" style={{ display: this._subOpen[1] ? "" : "none", width: "inherit", backgroundColor: "#323232", color: "white", }}>
-            <input className="formatShapePane-inputBtn" type="radio" checked={this.unStrokd} onChange={action(() => this.unStrokd = true)} />
+            <input className="formatShapePane-inputBtn" type="radio" checked={this.unStrokd} onChange={undoBatch(action(() => this.unStrokd = true))} />
                 No Line
             <br />
-            <input className="formatShapePane-inputBtn" type="radio" checked={this.solidStk} onChange={action(() => this.solidStk = true)} />
+            <input className="formatShapePane-inputBtn" type="radio" checked={this.solidStk} onChange={undoBatch(action(() => this.solidStk = true))} />
                 Solid Line
             <br />
-            <input className="formatShapePane-inputBtn" type="radio" checked={this.dashdStk ? true : false} onChange={action(() => this.dashdStk = "2")} />
+            <input className="formatShapePane-inputBtn" type="radio" checked={this.dashdStk ? true : false} onChange={undoBatch(action(() => this.dashdStk = "2"))} />
                 Dash Line
             <br />
             <br />
@@ -253,7 +255,7 @@ export default class FormatShapePane extends AntimodeMenu {
             <br /> <br />
                 Width {this.widInput}
             <br /> <br />
-            <input className="formatShapePane-inputBtn" style={{ right: 0 }} type="checkbox" checked={this._lock} onChange={action(() => this._lock = !this._lock)} />
+            <input className="formatShapePane-inputBtn" style={{ right: 0 }} type="checkbox" checked={this._lock} onChange={undoBatch(action(() => this._lock = !this._lock))} />
                 Lock Ratio
             <br />  <br />
                 Rotation {this.rotInput}
