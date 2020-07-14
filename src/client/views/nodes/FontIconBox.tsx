@@ -67,7 +67,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
             }}>
             <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
-            {!this.rootDoc.label ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.label).substring(0, 5)} </div>}
+            {!this.rootDoc.label ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.label).substring(0, 6)} </div>}
         </button>;
     }
 }

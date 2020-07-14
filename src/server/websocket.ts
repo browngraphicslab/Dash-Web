@@ -181,7 +181,7 @@ export namespace WebSocket {
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
         clients[userEmail] = new Client(userEmail.toString());
         const currentdate = new Date();
-        const datetime = "Last Sync: " + currentdate.getDate() + "/"
+        const datetime = currentdate.getDate() + "/"
             + (currentdate.getMonth() + 1) + "/"
             + currentdate.getFullYear() + " @ "
             + currentdate.getHours() + ":"
