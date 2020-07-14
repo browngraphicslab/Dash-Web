@@ -405,6 +405,7 @@ class TreeView extends React.Component<TreeViewProps> {
     contextMenuItems = () => [{ script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
     truncateTitleWidth = () => NumCast(this.props.treeViewDoc.treeViewTruncateTitleWidth, 0);
     showTitleEdit = () => ["*", this._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || "");
+    onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.editTitleScript));
     /**
      * Renders the EditableView title element for placement into the tree.
      */
@@ -438,7 +439,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 addDocTab={this.props.addDocTab}
                 rootSelected={returnTrue}
                 pinToPres={emptyFunction}
-                onClick={this.props.onChildClick || this._editTitleScript}
+                onClick={this.onChildClick}
                 dropAction={this.props.dropAction}
                 moveDocument={this.move}
                 removeDocument={this.removeDoc}
