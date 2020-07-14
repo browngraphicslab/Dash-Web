@@ -102,6 +102,8 @@ export interface DocumentOptions {
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     hideFilterView?: boolean; // whether to hide the filter popout on collections
+    hideLinkButton?: boolean; // whether the blue link counter button should be hidden
+    hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
@@ -137,7 +139,7 @@ export interface DocumentOptions {
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onChildDoubleClick-rawScript"?: string; // onChildDoubleClick script in raw text form
-    "onChildClick-rawScript"?: string // on ChildClick script in raw text form
+    "onChildClick-rawScript"?: string; // on ChildClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
@@ -779,7 +781,7 @@ export namespace Docs {
 
 
         export function FontIconDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
@@ -912,6 +914,8 @@ export namespace DocUtils {
         if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
+        linkDoc.linkDisplay = true;
+        linkDoc.hideAnhors = true;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 

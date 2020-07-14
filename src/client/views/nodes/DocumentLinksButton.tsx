@@ -101,8 +101,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                         const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                         LinkManager.currentLink = linkDoc;
-                        linkDoc ? linkDoc.hidden = true : null;
-                        linkDoc ? linkDoc.linkDisplay = true : null;
 
                         runInAction(() => {
                             if (linkDoc) {
@@ -137,7 +135,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                     LinkManager.currentLink = linkDoc;
                     linkDoc ? linkDoc.hidden = true : null;
-                    linkDoc ? linkDoc.linkDisplay = true : null;
 
                     runInAction(() => {
                         if (linkDoc) {

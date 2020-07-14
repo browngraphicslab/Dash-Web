@@ -208,7 +208,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const view0 = this.view0;
         return !view0 ? (null) : <Tooltip title="Show metadata panel"><div className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<MetadataEntryMenu docs={() => this.props.views().filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
+                content={<MetadataEntryMenu docs={this.props.views().filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>

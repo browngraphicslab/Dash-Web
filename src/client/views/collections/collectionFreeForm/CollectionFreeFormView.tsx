@@ -939,9 +939,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get onChildClickHandler() { return () => (this.props.childClickScript || ScriptCast(this.Document.onChildClick)); }
-    @computed get onChildDoubleClickHandler() { return () => (this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick)); }
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
+    onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     backgroundHalo = () => BoolCast(this.Document.useClusters);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
@@ -1186,8 +1186,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const dragY = e.detail.clientY;
             const bounds = this._marqueeRef.current?.getBoundingClientRect();
 
-            let deltaX = dragX - bounds.left < 25 ? -2 : bounds.right - dragX < 25 ? 2 : 0;
-            let deltaY = dragY - bounds.top < 25 ? -2 : bounds.bottom - dragY < 25 ? 2 : 0;
+            const deltaX = dragX - bounds.left < 25 ? -2 : bounds.right - dragX < 25 ? 2 : 0;
+            const deltaY = dragY - bounds.top < 25 ? -2 : bounds.bottom - dragY < 25 ? 2 : 0;
             (deltaX !== 0 || deltaY !== 0) && this.continuePan(deltaX, deltaY);
         }
         e.stopPropagation();
@@ -1198,7 +1198,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const dragY = this._lastClientY;
             const dragX = this._lastClientX;
             if (dragY !== undefined && dragX !== undefined && this._marqueeRef.current) {
-                const bounds = this._marqueeRef.current.getBoundingClientRect()!;
+                const bounds = this._marqueeRef.current.getBoundingClientRect();
                 this.Document._panY = NumCast(this.Document._panY) + deltaY;
                 this.Document._panX = NumCast(this.Document._panX) + deltaX;
                 if (dragY - bounds.top < 25 || bounds.bottom - dragY < 25 || dragX - bounds.left < 25 || bounds.right - dragX < 25) {

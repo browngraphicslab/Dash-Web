@@ -128,7 +128,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                         // doc.strokeBezier === 300 ? doc.strokeBezier = 0 : doc.strokeBezier = 300;
                         break;
                     case "dash":
-                        doc.strokeDash = Number(value);
+                        doc.strokeDash = value;
                     default:
                         break;
                 }

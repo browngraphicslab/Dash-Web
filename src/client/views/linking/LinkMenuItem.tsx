@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from '../../../fields/Doc';
@@ -189,7 +189,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
 
-        let destinationIcon: string = "";;
+        let destinationIcon: FontAwesomeIconProps["icon"] = "question";
         switch (this.props.destinationDoc.type) {
             case DocumentType.IMG: destinationIcon = "image"; break;
             case DocumentType.COMPARISON: destinationIcon = "columns"; break;
@@ -205,7 +205,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
             case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
-            default: "question";
         }
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?

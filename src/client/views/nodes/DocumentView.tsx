@@ -128,9 +128,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
     @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
-    @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() || (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick); }
-    @computed get onPointerDownHandler() { return this.props.onPointerDown?.() || ScriptCast(this.Document.onPointerDown) }
-    @computed get onPointerUpHandler() { return this.props.onPointerUp?.() || ScriptCast(this.Document.onPointerUp); }
+    @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp?.() ?? ScriptCast(this.Document.onPointerUp); }
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
     onClickFunc = () => this.onClickHandler;
@@ -298,7 +298,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (!(e.nativeEvent as any).formattedHandled) {
                     if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                        const func = () => this.onDoubleClickHandler?.script.run({
+                        const func = () => this.onDoubleClickHandler.script.run({
                             this: this.layoutDoc,
                             self: this.rootDoc,
                             thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
@@ -320,7 +320,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 //SelectionManager.DeselectAll();
-                const func = () => this.onClickHandler?.script.run({
+                const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
@@ -556,7 +556,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.cleanUpInteractions();
 
         if (this.onPointerUpHandler?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-            this.onPointerUpHandler?.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
+            this.onPointerUpHandler.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             return;
         }
@@ -644,7 +644,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const makeLink = action((linkDoc: Doc) => {
             LinkManager.currentLink = linkDoc;
             linkDoc.hidden = true;
-            linkDoc.linkDisplay = true;
 
             LinkCreatedBox.popupX = de.x;
             LinkCreatedBox.popupY = de.y - 33;
@@ -1076,7 +1075,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
     }
@@ -1105,7 +1104,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
             this.props.dontRegisterView ? (null) : // view that are not registered
-            DocUtils.FilterDocs(DocListCast(this.Document.links), this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            DocUtils.FilterDocs(LinkManager.Instance.getAllDirectLinks(this.Document), this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
                 <DocumentView {...this.props} key={i + 1}
                     Document={d}
                     ContainingCollectionView={this.props.ContainingCollectionView}

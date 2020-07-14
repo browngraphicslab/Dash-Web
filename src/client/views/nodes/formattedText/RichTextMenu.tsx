@@ -431,7 +431,7 @@ export default class RichTextMenu extends AntimodeMenu {
         const nextIsOL = this.view.state.selection.$from.nodeAfter?.type === schema.nodes.ordered_list;
         let inList: any = undefined;
         let fromList = -1;
-        let path: any = Array.from((this.view.state.selection.$from as any).path);
+        const path: any = Array.from((this.view.state.selection.$from as any).path);
         for (let i = 0; i < path.length; i++) {
             if (path[i]?.type === schema.nodes.ordered_list) {
                 inList = path[i];

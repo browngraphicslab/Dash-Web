@@ -87,11 +87,11 @@ export default class SettingsManager extends React.Component<{}> {
     }
     @action
     googleAuthorize = (event: any) => {
-        GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)
+        GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true);
     }
     @action
     hypothesisAuthorize = (event: any) => {
-        HypothesisAuthenticationManager.Instance.fetchAccessToken(true)
+        HypothesisAuthenticationManager.Instance.fetchAccessToken(true);
     }
 
     private get settingsInterface() {
