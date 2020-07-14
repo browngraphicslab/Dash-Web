@@ -11,7 +11,6 @@ import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { Docs, DocUtils } from '../documents/Documents';
 import { DragManager } from '../util/DragManager';
-import { UndoManager } from "../util/UndoManager";
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
