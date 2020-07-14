@@ -136,6 +136,8 @@ export interface DocumentOptions {
     dontRegisterChildViews?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
+    "onChildDoubleClick-rawScript"?: string; // onChildDoubleClick script in raw text form
+    "onChildClick-rawScript"?: string // on ChildClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions

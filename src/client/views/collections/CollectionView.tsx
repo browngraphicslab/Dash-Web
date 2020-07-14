@@ -305,14 +305,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
             funcs.map(func => onClicks.push({
                 description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
-                    ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
+                    const alias = Doc.MakeAlias(this.props.Document);
+                    DocUtils.makeCustomViewClicked(alias, undefined, func.key);
+                    this.props.addDocTab(alias, "onRight");
                 }
             }));
             DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
                 onClicks.push({
                     description: `Set child ${childClick.title}`,
                     icon: "edit",
-                    event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+                    event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
             !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
 
@@ -470,7 +472,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
-        return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        return script ? () => script : undefined;
     }
     @computed get filterView() {
         TraceMobx();
@@ -523,7 +526,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         ContentScaling={returnOne}
                         focus={returnFalse}
                         treeViewHideHeaderFields={true}
-                        onCheckedClick={this.scriptField!}
+                        onCheckedClick={this.scriptField}
                         ignoreFields={this.ignoreFields}
                         annotationsKey={""}
                         dontRegisterView={true}

@@ -3,7 +3,6 @@ import { ScriptField } from "./ScriptField";
 import { Doc } from "./Doc";
 import { DateField } from "./DateField";
 import { SchemaHeaderField } from "./SchemaHeaderField";
-import { Schema } from "prosemirror-model";
 
 export const documentSchema = createSchema({
     // content properties

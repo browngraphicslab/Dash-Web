@@ -202,8 +202,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     }
 
 
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-    @computed get onChildDoubleClickHandler() { return ScriptCast(this.Document.onChildDoubleClick); }
+    @computed get onChildClickHandler() { return () => ScriptCast(this.Document.onChildClick); }
+    @computed get onChildDoubleClickHandler() { return () => ScriptCast(this.Document.onChildDoubleClick); }
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {

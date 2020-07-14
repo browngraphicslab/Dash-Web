@@ -31,7 +31,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @observable private _rowHeight: Opt<number>; // temporary store of row height to make change undoable
     @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
 
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    @computed get onChildClickHandler() { return () => ScriptCast(this.Document.onChildClick); }
 
     @computed get numCols() { return NumCast(this.props.Document.gridNumCols, 10); }
     @computed get rowHeight() { return this._rowHeight === undefined ? NumCast(this.props.Document.gridRowHeight, 100) : this._rowHeight; }

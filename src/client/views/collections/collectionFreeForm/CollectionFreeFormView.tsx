@@ -46,6 +46,7 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { AnyAaaaRecord } from "dns";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -939,8 +940,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
-    @computed get onChildDoubleClickHandler() { return this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
+    @computed get onChildClickHandler() { return () => (this.props.childClickScript || ScriptCast(this.Document.onChildClick)); }
+    @computed get onChildDoubleClickHandler() { return () => (this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick)); }
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
@@ -1151,7 +1152,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 
-        const handler = (e: Event) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+        const handler = (e: any) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
 
         document.addEventListener("dashDragging", handler);
     }
@@ -1159,7 +1160,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     componentWillUnmount() {
         this._layoutComputeReaction?.();
 
-        const handler = (e: Event) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+        const handler = (e: any) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
         document.removeEventListener("dashDragging", handler);
     }
 

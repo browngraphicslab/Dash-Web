@@ -11,7 +11,7 @@ import { InkTool } from '../../../fields/InkField';
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
@@ -68,10 +68,10 @@ export interface DocumentViewProps {
     ignoreAutoHeight?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
-    onClick?: ScriptField;
-    onDoubleClick?: ScriptField;
-    onPointerDown?: ScriptField;
-    onPointerUp?: ScriptField;
+    onClick?: () => ScriptField;
+    onDoubleClick?: () => ScriptField;
+    onPointerDown?: () => ScriptField;
+    onPointerUp?: () => ScriptField;
     treeViewDoc?: Doc;
     dropAction?: dropActionType;
     dragDivName?: string;
@@ -127,10 +127,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
-    @computed get onClickHandler() { return this.props.onClick || Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
-    @computed get onDoubleClickHandler() { return this.props.onDoubleClick || Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick; }
-    @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
-    @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
+    @computed get onClickHandler() { return this.props.onClick?.() ? this.props.onClick : (() => Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null))); }
+    @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ? this.props.onDoubleClick : () => (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick); }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ? this.props.onPointerDown : () => ScriptCast(this.Document.onPointerDown) }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp ?? (() => ScriptCast(this.Document.onPointerUp)); }
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
 
@@ -293,10 +293,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let stopPropagate = true;
             let preventDefault = true;
             !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler()?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (!(e.nativeEvent as any).formattedHandled) {
-                    if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                        const func = () => this.onDoubleClickHandler.script.run({
+                    if (this.onDoubleClickHandler()?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                        const func = () => this.onDoubleClickHandler()?.script.run({
                             this: this.layoutDoc,
                             self: this.rootDoc,
                             thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
@@ -316,9 +316,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         Doc.UnBrushDoc(this.props.Document);
                     }
                 }
-            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+            } else if (this.onClickHandler()?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 //SelectionManager.DeselectAll();
-                const func = () => this.onClickHandler.script.run({
+                const func = () => this.onClickHandler()?.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
@@ -553,8 +553,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerUp = (e: PointerEvent): void => {
         this.cleanUpInteractions();
 
-        if (this.onPointerUpHandler?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-            this.onPointerUpHandler.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
+        if (this.onPointerUpHandler()?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            this.onPointerUpHandler()?.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             return;
         }
