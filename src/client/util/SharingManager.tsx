@@ -22,7 +22,7 @@ import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../fields/List";
 
-library.add(fa.faCopy);
+library.add(fa.faCopy, fa.faTimes);
 
 export interface User {
     email: string;
@@ -140,7 +140,7 @@ export default class SharingManager extends React.Component<{}> {
 
     setInternalGroupSharing = (group: Doc, permission: string) => {
         const members: string[] = JSON.parse(StrCast(group.members));
-        const users: ValidatedUser[] = this.users.filter(user => members.includes(user.user.email));
+        const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
         const target = this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
@@ -160,8 +160,8 @@ export default class SharingManager extends React.Component<{}> {
         });
     }
 
-    shareWithAddedMember = (group: Doc, email: string) => {
-        const user: ValidatedUser = this.users.find(user => user.user.email === email)!;
+    shareWithAddedMember = (group: Doc, emailId: string) => {
+        const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
             DocListCastAsync(group.docsShared).then(docsShared => {
@@ -173,8 +173,8 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
-    removeMember = (group: Doc, email: string) => {
-        const user: ValidatedUser = this.users.find(user => user.user.email === email)!;
+    removeMember = (group: Doc, emailId: string) => {
+        const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
             DocListCastAsync(group.docsShared).then(docsShared => {
@@ -194,9 +194,9 @@ export default class SharingManager extends React.Component<{}> {
                     doc[ACL] = "Not Shared";
 
                     const members: string[] = JSON.parse(StrCast(group.members));
-                    const users: ValidatedUser[] = this.users.filter(user => members.includes(user.user.email));
+                    const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-                    users.forEach(user => Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
+                    users.forEach(({ notificationDoc }) => Doc.RemoveDocFromList(notificationDoc, storage, doc));
                 });
 
             });
@@ -330,24 +330,6 @@ export default class SharingManager extends React.Component<{}> {
         );
     }
 
-    private computePermissions = (userKey: string) => {
-        // const sharingDoc = this.sharingDoc;
-        // if (!sharingDoc) {
-        //     return SharingPermissions.None;
-        // }
-        // const metadata = sharingDoc[userKey] as Doc | string;
-
-        if (!this.targetDoc) return SharingPermissions.None;
-
-        const ACL = `ACL-${userKey}`;
-        const permission = StrCast(this.targetDoc[ACL]);
-
-        // if (!metadata) {
-        //     return SharingPermissions.None;
-        // }
-        return StrCast(this.targetDoc[ACL], SharingPermissions.None);
-    }
-
     @action
     handleUsersChange = (selectedOptions: any) => {
         this.selectedUsers = selectedOptions as UserOptions[];
@@ -381,7 +363,7 @@ export default class SharingManager extends React.Component<{}> {
             [
                 {
                     label: 'Individuals',
-                    options: GroupManager.Instance.options.map(({ label, value }) => ({ label, value: "!indType/" + value }))
+                    options: this.users.map(({ user: { email } }) => ({ label: email, value: "!indType/" + email }))
                 },
                 {
                     label: 'Groups',
@@ -390,10 +372,12 @@ export default class SharingManager extends React.Component<{}> {
             ]
             : [];
 
+        console.log(this.users);
+
         const userListContents: (JSX.Element | null)[] = this.users.map(({ user, notificationDoc }) => { // can't use async here
             const userKey = user.email.replace('.', '_');
             // const userKey = user.userDocumentId;
-            const permissions = this.computePermissions(userKey);
+            const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`], SharingPermissions.None);
             // const color = ColorMapping.get(permissions);
 
             // console.log(manager);
@@ -401,7 +385,7 @@ export default class SharingManager extends React.Component<{}> {
             // const usersShared = StrCast(metadata?.usersShared, "");
             // console.log(usersShared)
 
-            return permissions === SharingPermissions.None ? null : (
+            return permissions === SharingPermissions.None || user.email === this.targetDoc?.author ? null : (
                 <div
                     key={userKey}
                     className={"container"}
@@ -422,9 +406,24 @@ export default class SharingManager extends React.Component<{}> {
             );
         });
 
+        userListContents.unshift(
+            (
+                <div
+                    key={"owner"}
+                    className={"container"}
+                >
+                    <span className={"padding"}>{this.targetDoc?.author}</span>
+                    <div className="edit-actions">
+                        <div className={"permissions-dropdown"}>
+                            Owner
+                        </div>
+                    </div>
+                </div>
+            )
+        );
 
         const groupListContents = GroupManager.Instance?.getAllGroups().map(group => {
-            const permissions = this.computePermissions(StrCast(group.groupName));
+            const permissions = StrCast(this.targetDoc?.[`ACL-${StrCast(group.groupName)}`], SharingPermissions.None);
             // const color = ColorMapping.get(permissions);
 
             return permissions === SharingPermissions.None ? null : (
@@ -492,7 +491,7 @@ export default class SharingManager extends React.Component<{}> {
                 <div className="sharing-contents">
                     <p className={"share-title"}><b>Share </b>{this.focusOn(StrCast(this.targetDoc?.title, "this document"))}</p>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
                     {this.targetDoc?.author !== Doc.CurrentUserEmail ? null
                         :
@@ -516,6 +515,7 @@ export default class SharingManager extends React.Component<{}> {
                     }
                     <div className="main-container">
                         <div className={"individual-container"}>
+                            <div>Individuals</div>
                             <div className={"users-list"} style={{ display: displayUserList ? "flex" : "block" }}>{/*200*/}
                                 {
                                     displayUserList ?
@@ -530,6 +530,7 @@ export default class SharingManager extends React.Component<{}> {
                             </div>
                         </div>
                         <div className={"group-container"}>
+                            <div>Groups</div>
                             <div className={"groups-list"} style={{ display: displayGroupList ? "flex" : "block" }}>{/*200*/}
                                 {
                                     displayGroupList ?

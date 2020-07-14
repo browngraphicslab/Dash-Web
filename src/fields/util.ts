@@ -160,9 +160,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
         }
         return aclPresent ? effectiveAcl : AclEdit;
     }
-    else {
-        return AclEdit;
-    }
+    return AclEdit;
 }
 
 

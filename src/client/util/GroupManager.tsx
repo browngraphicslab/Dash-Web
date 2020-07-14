@@ -12,11 +12,12 @@ import { Utils } from "../../Utils";
 import * as RequestPromise from "request-promise";
 import Select from 'react-select';
 import "./GroupManager.scss";
-import { StrCast } from "../../fields/Types";
+import { StrCast, Cast } from "../../fields/Types";
 import GroupMemberView from "./GroupMemberView";
 import { setGroups } from "../../fields/util";
+import { DocServer } from "../DocServer";
 
-library.add(fa.faWindowClose);
+library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle);
 
 export interface UserOptions {
     label: string;
@@ -33,47 +34,37 @@ export default class GroupManager extends React.Component<{}> {
     @observable private users: string[] = []; // list of users populated from the database.
     @observable private selectedUsers: UserOptions[] | null = null; // list of users selected in the "Select users" dropdown.
     @observable currentGroup: Opt<Doc>; // the currently selected group.
+    @observable private createGroupModalOpen: boolean = false;
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
-    currentUserGroups: string[] = [];
+    private currentUserGroups: string[] = [];
+    @observable private buttonColour: "#979797" | "black" = "#979797";
 
     constructor(props: Readonly<{}>) {
         super(props);
         GroupManager.Instance = this;
     }
 
-    // sets up the list of users
-    componentDidMount() {
-        this.populateUsers().then(resolved => runInAction(() => this.users = resolved));
-
-        // this.getAllGroups().forEach(group => {
-        //     const members: string[] = JSON.parse(StrCast(group.members));
-        //     if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(group);
-        // });
-        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
-            groups?.forEach(group => {
-                const members: string[] = JSON.parse(StrCast(group.members));
-                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
-            });
-        })
-            .finally(() => setGroups(this.currentUserGroups));
-
-        // (this.GroupManagerDoc?.data as List<Doc>).forEach(group => {
-        //     Promise.resolve(group).then(resolvedGroup => {
-        //         const members: string[] = JSON.parse(StrCast(resolvedGroup.members));
-        //         if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(resolvedGroup);
-        //     });
-        // });
-
-    }
-
     /**
-     * Fetches the list of users stored on the database and @returns a list of the emails.
+     * Fetches the list of users stored on the database.
      */
     populateUsers = async () => {
-        const userList: User[] = JSON.parse(await RequestPromise.get(Utils.prepend("/getUsers")));
-        // const currentUserIndex = userList.findIndex(user => user.email === Doc.CurrentUserEmail);
-        // currentUserIndex !== -1 && userList.splice(currentUserIndex, 1);
-        return userList.map(user => user.email);
+        const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
+        const raw = JSON.parse(userList) as User[];
+        const evaluating = raw.map(async user => {
+            const isCandidate = user.email !== Doc.CurrentUserEmail;
+            if (isCandidate) {
+                const userDocument = await DocServer.GetRefField(user.userDocumentId);
+                if (userDocument instanceof Doc) {
+                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                    runInAction(() => {
+                        if (notificationDoc instanceof Doc) {
+                            this.users.push(user.email);
+                        }
+                    });
+                }
+            }
+        });
+        return Promise.all(evaluating);
     }
 
     /**
@@ -90,6 +81,15 @@ export default class GroupManager extends React.Component<{}> {
     open = () => {
         SelectionManager.DeselectAll();
         this.isOpen = true;
+        this.populateUsers();
+        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
+            groups?.forEach(group => {
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
+            });
+
+            setGroups(this.currentUserGroups);
+        });
     }
 
     /**
@@ -99,6 +99,8 @@ export default class GroupManager extends React.Component<{}> {
     close = () => {
         this.isOpen = false;
         this.currentGroup = undefined;
+        this.users = [];
+        this.createGroupModalOpen = false;
     }
 
     /**
@@ -277,6 +279,7 @@ export default class GroupManager extends React.Component<{}> {
      */
     @action
     createGroup = () => {
+        // this.createGroupModalOpen = true;
         if (!this.inputRef.current?.value) {
             alert("Please enter a group name");
             return;
@@ -288,6 +291,66 @@ export default class GroupManager extends React.Component<{}> {
         this.createGroupDoc(this.inputRef.current.value, this.selectedUsers?.map(user => user.value));
         this.selectedUsers = null;
         this.inputRef.current.value = "";
+        this.buttonColour = "#979797";
+    }
+
+    private get groupCreationModal() {
+        const contents = (
+            <div className="group-create">
+                <div className="group-heading" style={{ marginBottom: 0 }}>
+                    <p><b>New Group</b></p>
+                    <div className={"close-button"} onClick={action(() => this.createGroupModalOpen = false)}>
+                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                    </div>
+                </div>
+                <input
+                    ref={this.inputRef}
+                    onKeyDown={this.handleKeyDown}
+                    type="text"
+                    placeholder="Group name"
+                    onChange={action(() => this.buttonColour = this.inputRef.current?.value ? "black" : "#979797")} />
+                <Select
+                    isMulti={true}
+                    isSearchable={true}
+                    options={this.options}
+                    onChange={this.handleChange}
+                    placeholder={"Select users"}
+                    value={this.selectedUsers}
+                    closeMenuOnSelect={false}
+                    styles={{
+                        dropdownIndicator: (base, state) => ({
+                            ...base,
+                            transition: '0.5s all ease',
+                            transform: state.selectProps.menuIsOpen ? 'rotate(180deg)' : undefined
+                        }),
+                        multiValue: (base) => ({
+                            ...base,
+                            maxWidth: "50%",
+
+                            '&:hover': {
+                                maxWidth: "unset"
+                            }
+                        })
+                    }}
+                />
+                <button onClick={this.createGroup}
+                    style={{ background: this.buttonColour }}
+                    disabled={this.buttonColour === "#979797"}
+                >
+                    Create
+                </button>
+            </div>
+        );
+
+        return (
+            <MainViewModal
+                isDisplayed={this.createGroupModalOpen}
+                interactive={true}
+                contents={contents}
+                dialogueBoxStyle={{ width: "70%", height: "70%" }}
+                closeOnExternalClick={action(() => this.createGroupModalOpen = false)}
+            />
+        );
     }
 
     /**
@@ -296,13 +359,7 @@ export default class GroupManager extends React.Component<{}> {
     private get groupInterface() {
         return (
             <div className="group-interface">
-                {/* <MainViewModal
-                    contents={this.editingInterface}
-                    isDisplayed={this.currentGroup ? true : false}
-                    interactive={true}
-                    dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                    overlayDisplayedOpacity={this.overlayOpacity}
-                /> */}
+                {this.groupCreationModal}
                 {this.currentGroup ?
                     <GroupMemberView
                         group={this.currentGroup}
@@ -310,42 +367,26 @@ export default class GroupManager extends React.Component<{}> {
                     />
                     : null}
                 <div className="group-heading">
-                    <h1>Groups</h1>
+                    <p><b>Manage Groups</b></p>
+                    <button onClick={action(() => this.createGroupModalOpen = true)}>
+                        <FontAwesomeIcon icon={fa.faPlus} size={"sm"} /> Create Group
+                    </button>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
                 </div>
                 <div className="group-body">
-                    <div className="group-create">
-                        <button onClick={this.createGroup}>Create group</button>
-                        <input ref={this.inputRef} onKeyDown={this.handleKeyDown} type="text" placeholder="Group name" />
-                        <Select
-                            isMulti={true}
-                            isSearchable={true}
-                            options={this.options}
-                            onChange={this.handleChange}
-                            placeholder={"Select users"}
-                            value={this.selectedUsers}
-                            closeMenuOnSelect={false}
-                            styles={{
-                                dropdownIndicator: (base, state) => ({
-                                    ...base,
-                                    transition: '0.5s all ease',
-                                    transform: state.selectProps.menuIsOpen ? 'rotate(180deg)' : undefined
-                                })
-                            }}
-                        />
-                    </div>
-                    <div className="group-content">
-                        {this.getAllGroups().map(group =>
-                            <div className="group-row">
-                                <div className="group-name">{group.groupName}</div>
-                                <button onClick={action(() => this.currentGroup = group)}>
-                                    {this.hasEditAccess(group) ? "Edit" : "View"}
-                                </button>
+                    {this.getAllGroups().map(group =>
+                        <div className="group-row">
+                            <div className="group-name" >{group.groupName}</div>
+                            <div className="group-info" onClick={action(() => this.currentGroup = group)}>
+                                <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                             </div>
-                        )}
-                    </div>
+                            {/* <button onClick={action(() => this.currentGroup = group)}>
+                                {this.hasEditAccess(group) ? "Edit" : "View"}
+                            </button> */}
+                        </div>
+                    )}
                 </div>
             </div>
         );

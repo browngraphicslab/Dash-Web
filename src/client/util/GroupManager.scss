@@ -1,23 +1,60 @@
-@import "../views/globalCssVariables";
+// @import "../views/globalCssVariables";
 
 .group-interface {
-    background-color: whitesmoke !important;
-    color: grey;
-    width: 450px;
+    // background-color: whitesmoke !important;
+    // color: grey;
+    width: 550px;
     height: 300px;
 
     .dialogue-box {
-        width: 450;
-        height: 300;
+        .group-create {
+            display: flex;
+            flex-direction: column;
+            height: 90%;
+            justify-content: space-between;
+            // flex-basis: 30%;
+            margin-left: 5px;
+
+            input {
+                border-radius: 5px;
+                // border: none;
+                padding: 8px;
+                min-width: 100%;
+                margin: 4px 0 4px 0;
+                border: 1px solid hsl(0, 0%, 80%);
+                outline: none;
+
+                &:focus {
+                    // border: unset;
+                    border: 2.5px solid #2684FF;
+                }
+            }
+
+            p {
+                font-size: 20px;
+                text-align: left;
+                color: black;
+            }
+
+            button {
+                align-self: flex-end;
+            }
+        }
     }
 
+    //     .dialogue-box {
+    //     width: 450;
+    //     height: 300;
+    // }
+
     button {
-        background: $lighter-alt-accent;
+        // background: $lighter-alt-accent;
+        align-self: center;
         outline: none;
         border-radius: 5px;
         border: 0px;
-        color: #fcfbf7;
-        text-transform: uppercase;
+        // color: #fcfbf7;
+        text-transform: none;
         letter-spacing: 2px;
         font-size: 75%;
         padding: 10px;
@@ -36,12 +73,6 @@
         border-radius: 10px;
     }
 
-    button {
-        width: 100%;
-        align-self: center;
-        background: $darker-alt-accent;
-    }
-
     .delete-button {
         background: rgb(227, 86, 86);
     }
@@ -55,82 +86,73 @@
     }
 
     .group-heading {
-        letter-spacing: .5em;
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+
+        p {
+            font-size: 20px;
+            text-align: left;
+            // margin: 0 0 20px 0;
+            margin-right: 15px;
+            color: black;
+            // width: 60%;
+        }
     }
 
 
     .group-body {
-        display: flex;
+        // display: flex;
         justify-content: space-between;
-        max-height: 80%;
+        // max-height: 80%;
+        height: 100%;
+        background-color: #e8e8e8;
+        // flex-direction: column;
 
-        .group-create {
+        // padding-left: 1em;
+        padding-right: 1em;
+        justify-content: space-around;
+        text-align: left;
+
+        overflow-y: auto;
+        width: 100%;
+
+        .group-row {
             display: flex;
-            flex-direction: column;
-            flex-basis: 30%;
-            margin-left: 5px;
+            // position: relative;
+            margin-bottom: 5px;
+            min-height: 30px;
+            // border: 1px solid;
+            // border-radius: 10px;
+            align-items: center;
 
-            input {
-                border-radius: 5px;
-                border: none;
-                padding: 4px;
-                min-width: 100%;
-                margin: 4px 0 4px 0;
+            .group-name {
+                // position: relative;
+                max-width: 65%;
+                // left: 10;
+                margin: 0 10;
+                color: black;
             }
 
+            .group-info {
+                cursor: pointer;
+            }
+
+            button {
+                position: absolute;
+                width: 30%;
+                right: 2;
+                margin-top: 0;
+            }
         }
 
-        .group-content {
-            padding-left: 1em;
-            padding-right: 1em;
-            justify-content: space-around;
-            text-align: left;
-
-            overflow-y: auto;
-            width: 100%;
-
-            .group-row {
-                display: flex;
-                position: relative;
-                margin-bottom: 5px;
-                min-height: 40px;
-                border: 1px solid;
-                border-radius: 10px;
-                align-items: center;
-
-                .group-name {
-                    position: relative;
-                    max-width: 65%;
-                    left: 10;
-                }
-
-                button {
-                    position: absolute;
-                    width: 30%;
-                    right: 2;
-                    margin-top: 0;
-                }
-            }
-
-            ::placeholder {
-                color: $intermediate-color;
-            }
-
-            input {
-                border-radius: 5px;
-                border: none;
-                padding: 4px;
-                min-width: 100%;
-                margin: 2px 0;
-            }
-
+        input {
+            border-radius: 5px;
+            border: none;
+            padding: 4px;
+            min-width: 100%;
+            margin: 2px 0;
         }
-    }
 
-    h1 {
-        color: $dark-color;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        font-size: 120%;
     }
 }
