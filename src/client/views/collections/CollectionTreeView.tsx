@@ -369,13 +369,13 @@ class TreeView extends React.Component<TreeViewProps> {
         }
     }
 
-    get onCheckedClick() { return this.props.onCheckedClick || (() => ScriptCast(this.doc.onCheckedClick)); }
+    get onCheckedClick() { return this.props.onCheckedClick?.() ?? ScriptCast(this.doc.onCheckedClick); }
 
     @action
     bulletClick = (e: React.MouseEvent) => {
-        if (this.onCheckedClick() && this.doc.type !== DocumentType.COL) {
+        if (this.onCheckedClick && this.doc.type !== DocumentType.COL) {
             // this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
-            this.onCheckedClick()?.script.run({
+            this.onCheckedClick?.script.run({
                 this: this.doc.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.doc,
                 heading: this.props.containingCollection.title,
                 checked: this.doc.treeViewChecked === "check" ? "x" : this.doc.treeViewChecked === "x" ? undefined : "check",
@@ -389,7 +389,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @computed get renderBullet() {
         TraceMobx();
-        const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick() ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
+        const checked = this.doc.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.doc.treeViewChecked ?? "unchecked") : undefined;
         return <div className="bullet"
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
@@ -541,8 +541,8 @@ class TreeView extends React.Component<TreeViewProps> {
         treeViewPreventOpen: boolean,
         renderedIds: string[],
         libraryPath: Doc[] | undefined,
-        onCheckedClick?: () => ScriptField,
-        onChildClick?: () => ScriptField,
+        onCheckedClick: undefined | (() => ScriptField),
+        onChildClick: undefined | (() => ScriptField),
         ignoreFields: string[] | undefined
     ) {
         const viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
