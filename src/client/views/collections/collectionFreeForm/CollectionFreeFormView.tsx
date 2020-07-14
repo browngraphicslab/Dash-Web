@@ -46,7 +46,6 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { AnyAaaaRecord } from "dns";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
