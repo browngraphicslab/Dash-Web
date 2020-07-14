@@ -479,7 +479,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
         });
         changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
-        appearanceItems.push({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
+        appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
         const uicontrols: ContextMenuProps[] = [];
         uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
@@ -489,10 +489,29 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
         });
 
-        appearanceItems.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+        appearanceItems.push({ description: "UI Controls...", noexpand: true, subitems: uicontrols, icon: "asterisk" });
         this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
         Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-        appearanceItems.push({
+
+        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+
+        const funcs: ContextMenuProps[] = [];
+
+        const highlighting: ContextMenuProps[] = [];
+        ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
+            highlighting.push({
+                description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
+                    e.stopPropagation();
+                    if (FormattedTextBox._highlights.indexOf(option) === -1) {
+                        FormattedTextBox._highlights.push(option);
+                    } else {
+                        FormattedTextBox._highlights.splice(FormattedTextBox._highlights.indexOf(option), 1);
+                    }
+                    this.updateHighlights();
+                }, icon: "expand-arrows-alt"
+            }));
+        funcs.push({ description: "highlighting...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
+        funcs.push({
             description: "Convert to be a template style", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
                     const title = StrCast(this.rootDoc.title);
@@ -517,29 +536,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
-        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+        funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
 
-        const funcs: ContextMenuProps[] = [];
-
-        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
         funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
-
-        const highlighting: ContextMenuProps[] = [];
-        ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
-            highlighting.push({
-                description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
-                    e.stopPropagation();
-                    if (FormattedTextBox._highlights.indexOf(option) === -1) {
-                        FormattedTextBox._highlights.push(option);
-                    } else {
-                        FormattedTextBox._highlights.splice(FormattedTextBox._highlights.indexOf(option), 1);
-                    }
-                    this.updateHighlights();
-                }, icon: "expand-arrows-alt"
-            }));
-        funcs.push({ description: "highlighting...", subitems: highlighting, icon: "hand-point-right" });
-
+        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
         this._downX = this._downY = Number.NaN;
     }

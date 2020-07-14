@@ -41,7 +41,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
             }, icon: "trash"
         });
 
-        ContextMenu.Instance.addItem({ description: "OnClick...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: funcs, icon: "asterisk" });
     }
 
     @undoBatch

@@ -221,6 +221,7 @@
         "react-grid-layout": "^0.18.3",
         "react-image-lightbox-with-rotate": "^5.1.1",
         "react-jsx-parser": "^1.25.1",
+        "react-loading": "^2.0.3",
         "react-measure": "^2.2.4",
         "react-resizable": "^1.10.1",
         "react-select": "^3.1.0",
