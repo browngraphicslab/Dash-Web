@@ -330,6 +330,7 @@ export namespace DragManager {
             DragManager.Root().appendChild(dragDiv);
         }
         dragLabel.style.display = "";
+        SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -393,7 +394,6 @@ export namespace DragManager {
                 set[i].hasAttribute("style") && ((set[i] as any).style.pointerEvents = "none");
             }
 
-            SnappingManager.SetIsDragging(true);
             dragDiv.appendChild(dragElement);
             return dragElement;
         });

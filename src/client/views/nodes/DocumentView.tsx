@@ -127,12 +127,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
-    @computed get onClickHandler() { return this.props.onClick?.() ? this.props.onClick : (() => Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null))); }
-    @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ? this.props.onDoubleClick : () => (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick); }
-    @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ? this.props.onPointerDown : () => ScriptCast(this.Document.onPointerDown) }
-    @computed get onPointerUpHandler() { return this.props.onPointerUp ?? (() => ScriptCast(this.Document.onPointerUp)); }
+    @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
+    @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() || (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick); }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown?.() || ScriptCast(this.Document.onPointerDown) }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp?.() || ScriptCast(this.Document.onPointerUp); }
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
+    onClickFunc = () => this.onClickHandler;
+    onDoubleClickFunc = () => this.onDoubleClickHandler;
 
     private _firstX: number = -1;
     private _firstY: number = -1;
@@ -293,10 +295,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let stopPropagate = true;
             let preventDefault = true;
             !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler()?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (!(e.nativeEvent as any).formattedHandled) {
-                    if (this.onDoubleClickHandler()?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                        const func = () => this.onDoubleClickHandler()?.script.run({
+                    if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                        const func = () => this.onDoubleClickHandler?.script.run({
                             this: this.layoutDoc,
                             self: this.rootDoc,
                             thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
@@ -316,9 +318,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         Doc.UnBrushDoc(this.props.Document);
                     }
                 }
-            } else if (this.onClickHandler()?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 //SelectionManager.DeselectAll();
-                const func = () => this.onClickHandler()?.script.run({
+                const func = () => this.onClickHandler?.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
@@ -379,7 +381,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler()) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) e.stopPropagation();
+                if ((this.active || this.layoutDoc.onDragStart || this.onClickHandler) && !e.ctrlKey && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -394,11 +396,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             this.removeMoveListeners();
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler()) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart || this.onClickHandler) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
 
             const touch = me.touchEvent.changedTouches.item(0);
             if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
-                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler())) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler)) {
                     this.cleanUpInteractions();
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
                 }
@@ -511,7 +513,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         this._downX = e.clientX;
         this._downY = e.clientY;
-        if ((!e.nativeEvent.cancelBubble || this.onClickHandler() || this.layoutDoc.onDragStart) &&
+        if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.layoutDoc.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
             if ((this.active || this.layoutDoc.onDragStart) &&
@@ -539,7 +541,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.layoutDoc.onDragStart) && !this.layoutDoc.lockedPosition && !this.layoutDoc.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler()) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
+                if (!e.altKey && (!this.topMost || this.layoutDoc.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, ((e.ctrlKey || e.altKey) && "alias") || (this.props.dropAction || this.Document.dropAction || undefined) as dropActionType);
@@ -553,8 +555,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerUp = (e: PointerEvent): void => {
         this.cleanUpInteractions();
 
-        if (this.onPointerUpHandler()?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-            this.onPointerUpHandler()?.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
+        if (this.onPointerUpHandler?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            this.onPointerUpHandler?.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             return;
         }
@@ -587,7 +589,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
-        if (this.Document.isLinkButton || this.onClickHandler() || this.Document.ignoreClick) {
+        if (this.Document.isLinkButton || this.onClickHandler || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
             const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
             first && (first.hidden = false);
@@ -782,7 +784,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler() ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
 
@@ -1070,7 +1072,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
                 select={this.select}
-                onClick={this.onClickHandler}
+                onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
@@ -1141,13 +1143,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}
                     select={this.select}
-                    onClick={this.onClickHandler}
+                    onClick={this.onClickFunc}
                     layoutKey={this.finalLayoutKey} />
             </div>);
         const titleView = (!showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: showTextTitle ? "relative" : "absolute",
-                pointerEvents: this.onClickHandler() || this.Document.ignoreClick ? "none" : undefined,
+                pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
                 <EditableView ref={this._titleRef}
                     contents={(this.props.DataDoc || this.props.Document)[showTitle]?.toString()}
@@ -1249,7 +1251,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                 fontSize: Cast(this.Document._fontSize, "string", null)
             }}>
-            {this.onClickHandler() && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
+            {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
                 <div className="documentView-contentBlocker" />
             </> :
