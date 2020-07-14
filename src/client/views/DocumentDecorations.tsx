@@ -17,14 +17,11 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import { Id, Copy, Update } from '../../fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkData, InkField, InkTool } from "../../fields/InkField";
-import { update } from 'serializr';
-import { Transform } from "../util/Transform";
 import { Tooltip } from '@material-ui/core';
 
 library.add(faCaretUp);
@@ -579,7 +576,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
-                    <span style={{ width: "100%", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
+                    <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
                 </div>
             </>;
 
