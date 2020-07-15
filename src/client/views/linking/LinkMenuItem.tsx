@@ -11,11 +11,13 @@ import { ContextMenu } from '../ContextMenu';
 import './LinkMenuItem.scss';
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
-import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
+import { setupMoveUpEvents, emptyFunction, Utils } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import { WebField } from '../../../fields/URLField';
+import { Hypothesis } from '../../apis/hypothesis/HypothesisApiUtils';
+import { Id } from '../../../fields/FieldSymbols';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt);
 
 
@@ -169,6 +171,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @action
     deleteLink = (): void => {
+        this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(StrCast(this.props.linkDoc.annotationId), Utils.prepend("/doc/" + this.props.sourceDoc[Id])); // delete hyperlink in annotation
+        this.props.linkDoc.linksToAnnotation && console.log("annotationId", this.props.linkDoc.annotationId);
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         //this.props.showLinks();
         LinkDocPreview.LinkInfo = undefined;

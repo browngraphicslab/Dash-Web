@@ -43,27 +43,44 @@ export namespace Hypothesis {
         }
     };
 
-    // Find the most recent placeholder annotation created, and return its ID
+    export const editAnnotation = async (annotationId: string, newText: string) => {
+        console.log("DASH dispatching editRequest");
+        const credentials = await getCredentials();
+        document.dispatchEvent(new CustomEvent<{ newText: string, id: string, apiKey: string }>("editRequest", {
+            detail: { newText: newText, id: annotationId, apiKey: credentials.apiKey },
+            bubbles: true
+        }));
+    };
+
+    /**
+     * Edit an annotation with ID @param annotationId to add a hyperlink to a Dash document, which needs to be 
+     * written in the format [@param title](@param url)
+     */
+    export const makeLink = async (title: string, url: string, annotationId: string) => {
+        const oldAnnotation = await fetchAnnotation(annotationId);
+        const oldText = StrCast(oldAnnotation.text);
+        const newHyperlink = `[${title}\n](${url})`;
+        const newText = oldText === "placeholder" ? newHyperlink : oldText + '\n\n' + newHyperlink; // if this is not the first link in the annotation, add link on new line
+        await editAnnotation(annotationId, newText);
+    };
+
+    /**
+     * Edit an annotation with ID @param annotationId to delete a hyperlink to the Dash document with URL @param linkUrl
+     */
+    export const deleteLink = async (annotationId: string, linkUrl: string) => {
+        const annotation = await fetchAnnotation(annotationId);
+        const regex = new RegExp(`(\[[^[]*)\(${linkUrl.replace('/', '\/')}\)`);
+        const target = regex.exec(annotation.text); // use regex to extract the link to be deleted, which is written in [title](hyperlink) format
+        target && console.log(target);
+        // target && editAnnotation(annotationId, annotation.text.replace(target[0], ''));
+    };
+
+    // Finds the most recent placeholder annotation created and returns its ID
     export const getPlaceholderId = async (searchKeyWord: string) => {
         const getResponse = await Hypothesis.searchAnnotation(searchKeyWord);
         const id = getResponse.rows.length > 0 ? getResponse.rows[0].id : undefined;
         const uri = getResponse.rows.length > 0 ? getResponse.rows[0].uri : undefined;
         return id ? { id, uri } : undefined;
-    };
-
-    // Send request to Hypothes.is client to modify a placeholder annotation into a hyperlink to Dash
-    export const dispatchLinkRequest = async (title: string, url: string, annotationId: string) => {
-        const credentials = await getCredentials();
-        const oldAnnotation = await fetchAnnotation(annotationId);
-        const oldText = StrCast(oldAnnotation.text);
-        const newHyperlink = `[${title}\n](${url})`;
-        const newText = oldText === "placeholder" ? newHyperlink : oldText + '\n\n' + newHyperlink;
-
-        console.log("DASH dispatching linkRequest");
-        document.dispatchEvent(new CustomEvent<{ newText: string, id: string, apiKey: string }>("linkRequest", {
-            detail: { newText: newText, id: annotationId, apiKey: credentials.apiKey },
-            bubbles: true
-        }));
     };
 
     // Construct an URL which will scroll the web page to a specific annotation's position
@@ -74,7 +91,7 @@ export namespace Hypothesis {
 
     // Extract username from Hypothe.is's userId format
     export const extractUsername = (userid: string) => {
-        const exp: RegExp = /(?<=\:)(.*?)(?=\@)/;
-        return exp.exec(userid)![0];
+        const regex = new RegExp('(?<=\:)(.*?)(?=\@)/');
+        return regex.exec(userid)![0];
     };
 }

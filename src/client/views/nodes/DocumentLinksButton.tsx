@@ -40,7 +40,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     componentDidMount() {
         window.addEventListener("message", async (e: any) => {
             if (e.origin === "http://localhost:1050" && e.data.message === "annotation created") {
-                console.log("DASH RECEIVED MESSAGE:", e.data.message);
+                console.log("DASH received message: annotation created");
                 const response = await Hypothesis.getPlaceholderId("placeholder"); // delete once eventListening between client & Dash works
                 const source = SelectionManager.SelectedDocuments()[0];
                 response && runInAction(() => {
@@ -110,7 +110,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 if (DocumentLinksButton.StartLink === this.props.View) {
                     DocumentLinksButton.StartLink = undefined;
                     DocumentLinksButton.AnnotationId = undefined;
-                    console.log("reset to undefined (completeLink)");
                     // action((e: React.PointerEvent<HTMLDivElement>) => {
                     //     Doc.UnBrushDoc(this.props.View.Document);
                     // });
@@ -124,8 +123,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
                             const sourceUrl = DocumentLinksButton.AnnotationUri;
                             Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
+                            Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                             Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
-                            Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                            Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
                         }
 
                         LinkManager.currentLink = linkDoc;
@@ -151,7 +151,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
             DocumentLinksButton.AnnotationId = undefined;
-            console.log("reset to undefined (finisheLinkClick)");
             // action((e: React.PointerEvent<HTMLDivElement>) => {
             //     Doc.UnBrushDoc(this.props.View.Document);
             // });
@@ -165,8 +164,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
                     const sourceUrl = DocumentLinksButton.AnnotationUri; // the URL of the annotation's source web page
                     Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
+                    Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                     Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
-                    Hypothesis.dispatchLinkRequest(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                    Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
                 }
 
                 LinkManager.currentLink = linkDoc;
