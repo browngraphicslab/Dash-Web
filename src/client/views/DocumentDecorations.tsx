@@ -544,11 +544,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
-            <Tooltip title="Show context menu" placement="top">
+            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Show context menu</div></React.Fragment>} placement="top">
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>) : (
-                <Tooltip title="Iconify" placement="top">
+                <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Iconify</div></React.Fragment>} placement="top">
                     <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
                         {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                         <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
@@ -572,7 +572,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 </div>}
             </> :
             <>
-                {minimal ? (null) : <Tooltip title="Show context menu" placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
+                {minimal ? (null) : <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Show context menu</div></React.Fragment>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
@@ -611,11 +611,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     {maximizeIcon}
                     {titleArea}
                     {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                        <Tooltip title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} placement="top">
+                        <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div></React.Fragment>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title="Open Document in Tab" placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Open Document In Tab</div></React.Fragment>} placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"
@@ -638,7 +638,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                         onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                     {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                        <Tooltip title="tap to select containing document" placement="top">
+                        <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>tap to select containing document</div></React.Fragment>} placement="top">
                             <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
                                 onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
                                 <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />

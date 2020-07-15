@@ -4,7 +4,7 @@
     width: auto;
     height: auto;
     position: absolute;
-    top : 0;
+    top: 0;
     left: 0;
 
     .linkMenu-list {
@@ -29,13 +29,16 @@
         //width: calc(auto + 50px);
 
         white-space: nowrap;
-
         overflow-x: hidden;
-
         width: 240px;
+        scrollbar-color: white;
 
         &:last-child {
             border-bottom: none;
+        }
+
+        &:hover {
+            scrollbar-color: rgb(201, 239, 252);
         }
     }
 
