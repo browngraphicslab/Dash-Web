@@ -66,6 +66,7 @@ import { LinkCreatedBox } from './nodes/LinkCreatedBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
+import CollectionMenu from './collections/CollectionMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -612,6 +613,7 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
+            <CollectionMenu />
             <InkOptionsMenu />
             <FormatShapePane />
             <RichTextMenu key="rich" />
