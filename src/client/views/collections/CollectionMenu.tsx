@@ -32,6 +32,9 @@ export default class CollectionMenu extends AntimodeMenu {
     @action
     toggleMenuPin = (e: React.MouseEvent) => {
         Doc.UserDoc()["menuCollections-pinned"] = this.Pinned = !this.Pinned;
+        if (!this.Pinned && this._left < 0) {
+            this.jumpTo(300, 300);
+        }
     }
 
     render() {
