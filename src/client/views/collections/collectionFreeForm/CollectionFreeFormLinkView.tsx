@@ -1,15 +1,16 @@
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
-import { Utils } from '../../../../Utils';
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from '../../../../Utils';
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
-import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
 import { StrCast, Cast } from "../../../../fields/Types";
 import { Id } from "../../../../fields/FieldSymbols";
 import { SnappingManager } from "../../../util/SnappingManager";
+import { OverlayView } from "../../OverlayView";
+import { LinkEditor } from "../../linking/LinkEditor";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -29,8 +30,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
 
     @action
     componentDidMount() {
-        // document.addEventListener("pointerup", this.onUp);
-
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
                 if (SnappingManager.GetIsDragging()) return;
@@ -91,43 +90,20 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             , { fireImmediately: true });
     }
 
-    @action
-    onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            this.setDescripValue(this.descriptionText);
-            document.getElementById('input')?.blur();
-        }
-    }
-
-    @action
-    handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.descriptionText = e.target.value;
-    }
-
-    @action
-    setDescripValue = (value: string) => {
-        this.props.A.props.Document.description = value;
-        return true;
-    }
 
     pointerDown = (e: React.PointerEvent) => {
-        this.down = true;
-        this.downCoor[0] = e.screenX;
-        this.downCoor[1] = e.screenY;
-    }
-
-    onUp = (e: React.PointerEvent) => {
-        if (this.down) {
-            this.offset[0] = e.screenX - this.downCoor[0];
-            this.offset[1] = e.screenY - this.downCoor[1];
-        }
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, () => {
+            // OverlayView.Instance.addElement(
+            //     <LinkEditor sourceDoc={this.props.A.props.Document} linkDoc={this.props.LinkDocs[0]}
+            //         showLinks={action(() => { })}
+            //     />, { x: 300, y: 300 });
+        });
     }
 
 
     @action
     componentWillUnmount() {
         this._anchorDisposer?.();
-        //document.removeEventListener("pointerup", this.onUp);
     }
 
 
@@ -159,47 +135,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const textX = (Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3 + this.offset[0];
         const textY = (pt1[1] + pt2[1]) / 2 + this.offset[1];
 
-        const circleStyle = {
-            padding: 10,
-            margin: 20,
-            display: "inline-block",
-            backgroundColor: "red",
-            borderRadius: "50%",
-            width: 100,
-            height: 100,
-            opacity: "30%",
-            border: "1px solid red",
-            top: textX + 50,
-            left: textY + 50
-        };
-
         return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
-
-            {/* {this.down ? <div onPointerUp={this.onUp} style={circleStyle}></div> : null} */}
-
-            <text x={textX} y={textY} onPointerDown={this.pointerDown}
-                style={{ backgroundColor: "white", borderRadius: "6px", padding: "2px" }}>
-                {this.descriptionText}
-            </text>
-
-            {/* <input
-                style={{
-                    width: "auto",
-                    position: "absolute",
-                    left: `${textX}px`,
-                    top: `${textY}px`,
-                    backgroundColor: "pink",
-                    borderRadius: "5px",
-                    zIndex: 1000
-                }}
-                id="input"
-                value={this.descriptionText}
-                onKeyDown={this.onKey}
-                onChange={this.handleChange}
-            ></input> */}
 
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
+            <text className="collectionfreeformlinkview-linkText" x={textX} y={textY} onPointerDown={this.pointerDown} >
+                {this.descriptionText}
+            </text>
         </>);
     }
 }
