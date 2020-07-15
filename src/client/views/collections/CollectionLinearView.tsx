@@ -124,7 +124,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{BoolCast(this.props.Document.linearViewIsExpanded) ? "Close menu" : "Open menu"}</div></React.Fragment>} placement="top">
+                <Tooltip title={<><div className="dash-tooltip">{BoolCast(this.props.Document.linearViewIsExpanded) ? "Close menu" : "Open menu"}</div></>} placement="top">
                     {menuOpener}
                 </Tooltip>
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
@@ -176,18 +176,20 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
-                        Creating link from: {DocumentLinksButton.StartLink.title} </span>
+                        Creating link from: {DocumentLinksButton.StartLink.title}
+                    </span>
 
-                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :
-                        "Turn on description pop-up"} </div></React.Fragment>} placement="top">
-                        <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
-                        > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                    <Tooltip title={<><div className="dash-tooltip">{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :
+                        "Turn on description pop-up"} </div></>} placement="top">
+                        <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}>
+                            Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
                         </span>
                     </Tooltip>
 
-                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Exit link clicking mode </div></React.Fragment>} placement="top">
-                        <span className="bottomPopup-exit" onClick={this.exitLongLinks}
-                        >Clear</span>
+                    <Tooltip title={<><div className="dash-tooltip">Exit link clicking mode </div></>} placement="top">
+                        <span className="bottomPopup-exit" onClick={this.exitLongLinks}>
+                            Clear
+                        </span>
                     </Tooltip>
 
                     {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}

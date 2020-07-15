@@ -16,7 +16,6 @@ import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import { Tooltip } from '@material-ui/core';
-import { RichTextField } from '../../../fields/RichTextField';
 import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
@@ -157,14 +156,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
 
-        if (this.props.linkDoc.follow) {
-            if (this.props.linkDoc.follow === "Default") {
-                DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
-            } else if (this.props.linkDoc.follow === "Always open in right tab") {
-                this.props.addDocTab(this.props.destinationDoc, "onRight");
-            } else if (this.props.linkDoc.follow === "Always open in new tab") {
-                this.props.addDocTab(this.props.destinationDoc, "inTab");
-            }
+        if (this.props.linkDoc.followLinkLocation && this.props.linkDoc.followLinkLocation !== "Default") {
+            this.props.addDocTab(this.props.destinationDoc, StrCast(this.props.linkDoc.followLinkLocation));
         } else {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
         }
@@ -221,8 +214,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 StrCast(this.props.linkDoc.storedText).substr(0, 18)
                 : this.props.linkDoc.storedText : undefined : undefined;
 
-        const showTitle = this.props.linkDoc.hidden ? "Show link" : "Hide link";
-
         return (
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
@@ -255,16 +246,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{showTitle}</div></React.Fragment>}>
+                            <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show link" : "Hide link"}</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>
 
-                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Edit Link</div></React.Fragment>}>
+                            <Tooltip title={<><div className="dash-tooltip">Edit Link</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                     <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             </Tooltip>
-                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Delete Link</div></React.Fragment>}>
+                            <Tooltip title={<><div className="dash-tooltip">Delete Link</div></>}>
                                 <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>

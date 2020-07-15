@@ -142,6 +142,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     const context = Cast(doc.context, Doc, null);
                     if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                         const pushpin = Docs.Create.FontIconDocument({
+                            title: "pushpin",
                             icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
                             _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
                         });
@@ -150,8 +151,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Doc.SetInPlace(doc, "annotationOn", undefined, true);
                         Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
                         const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                        const first = DocListCast(pushpin.links).find(d => d instanceof Doc);
-                        first && (first.hidden = true);
                         doc.displayTimecode = undefined;
                     }
                     doc.context = this.props.Document;

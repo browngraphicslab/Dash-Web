@@ -288,7 +288,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @observable description = StrCast(LinkManager.currentLink?.description);
     @observable openDropdown: boolean = false;
-    @observable followBehavior = this.props.linkDoc.follow ? this.props.linkDoc.follow : "Default";
     @observable showInfo: boolean = false;
     @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
     @observable private buttonColor: string = "black";
@@ -364,8 +363,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @action
     changeFollowBehavior = (follow: string) => {
         this.openDropdown = false;
-        this.followBehavior = follow;
-        this.props.linkDoc.follow = follow;
+        Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;
     }
 
     @computed
@@ -376,7 +374,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor-followingDropdown-dropdown">
                 <div className="linkEditor-followingDropdown-header"
                     onPointerDown={this.changeDropdown}>
-                    {this.followBehavior}
+                    {StrCast(this.props.linkDoc.followLinkLocation, "Default")}
                     <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
                         icon={this.openDropdown ? "chevron-up" : "chevron-down"}
                         size={"lg"} />
@@ -388,11 +386,11 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         Default
                         </div>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("Always open in right tab")}>
+                        onPointerDown={() => this.changeFollowBehavior("onRight")}>
                         Always open in right tab
                         </div>
                     <div className="linkEditor-followingDropdown-option"
-                        onPointerDown={() => this.changeFollowBehavior("Always open in new tab")}>
+                        onPointerDown={() => this.changeFollowBehavior("inTab")}>
                         Always open in new tab
                         </div>
                 </div>
@@ -416,7 +414,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         return !destination ? (null) : (
             <div className="linkEditor">
                 <div className="linkEditor-info">
-                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Return to link menu</div></React.Fragment>} placement="top">
+                    <Tooltip title={<><div className="dash-tooltip">Return to link menu</div></>} placement="top">
                         <button className="linkEditor-button-back"
                             style={{ display: this.props.hideback ? "none" : "" }}
                             onClick={this.props.showLinks}>
@@ -426,7 +424,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
                     {/* <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
                         <FontAwesomeIcon icon="trash" size="sm" /></button> */}
-                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Show more link information</div></React.Fragment>} placement="top">
+                    <Tooltip title={<><div className="dash-tooltip">Show more link information</div></>} placement="top">
                         <div className="linkEditor-downArrow"><FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} /></div>
                     </Tooltip>
                 </div>

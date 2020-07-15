@@ -24,6 +24,7 @@ import "./RichTextMenu.scss";
 import { schema } from "./schema_rts";
 import { TraceMobx } from "../../../../fields/util";
 import { UndoManager } from "../../../util/UndoManager";
+import { Tooltip } from "@material-ui/core";
 const { toggleMark } = require("prosemirror-commands");
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
@@ -357,9 +358,11 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         return (
-            <button className={"antimodeMenu-button" + (isActive ? " active" : "")} key={title} title={title} onPointerDown={onClick}>
-                <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
-            </button>
+            <Tooltip title={<div className="dash-tooltip">{title}</div>} key={title} placement="bottom">
+                <button className={"antimodeMenu-button" + (isActive ? " active" : "")} onPointerDown={onClick}>
+                    <FontAwesomeIcon icon={faIcon as IconProp} size="lg" />
+                </button>
+            </Tooltip>
         );
     }
 
@@ -388,7 +391,9 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        return <select onChange={onChange} value={activeOption} key={key}>{items}</select>;
+        return <Tooltip key={key} title={<div className="dash-tooltip">{key}</div>} placement="bottom">
+            <select onChange={onChange} value={activeOption}>{items}</select>
+        </Tooltip>;
     }
 
     createNodesDropdown(activeMap: string, options: { node: NodeType | any | null, title: string, label: string, command: (node: NodeType | any) => void, hidden?: boolean, style?: {} }[], key: string, setter: (val: string) => {}): JSX.Element {
@@ -412,7 +417,10 @@ export default class RichTextMenu extends AntimodeMenu {
                 }
             });
         }
-        return <select value={activeOption} onChange={e => onChange(e.target.value)} key={key}>{items}</select>;
+
+        return <Tooltip key={key} title={<div className="dash-tooltip">{key}</div>} placement="bottom">
+            <select value={activeOption} onChange={e => onChange(e.target.value)}>{items}</select>
+        </Tooltip>;
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
@@ -595,10 +603,11 @@ export default class RichTextMenu extends AntimodeMenu {
             label = "No marks are currently stored";
         }
 
-        const button =
-            <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+        const button = <Tooltip title={<div className="dash-tooltip">style brush</div>} placement="bottom">
+            <button className="antimodeMenu-button" onPointerDown={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
                 <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
-            </button>;
+            </button>
+        </Tooltip>;
 
         const dropdownContent =
             <div className="dropdown">
@@ -667,11 +676,12 @@ export default class RichTextMenu extends AntimodeMenu {
             self.TextView.EditorView!.focus();
         }
 
-        const button =
-            <button className="antimodeMenu-button color-preview-button" title="" onPointerDown={onColorClick}>
+        const button = <Tooltip title={<div className="dash-tooltip">set font color</div>} placement="bottom">
+            <button className="antimodeMenu-button color-preview-button" onPointerDown={onColorClick}>
                 <FontAwesomeIcon icon="palette" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeFontColor }}></div>
-            </button>;
+            </button>
+        </Tooltip>;
 
         const dropdownContent =
             <div className="dropdown" >
@@ -720,11 +730,12 @@ export default class RichTextMenu extends AntimodeMenu {
             UndoManager.RunInBatch(() => self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch), "rt highlighter");
         }
 
-        const button =
-            <button className="antimodeMenu-button color-preview-button" title="" key="highilghter-button" onPointerDown={onHighlightClick}>
+        const button = <Tooltip title={<div className="dash-tooltip">set highlight color</div>} placement="bottom">
+            <button className="antimodeMenu-button color-preview-button" key="highilghter-button" onPointerDown={onHighlightClick}>
                 <FontAwesomeIcon icon="highlighter" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeHighlightColor }}></div>
-            </button>;
+            </button>
+        </Tooltip>;
 
         const dropdownContent =
             <div className="dropdown">
@@ -763,7 +774,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const link = this.currentLink ? this.currentLink : "";
 
-        const button = <FontAwesomeIcon icon="link" size="lg" />;
+        const button = <Tooltip title={<div className="dash-tooltip">set hyperlink</div>} placement="bottom">
+            <div><FontAwesomeIcon icon="link" size="lg" /> </div>
+        </Tooltip>;
 
         const dropdownContent =
             <div className="dropdown link-menu">
@@ -774,9 +787,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
 
-        return (
-            <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
-        );
+        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />;
     }
 
     async getTextLinkTargetTitle() {
@@ -935,7 +946,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => this.activeFontSize = val)),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => this.activeFontFamily = val)),
                 <div className="richTextMenu-divider" key="divider 4" />,
-                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes", action((val: string) => this.activeListType = val)),
+                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", action((val: string) => this.activeListType = val)),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),

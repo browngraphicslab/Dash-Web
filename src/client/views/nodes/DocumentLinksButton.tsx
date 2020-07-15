@@ -134,7 +134,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                     LinkManager.currentLink = linkDoc;
-                    linkDoc ? linkDoc.hidden = true : null;
 
                     runInAction(() => {
                         if (linkDoc) {
@@ -213,10 +212,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
         return (!links.length) && !this.props.AlwaysOn ? (null) :
             this.props.InMenu ?
-                <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{title}</div></React.Fragment>}>
+                <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                     {linkButton}
                 </Tooltip> : !!!DocumentLinksButton.EditLink ?
-                    <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{title}</div></React.Fragment>}>
+                    <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                         {linkButton}
                     </Tooltip> :
                     linkButton;

@@ -118,7 +118,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const targetDoc = this.view0?.props.Document;
         const published = targetDoc && Doc.GetProto(targetDoc)[GoogleRef] !== undefined;
         const animation = this.isAnimatingPulse ? "shadow-pulse 1s linear infinite" : "none";
-        return !targetDoc ? (null) : <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{`${published ? "Push" : "Publish"} to Google Docs`}</div></React.Fragment>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${published ? "Push" : "Publish"} to Google Docs`}</div></>}>
             <div
                 className="documentButtonBar-linker"
                 style={{ animation }}
@@ -148,7 +148,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         })();
 
         return !targetDoc || !dataDoc || !dataDoc[GoogleRef] ? (null) : <Tooltip
-            title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{title}</div></React.Fragment>}>
+            title={<><div className="dash-tooltip">{title}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: this.pullColor }}
                 onPointerEnter={action(e => {
@@ -197,7 +197,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></React.Fragment>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
                 onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
@@ -209,7 +209,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get metadataButton() {
         const view0 = this.view0;
-        return !view0 ? (null) : <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Show metadata panel</div></React.Fragment>}>
+        return !view0 ? (null) : <Tooltip title={<><div className="dash-tooltip">Show metadata panel</div></>}>
             <div className="documentButtonBar-linkFlyout">
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                     content={<MetadataEntryMenu docs={this.props.views().filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
@@ -258,7 +258,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
         return !view0 ? (null) :
-            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Tap: Customize layout.  Drag: Create alias</div></React.Fragment>}>
+            <Tooltip title={<><div className="dash-tooltip">Tap: Customize layout.  Drag: Create alias</div></>}>
                 <div className="documentButtonBar-linkFlyout" ref={this._dragRef}>
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
                         content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>

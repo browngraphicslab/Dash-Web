@@ -29,13 +29,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
-                if (SnappingManager.GetIsDragging()) return;
+                if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv) return;
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
-                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
-                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
-                const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv!);
-                const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv!);
+                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+                const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
+                const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
                 const a = adiv.getBoundingClientRect();
                 const b = bdiv.getBoundingClientRect();
                 const abounds = adiv.parentElement!.getBoundingClientRect();
@@ -103,7 +103,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
 
 
     render() {
-        if (SnappingManager.GetIsDragging() || !this.props.LinkDocs.length) return null;
+        if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) return (null);
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
         const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");

@@ -589,16 +589,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
+        this.Document.ignoreClick = false;
         if (this.Document.isLinkButton || this.onClickHandler || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = false);
-            this.Document.ignoreClick = false;
             this.Document.onClick = this.layoutDoc.onClick = undefined;
         } else {
             this.Document.isLinkButton = true;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = true);
             this.Document.followLinkZoom = false;
             this.Document.followLinkLocation = undefined;
         }
@@ -606,14 +602,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleFollowInPlace = (): void => {
+        this.Document.ignoreClick = false;
+        this.Document.isLinkButton = !this.Document.isLinkButton;
         if (this.Document.isLinkButton) {
-            this.Document.isLinkButton = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = false);
-        } else {
-            this.Document.isLinkButton = true;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = true);
             this.Document.followLinkZoom = true;
             this.Document.followLinkLocation = "inPlace";
         }
@@ -621,15 +612,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleFollowOnRight = (): void => {
+        this.Document.ignoreClick = false;
+        this.Document.isLinkButton = !this.Document.isLinkButton;
         if (this.Document.isLinkButton) {
-            this.Document.isLinkButton = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = false);
-        } else {
-            this.Document.isLinkButton = true;
             this.Document.followLinkZoom = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = true);
             this.Document.followLinkLocation = "onRight";
         }
     }
@@ -643,7 +629,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         const makeLink = action((linkDoc: Doc) => {
             LinkManager.currentLink = linkDoc;
-            linkDoc.hidden = true;
 
             LinkCreatedBox.popupX = de.x;
             LinkCreatedBox.popupY = de.y - 33;
