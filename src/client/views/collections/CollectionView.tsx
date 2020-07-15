@@ -47,7 +47,7 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import CollectionMenu from './CollectionMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -235,16 +235,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
     }
 
-    @action
-    private collapse = (value: boolean) => {
-        this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
-    }
-
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
+        return this.SubViewHelper(type, renderProps);
     }
 
 
@@ -553,6 +545,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
+        setTimeout(action(() => this.props.isSelected() && (CollectionMenu.Instance.SelectedCollection = this)), 0);
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
             `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}

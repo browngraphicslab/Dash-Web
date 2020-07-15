@@ -608,8 +608,7 @@ export default class GestureOverlay extends Touchable {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (InkOptionsMenu.Instance._double === "") {
-
+                if (!InkOptionsMenu.Instance._keepMode) {
                     this.InkShape = "";
                 }
             }
@@ -640,7 +639,7 @@ export default class GestureOverlay extends Touchable {
             this._points = [];
         }
         //get out of ink mode after each stroke=
-        if (InkOptionsMenu.Instance._double === "") {
+        if (!InkOptionsMenu.Instance._keepMode) {
             Doc.SetSelectedTool(InkTool.None);
             InkOptionsMenu.Instance._selected = InkOptionsMenu.Instance._shapesNum;
             SetActiveArrowStart("none");

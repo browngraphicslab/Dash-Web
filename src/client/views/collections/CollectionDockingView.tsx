@@ -436,7 +436,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         const cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout && this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout?.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
