@@ -218,7 +218,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     // finds font sizes and families in selection
     getActiveAlignment() {
-        if (this.view && this.TextView.props.isSelected()) {
+        if (this.view && this.TextView.props.isSelected(true)) {
             const path = (this.view.state.selection.$from as any).path;
             for (let i = path.length - 3; i < path.length && i >= 0; i -= 3) {
                 if (path[i]?.type === this.view.state.schema.nodes.paragraph) {
@@ -231,7 +231,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     // finds font sizes and families in selection
     getActiveListStyle() {
-        if (this.view && this.TextView.props.isSelected()) {
+        if (this.view && this.TextView.props.isSelected(true)) {
             const path = (this.view.state.selection.$from as any).path;
             for (let i = 0; i < path.length; i += 3) {
                 if (path[i].type === this.view.state.schema.nodes.ordered_list) {
@@ -251,7 +251,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
         const activeFamilies: string[] = [];
         const activeSizes: string[] = [];
-        if (this.TextView.props.isSelected()) {
+        if (this.TextView.props.isSelected(true)) {
             const state = this.view.state;
             const pos = this.view.state.selection.$from;
             const ref_node = this.reference_node(pos);
@@ -279,7 +279,7 @@ export default class RichTextMenu extends AntimodeMenu {
     //finds all active marks on selection in given group
     getActiveMarksOnSelection() {
         let activeMarks: MarkType[] = [];
-        if (!this.view || !this.TextView.props.isSelected()) return activeMarks;
+        if (!this.view || !this.TextView.props.isSelected(true)) return activeMarks;
 
         const markGroup = [schema.marks.strong, schema.marks.em, schema.marks.underline, schema.marks.strikethrough, schema.marks.superscript, schema.marks.subscript];
         if (this.view.state.storedMarks) return this.view.state.storedMarks.map(mark => mark.type);
@@ -378,7 +378,7 @@ export default class RichTextMenu extends AntimodeMenu {
             self.TextView.endUndoTypingBatch();
             options.forEach(({ label, mark, command }) => {
                 if (e.target.value === label && mark) {
-                    if (!self.TextView.props.isSelected()) {
+                    if (!self.TextView.props.isSelected(true)) {
                         switch (mark.type) {
                             case schema.marks.pFontFamily: setter(Doc.UserDoc().fontFamily = mark.attrs.family); break;
                             case schema.marks.pFontSize: setter(Doc.UserDoc().fontSize = mark.attrs.fontSize.toString() + "pt"); break;
@@ -405,7 +405,7 @@ export default class RichTextMenu extends AntimodeMenu {
             self.TextView.endUndoTypingBatch();
             options.forEach(({ label, node, command }) => {
                 if (val === label && node) {
-                    if (self.TextView.props.isSelected()) {
+                    if (self.TextView.props.isSelected(true)) {
                         UndoManager.RunInBatch(() => self.view && node && command(node), "nodes dropdown");
                         setter(val);
                     }
@@ -469,13 +469,13 @@ export default class RichTextMenu extends AntimodeMenu {
         return true;
     }
     alignCenter = (state: EditorState<any>, dispatch: any) => {
-        return this.TextView.props.isSelected() && this.alignParagraphs(state, "center", dispatch);
+        return this.TextView.props.isSelected(true) && this.alignParagraphs(state, "center", dispatch);
     }
     alignLeft = (state: EditorState<any>, dispatch: any) => {
-        return this.TextView.props.isSelected() && this.alignParagraphs(state, "left", dispatch);
+        return this.TextView.props.isSelected(true) && this.alignParagraphs(state, "left", dispatch);
     }
     alignRight = (state: EditorState<any>, dispatch: any) => {
-        return this.TextView.props.isSelected() && this.alignParagraphs(state, "right", dispatch);
+        return this.TextView.props.isSelected(true) && this.alignParagraphs(state, "right", dispatch);
     }
 
     alignParagraphs(state: EditorState<any>, align: "left" | "right" | "center", dispatch: any) {
