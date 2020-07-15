@@ -286,7 +286,6 @@ export default class GroupManager extends React.Component<{}> {
      */
     @action
     createGroup = () => {
-        // this.createGroupModalOpen = true;
         if (!this.inputRef.current?.value) {
             alert("Please enter a group name");
             return;
@@ -410,9 +409,6 @@ export default class GroupManager extends React.Component<{}> {
                                 <div className="group-info" onClick={action(() => this.currentGroup = group)}>
                                     <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                                 </div>
-                                {/* <button onClick={action(() => this.currentGroup = group)}>
-                                {this.hasEditAccess(group) ? "Edit" : "View"}
-                            </button> */}
                             </div>
                         )}
                     </div>

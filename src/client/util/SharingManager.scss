@@ -1,15 +1,6 @@
-// @import "../views/globalCssVariables";
-
 .sharing-interface {
-    // display: flex;
-    // flex-direction: column;
     width: 600px;
     height: 360px;
-
-    // .dialogue-box {
-    //     width: 450;
-    //     height: 300;
-    // }
 
     .overlay {
         transform: translate(-20px, -20px);
@@ -87,7 +78,6 @@
                 .users-list {
                     font-style: italic;
                     background: #e8e8e8;
-                    // border: 1px solid black;
                     padding-left: 10px;
                     padding-right: 10px;
                     overflow-y: scroll;
@@ -98,7 +88,6 @@
                     align-items: center;
                     text-align: center;
                     justify-content: center;
-                    // color: red;
                     color: black;
                     height: 250px;
                     margin: 0 2;
@@ -113,7 +102,6 @@
         }
 
         button {
-            // background: $darker-alt-accent;
             outline: none;
             border-radius: 5px;
             border: 0px;
@@ -135,8 +123,6 @@
     p {
         font-size: 20px;
         text-align: left;
-        // font-style: italic;
-        // padding: 0;
         margin: 0 0 20px 0;
         color: black;
     }
@@ -174,8 +160,6 @@
         -ms-user-select: none;
         user-select: none;
         width: 100%;
-        // min-width: 700px;
-        // max-width: 700px;
         text-align: left;
         font-style: normal;
         font-size: 14;
@@ -249,18 +233,4 @@
             padding-top: 12px;
         }
     }
-
-    // .close-button {
-    //     border-radius: 5px;
-    //     margin-top: 20px;
-    //     padding: 10px 0;
-    //     background: aliceblue;
-    //     transition: 0.5s ease all;
-    //     border: 1px solid;
-    //     border-color: aliceblue;
-    // }
-
-    // .close-button:hover {
-    //     border-color: black;
-    // }
 }

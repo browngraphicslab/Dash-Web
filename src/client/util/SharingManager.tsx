@@ -36,13 +36,6 @@ export enum SharingPermissions {
     None = "Not Shared"
 }
 
-// const ColorMapping = new Map<string, string>([
-//     [SharingPermissions.None, "red"],
-//     [SharingPermissions.View, "maroon"],
-//     [SharingPermissions.Add, "blue"],
-//     [SharingPermissions.Edit, "green"]
-// ]);
-
 interface GroupOptions {
     label: string;
     options: UserOptions[];
@@ -67,10 +60,9 @@ export default class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false;
     @observable private users: ValidatedUser[] = [];
-    // @observable private groups: Doc[] = [];
     @observable private targetDoc: Doc | undefined;
     @observable private targetDocView: DocumentView | undefined;
-    @observable private copied = false;
+    // @observable private copied = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
     @observable private selectedUsers: UserOptions[] | null = null;
@@ -90,31 +82,19 @@ export default class SharingManager extends React.Component<{}> {
             this.targetDoc = target.props.Document;
             DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = true;
-            // if (!this.sharingDoc) {
-            //     this.sharingDoc = new Doc;
-            // }
         }));
 
-        // runInAction(() => this.groups = GroupManager.Instance.getAllGroups());
     }
 
     public close = action(() => {
         this.isOpen = false;
         this.users = [];
         setTimeout(action(() => {
-            this.copied = false;
+            // this.copied = false;
             DictationOverlay.Instance.hasActiveModal = false;
             this.targetDoc = undefined;
         }), 500);
     });
-
-    // private get sharingDoc() {
-    //     return this.targetDoc ? Cast(this.targetDoc[SharingKey], Doc) as Doc : undefined;
-    // }
-
-    // private set sharingDoc(value: Doc | undefined) {
-    //     this.targetDoc && (this.targetDoc[SharingKey] = value);
-    // }
 
     constructor(props: {}) {
         super(props);
@@ -152,7 +132,6 @@ export default class SharingManager extends React.Component<{}> {
         Doc.GetProto(target)[ACL] = permission;
 
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
-        // group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
 
         users.forEach(({ notificationDoc }) => {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
@@ -171,7 +150,6 @@ export default class SharingManager extends React.Component<{}> {
                     DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
                 });
             });
-            // DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
         }
     }
 
@@ -184,7 +162,6 @@ export default class SharingManager extends React.Component<{}> {
                     DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
                 });
             });
-            // DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
         }
     }
 
@@ -208,13 +185,9 @@ export default class SharingManager extends React.Component<{}> {
     setInternalSharing = (recipient: ValidatedUser, permission: string) => {
         const { user, notificationDoc } = recipient;
         const target = this.targetDoc!;
-        // const manager = this.sharingDoc!;
         const key = user.email.replace('.', '_');
-        // const key = user.userDocumentId;
 
         const ACL = `ACL-${key}`;
-
-        // const permissions: { [key: string]: number } = target[ACL] ? JSON.parse(StrCast(target[ACL])) : {};
 
         target[ACL] = permission;
         Doc.GetProto(target)[ACL] = permission;
@@ -228,46 +201,11 @@ export default class SharingManager extends React.Component<{}> {
         }
         else {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
-                Doc.IndexOf(target, resolved!) === -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+                Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
             });
         }
 
     }
-
-
-    // let metadata = await DocCastAsync(manager[key]);
-    // const permissions: { [key: string]: number } = metadata?.permissions ? JSON.parse(StrCast(metadata.permissions)) : {};
-    // permissions[StrCast(group ? group.groupName : Doc.CurrentUserEmail)] = parseInt(HierarchyMapping.get(permission)!);
-    // const max = Math.max(...Object.values(permissions));
-
-    // switch (max) {
-    //     case 0:
-    //         // if (metadata) {
-    //         //     const sharedAlias = (await DocCastAsync(metadata.sharedAlias))!;
-    //         //     Doc.RemoveDocFromList(notificationDoc, storage, sharedAlias);
-    //         //     manager[key] = undefined;
-    //         // }
-    //         Doc.RemoveDocFromList(notificationDoc, storage, target);
-    //         break;
-
-    //     case 1: case 2: case 3:
-
-    //         Doc.AddDocToList(notificationDoc, storage, target);
-
-    //         if (!metadata) {
-    //             metadata = new Doc;
-    //             const sharedAlias = Doc.MakeAlias(target);
-    //             Doc.AddDocToList(notificationDoc, storage, target);
-    //             metadata.sharedAlias = sharedAlias;
-    //             manager[key] = metadata;
-    //         }
-    //         metadata.permissions = JSON.stringify(permissions);
-    //         // metadata.usersShared = JSON.stringify(keys);
-    //         break;
-    // }
-
-    // if (metadata) metadata.maxPermission = HierarchyMapping.get(`${max}`);
-
 
     // private setExternalSharing = (permission: string) => {
     //     const sharingDoc = this.sharingDoc;
@@ -277,20 +215,20 @@ export default class SharingManager extends React.Component<{}> {
     //     sharingDoc[PublicKey] = permission;
     // }
 
-    private get sharingUrl() {
-        if (!this.targetDoc) {
-            return undefined;
-        }
-        const baseUrl = Utils.prepend("/doc/" + this.targetDoc[Id]);
-        return `${baseUrl}?sharing=true`;
-    }
+    // private get sharingUrl() {
+    //     if (!this.targetDoc) {
+    //         return undefined;
+    //     }
+    //     const baseUrl = Utils.prepend("/doc/" + this.targetDoc[Id]);
+    //     return `${baseUrl}?sharing=true`;
+    // }
 
-    copy = action(() => {
-        if (this.sharingUrl) {
-            Utils.CopyText(this.sharingUrl);
-            this.copied = true;
-        }
-    });
+    // copy = action(() => {
+    //     if (this.sharingUrl) {
+    //         Utils.CopyText(this.sharingUrl);
+    //         this.copied = true;
+    //     }
+    // });
 
     private get sharingOptions() {
         return Object.values(SharingPermissions).map(permission => {
@@ -394,14 +332,7 @@ export default class SharingManager extends React.Component<{}> {
 
         const userListContents: (JSX.Element | null)[] = users.map(({ user, notificationDoc }) => { // can't use async here
             const userKey = user.email.replace('.', '_');
-            // const userKey = user.userDocumentId;
             const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`], SharingPermissions.None);
-            // const color = ColorMapping.get(permissions);
-
-            // console.log(manager);
-            // const metadata = manager[userKey] as Doc;
-            // const usersShared = StrCast(metadata?.usersShared, "");
-            // console.log(usersShared)
 
             return permissions === SharingPermissions.None || user.email === this.targetDoc?.author ? null : (
                 <div
@@ -409,12 +340,10 @@ export default class SharingManager extends React.Component<{}> {
                     className={"container"}
                 >
                     <span className={"padding"}>{user.email}</span>
-                    {/* <div className={"shared-by"}>{usersShared}</div> */}
                     <div className="edit-actions">
                         <select
                             className={"permissions-dropdown"}
                             value={permissions}
-                            // style={{ color, borderColor: color }}
                             onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
                         >
                             {this.sharingOptions}
@@ -442,7 +371,6 @@ export default class SharingManager extends React.Component<{}> {
 
         const groupListContents = groups.map(group => {
             const permissions = StrCast(this.targetDoc?.[`ACL-${StrCast(group.groupName)}`], SharingPermissions.None);
-            // const color = ColorMapping.get(permissions);
 
             return permissions === SharingPermissions.None ? null : (
                 <div
@@ -457,7 +385,6 @@ export default class SharingManager extends React.Component<{}> {
                         <select
                             className={"permissions-dropdown"}
                             value={permissions}
-                            // style={{ color, borderColor: color }}
                             onChange={e => this.setInternalGroupSharing(group, e.currentTarget.value)}
                         >
                             {this.sharingOptions}
@@ -582,7 +509,6 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     render() {
-        // console.log(this.sharingDoc);
         return (
             <MainViewModal
                 contents={this.sharingInterface}

@@ -109,7 +109,7 @@ const AclMap = new Map<string, symbol>([
 ]);
 
 export function fetchProto(doc: Doc) {
-    if (doc.author !== Doc.CurrentUserEmail) { // storing acls for groups needs to be extended here - AclSym should store a datastructure that stores information about permissions
+    if (doc.author !== Doc.CurrentUserEmail) {
         untracked(() => {
             const permissions: { [key: string]: symbol } = {};
 

@@ -28,9 +28,6 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
         members = this.memberSort === "ascending" ? members.sort() : this.memberSort === "descending" ? members.sort().reverse() : members;
 
         const options: UserOptions[] = this.props.group ? GroupManager.Instance.options.filter(option => !(JSON.parse(StrCast(this.props.group.members)) as string[]).includes(option.value)) : [];
-        console.log(this.props.group, options);
-        console.log(GroupManager.Instance.options);
-
 
         return (!this.props.group ? null :
             <div className="editing-interface">

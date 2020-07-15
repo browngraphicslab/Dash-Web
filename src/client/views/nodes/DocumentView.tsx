@@ -831,17 +831,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
-        const existingAcls = cm.findByDescription("Privacy...");
-        const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
-        aclItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Make Editable", event: () => this.setAcl("write"), icon: "concierge-bell" });
-        aclItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
-        aclItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
-        !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
+        // const existingAcls = cm.findByDescription("Privacy...");
+        // const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
+        // aclItems.push({ description: "Make Add Only", event: () => this.setAcl(SharingPermissions.Add), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Read Only", event: () => this.setAcl(SharingPermissions.View), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Private", event: () => this.setAcl(SharingPermissions.None), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Editable", event: () => this.setAcl(SharingPermissions.Edit), icon: "concierge-bell" });
+        // aclItems.push({ description: "Test Private", event: () => this.testAcl(SharingPermissions.None), icon: "concierge-bell" });
+        // aclItems.push({ description: "Test Readonly", event: () => this.testAcl(SharingPermissions.View), icon: "concierge-bell" });
+        // !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
 
-        cm.addItem({ description: `${getPlaygroundMode() ? "Disable" : "Enable"} playground mode`, event: togglePlaygroundMode, icon: "concierge-bell" });
+        // cm.addItem({ description: `${getPlaygroundMode() ? "Disable" : "Enable"} playground mode`, event: togglePlaygroundMode, icon: "concierge-bell" });
 
         // const recommender_subitems: ContextMenuProps[] = [];
 
