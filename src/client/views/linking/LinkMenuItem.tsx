@@ -205,11 +205,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
             case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
-            default: "question";
+            case "video": destinationIcon = "video"; break;
+            case "ink": destinationIcon = "pen-nib"; break;
+            default: destinationIcon = "question"; break;
         }
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
-            StrCast(this.props.destinationDoc.title).substr(0, 19) + "..." : this.props.destinationDoc.title;
+            StrCast(this.props.destinationDoc.title).substr(0, 14) + "..." : this.props.destinationDoc.title;
 
         //  ...
         // from anika to bob: here's where the text that is specifically linked would show up (linkDoc.storedText)
