@@ -3,6 +3,7 @@ import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
 import { Scripting } from "./Scripting";
+import { undoBatch } from "./UndoManager";
 
 /* 
  * link doc: 
@@ -52,6 +53,7 @@ export class LinkManager {
         return false;
     }
 
+    @undoBatch
     public deleteLink(linkDoc: Doc): boolean {
         if (LinkManager.Instance.LinkManagerDoc && linkDoc instanceof Doc) {
             Doc.RemoveDocFromList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);

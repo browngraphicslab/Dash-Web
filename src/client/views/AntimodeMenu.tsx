@@ -134,12 +134,34 @@ export default abstract class AntimodeMenu extends React.Component {
     protected getElement(buttons: JSX.Element[]) {
         return (
             <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
-                style={{ left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay }}>
+                style={{
+                    left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
+                    position: this.Pinned ? "unset" : undefined
+                }}>
                 <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: "20px" }} />
                 {buttons}
             </div>
         );
     }
+
+    protected getElementVert(buttons: JSX.Element[]) {
+        return (
+            <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
+                style={{
+                    left: this.Pinned ? undefined : this._left,
+                    top: this.Pinned ? 0 : this._top,
+                    right: this.Pinned ? 0 : undefined,
+                    height: "inherit",
+                    width: 200,
+                    opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay,
+                    position: this.Pinned ? "absolute" : undefined
+                }}>
+                {buttons}
+            </div>
+        );
+    }
+
+
 
     protected getElementWithRows(rows: JSX.Element[], numRows: number, hasDragger: boolean = true) {
         return (

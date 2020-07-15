@@ -123,7 +123,7 @@ export interface DocumentOptions {
     isBackground?: boolean;
     isLinkButton?: boolean;
     _columnWidth?: number;
-    _fontSize?: number;
+    _fontSize?: string;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -671,12 +671,12 @@ export namespace Docs {
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
-            I.strokeWidth = strokeWidth;
-            I.strokeBezier = strokeBezier;
             I.fillColor = fillColor;
-            I.arrowStart = arrowStart;
-            I.arrowEnd = arrowEnd;
-            I.dash = dash;
+            I.strokeWidth = Number(strokeWidth);
+            I.strokeBezier = strokeBezier;
+            I.strokeStartMarker = arrowStart;
+            I.strokeEndMarker = arrowEnd;
+            I.strokeDash = dash;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -685,14 +685,9 @@ export namespace Docs {
             I._width = options._width;
             I._height = options._height;
             I.author = Doc.CurrentUserEmail;
+            I.rotation = 0;
             I.data = new InkField(points);
             return I;
-            // return I;
-            // const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
-            // doc.color = color;
-            // doc.strokeWidth = strokeWidth;
-            // doc.tool = tool;
-            // return doc;
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {

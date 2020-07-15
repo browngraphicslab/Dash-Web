@@ -385,10 +385,10 @@ export class Timeline extends React.Component<FieldViewProps> {
             const ttime = `Total: ${this.toReadTime(this._time)}`;
             return (
                 <div style={{ flexDirection: "column" }}>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
+                    <div className="animation-text" style={{ fontSize: "10pt", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
                         {ctime}
                     </div>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
+                    <div className="animation-text" style={{ fontSize: "10pt", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
                         {ttime}
                     </div>
                 </div>
