@@ -205,10 +205,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
             case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
+            case DocumentType.VID: destinationIcon = "video"; break;
+            case DocumentType.INK: destinationIcon = "pen-nib"; break;
+            default: destinationIcon = "question"; break;
         }
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
-            StrCast(this.props.destinationDoc.title).substr(0, 19) + "..." : this.props.destinationDoc.title;
+            StrCast(this.props.destinationDoc.title).substr(0, 14) + "..." : this.props.destinationDoc.title;
 
         //  ...
         // from anika to bob: here's where the text that is specifically linked would show up (linkDoc.storedText)
@@ -252,16 +255,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            <Tooltip title={showTitle}>
+                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>{showTitle}</div></React.Fragment>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>
 
-                            <Tooltip title="Edit Link">
+                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Edit Link</div></React.Fragment>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                     <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             </Tooltip>
-                            <Tooltip title="Delete Link">
+                            <Tooltip title={<React.Fragment><div style={{ fontSize: "11px", padding: "2px" }}>Delete Link</div></React.Fragment>}>
                                 <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>
