@@ -121,13 +121,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (b.top + b.height / 2)];
         const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
         const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
-        const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 3;
+        const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 2;
         const pt1norm = [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
         const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
+        const bActive = this.props.B.isSelected() || Doc.IsBrushed(this.props.B.props.Document);
 
-        const textX = (Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3 + NumCast(this.props.LinkDocs[0].linkOffsetX);
+        const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetX);
         const textY = (pt1[1] + pt2[1]) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetY);
 
         return !a.width || !b.width || ((!this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
