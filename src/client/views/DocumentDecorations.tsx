@@ -150,7 +150,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length) {
-                const next = Array.from(child.children).find(c => typeof (c.className) !== "string" || !c.className.includes("collectionViewChrome"));
+                const next = Array.from(child.children).find(c => typeof (c.className) !== "string");
                 if (typeof (next?.className) === "string" && next?.className.includes("documentView-node")) break;
                 if (next) child = next;
                 else break;

@@ -47,7 +47,7 @@ export default class CollectionMenu extends AntimodeMenu {
     }
 }
 
-interface CollectionViewChromeProps {
+interface CollectionMenuProps {
     CollectionView: CollectionView;
     type: CollectionViewType;
 }
@@ -55,7 +55,7 @@ interface CollectionViewChromeProps {
 const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
-export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionViewBaseChrome extends React.Component<CollectionMenuProps> {
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
     get target() { return this.props.CollectionView.props.Document; }
@@ -249,14 +249,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     render() {
-        const scale = Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform()?.Scale);
         return (
-            <div className="collectionMenu-cont" style={{
-                top: 0,
-                transform: `scale(${scale})`,
-                width: "100%"
-            }}>
-                <div className="collectionViewChrome" style={{ border: "unset" }}>
+            <div className="collectionMenu-cont" >
+                <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
                         {this.viewModes}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
@@ -274,7 +269,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 }
 
 @observer
-export class CollectionFreeFormViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps> {
 
     get Document() { return this.props.CollectionView.props.Document; }
     @computed get dataField() {
@@ -323,7 +318,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionView
     }
 }
 @observer
-export class CollectionStackingViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionStackingViewChrome extends React.Component<CollectionMenuProps> {
     @observable private _currentKey: string = "";
     @observable private suggestions: string[] = [];
 
@@ -423,7 +418,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
 
 @observer
-export class CollectionSchemaViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionSchemaViewChrome extends React.Component<CollectionMenuProps> {
     // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
     @undoBatch
@@ -470,7 +465,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 }
 
 @observer
-export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionTreeViewChrome extends React.Component<CollectionMenuProps> {
 
     get sortAscending() {
         return this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "-sortAscending"];
@@ -506,7 +501,7 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
 
 // Enter scroll speed for 3D Carousel 
 @observer
-export class Collection3DCarouselViewChrome extends React.Component<CollectionViewChromeProps> {
+export class Collection3DCarouselViewChrome extends React.Component<CollectionMenuProps> {
     @computed get scrollSpeed() {
         return this.props.CollectionView.props.Document._autoScrollSpeed;
     }
@@ -545,7 +540,7 @@ export class Collection3DCarouselViewChrome extends React.Component<CollectionVi
  * Chrome for grid view.
  */
 @observer
-export class CollectionGridViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionGridViewChrome extends React.Component<CollectionMenuProps> {
 
     private clicked: boolean = false;
     private entered: boolean = false;

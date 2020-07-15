@@ -11,6 +11,8 @@
     background: #121721;
     color: white;
     transform-origin: top left;
+    top: 0;
+    width:100%;
 
     .antimodeMenu-button {
         padding:0;
@@ -21,13 +23,14 @@
         }
     }
 
-    .collectionViewChrome {
+    .collectionMenu {
         display: flex;
         padding-bottom: 1px;
         height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
         overflow: visible;
         z-index: 9001;
+        border: unset;
 
         .collectionViewBaseChrome {
             display: flex;
