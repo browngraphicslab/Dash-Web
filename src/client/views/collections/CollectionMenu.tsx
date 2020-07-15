@@ -27,6 +27,7 @@ export default class CollectionMenu extends AntimodeMenu {
         CollectionMenu.Instance = this;
         this._canFade = false; // don't let the inking menu fade away
         this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true);
+        this.jumpTo(300, 300);
     }
 
     @action
@@ -44,7 +45,7 @@ export default class CollectionMenu extends AntimodeMenu {
 
         return this.getElement(!this.SelectedCollection ? [button] :
             [<CollectionViewBaseChrome key="chrome" CollectionView={this.SelectedCollection} type={StrCast(this.SelectedCollection.props.Document._viewType) as CollectionViewType} />,
-            button]);
+                button]);
     }
 }
 
