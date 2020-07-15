@@ -47,7 +47,6 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import CollectionMenu from './CollectionMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -235,16 +234,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
     }
 
-    @action
-    private collapse = (value: boolean) => {
-        this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
-    }
-
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
+        return this.SubViewHelper(type, renderProps);
     }
 
 

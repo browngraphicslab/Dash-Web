@@ -392,7 +392,7 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
+    sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (InkOptionsMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
@@ -469,11 +469,13 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
+        const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (InkOptionsMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
+        const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 //change to times 2 for both pinned
-                height: (RichTextMenu.Instance?.Pinned || InkOptionsMenu.Instance?.Pinned) ? (RichTextMenu.Instance?.Pinned && InkOptionsMenu.Instance?.Pinned) ? `calc(100% - 2*${ANTIMODEMENU_HEIGHT})` : `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%",
+                height,
                 width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
