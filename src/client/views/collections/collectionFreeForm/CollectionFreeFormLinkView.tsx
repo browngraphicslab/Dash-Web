@@ -6,7 +6,7 @@ import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
-import { StrCast, Cast } from "../../../../fields/Types";
+import { StrCast, Cast, NumCast } from "../../../../fields/Types";
 import { Id } from "../../../../fields/FieldSymbols";
 import { SnappingManager } from "../../../util/SnappingManager";
 import { OverlayView } from "../../OverlayView";
@@ -23,12 +23,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     @observable _opacity: number = 0;
     _anchorDisposer: IReactionDisposer | undefined;
 
-    @observable descriptionText = StrCast(this.props.A.props.Document.description);
-    @observable down: boolean = false;
-    @observable downCoor: number[] = [0, 0];
-    @observable offset: number[] = [0, 0];
-
-    @action
+    componentWillUnmount() {
+        this._anchorDisposer?.();
+    }
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
@@ -92,7 +89,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
 
 
     pointerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, returnFalse, emptyFunction, () => {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
+            this.props.LinkDocs[0].linkOffsetX = NumCast(this.props.LinkDocs[0].linkOffsetX) + delta[0];
+            this.props.LinkDocs[0].linkOffsetY = NumCast(this.props.LinkDocs[0].linkOffsetY) + delta[1];
+            return false;
+        }, emptyFunction, () => {
             // OverlayView.Instance.addElement(
             //     <LinkEditor sourceDoc={this.props.A.props.Document} linkDoc={this.props.LinkDocs[0]}
             //         showLinks={action(() => { })}
@@ -101,14 +102,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
 
 
-    @action
-    componentWillUnmount() {
-        this._anchorDisposer?.();
-    }
-
-
     render() {
-        if (SnappingManager.GetIsDragging()) return null;
+        if (SnappingManager.GetIsDragging() || !this.props.LinkDocs.length) return null;
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
         const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
@@ -132,15 +127,15 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
 
-        const textX = (Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3 + this.offset[0];
-        const textY = (pt1[1] + pt2[1]) / 2 + this.offset[1];
+        const textX = (Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3 + NumCast(this.props.LinkDocs[0].linkOffsetX);
+        const textY = (pt1[1] + pt2[1]) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetY);
 
-        return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
+        return !a.width || !b.width || ((!this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
 
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
             <text className="collectionfreeformlinkview-linkText" x={textX} y={textY} onPointerDown={this.pointerDown} >
-                {this.descriptionText}
+                {StrCast(this.props.LinkDocs[0].description)}
             </text>
         </>);
     }
