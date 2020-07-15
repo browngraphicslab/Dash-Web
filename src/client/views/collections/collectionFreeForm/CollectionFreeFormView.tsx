@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
@@ -46,6 +46,7 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { PresBox } from "../../nodes/PresBox";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -1350,6 +1351,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             <CollectionFreeFormViewPannableContents
                 centeringShiftX={this.centeringShiftX}
                 centeringShiftY={this.centeringShiftY}
+                presPaths={BoolCast(this.Document.presPathView)}
+                progressivize={BoolCast(this.Document.editProgressivize)}
                 transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                 viewDefDivClick={this.props.viewDefDivClick}
                 zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1432,11 +1435,44 @@ interface CollectionFreeFormViewPannableContentsProps {
     viewDefDivClick?: ScriptField;
     children: () => JSX.Element[];
     transition?: string;
+    presPaths?: boolean;
+    progressivize?: boolean;
 }
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
+    @computed get progressivize() {
+        if (this.props.progressivize) {
+            console.log("should render");
+            return (
+                <>
+                    {PresBox.Instance.progressivizeChildDocs}
+                </>
+            );
+        }
+    }
+
+    @computed get presPaths() {
+        const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
+        if (this.props.presPaths) {
+            return (
+                <svg className={presPaths}>
+                    <defs>
+                        <marker id="arrow" markerWidth="10" overflow="visible" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
+                        </marker>
+                        <marker id={`dot`} orient="auto" overflow="visible">
+                            <circle r={3} fill="#69a6db" />
+                        </marker>
+                    </defs>;
+                    {PresBox.Instance.paths}
+                </svg>
+            );
+        }
+    }
+
     render() {
+        trace();
         const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : "-none");
         const cenx = this.props.centeringShiftX();
         const ceny = this.props.centeringShiftY();
@@ -1449,6 +1485,8 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                 transition: this.props.transition
             }}>
             {this.props.children()}
+            {this.presPaths}
+            {this.progressivize}
         </div>;
     }
 }

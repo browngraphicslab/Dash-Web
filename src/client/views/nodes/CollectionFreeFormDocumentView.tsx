@@ -15,6 +15,8 @@ import { numberRange } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
+// @ts-ignore
+import Zoom from 'react-reveal/Zoom';
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -112,10 +114,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
         docs.forEach((doc, i) => {
+            if (!doc.appearFrame) doc.appearFrame = i;
             const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
+            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && (t < NumCast(doc.appearFrame)) ? 0 : 1));
+            const oarray = new List<number>();
+            oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
+            oarray.fill(1, NumCast(doc.appearFrame), timecode);
+            console.log(oarray);
             xlist[curTimecode] = NumCast(doc.x);
             ylist[curTimecode] = NumCast(doc.y);
             doc["x-indexed"] = xlist;

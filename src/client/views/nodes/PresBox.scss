@@ -125,12 +125,14 @@
 
     .toolbar-slider {
         position: relative;
+        align-self: center;
+        justify-self: left;
         -webkit-appearance: none;
         transform: rotateY(180deg);
         background-color: #40B3D8;
-        margin-top: 1px;
+        margin-top: 5px;
         width: 100%;
-        max-width: 100px;
+        max-width: 120px;
         height: 2.5px;
         left: 0px;
     }
@@ -153,16 +155,19 @@
         display: grid;
         justify-content: space-between;
         width: 100%;
+        height: max-content;
+        max-width: 120px;
         grid-template-columns: auto auto auto;
-        grid-template-rows: auto;
+        grid-template-rows: max-content;
         font-weight: 100;
-        margin-top: 5px;
+        /* margin-top: 5px; */
         font-size: 8px;
     }
 
     .slider-value {
-        font-size: 10;
-        position: relative;
+        top: -20;
+        color: #2f86a2;
+        position: absolute;
     }
 
     .slider-value.none,
@@ -197,28 +202,17 @@
 
     .ribbon-final-box {
         align-self: flex-start;
+        justify-self: center;
         display: grid;
         grid-template-rows: auto auto;
         padding-left: 10px;
         padding-right: 10px;
         letter-spacing: normal;
-        width: max-content;
+        min-width: max-content;
+        width: 100%;
         font-size: 13;
         font-weight: 600;
         position: relative;
-
-        .selectedList {
-            display: block;
-            min-width: 50;
-            max-width: 120;
-            height: 70;
-            overflow-y: scroll;
-
-            .selectedList-items {
-                font-size: 7;
-                font-weight: normal;
-            }
-        }
 
 
         .ribbon-final-button {
@@ -241,40 +235,60 @@
         }
     }
 
+    .selectedList {
+        display: block;
+        min-width: 50;
+        max-width: 120;
+        height: 70;
+        overflow-y: scroll;
+
+        .selectedList-items {
+            font-size: 7;
+            font-weight: normal;
+        }
+    }
+
+    .ribbon-button {
+        font-size: 10;
+        font-weight: 200;
+        height: 25;
+        border: solid 1px black;
+        display: flex;
+        border-radius: 10px;
+        margin-right: 5px;
+        width: max-content;
+        justify-content: center;
+        align-items: center;
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .ribbon-button.active {
+        background-color: #5B9FDD;
+    }
+
+    .ribbon-button:hover {
+        background-color: lightgrey;
+    }
+
+    svg.svg-inline--fa.fa-thumbtack.fa-w-12.toolbar-thumbtack {
+        right: 40;
+        position: absolute;
+        transform: rotate(45deg);
+    }
+
     .ribbon-box {
         display: grid;
         grid-template-rows: max-content auto;
+        justify-self: center;
         padding-left: 10px;
         padding-right: 10px;
         letter-spacing: normal;
-        width: max-content;
+        width: 100%;
         font-weight: 600;
         position: relative;
         font-size: 13;
         border-right: solid 2px darkgrey;
-
-        .ribbon-button {
-            font-size: 10;
-            font-weight: 200;
-            height: 25;
-            border: solid 1px black;
-            display: flex;
-            border-radius: 10px;
-            margin-right: 5px;
-            width: max-content;
-            justify-content: center;
-            align-items: center;
-            padding-right: 10px;
-            padding-left: 10px;
-        }
-
-        .ribbon-button.active {
-            background-color: #5B9FDD;
-        }
-
-        .ribbon-button:hover {
-            background-color: lightgrey;
-        }
 
         .presBox-dropdown:hover {
             border: solid 1px #378AD8;
@@ -283,6 +297,7 @@
                 font-size: 10;
                 display: block;
                 padding-left: 5px;
+                padding-right: 5px;
                 margin-top: 3;
                 margin-bottom: 3;
             }
@@ -303,6 +318,7 @@
                 left: -1px;
                 z-index: 200;
                 width: 85%;
+                min-width: max-content;
                 display: block;
                 background: #FFFFFF;
                 border: 0.5px solid #979797;
@@ -341,36 +357,58 @@
                 color: black;
                 align-self: center;
                 justify-self: center;
+                margin-right: 2px;
             }
         }
     }
 }
 
 .presBox-ribbon.active {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    grid-template-rows: 100%;
     height: 100px;
     padding-top: 5px;
     padding-bottom: 5px;
     border: solid 1px black;
+
+    ::-webkit-scrollbar {
+        -webkit-appearance: none;
+        height: 3px;
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border-radius: 2px;
+        background-color: rgb(101, 164, 220);
+    }
 }
 
-
+.dropdown-play-button {
+    font-size: 10;
+    margin-left: 10;
+    margin-right: 10;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    text-align: left;
+    justify-content: left;
+    border-bottom: solid 1px lightgrey;
+}
 
 .dropdown-play {
     top: 32px;
-    transform: translate(-28%, 0px);
-    /* left: 0; */
     display: none;
     border-radius: 5px;
-    width: 100px;
-    height: 100px;
+    width: max-content;
+    min-height: 20px;
+    height: max-content;
     z-index: 200;
-    background-color: black;
+    background-color: #323232;
     position: absolute;
 }
 
 .dropdown-play.active {
-    display: flex;
+    display: block;
 }
 
 .presBox-buttons {
