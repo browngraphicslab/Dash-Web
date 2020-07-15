@@ -75,6 +75,9 @@ export default class SharingManager extends React.Component<{}> {
     @observable private overlayOpacity = 0.4;
     @observable private selectedUsers: UserOptions[] | null = null;
     @observable private permissions: SharingPermissions = SharingPermissions.Edit;
+    @observable private individualSort: "ascending" | "descending" | "none" = "none";
+    @observable private groupSort: "ascending" | "descending" | "none" = "none";
+
 
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -151,8 +154,6 @@ export default class SharingManager extends React.Component<{}> {
         // group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
 
         users.forEach(({ notificationDoc }) => {
-
-            DocListCastAsync(notificationDoc[storage]).then(res => console.log(res));
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
                 if (permission !== SharingPermissions.None) Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
                 else Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
@@ -353,28 +354,44 @@ export default class SharingManager extends React.Component<{}> {
         this.selectedUsers = null;
     }
 
-    private get sharingInterface() {
-        const existOtherUsers = this.users.length > 0;
-        const existGroups = GroupManager.Instance?.getAllGroups().length > 0;
+    sortUsers = (u1: ValidatedUser, u2: ValidatedUser) => {
+        const { email: e1 } = u1.user;
+        const { email: e2 } = u2.user;
+        return e1 < e2 ? -1 : e1 === e2 ? 0 : 1;
+    }
 
-        // const manager = this.sharingDoc!;
+    sortGroups = (group1: Doc, group2: Doc) => {
+        const g1 = StrCast(group1.groupName);
+        const g2 = StrCast(group2.groupName);
+        return g1 < g2 ? -1 : g1 === g2 ? 0 : 1;
+    }
+
+    private get sharingInterface() {
+
+        const groupList = GroupManager.Instance?.getAllGroups() || [];
+
+        const sortedUsers = this.users.sort(this.sortUsers)
+            .map(({ user: { email } }) => ({ label: email, value: "!indType/" + email }));
+        const sortedGroups = groupList.sort(this.sortGroups)
+            .map(({ groupName }) => ({ label: StrCast(groupName), value: "!groupType/" + StrCast(groupName) }));
 
         const options: GroupOptions[] = GroupManager.Instance ?
             [
                 {
                     label: 'Individuals',
-                    options: this.users.map(({ user: { email } }) => ({ label: email, value: "!indType/" + email }))
+                    options: sortedUsers
                 },
                 {
                     label: 'Groups',
-                    options: GroupManager.Instance.getAllGroups().map(({ groupName }) => ({ label: StrCast(groupName), value: "!groupType/" + StrCast(groupName) }))
+                    options: sortedGroups
                 }
             ]
             : [];
 
-        console.log(this.users);
+        const users = this.individualSort === "ascending" ? this.users.sort(this.sortUsers) : this.individualSort === "descending" ? this.users.sort(this.sortUsers).reverse() : this.users;
+        const groups = this.groupSort === "ascending" ? groupList.sort(this.sortGroups) : this.groupSort === "descending" ? groupList.sort(this.sortGroups).reverse() : groupList;
 
-        const userListContents: (JSX.Element | null)[] = this.users.map(({ user, notificationDoc }) => { // can't use async here
+        const userListContents: (JSX.Element | null)[] = users.map(({ user, notificationDoc }) => { // can't use async here
             const userKey = user.email.replace('.', '_');
             // const userKey = user.userDocumentId;
             const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`], SharingPermissions.None);
@@ -422,7 +439,7 @@ export default class SharingManager extends React.Component<{}> {
             )
         );
 
-        const groupListContents = GroupManager.Instance?.getAllGroups().map(group => {
+        const groupListContents = groups.map(group => {
             const permissions = StrCast(this.targetDoc?.[`ACL-${StrCast(group.groupName)}`], SharingPermissions.None);
             // const color = ColorMapping.get(permissions);
 
@@ -431,7 +448,10 @@ export default class SharingManager extends React.Component<{}> {
                     key={StrCast(group.groupName)}
                     className={"container"}
                 >
-                    <span className={"padding"}>{group.groupName}</span>
+                    <div className={"padding"}>{group.groupName}</div>
+                    <div className="group-info" onClick={action(() => GroupManager.Instance.currentGroup = group)}>
+                        <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
+                    </div>
                     <div className="edit-actions">
                         <select
                             className={"permissions-dropdown"}
@@ -441,14 +461,13 @@ export default class SharingManager extends React.Component<{}> {
                         >
                             {this.sharingOptions}
                         </select>
-                        <button onClick={action(() => GroupManager.Instance.currentGroup = group)}>Edit</button>
                     </div>
                 </div>
             );
         });
 
-        const displayUserList = userListContents?.every(user => user === null);
-        const displayGroupList = groupListContents?.every(group => group === null);
+        const displayUserList = !userListContents?.every(user => user === null);
+        const displayGroupList = !groupListContents?.every(group => group === null);
 
         return (
             <div className={"sharing-interface"}>
@@ -515,10 +534,14 @@ export default class SharingManager extends React.Component<{}> {
                     }
                     <div className="main-container">
                         <div className={"individual-container"}>
-                            <div>Individuals</div>
-                            <div className={"users-list"} style={{ display: displayUserList ? "flex" : "block" }}>{/*200*/}
+                            <div
+                                className="user-sort"
+                                onClick={action(() => this.individualSort = this.individualSort === "ascending" ? "descending" : this.individualSort === "descending" ? "none" : "ascending")}>
+                                Individuals {this.individualSort === "ascending" ? "↑" : this.individualSort === "descending" ? "↓" : ""} {/* → */}
+                            </div>
+                            <div className={"users-list"} style={{ display: !displayUserList ? "flex" : "block" }}>{/*200*/}
                                 {
-                                    displayUserList ?
+                                    !displayUserList ?
                                         <div
                                             className={"none"}
                                         >
@@ -530,10 +553,15 @@ export default class SharingManager extends React.Component<{}> {
                             </div>
                         </div>
                         <div className={"group-container"}>
-                            <div>Groups</div>
-                            <div className={"groups-list"} style={{ display: displayGroupList ? "flex" : "block" }}>{/*200*/}
+                            <div
+                                className="user-sort"
+                                onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
+                                Groups {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""} {/* → */}
+
+                            </div>
+                            <div className={"groups-list"} style={{ display: !displayGroupList ? "flex" : "block" }}>{/*200*/}
                                 {
-                                    displayGroupList ?
+                                    !displayGroupList ?
                                         <div
                                             className={"none"}
                                         >

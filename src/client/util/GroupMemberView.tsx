@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import GroupManager, { UserOptions } from "./GroupManager";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { StrCast } from "../../fields/Types";
-import { action } from "mobx";
+import { action, observable } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import Select from "react-select";
@@ -21,10 +21,17 @@ interface GroupMemberViewProps {
 @observer
 export default class GroupMemberView extends React.Component<GroupMemberViewProps> {
 
+    @observable private memberSort: "ascending" | "descending" | "none" = "none";
 
     private get editingInterface() {
-        const members: string[] = this.props.group ? JSON.parse(StrCast(this.props.group.members)) : [];
+        let members: string[] = this.props.group ? JSON.parse(StrCast(this.props.group.members)) : [];
+        members = this.memberSort === "ascending" ? members.sort() : this.memberSort === "descending" ? members.sort().reverse() : members;
+
         const options: UserOptions[] = this.props.group ? GroupManager.Instance.options.filter(option => !(JSON.parse(StrCast(this.props.group.members)) as string[]).includes(option.value)) : [];
+        console.log(this.props.group, options);
+        console.log(GroupManager.Instance.options);
+
+
         return (!this.props.group ? null :
             <div className="editing-interface">
                 <div className="editing-header">
@@ -59,11 +66,19 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                             <button onClick={() => GroupManager.Instance.deleteGroup(this.props.group)}>Delete group</button>
                         </div> :
                         null}
+                    <div
+                        className="sort-emails"
+                        onClick={action(() => this.memberSort = this.memberSort === "ascending" ? "descending" : this.memberSort === "descending" ? "none" : "ascending")}>
+                        Emails {this.memberSort === "ascending" ? "↑" : this.memberSort === "descending" ? "↓" : ""} {/* → */}
+                    </div>
                 </div>
                 <hr />
                 <div className="editing-contents">
                     {members.map(member => (
-                        <div className="editing-row">
+                        <div
+                            className="editing-row"
+                            key={member}
+                        >
                             <div className="user-email">
                                 {member}
                             </div>

@@ -38,31 +38,38 @@ export default class GroupManager extends React.Component<{}> {
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
     private currentUserGroups: string[] = [];
     @observable private buttonColour: "#979797" | "black" = "#979797";
+    @observable private groupSort: "ascending" | "descending" | "none" = "none";
+
 
     constructor(props: Readonly<{}>) {
         super(props);
         GroupManager.Instance = this;
     }
 
+    componentDidMount() {
+        this.populateUsers();
+    }
+
     /**
      * Fetches the list of users stored on the database.
      */
     populateUsers = async () => {
+        runInAction(() => this.users = []);
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
-            const isCandidate = user.email !== Doc.CurrentUserEmail;
-            if (isCandidate) {
-                const userDocument = await DocServer.GetRefField(user.userDocumentId);
-                if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
-                    runInAction(() => {
-                        if (notificationDoc instanceof Doc) {
-                            this.users.push(user.email);
-                        }
-                    });
-                }
+            // const isCandidate = user.email !== Doc.CurrentUserEmail;
+            // if (isCandidate) {
+            const userDocument = await DocServer.GetRefField(user.userDocumentId);
+            if (userDocument instanceof Doc) {
+                const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                runInAction(() => {
+                    if (notificationDoc instanceof Doc) {
+                        this.users.push(user.email);
+                    }
+                });
             }
+            // }
         });
         return Promise.all(evaluating);
     }
@@ -99,7 +106,7 @@ export default class GroupManager extends React.Component<{}> {
     close = () => {
         this.isOpen = false;
         this.currentGroup = undefined;
-        this.users = [];
+        // this.users = [];
         this.createGroupModalOpen = false;
     }
 
@@ -304,6 +311,7 @@ export default class GroupManager extends React.Component<{}> {
                     </div>
                 </div>
                 <input
+                    className="group-input"
                     ref={this.inputRef}
                     onKeyDown={this.handleKeyDown}
                     type="text"
@@ -357,6 +365,17 @@ export default class GroupManager extends React.Component<{}> {
      * A getter that @returns the main interface for the GroupManager.
      */
     private get groupInterface() {
+
+        const sortGroups = (d1: Doc, d2: Doc) => {
+            const g1 = StrCast(d1.groupName);
+            const g2 = StrCast(d2.groupName);
+
+            return g1 < g2 ? -1 : g1 === g2 ? 0 : 1;
+        };
+
+        let groups = this.getAllGroups();
+        groups = this.groupSort === "ascending" ? groups.sort(sortGroups) : this.groupSort === "descending" ? groups.sort(sortGroups).reverse() : groups;
+
         return (
             <div className="group-interface">
                 {this.groupCreationModal}
@@ -375,19 +394,30 @@ export default class GroupManager extends React.Component<{}> {
                         <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
                 </div>
-                <div className="group-body">
-                    {this.getAllGroups().map(group =>
-                        <div className="group-row">
-                            <div className="group-name" >{group.groupName}</div>
-                            <div className="group-info" onClick={action(() => this.currentGroup = group)}>
-                                <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
-                            </div>
-                            {/* <button onClick={action(() => this.currentGroup = group)}>
+                <div className="main-container">
+                    <div
+                        className="sort-groups"
+                        onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
+                        Name {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""} {/* → */}
+                    </div>
+                    <div className="group-body">
+                        {groups.map(group =>
+                            <div
+                                className="group-row"
+                                key={StrCast(group.groupName)}
+                            >
+                                <div className="group-name" >{group.groupName}</div>
+                                <div className="group-info" onClick={action(() => this.currentGroup = group)}>
+                                    <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
+                                </div>
+                                {/* <button onClick={action(() => this.currentGroup = group)}>
                                 {this.hasEditAccess(group) ? "Edit" : "View"}
                             </button> */}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
                 </div>
+
             </div>
         );
     }

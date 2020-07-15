@@ -20,9 +20,10 @@
                 // border: none;
                 padding: 8px;
                 min-width: 100%;
-                margin: 4px 0 4px 0;
+                // margin: 4px 0 4px 0;
                 border: 1px solid hsl(0, 0%, 80%);
                 outline: none;
+                height: 30;
 
                 &:focus {
                     // border: unset;
@@ -100,59 +101,69 @@
         }
     }
 
+    .main-container {
+        display: flex;
+        flex-direction: column;
 
-    .group-body {
-        // display: flex;
-        justify-content: space-between;
-        // max-height: 80%;
-        height: 100%;
-        background-color: #e8e8e8;
-        // flex-direction: column;
+        .sort-groups {
+            text-align: left;
+            margin-left: 5;
+            cursor: pointer;
+        }
 
-        // padding-left: 1em;
-        padding-right: 1em;
-        justify-content: space-around;
-        text-align: left;
+        .group-body {
+            // display: flex;
+            justify-content: space-between;
+            // max-height: 80%;
+            height: 220;
+            background-color: #e8e8e8;
+            // flex-direction: column;
 
-        overflow-y: auto;
-        width: 100%;
+            // padding-left: 1em;
+            padding-right: 1em;
+            justify-content: space-around;
+            text-align: left;
 
-        .group-row {
-            display: flex;
-            // position: relative;
-            margin-bottom: 5px;
-            min-height: 30px;
-            // border: 1px solid;
-            // border-radius: 10px;
-            align-items: center;
+            overflow-y: auto;
+            width: 100%;
 
-            .group-name {
+            .group-row {
+                display: flex;
                 // position: relative;
-                max-width: 65%;
-                // left: 10;
-                margin: 0 10;
-                color: black;
+                margin-bottom: 5px;
+                min-height: 30px;
+                // border: 1px solid;
+                // border-radius: 10px;
+                align-items: center;
+
+                .group-name {
+                    // position: relative;
+                    max-width: 65%;
+                    // left: 10;
+                    margin: 0 10;
+                    color: black;
+                }
+
+                .group-info {
+                    cursor: pointer;
+                }
+
+                button {
+                    position: absolute;
+                    width: 30%;
+                    right: 2;
+                    margin-top: 0;
+                }
             }
 
-            .group-info {
-                cursor: pointer;
+            input {
+                border-radius: 5px;
+                border: none;
+                padding: 4px;
+                min-width: 100%;
+                margin: 2px 0;
             }
 
-            button {
-                position: absolute;
-                width: 30%;
-                right: 2;
-                margin-top: 0;
-            }
         }
-
-        input {
-            border-radius: 5px;
-            border: none;
-            padding: 4px;
-            min-width: 100%;
-            margin: 2px 0;
-        }
-
     }
 }

@@ -1,4 +1,4 @@
-@import "../views/globalCssVariables";
+// @import "../views/globalCssVariables";
 
 .sharing-interface {
     // display: flex;
@@ -40,6 +40,10 @@
 
             .user-search {
                 width: 90%;
+
+                input {
+                    height: 30;
+                }
             }
 
             .permissions-select {
@@ -67,6 +71,12 @@
                 width: 50%;
                 display: flex;
                 flex-direction: column;
+
+                .user-sort {
+                    text-align: left;
+                    margin-left: 10;
+                    cursor: pointer;
+                }
 
                 .share-title {
                     margin-top: 20px;
@@ -103,12 +113,12 @@
         }
 
         button {
-            background: $darker-alt-accent;
+            // background: $darker-alt-accent;
             outline: none;
             border-radius: 5px;
             border: 0px;
             color: #fcfbf7;
-            text-transform: uppercase;
+            text-transform: none;
             letter-spacing: 2px;
             font-size: 75%;
             padding: 0 10;
@@ -173,6 +183,10 @@
         padding: 0;
         align-items: center;
 
+        .group-info {
+            cursor: pointer;
+        }
+
         &:hover .padding {
             white-space: unset;
         }
@@ -183,12 +197,13 @@
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
-            max-width: 48%;
+            max-width: 40%;
         }
 
         .permissions-dropdown {
             border: none;
             height: 25;
+            background-color: #e8e8e8;
         }
 
         .edit-actions {

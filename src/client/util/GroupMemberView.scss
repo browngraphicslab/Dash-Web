@@ -8,7 +8,7 @@
     // color: black;
 
     hr {
-        margin-top: 10;
+        margin-top: 20;
     }
 
     button {
@@ -17,7 +17,7 @@
         border-radius: 5px;
         border: 0px;
         color: #fcfbf7;
-        // text-transform: uppercase;
+        text-transform: none;
         letter-spacing: 2px;
         font-size: 75%;
         padding: 10px;
@@ -45,15 +45,33 @@
             outline: none;
             color: black;
             margin-top: -5;
+            height: 20;
+            text-overflow: ellipsis;
+
+            &:hover {
+                text-overflow: visible;
+                overflow-x: auto;
+            }
+        }
+
+        .sort-emails {
+            float: left;
+            margin: -18 0 0 5;
+            cursor: pointer;
         }
 
         .group-buttons {
             display: flex;
             margin-top: 5;
+            margin-bottom: 25;
 
             .add-member-dropdown {
                 width: 65%;
                 margin: 0 5;
+
+                input {
+                    height: 30;
+                }
             }
         }
     }
@@ -61,7 +79,7 @@
     .editing-contents {
         overflow-y: auto;
         // max-height: 67%;
-        height: 67%;
+        height: 65%;
         width: 100%;
         color: black;
         margin-top: -15px;
@@ -70,6 +88,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 10px;
+            position: relative;
             // border: 1px solid;
             // border-radius: 10px;
 
@@ -83,7 +102,7 @@
 
             .remove-button {
                 position: absolute;
-                right: 30;
+                right: 10;
                 cursor: pointer;
             }
         }
