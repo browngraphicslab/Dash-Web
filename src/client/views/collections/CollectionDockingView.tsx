@@ -665,7 +665,6 @@ interface DockedFrameProps {
     documentId: FieldId;
     glContainer: any;
     libraryPath: (FieldId[]);
-    backgroundColor?: (doc: Doc) => string | undefined;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -839,7 +838,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }), emptyFunction, emptyFunction);
     }
     renderMiniMap() {
-        return <div className="miniMap" style={{ width: this.returnMiniSize(), height: this.returnMiniSize() }}>
+        return <div className="miniMap" style={{
+            width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
+                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!))),
+        }}>
             <CollectionFreeFormView
                 Document={this._document!}
                 LibraryPath={emptyPath}
