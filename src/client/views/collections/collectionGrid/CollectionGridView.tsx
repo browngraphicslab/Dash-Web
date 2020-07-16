@@ -30,7 +30,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     private _resetListenerDisposer: Opt<Lambda>; // listens for when the reset button is clicked
     @observable private _rowHeight: Opt<number>; // temporary store of row height to make change undoable
     @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
-    private dropLocation: object = {};
+    private dropLocation: object = {}; // sets the drop location for external drops
 
     onChildClickHandler = () => ScriptCast(this.Document.onChildClick);
 
@@ -59,11 +59,11 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 const existing = oldLayouts.find(l => l.i === pair.layout[Id]);
                 if (existing) newLayouts.push(existing);
                 else {
-                    if (Object.keys(this.dropLocation).length) {
+                    if (Object.keys(this.dropLocation).length) { // external drop
                         this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.dropLocation as { x: number, y: number }, !this.flexGrid));
                         this.dropLocation = {};
                     }
-                    else {
+                    else { // internal drop
                         this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.unflexedPosition(i), !this.flexGrid));
                     }
                 }
