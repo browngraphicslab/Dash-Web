@@ -30,6 +30,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     private _resetListenerDisposer: Opt<Lambda>; // listens for when the reset button is clicked
     @observable private _rowHeight: Opt<number>; // temporary store of row height to make change undoable
     @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
+    private dropLocation: object = {};
 
     onChildClickHandler = () => ScriptCast(this.Document.onChildClick);
 
@@ -57,7 +58,15 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             pairs.forEach((pair, i) => {
                 const existing = oldLayouts.find(l => l.i === pair.layout[Id]);
                 if (existing) newLayouts.push(existing);
-                else this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.unflexedPosition(i), !this.flexGrid));
+                else {
+                    if (Object.keys(this.dropLocation).length) {
+                        this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.dropLocation as { x: number, y: number }, !this.flexGrid));
+                        this.dropLocation = {};
+                    }
+                    else {
+                        this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.unflexedPosition(i), !this.flexGrid));
+                    }
+                }
             });
             pairs?.length && this.setLayoutList(newLayouts);
         }, { fireImmediately: true });
@@ -254,9 +263,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @action
     onExternalDrop = async (e: React.DragEvent): Promise<void> => {
-        const where = this.screenToCell(e.clientX, e.clientY);
-        super.onExternalDrop(e, { x: where.x, y: where.y });
-
+        this.dropLocation = this.screenToCell(e.clientX, e.clientY);
+        super.onExternalDrop(e, {});
     }
 
     /**
@@ -313,7 +321,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             <div className="collectionGridView-contents" ref={this.createDashEventsTarget}
                 style={{ pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={e => this.onPointerDown(e)}>
+                onPointerDown={this.onPointerDown}
+                onDrop={this.onExternalDrop}
+            >
                 <div className="collectionGridView-gridContainer" ref={this._containerRef}
                     style={{ backgroundColor: StrCast(this.layoutDoc._backgroundColor, "white") }}
                     onWheel={e => e.stopPropagation()}
