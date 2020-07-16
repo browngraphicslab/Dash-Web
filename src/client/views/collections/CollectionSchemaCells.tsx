@@ -244,23 +244,40 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //     </div>
         // );   
         trace();
-
+        let positions = [];
         if (type === "string") {
+            let term = contents
             let search = StrCast(this.props.Document._searchString)
-            let start = contents.indexOf(search);
-            console.log(contents.slice(start, search.length));
+            let start = term.indexOf(search) as number;
+            let tally = 0;
+            positions.push(start);
+            while (start < contents.length && start !== -1) {
+                console.log(start, search.length + 1);
+                console.log(term.slice(start, start + search.length + 1));
+                term = term.slice(start + search.length + 1);
+                tally += start + search.length + 1;
+                console.log(term);
+                start = term.indexOf(search);
+                positions.push(tally + start);
+                console.log(start);
+            }
+            positions.pop();
+            console.log(positions);
         }
 
         StrCast(this.props.Document._searchString) ? console.log(StrCast(this.props.Document._searchString)) : undefined;
+
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
+                            positions={positions}
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents ? contents : type === "number" ? "0" : "undefined"}
+                            highlight={true}
                             //contents={StrCast(contents)}
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}

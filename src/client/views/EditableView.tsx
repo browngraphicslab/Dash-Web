@@ -52,6 +52,8 @@ export interface EditableProps {
     color?: string | undefined;
     onDrop?: any;
     placeholder?: string;
+    highlight?: boolean;
+    positions?: number[];
 }
 
 /**
@@ -180,7 +182,9 @@ export class EditableView extends React.Component<EditableProps> {
                 placeholder={this.props.placeholder}
             />;
     }
+
     render() {
+        console.log(this.props.contents.valueOf())
         if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.sizeToContent ?
                 <div style={{ display: "grid", minWidth: 100 }}>
@@ -194,9 +198,10 @@ export class EditableView extends React.Component<EditableProps> {
                     ref={this._ref}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick} placeholder={this.props.placeholder}>
+                    {this.props.highlight ? this.props.contents.forEach(el => {
+                        console.log(el.valueOf());
+                    }) : undefined}
                     <span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
-
-
                 </div>
             );
         }
