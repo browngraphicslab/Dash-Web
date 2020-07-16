@@ -30,6 +30,7 @@ import { CollectionViewType } from './CollectionView';
 import { SnappingManager } from '../../util/SnappingManager';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { listSpec } from '../../../fields/Schema';
+import { clamp } from 'lodash';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -823,17 +824,17 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         const xbounds = bounds[2] - bounds[0];
         const ybounds = bounds[3] - bounds[1];
         const dim = Math.max(xbounds, ybounds);
-        return { cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, w: dim, h: dim };
+        return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
     }
-    @computed get miniLeft() { return 50 + (NumCast(this._document?._panX) - this.renderContentBounds.cx) / this.renderContentBounds.w * 100 - this.miniWidth / 2; }
-    @computed get miniTop() { return 50 + (NumCast(this._document?._panY) - this.renderContentBounds.cy) / this.renderContentBounds.h * 100 - this.miniHeight / 2; }
-    @computed get miniWidth() { return this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.w * 100; }
-    @computed get miniHeight() { return this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.h * 100; }
+    @computed get miniLeft() { return 50 + (NumCast(this._document?._panX) - this.renderContentBounds.cx) / this.renderContentBounds.dim * 100 - this.miniWidth / 2; }
+    @computed get miniTop() { return 50 + (NumCast(this._document?._panY) - this.renderContentBounds.cy) / this.renderContentBounds.dim * 100 - this.miniHeight / 2; }
+    @computed get miniWidth() { return this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
+    @computed get miniHeight() { return this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
     returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
     miniDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._document!._panX = NumCast(this._document!._panX) + delta[0] / this.returnMiniSize() * this.renderContentBounds.w;
-            this._document!._panY = NumCast(this._document!._panY) + delta[1] / this.returnMiniSize() * this.renderContentBounds.h;
+            this._document!._panX = clamp(NumCast(this._document!._panX) + delta[0] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.l, this.renderContentBounds.l + this.renderContentBounds.dim);
+            this._document!._panY = clamp(NumCast(this._document!._panY) + delta[1] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.t, this.renderContentBounds.t + this.renderContentBounds.dim);
             return false;
         }), emptyFunction, emptyFunction);
     }
