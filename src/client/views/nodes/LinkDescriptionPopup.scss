@@ -1,0 +1,77 @@
+.linkDescriptionPopup {
+
+    display: flex;
+
+    border: 1px solid rgb(170, 26, 26);
+
+    width: auto;
+    position: absolute;
+
+    height: auto;
+    z-index: 10000;
+    border-radius: 10px;
+    font-size: 12px;
+    //white-space: nowrap;
+
+    background-color: rgba(250, 250, 250, 0.95);
+    padding-top: 9px;
+    padding-bottom: 9px;
+    padding-left: 9px;
+    padding-right: 9px;
+
+    .linkDescriptionPopup-input {
+        float: left;
+        background-color: rgba(250, 250, 250, 0.95);
+        color: rgb(100, 100, 100);
+        border: none;
+        min-width: 160px;
+    }
+
+    .linkDescriptionPopup-btn {
+
+        float: right;
+
+        justify-content: center;
+        vertical-align: middle;
+
+
+        .linkDescriptionPopup-btn-dismiss {
+            background-color: white;
+            color: black;
+            display: inline;
+            right: 0;
+            border-radius: 10px;
+            border: 1px solid black;
+            padding: 3px;
+            font-size: 9px;
+            text-align: center;
+            position: relative;
+            margin-right: 4px;
+            justify-content: center;
+
+            &:hover{
+                cursor: pointer;
+            }
+        }
+
+        .linkDescriptionPopup-btn-add {
+            background-color: black;
+            color: white;
+            display: inline;
+            right: 0;
+            border-radius: 10px;
+            border: 1px solid black;
+            padding: 3px;
+            font-size: 9px;
+            text-align: center;
+            position: relative;
+            justify-content: center;
+
+            &:hover{
+                cursor: pointer;
+            }
+        }
+    }
+
+
+}

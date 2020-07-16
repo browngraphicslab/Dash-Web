@@ -10,7 +10,7 @@ import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from '../CollectionSubView';
-import "./collectionMulticolumnView.scss";
+import "./CollectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
 import { List } from '../../../../fields/List';
@@ -202,9 +202,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     }
 
 
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-    @computed get onChildDoubleClickHandler() { return ScriptCast(this.Document.onChildDoubleClick); }
-
+    onChildClickHandler = () => ScriptCast(this.Document.onChildClick);
+    onChildDoubleClickHandler = () => ScriptCast(this.Document.onChildDoubleClick);
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {

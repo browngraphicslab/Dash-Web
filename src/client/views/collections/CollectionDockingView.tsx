@@ -390,6 +390,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     reactionDisposer?: Lambda;
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
+            const observer = new _global.ResizeObserver(action((entries: any) => {
+                for (const entry of entries) {
+                    this.onResize(null as any);
+                }
+            }));
+            observer.observe(this._containerRef.current);
             this.reactionDisposer = reaction(
                 () => this.props.Document.dockingConfig,
                 () => {
@@ -430,7 +436,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         const cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout && this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout?.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
@@ -646,16 +652,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this.props.renderDepth > 0) {
             return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
         }
-        return (
-            <Measure offset onResize={this.onResize}>
-                {({ measureRef }) =>
-                    <div ref={measureRef}>
-                        <div className="collectiondockingview-container" id="menuContainer"
-                            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
-                    </div>
-                }
-            </Measure>
-        );
+        return <div className="collectiondockingview-container" id="menuContainer"
+            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />;
     }
 
 }

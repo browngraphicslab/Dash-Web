@@ -1,7 +1,7 @@
 import { action, computed, Lambda, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Doc, Opt } from '../../../../fields/Doc';
+import { Doc, Opt, WidthSym } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { Id } from '../../../../fields/FieldSymbols';
 import { makeInterface } from '../../../../fields/Schema';
@@ -31,7 +31,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @observable private _rowHeight: Opt<number>; // temporary store of row height to make change undoable
     @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
 
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    onChildClickHandler = () => ScriptCast(this.Document.onChildClick);
 
     @computed get numCols() { return NumCast(this.props.Document.gridNumCols, 10); }
     @computed get rowHeight() { return this._rowHeight === undefined ? NumCast(this.props.Document.gridRowHeight, 100) : this._rowHeight; }
@@ -283,8 +283,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     onContextMenu = () => {
         const displayOptionsMenu: ContextMenuProps[] = [];
-        displayOptionsMenu.push({ description: "Contents", event: () => this.props.Document.display = "contents", icon: "copy" });
-        displayOptionsMenu.push({ description: "Undefined", event: () => this.props.Document.display = undefined, icon: "exclamation" });
+        displayOptionsMenu.push({ description: "Toggle Content Display Style", event: () => this.props.Document.display = this.props.Document.display ? undefined : "contents", icon: "copy" });
         ContextMenu.Instance.addItem({ description: "Display", subitems: displayOptionsMenu, icon: "tv" });
     }
 

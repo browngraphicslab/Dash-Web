@@ -11,8 +11,9 @@
     },
     "scripts": {
         "start-release": "cross-env RELEASE=true NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
-        "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
-        "debug": "cross-env NODE_OPTIONS=--max_old_space_size=8192 ts-node-dev --inspect -- src/server/index.ts",
+        "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --transpile-only -- src/server/index.ts",
+        "oldstart": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
+        "debug": "cross-env NODE_OPTIONS=--max_old_space_size=8192 ts-node-dev --transpile-only --inspect -- src/server/index.ts",
         "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 webpack --env production",
         "test": "mocha -r ts-node/register test/**/*.ts",
         "tsc": "tsc"
@@ -220,6 +221,7 @@
         "react-grid-layout": "^0.18.3",
         "react-image-lightbox-with-rotate": "^5.1.1",
         "react-jsx-parser": "^1.25.1",
+        "react-loading": "^2.0.3",
         "react-measure": "^2.2.4",
         "react-resizable": "^1.10.1",
         "react-select": "^3.1.0",

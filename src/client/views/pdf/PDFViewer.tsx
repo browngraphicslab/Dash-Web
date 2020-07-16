@@ -637,7 +637,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onZoomWheel = (e: React.WheelEvent) => {
-        if (this.active()) {
+        if (this.active(true)) {
             e.stopPropagation();
             if (e.ctrlKey) {
                 const curScale = Number(this._pdfViewer.currentScaleValue);

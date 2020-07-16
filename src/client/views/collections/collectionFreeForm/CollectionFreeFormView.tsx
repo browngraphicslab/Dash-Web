@@ -84,6 +84,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _lastClientY: number | undefined = 0;
+    private _lastClientX: number | undefined = 0;
     private _inkToTextStartX: number | undefined;
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
@@ -100,6 +102,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
     @observable _timelineRef = React.createRef<Timeline>();
+
+    @observable _marqueeRef = React.createRef<HTMLDivElement>();
+    @observable canPanX: boolean = true;
+    @observable canPanY: boolean = true;
 
     @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
@@ -205,7 +211,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
             const d = docDragData.droppedDocuments[i];
             const layoutDoc = Doc.Layout(d);
-            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
+            if (this.Document.currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
                 CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.opacity);
             } else {
@@ -246,7 +252,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else {
             const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
             this.props.addDocument(source);
-            linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
+            linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation", ""); // TODODO this is where in text links get passed
             e.stopPropagation();
             return true;
         }
@@ -575,6 +581,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        this._lastClientY = this._lastClientX = undefined;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -932,9 +939,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
-    @computed get onChildDoubleClickHandler() { return this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
+    onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
     backgroundHalo = () => BoolCast(this.Document.useClusters);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
@@ -1027,7 +1034,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const transform = `translate(${x}px, ${y}px)`;
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string"); // don't use NumCast, StrCast, etc since we want to test for undefined below
-            const fontSize = Cast(viewDef.fontSize, "number");
+            const fontSize = Cast(viewDef.fontSize, "string");
             return [text, x, y].some(val => val === undefined) ? undefined :
                 {
                     ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z + color} style={{ width, height, color, fontSize, transform }}>
@@ -1065,7 +1072,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     doFreeformLayout(poolData: Map<string, PoolData>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
-        const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
+        const initResult = this.Document.arrangeInit?.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         const state = initResult?.success ? initResult.result.scriptState : undefined;
         const elements = initResult?.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
@@ -1143,16 +1150,62 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
+
+        const handler = (e: any) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+
+        document.addEventListener("dashDragging", handler);
     }
+
     componentWillUnmount() {
         this._layoutComputeReaction?.();
+
+        const handler = (e: any) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
+        document.removeEventListener("dashDragging", handler);
     }
+
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;
 
     @action
     onCursorMove = (e: React.PointerEvent) => {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
+    }
+
+
+    // <div ref={this._marqueeRef}>
+
+    @action
+    handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
+        if ((e as any).handlePan) return;
+        (e as any).handlePan = true;
+        this._lastClientY = e.detail.clientY;
+        this._lastClientX = e.detail.clientX;
+
+        if (this._marqueeRef?.current) {
+            const dragX = e.detail.clientX;
+            const dragY = e.detail.clientY;
+            const bounds = this._marqueeRef.current?.getBoundingClientRect();
+
+            const deltaX = dragX - bounds.left < 25 ? -2 : bounds.right - dragX < 25 ? 2 : 0;
+            const deltaY = dragY - bounds.top < 25 ? -2 : bounds.bottom - dragY < 25 ? 2 : 0;
+            (deltaX !== 0 || deltaY !== 0) && this.continuePan(deltaX, deltaY);
+        }
+        e.stopPropagation();
+    }
+
+    continuePan = (deltaX: number, deltaY: number) => {
+        setTimeout(action(() => {
+            const dragY = this._lastClientY;
+            const dragX = this._lastClientX;
+            if (dragY !== undefined && dragX !== undefined && this._marqueeRef.current) {
+                const bounds = this._marqueeRef.current.getBoundingClientRect();
+                this.Document._panY = NumCast(this.Document._panY) + deltaY;
+                this.Document._panX = NumCast(this.Document._panX) + deltaX;
+                if (dragY - bounds.top < 25 || bounds.bottom - dragY < 25 || dragX - bounds.left < 25 || bounds.right - dragX < 25) {
+                    this.continuePan(deltaX, deltaY);
+                }
+            } else this._lastClientY !== undefined && this._lastClientX !== undefined && this.continuePan(deltaX, deltaY);
+        }), 50);
     }
 
     promoteCollection = undoBatch(action(() => {
@@ -1336,7 +1389,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return false;
     });
     @computed get marqueeView() {
-        return <MarqueeView {...this.props}
+        return <MarqueeView
+            {...this.props}
             nudge={this.nudge}
             addDocTab={this.addDocTab}
             activeDocuments={this.getActiveDocuments}
@@ -1346,14 +1400,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getContainerTransform={this.getContainerTransform}
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
-            <CollectionFreeFormViewPannableContents
-                centeringShiftX={this.centeringShiftX}
-                centeringShiftY={this.centeringShiftY}
-                transition={Cast(this.layoutDoc._viewTransition, "string", null)}
-                viewDefDivClick={this.props.viewDefDivClick}
-                zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
-                {this.children}
-            </CollectionFreeFormViewPannableContents>
+            <div ref={this._marqueeRef}>
+                <CollectionFreeFormViewPannableContents
+                    centeringShiftX={this.centeringShiftX}
+                    centeringShiftY={this.centeringShiftY}
+                    transition={Cast(this.layoutDoc._viewTransition, "string", null)}
+                    viewDefDivClick={this.props.viewDefDivClick}
+                    zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                    {this.children}
+                </CollectionFreeFormViewPannableContents></div>
             {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }

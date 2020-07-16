@@ -211,7 +211,7 @@ export class CurrentUserUtils {
             details.text = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
 
             const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
-            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: 12 };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12pt" };
             const descriptionWrapperOpts = { title: "descriptions", _height: 300, _columnWidth: -1, treeViewHideTitle: true, _pivotField: "title" };
 
             const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
@@ -402,20 +402,20 @@ export class CurrentUserUtils {
             this.setupActiveMobileMenu(doc);
         }
         return [
-            { title: "Drag a comparison box", label: "Comp", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
             { title: "Drag a web page", label: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
-            { title: "Drag a cat image", label: "Img", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
-            { title: "Drag a screenshot", label: "Grab", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
-            { title: "Drag a webcam", label: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
+            { title: "Drag a cat image", label: "Image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
+            { title: "Drag a comparison box", label: "Comp", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
+            { title: "Drag a screengrabber", label: "Grab", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
+            //  { title: "Drag a webcam", label: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "Drag a audio recorder", label: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
-            { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding:10, _yPadding: 10, title: "Button" })' },
+            { title: "Drag a button", label: "Button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding:10, _yPadding: 10, title: "Button" })' },
             { title: "Drag a presentation view", label: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
-            { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
+            // { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "Drag a mobile view", label: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
-            { title: "Drag an instance of the device collection", label: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
+            // { title: "Drag an instance of the device collection", label: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
             // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
             // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
@@ -423,7 +423,6 @@ export class CurrentUserUtils {
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
             { title: "Drag a document previewer", label: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
             { title: "Toggle a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
-            { title: "Connect a Google Account", label: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
@@ -524,13 +523,13 @@ export class CurrentUserUtils {
     // Sets up the title of the button
     static mobileButtonText = (opts: DocumentOptions, buttonTitle: string) => Docs.Create.TextDocument(buttonTitle, {
         ...opts,
-        dropAction: undefined, title: buttonTitle, _fontSize: 37, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
+        dropAction: undefined, title: buttonTitle, _fontSize: "37pt", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)"
     }) as any as Doc
 
     // Sets up the description of the button
     static mobileButtonInfo = (opts: DocumentOptions, buttonInfo: string) => Docs.Create.TextDocument(buttonInfo, {
         ...opts,
-        dropAction: undefined, title: "info", _fontSize: 25, _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
+        dropAction: undefined, title: "info", _fontSize: "25pt", _xMargin: 0, _yMargin: 0, ignoreClick: true, _chromeStatus: "disabled", backgroundColor: "rgba(0,0,0,0)", _dimMagnitude: 2,
     }) as any as Doc
 
 
@@ -597,7 +596,7 @@ export class CurrentUserUtils {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             })) as any as Doc;
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", _fontSize: 10,
+                _width: 35, _height: 25, title: "Tools", _fontSize: "10pt",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: toolsStack,
                 onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
@@ -662,7 +661,7 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: 10, targetDropAction: "same",
+                _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: libraryStack,
                 onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
@@ -680,7 +679,7 @@ export class CurrentUserUtils {
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", _fontSize: 10,
+                _width: 50, _height: 25, title: "Search", _fontSize: "10pt",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
                 searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
@@ -776,17 +775,17 @@ export class CurrentUserUtils {
 
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
+            // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target 
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
-                "docCast(thisContainer.target).then((target) => {" +
-                "     target && docCast(this.source).then((source) => { " +
-                "           target.proto.data = new List([source || this]); " +
-                "      }); " +
-                "})",
-                { target: Doc.name }), { title: "Click to open in target", _width: 300, _height: 200, targetScriptKey: "onChildClick" });
+                "docCast(thisContainer.target).then((target) => target && (target.proto.data = new List([self]))) ",
+                { thisContainer: Doc.name }), {
+                title: "Click to open in target", _width: 300, _height: 200,
+                targetScriptKey: "onChildClick",
+            });
 
             const openDetail = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "openOnRight(self.doubleClickView)",
-                { target: Doc.name }), { title: "Double click to open doubleClickView", _width: 300, _height: 200, targetScriptKey: "onChildDoubleClick" });
+                {}), { title: "Double click to open doubleClickView", _width: 300, _height: 200, targetScriptKey: "onChildDoubleClick" });
 
             doc["clickFuncs-child"] = Docs.Create.TreeDocument([openInTarget, openDetail], { title: "on Child Click function templates" });
         }
@@ -798,14 +797,22 @@ export class CurrentUserUtils {
                 title: "onClick", "onClick-rawScript": "console.log('click')",
                 isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200
             }, "onClick");
+            const onChildClick = Docs.Create.ScriptingDocument(undefined, {
+                title: "onChildClick", "onChildClick-rawScript": "console.log('child click')",
+                isTemplateDoc: true, isTemplateForField: "onChildClick", _width: 300, _height: 200
+            }, "onChildClick");
             const onDoubleClick = Docs.Create.ScriptingDocument(undefined, {
                 title: "onDoubleClick", "onDoubleClick-rawScript": "console.log('double click')",
                 isTemplateDoc: true, isTemplateForField: "onDoubleClick", _width: 300, _height: 200
             }, "onDoubleClick");
+            const onChildDoubleClick = Docs.Create.ScriptingDocument(undefined, {
+                title: "onChildDoubleClick", "onChildDoubleClick-rawScript": "console.log('child double click')",
+                isTemplateDoc: true, isTemplateForField: "onChildDoubleClick", _width: 300, _height: 200
+            }, "onChildDoubleClick");
             const onCheckedClick = Docs.Create.ScriptingDocument(undefined, {
                 title: "onCheckedClick", "onCheckedClick-rawScript": "console.log(heading + checked + containingTreeView)", "onCheckedClick-params": new List<string>(["heading", "checked", "containingTreeView"]), isTemplateDoc: true, isTemplateForField: "onCheckedClick", _width: 300, _height: 200
             }, "onCheckedClick");
-            doc.clickFuncs = Docs.Create.TreeDocument([onClick, onDoubleClick, onCheckedClick], { title: "onClick funcs" });
+            doc.clickFuncs = Docs.Create.TreeDocument([onClick, onChildClick, onDoubleClick, onCheckedClick], { title: "onClick funcs" });
         }
         PromiseValue(Cast(doc.clickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
 
@@ -819,11 +826,12 @@ export class CurrentUserUtils {
         doc.activeInkColor = StrCast(doc.activeInkColor, "rgb(0, 0, 0)");
         doc.activeInkWidth = StrCast(doc.activeInkWidth, "1");
         doc.activeInkBezier = StrCast(doc.activeInkBezier, "0");
-        doc.activeFillColor = StrCast(doc.activeFillColor, "none");
-        doc.activeArrowStart = StrCast(doc.activeArrowStart, "none");
-        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "none");
+        doc.activeFillColor = StrCast(doc.activeFillColor, "");
+        doc.activeArrowStart = StrCast(doc.activeArrowStart, "");
+        doc.activeArrowEnd = StrCast(doc.activeArrowEnd, "");
         doc.activeDash = StrCast(doc.activeDash, "0");
-        doc.fontSize = NumCast(doc.fontSize, 12);
+        doc.fontSize = StrCast(doc.fontSize, "12pt");
+        doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);

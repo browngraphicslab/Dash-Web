@@ -24,7 +24,8 @@ export enum Directory {
     pdfs = "pdfs",
     text = "text",
     pdf_thumbnails = "pdf_thumbnails",
-    audio = "audio"
+    audio = "audio",
+    hypothesis = "hypothesis"
 }
 
 export function serverPathToFile(directory: Directory, filename: string) {

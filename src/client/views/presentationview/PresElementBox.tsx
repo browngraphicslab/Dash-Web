@@ -15,6 +15,7 @@ import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
 import React = require("react");
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -100,7 +101,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         this.rootDoc.presProgressivize = !this.rootDoc.presProgressivize;
         const rootTarget = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
-        const docs = DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget)]);
+        const docs = rootTarget.type === DocumentType.COL ? DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget)]) :
+            DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget) + "-annotations"]);
         if (this.rootDoc.presProgressivize) {
             rootTarget.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);

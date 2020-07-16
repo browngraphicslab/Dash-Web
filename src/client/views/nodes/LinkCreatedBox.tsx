@@ -11,8 +11,8 @@ import { Fade } from "@material-ui/core";
 export class LinkCreatedBox extends React.Component<{}> {
 
     @observable public static linkCreated: boolean = false;
-    @observable public static popupX: number = 600;
-    @observable public static popupY: number = 250;
+    @observable public static popupX: number = 500;
+    @observable public static popupY: number = 150;
 
     @action
     public static changeLinkCreated = () => {
@@ -23,8 +23,8 @@ export class LinkCreatedBox extends React.Component<{}> {
         return <Fade in={LinkCreatedBox.linkCreated}>
             <div className="linkCreatedBox-fade"
                 style={{
-                    left: LinkCreatedBox.popupX ? LinkCreatedBox.popupX : 600,
-                    top: LinkCreatedBox.popupY ? LinkCreatedBox.popupY : 250,
+                    left: LinkCreatedBox.popupX ? LinkCreatedBox.popupX : 500,
+                    top: LinkCreatedBox.popupY ? LinkCreatedBox.popupY : 150,
                 }}>Link Created</div>
         </Fade>;
     }

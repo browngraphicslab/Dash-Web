@@ -11,6 +11,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import './LinkMenu.scss';
 import { LinkMenuItem, StartLinkTargetsDrag } from "./LinkMenuItem";
 import React = require("react");
+import { Cast } from "../../../fields/Types";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
@@ -26,6 +27,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
     private _drag = React.createRef<HTMLDivElement>();
     private _table = React.createRef<HTMLDivElement>();
+    private _menuRef = React.createRef<HTMLDivElement>();
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -65,7 +67,8 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
     render() {
         const groupItems = this.props.group.map(linkDoc => {
-            const destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+            const destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc) ||
+                LinkManager.Instance.getOppositeAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, null).annotationOn === this.props.sourceDoc ? Cast(linkDoc.anchor2, Doc, null) : Cast(linkDoc.anchor1, Doc, null));
             if (destination && this.props.sourceDoc) {
                 return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]}
                     groupType={this.props.groupType}
@@ -74,17 +77,20 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
                     linkDoc={linkDoc}
                     sourceDoc={this.props.sourceDoc}
                     destinationDoc={destination}
-                    showEditor={this.props.showEditor} />;
+                    showEditor={this.props.showEditor}
+                    menuRef={this._menuRef} />;
             }
         });
 
         return (
-            <div className="linkMenu-group">
+            <div className="linkMenu-group" ref={this._menuRef}>
+
                 {/* <div className="linkMenu-group-name">
                     <p ref={this._drag} onPointerDown={this.onLinkButtonDown}
                         className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} > {this.props.groupType}:</p>
                     {this.props.groupType === "*" || this.props.groupType === "" ? <></> : this.viewGroupAsTable(this.props.groupType)}
                 </div> */}
+
                 <div className="linkMenu-group-wrapper">
                     {groupItems}
                 </div>

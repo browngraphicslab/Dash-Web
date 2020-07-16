@@ -94,6 +94,7 @@ export interface DocumentOptions {
     label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
+    description?: string; // added for links
     _viewScale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
@@ -101,6 +102,8 @@ export interface DocumentOptions {
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     hideFilterView?: boolean; // whether to hide the filter popout on collections
+    hideLinkButton?: boolean; // whether the blue link counter button should be hidden
+    hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
@@ -122,7 +125,7 @@ export interface DocumentOptions {
     isBackground?: boolean;
     isLinkButton?: boolean;
     _columnWidth?: number;
-    _fontSize?: number;
+    _fontSize?: string;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -135,6 +138,8 @@ export interface DocumentOptions {
     dontRegisterChildViews?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
+    "onChildDoubleClick-rawScript"?: string; // onChildDoubleClick script in raw text form
+    "onChildClick-rawScript"?: string; // on ChildClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
@@ -259,7 +264,7 @@ export namespace Docs {
             }],
             [DocumentType.LINK, {
                 layout: { view: LinkBox, dataField: defaultDataKey },
-                options: { _height: 150 }
+                options: { _height: 150, description: "" }
             }],
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
@@ -670,12 +675,12 @@ export namespace Docs {
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
-            I.strokeWidth = strokeWidth;
-            I.strokeBezier = strokeBezier;
             I.fillColor = fillColor;
-            I.arrowStart = arrowStart;
-            I.arrowEnd = arrowEnd;
-            I.dash = dash;
+            I.strokeWidth = Number(strokeWidth);
+            I.strokeBezier = strokeBezier;
+            I.strokeStartMarker = arrowStart;
+            I.strokeEndMarker = arrowEnd;
+            I.strokeDash = dash;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -684,14 +689,9 @@ export namespace Docs {
             I._width = options._width;
             I._height = options._height;
             I.author = Doc.CurrentUserEmail;
+            I.rotation = 0;
             I.data = new InkField(points);
             return I;
-            // return I;
-            // const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
-            // doc.color = color;
-            // doc.strokeWidth = strokeWidth;
-            // doc.tool = tool;
-            // return doc;
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
@@ -781,7 +781,7 @@ export namespace Docs {
 
 
         export function FontIconDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
@@ -829,6 +829,47 @@ export namespace Docs {
 }
 
 export namespace DocUtils {
+    export function FilterDocs(docs: Doc[], docFilters: string[], docRangeFilters: string[], viewSpecScript?: ScriptField) {
+        const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+            if (!filterFacets[key]) {
+                filterFacets[key] = {};
+            }
+            filterFacets[key][value] = modifiers;
+        }
+
+        const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            for (const facetKey of Object.keys(filterFacets)) {
+                const facet = filterFacets[facetKey];
+                const satisfiesFacet = Object.keys(facet).some(value => {
+                    if (facet[value] === "match") {
+                        return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
+                    }
+                    return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
+                });
+                if (!satisfiesFacet) {
+                    return false;
+                }
+            }
+            return true;
+        }) : childDocs;
+        const rangeFilteredDocs = filteredDocs.filter(d => {
+            for (let i = 0; i < docRangeFilters.length; i += 3) {
+                const key = docRangeFilters[i];
+                const min = Number(docRangeFilters[i + 1]);
+                const max = Number(docRangeFilters[i + 2]);
+                const val = Cast(d[key], "number", null);
+                if (val !== undefined && (val < min || val > max)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return rangeFilteredDocs;
+    }
 
     export function Publish(promoteDoc: Doc, targetID: string, addDoc: any, remDoc: any) {
         targetID = targetID.replace(/^-/, "").replace(/\([0-9]*\)$/, "");
@@ -867,12 +908,14 @@ export namespace DocUtils {
         DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
     }
 
-    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
+    export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", description: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === Doc.UserDoc()) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView" }, id);
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
+        linkDoc.linkDisplay = true;
+        linkDoc.hidden = true;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 

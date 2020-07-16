@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
 import { Doc, Opt, Field } from "../../../fields/Doc";
@@ -19,6 +19,7 @@ import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import React = require("react");
 import * as rp from 'request-promise';
+import ReactLoading from 'react-loading';
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -106,16 +107,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
-            const docFilters = this.docFilters();
-            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-            const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-            for (let i = 0; i < docFilters.length; i += 3) {
-                const [key, value, modifiers] = docFilters.slice(i, i + 3);
-                if (!filterFacets[key]) {
-                    filterFacets[key] = {};
-                }
-                filterFacets[key][value] = modifiers;
-            }
 
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
@@ -128,38 +119,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
                 rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
             }
-            const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
-            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
-                for (const facetKey of Object.keys(filterFacets)) {
-                    const facet = filterFacets[facetKey];
-                    const satisfiesFacet = Object.keys(facet).some(value => {
-                        if (facet[value] === "match") {
-                            return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
-                        }
-                        return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
-                    });
-                    if (!satisfiesFacet) {
-                        return false;
-                    }
-                }
-                return true;
-            }) : childDocs;
-            const rangeFilteredDocs = filteredDocs.filter(d => {
-                for (let i = 0; i < docRangeFilters.length; i += 3) {
-                    const key = docRangeFilters[i];
-                    const min = Number(docRangeFilters[i + 1]);
-                    const max = Number(docRangeFilters[i + 2]);
-                    const val = Cast(d[key], "number", null);
-                    if (val !== undefined && (val < min || val > max)) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-            return rangeFilteredDocs;
+            const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
+            const docFilters = this.docFilters();
+            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+
+            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, docFilters, docRangeFilters, viewSpecScript);
         }
 
         @action
@@ -412,13 +378,20 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     });
                 }
             }
+            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY);
+            batch.end();
+        }
+        slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number) => {
+            runInAction(() => CollectionSubViewLoader.Waiting = "block");
+            const disposer = OverlayView.Instance.addElement(
+                <ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: clientX - 125, y: clientY - 125 });
             generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
+                    UndoManager.RunInBatch(() => this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!), "drop");
                 } else {
-                    generatedDocuments.forEach(this.addDocument);
+                    UndoManager.RunInBatch(() => generatedDocuments.forEach(this.addDocument), "drop");
                 }
                 completed?.();
             } else {
@@ -426,11 +399,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
                 }
             }
-            batch.end();
+            disposer();
         }
     }
 
     return CollectionSubView;
+}
+
+export class CollectionSubViewLoader {
+    @observable public static Waiting = "none";
 }
 
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -440,4 +417,5 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { OverlayView } from "../OverlayView";
 

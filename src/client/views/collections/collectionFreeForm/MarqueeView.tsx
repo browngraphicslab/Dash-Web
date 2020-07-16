@@ -129,7 +129,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             } else if (!e.ctrlKey && !e.metaKey) {
                 FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
                 const tbox = Docs.Create.TextDocument("", {
-                    _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
+                    _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
                     _fontFamily: StrCast(Doc.UserDoc().fontFamily),
                     title: "-typed text-"
                 });
@@ -493,7 +493,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         summary._backgroundColor = "#e2ad32";
         portal.layoutKey = "layout_portal";
         portal.title = "document collection";
-        DocUtils.MakeLink({ doc: summary }, { doc: portal }, "summarizing");
+        DocUtils.MakeLink({ doc: summary }, { doc: portal }, "summarizing", "");
 
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);
