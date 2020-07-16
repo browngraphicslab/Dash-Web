@@ -173,6 +173,9 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     if (GetEffectiveAcl(target, in_prop) !== AclEdit) {
         return true;
     }
+
+    if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);

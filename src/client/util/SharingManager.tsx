@@ -193,8 +193,6 @@ export default class SharingManager extends React.Component<{}> {
         Doc.GetProto(target)[ACL] = permission;
 
         if (permission !== SharingPermissions.None) {
-            console.log(target);
-            console.log(notificationDoc);
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
                 Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
             });
