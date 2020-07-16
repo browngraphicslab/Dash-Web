@@ -979,6 +979,7 @@ export namespace DocUtils {
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Docs.Create.PdfDocument;
+            if (!options._fitWidth) options._fitWidth = true;
             if (!options._width) options._width = 400;
             if (!options._height) options._height = options._width * 1200 / 927;
         }
