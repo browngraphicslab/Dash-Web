@@ -60,10 +60,13 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     _stream: MediaStream | undefined;
     _start: number = 0;
     _hold: boolean = false;
+    _left: boolean = false;
+    _amount: number = 1;
 
     private _isPointerDown = false;
     private _currMarker: any;
 
+    @observable private _dragging: boolean = false;
     @observable private _duration = 0;
     @observable private _rect: Array<any> = []
     @observable private _markers: Array<any> = [];
@@ -288,6 +291,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     @action
     newMarker(marker: number) {
         this._markers.push(marker);
+        this._amount++;
     }
 
     start(marker: number) {
@@ -302,14 +306,19 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         this._hold = false;
         this._markers.push([this._start, marker]);
         this._start = 0;
+        this._amount++;
     }
 
-    onPointerDown = (e: React.PointerEvent, m: any): void => {
+    onPointerDown = (e: React.PointerEvent, m: any, left: boolean): void => {
         e.stopPropagation();
         e.preventDefault();
         this._isPointerDown = true;
         console.log("click");
         this._currMarker = m;
+        let targetele = document.getElementById("timeline");
+        targetele?.setPointerCapture(e.pointerId);
+        this._left = left;
+
 
         document.removeEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -317,19 +326,24 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         document.addEventListener("pointerup", this.onPointerUp);
     }
 
+    @action
     onPointerUp = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
         this._isPointerDown = false;
+        this._dragging = false;
 
         const rect = (e.target as any).getBoundingClientRect();
         this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+
+        let targetele = document.getElementById("timeline");
+        targetele?.releasePointerCapture(e.pointerId);
 
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    onPointerMove = (e: PointerEvent): void => {
+    onPointerMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
         console.log("drag");
@@ -338,32 +352,21 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
             return;
         }
 
-        // let resize = document.getElementById("audiobox-marker-container1");
+        const rect = await (e.target as any).getBoundingClientRect();
 
-        const rect = (e.target as any).getBoundingClientRect();
-        // let newWidth = parseFloat(`${(e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration)}%`);
-
-        // if (resize) {
-        //     console.log(parseFloat(resize.style.width));
-        //     console.log(newWidth);
-        //     console.log(e.movementX);
-        //     if (e.movementX < 0) {
-        //         resize.style.width = `${parseFloat(resize.style.width) - (newWidth)}%`;
-        //     } else {
-        //         resize.style.width = `${parseFloat(resize.style.width) + (newWidth)}%`;
-        //     }
-        // }
+        // if (e.target as HTMLElement === document.getElementById("timeline")) {
 
         let newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-
+        console.log(newTime);
         this.changeMarker(this._currMarker, newTime);
+        // }
     }
 
     @action
     changeMarker = (m: any, time: any) => {
         for (let i = 0; i < this._markers.length; i++) {
             if (this.isSame(this._markers[i], m)) {
-                this._markers[i][1] = time;
+                this._left ? this._markers[i][0] = time : this._markers[i][1] = time;
             }
         }
     }
@@ -383,7 +386,32 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
     }
 
+    @action
+    onHover = () => {
+        this._dragging = true;
+    }
+
+    @action
+    onLeave = () => {
+        this._dragging = false;
+    }
+    // onMouseOver={this.onHover} onMouseLeave={this.onLeave}
+
+    change = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const rect = (e.target as any).getBoundingClientRect();
+
+        const wasPaused = this.audioState === "paused";
+        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+        wasPaused && this.pause();
+        console.log("double!");
+    }
+
+    // see if time is encapsulated by comparing time on both sides (for moving onto a new row in the timeline for the markers)
+
     render() {
+        trace();
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
@@ -406,7 +434,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                             <div className="buttons" onClick={this._paused ? this.recordPlay : this.recordPause}>
                                 <FontAwesomeIcon style={{ width: "100%" }} icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                             </div>
-                            <div className="time">{NumCast(this.layoutDoc.currentTimecode).toFixed(1)}</div>
+                            <div className="time">{this.formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}</div>
                         </div>
 
                         :
@@ -415,19 +443,24 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                             </button>}
                 </div> :
                 <div className="audiobox-controls" onClick={this.layoutDoc.playOnSelect ? this.onPlay : undefined}>
+                    <div className="background">
+                    </div>
                     <div className="audiobox-player" >
-                        <div className="audiobox-playhead" onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%" }} icon={this.audioState === "paused" ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                        <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "darkgrey" : "" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                        <div className="audiobox-playhead" onClick={this.onRepeat}><FontAwesomeIcon style={{ width: "100%", background: this._repeat ? "darkgrey" : "" }} icon="redo-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                        <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
+                        <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
+                        {/* <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "darkgrey" : "" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-playhead" onClick={this.onRepeat}><FontAwesomeIcon style={{ width: "100%", background: this._repeat ? "darkgrey" : "" }} icon="redo-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div> */}
+                        <div className="audiobox-timeline" id="timeline" onClick={e => { e.stopPropagation(); e.preventDefault(); }} onDoubleClick={e => this.change}
                             onPointerDown={e => {
+                                e.stopPropagation();
+                                e.preventDefault();
                                 if (e.button === 0 && !e.ctrlKey) {
                                     const rect = (e.target as any).getBoundingClientRect();
 
-                                    const wasPaused = this.audioState === "paused";
-                                    this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-                                    wasPaused && this.pause();
-
+                                    if (e.target as HTMLElement !== document.getElementById("current")) {
+                                        const wasPaused = this.audioState === "paused";
+                                        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                        wasPaused && this.pause();
+                                    }
                                 }
                                 if (e.button === 0 && e.altKey) {
                                     this.newMarker(this._ele!.currentTime);
@@ -442,12 +475,14 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                             {this._markers.map((m, i) => {
                                 // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
                                 let rect;
+                                console.log(1 / this._amount * 100);
                                 (m.length > 1) ?
 
                                     rect =
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} key={i} id={"audiobox-marker-container1"} style={{ left: `${m[0] / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(m[1] - m[0]) / NumCast(this.dataDoc.duration, 1) * 100}%` }} onClick={e => { this.playFrom(m[0], m[1]); e.stopPropagation() }} >
-                                        {/* <FormattedTextBox {...this.props} key={"label" + i} Document={text} /> */}
-                                        <div className="resizer" onPointerDown={e => this.onPointerDown(e, m)}></div>
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(m[0]))}` + " - " + `${this.formatTime(Math.round(m[1]))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${m[0] / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(m[1] - m[0]) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / this._amount * 100}%`, top: `${i * 1 / this._amount * 100}%` }} onClick={e => { this.playFrom(m[0], m[1]); e.stopPropagation() }} >
+                                        {/* <FormattedTextBox {...this.props} key={"label" + i} /> */}
+                                        <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
+                                        <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
                                     </div>
                                     :
                                     rect =
@@ -470,7 +505,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
 
 
                                 return !linkTime ? (null) :
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(this.dataDoc.duration - linkTime) / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
                                         <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
                                             <DocumentView {...this.props}
                                                 Document={l}
@@ -489,8 +524,9 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                             onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { const wasPaused = this.audioState === "paused"; this.playFrom(linkTime); wasPaused && this.pause(); e.stopPropagation(); } }} />
                                     </div>;
                             })}
-                            <div className="audiobox-current" style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
+                            <div className="audiobox-current" id="current" onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
                             {this.audio}
+
                         </div>
                         <div className="current-time">
                             {this.formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}

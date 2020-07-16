@@ -54,10 +54,11 @@
         margin-top: auto;
         margin-bottom: auto;
         width: 100%;
-        height: 80%;
+        height: 100%;
         position: relative;
         padding-right: 5px;
         display: flex;
+        background-color: red;      
 
         .time {
             position: relative;
@@ -65,6 +66,7 @@
             width: 100%;
             font-size: 20;
             text-align: center;
+            top: 5;
         }
 
         .buttons {
@@ -76,7 +78,7 @@
         }
 
         .buttons:hover {
-            background-color: darkgrey;
+            background-color: crimson;
         }
     }
 
@@ -86,7 +88,7 @@
         position: relative;
         display: flex;
         padding-left: 2px;
-        background: lightgrey;
+        background: black;
 
         .audiobox-player {
             margin-top: auto;
@@ -97,20 +99,28 @@
             padding-right: 5px;
             display: flex;
 
-            .audiobox-playhead,
+            .audiobox-playhead {
+                position: relative;
+                margin-top: auto;
+                margin-bottom: auto;
+                margin-right: 2px;
+                width: 30px;
+                height: 25px;
+                padding: 2px;
+                border-radius: 50%;
+                background-color: dimgrey;
+            }
+
+            .audiobox-playhead:hover {
+                background-color: white;
+            }
+
             .audiobox-dictation {
                 position: relative;
                 margin-top: auto;
                 margin-bottom: auto;
                 width: 25px;
                 padding: 2px;
-            }
-
-            .audiobox-playhead:hover {
-                background-color: darkgrey;
-            }
-
-            .audiobox-dictation {
                 align-items: center;
                 display: inherit;
                 background: dimgray;
@@ -123,6 +133,7 @@
                 background: white;
                 border: gray solid 1px;
                 border-radius: 3px;
+                z-index: 1000;
 
                 .audiobox-current {
                     width: 1px;
@@ -184,7 +195,6 @@
                     background: gray;
                     border-radius: 5px;
                     box-shadow: black 2px 2px 1px;
-                    resize: horizontal;
                     overflow: auto;
 
                     .audiobox-marker {
@@ -224,7 +234,16 @@
                         right: 0;
                         cursor: ew-resize;
                         height: 100%;
-                        width: 1px;
+                        width: 2px;
+                        z-index: 100;
+                    }
+
+                    .left-resizer {
+                        position: absolute;
+                        left: 0;
+                        cursor: ew-resize;
+                        height: 100%;
+                        width: 2px;
                         z-index: 100;
                     }
                 }
@@ -250,14 +269,16 @@
                 position: absolute;
                 font-size: 12;
                 top: 70%;
-                left: 23%;
+                left: 30px;
+                color: white;
             }
 
             .total-time {
                 position: absolute;
-                left: 80%;
                 top: 70%;
                 font-size: 12;
+                right: 2px;
+                color: white;
             }
         }
     }
