@@ -1,6 +1,10 @@
 @import "globalCssVariables";
 @import "nodeModuleOverrides";
 
+.dash-tooltip {
+    font-size: 11px;
+    padding: 2px;
+}
 
 .mainView-tabButtons {
     position: relative;

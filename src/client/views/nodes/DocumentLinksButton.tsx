@@ -101,8 +101,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                         const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                         LinkManager.currentLink = linkDoc;
-                        linkDoc ? linkDoc.hidden = true : null;
-                        linkDoc ? linkDoc.linkDisplay = true : null;
 
                         runInAction(() => {
                             if (linkDoc) {
@@ -136,8 +134,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                     LinkManager.currentLink = linkDoc;
-                    linkDoc ? linkDoc.hidden = true : null;
-                    linkDoc ? linkDoc.linkDisplay = true : null;
 
                     runInAction(() => {
                         if (linkDoc) {
@@ -168,8 +164,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         const links = DocListCast(this.props.View.props.Document.links);
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
-
-        const title = this.props.InMenu ? menuTitle : "Tap to view links";
+        const buttonTitle = "Tap to view links";
+        const title = this.props.InMenu ? menuTitle : buttonTitle;
 
 
         const startLink = <img
@@ -202,14 +198,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             //     Location: [e.clientX, e.clientY + 20]
             // }))} 
             >
-                {/* {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="unlink" size="sm" /> : links.length} */}
 
-                {/* {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    link : links.length} */}
+                {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="hand-paper" size="sm" /> : links.length}
 
-                {this.props.InMenu ? this.props.StartLink ? startLink :
-                    endLink : links.length}
             </div>
             {DocumentLinksButton.StartLink && this.props.InMenu && !!!this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
@@ -217,10 +209,16 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             {DocumentLinksButton.StartLink === this.props.View && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
         </div>;
+
         return (!links.length) && !this.props.AlwaysOn ? (null) :
-            <Tooltip title={title}>
-                {linkButton}
-            </Tooltip>;
+            this.props.InMenu ?
+                <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
+                    {linkButton}
+                </Tooltip> : !!!DocumentLinksButton.EditLink ?
+                    <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
+                        {linkButton}
+                    </Tooltip> :
+                    linkButton;
     }
     render() {
         return this.linkButton;

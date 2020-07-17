@@ -11,6 +11,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import './LinkMenu.scss';
 import { LinkMenuItem, StartLinkTargetsDrag } from "./LinkMenuItem";
 import React = require("react");
+import { Cast } from "../../../fields/Types";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
@@ -66,7 +67,8 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
     render() {
         const groupItems = this.props.group.map(linkDoc => {
-            const destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+            const destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc) ||
+                LinkManager.Instance.getOppositeAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, null).annotationOn === this.props.sourceDoc ? Cast(linkDoc.anchor2, Doc, null) : Cast(linkDoc.anchor1, Doc, null));
             if (destination && this.props.sourceDoc) {
                 return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]}
                     groupType={this.props.groupType}

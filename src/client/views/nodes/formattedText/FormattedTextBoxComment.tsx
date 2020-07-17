@@ -270,14 +270,14 @@ export class FormattedTextBoxComment {
                                         </div>
                                         <div className="wrapper" style={{ float: "right" }}>
 
-                                            <Tooltip title="Delete Link" placement="top">
+                                            <Tooltip title={<><div className="dash-tooltip">Delete Link</div></>} placement="top">
                                                 <div className="FormattedTextBoxComment-button"
                                                     ref={(r) => this._deleteRef = r}>
                                                     <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="trash" color="white"
                                                         size="sm" /></div>
                                             </Tooltip>
 
-                                            <Tooltip title="Follow Link" placement="top">
+                                            <Tooltip title={<><div className="dash-tooltip">Follow Link</div></>} placement="top">
                                                 <div className="FormattedTextBoxComment-button"
                                                     ref={(r) => this._followRef = r}>
                                                     <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="arrow-right" color="white"

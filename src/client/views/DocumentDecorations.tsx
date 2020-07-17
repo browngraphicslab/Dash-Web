@@ -81,6 +81,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
                 documentView.props.treeViewDoc ||
+                !documentView.ContentDiv ||
                 Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
@@ -88,7 +89,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.Document.type === DocumentType.LINK) {
-                const docuBox = documentView.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
+                const docuBox = documentView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();
                     sptX = rect.left;
@@ -150,7 +151,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length) {
-                const next = Array.from(child.children).find(c => typeof (c.className) !== "string" || !c.className.includes("collectionViewChrome"));
+                const next = Array.from(child.children).find(c => typeof (c.className) !== "string");
                 if (typeof (next?.className) === "string" && next?.className.includes("documentView-node")) break;
                 if (next) child = next;
                 else break;
@@ -432,6 +433,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let nheight = doc._nativeHeight || 0;
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
+                height = !height || isNaN(height) ? 20 : height;
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height) {
@@ -544,11 +546,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
-            <Tooltip title="Show context menu" placement="top">
+            <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>) : (
-                <Tooltip title="Iconify" placement="top">
+                <Tooltip title={<><div className="dash-tooltip">Iconify</div></>} placement="top">
                     <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
                         {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                         <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
@@ -572,7 +574,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 </div>}
             </> :
             <>
-                {minimal ? (null) : <Tooltip title="Show context menu" placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
+                {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
@@ -611,11 +613,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     {maximizeIcon}
                     {titleArea}
                     {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                        <Tooltip title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} placement="top">
+                        <Tooltip title={<><div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div></>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title="Open Document in Tab" placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"
@@ -638,7 +640,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                         onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                     {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                        <Tooltip title="tap to select containing document" placement="top">
+                        <Tooltip title={<><div className="dash-tooltip">tap to select containing document</div></>} placement="top">
                             <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
                                 onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
                                 <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />

@@ -11,7 +11,7 @@ import { InkTool } from '../../../fields/InkField';
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
 import { TraceMobx, GetEffectiveAcl } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
@@ -68,10 +68,10 @@ export interface DocumentViewProps {
     ignoreAutoHeight?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
-    onClick?: ScriptField;
-    onDoubleClick?: ScriptField;
-    onPointerDown?: ScriptField;
-    onPointerUp?: ScriptField;
+    onClick?: () => ScriptField;
+    onDoubleClick?: () => ScriptField;
+    onPointerDown?: () => ScriptField;
+    onPointerUp?: () => ScriptField;
     treeViewDoc?: Doc;
     dropAction?: dropActionType;
     dragDivName?: string;
@@ -127,12 +127,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
-    @computed get onClickHandler() { return this.props.onClick || Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
-    @computed get onDoubleClickHandler() { return this.props.onDoubleClick || Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick; }
-    @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
-    @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
+    @computed get onClickHandler() { return this.props.onClick?.() ?? Cast(this.Document.onClick, ScriptField, Cast(this.layoutDoc.onClick, ScriptField, null)); }
+    @computed get onDoubleClickHandler() { return this.props.onDoubleClick?.() ?? (Cast(this.layoutDoc.onDoubleClick, ScriptField, null) ?? this.Document.onDoubleClick); }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown?.() ?? ScriptCast(this.Document.onPointerDown); }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp?.() ?? ScriptCast(this.Document.onPointerUp); }
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
+    onClickFunc = () => this.onClickHandler;
+    onDoubleClickFunc = () => this.onDoubleClickHandler;
 
     private _firstX: number = -1;
     private _firstY: number = -1;
@@ -587,16 +589,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
+        this.Document.ignoreClick = false;
         if (this.Document.isLinkButton || this.onClickHandler || this.Document.ignoreClick) {
             this.Document.isLinkButton = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = false);
-            this.Document.ignoreClick = false;
             this.Document.onClick = this.layoutDoc.onClick = undefined;
         } else {
             this.Document.isLinkButton = true;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = true);
             this.Document.followLinkZoom = false;
             this.Document.followLinkLocation = undefined;
         }
@@ -604,14 +602,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleFollowInPlace = (): void => {
+        this.Document.ignoreClick = false;
+        this.Document.isLinkButton = !this.Document.isLinkButton;
         if (this.Document.isLinkButton) {
-            this.Document.isLinkButton = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = false);
-        } else {
-            this.Document.isLinkButton = true;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = true);
             this.Document.followLinkZoom = true;
             this.Document.followLinkLocation = "inPlace";
         }
@@ -619,15 +612,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     toggleFollowOnRight = (): void => {
+        this.Document.ignoreClick = false;
+        this.Document.isLinkButton = !this.Document.isLinkButton;
         if (this.Document.isLinkButton) {
-            this.Document.isLinkButton = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = false);
-        } else {
-            this.Document.isLinkButton = true;
             this.Document.followLinkZoom = false;
-            const first = DocListCast(this.Document.links).find(d => d instanceof Doc);
-            first && (first.hidden = true);
             this.Document.followLinkLocation = "onRight";
         }
     }
@@ -641,8 +629,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         const makeLink = action((linkDoc: Doc) => {
             LinkManager.currentLink = linkDoc;
-            linkDoc.hidden = true;
-            linkDoc.linkDisplay = true;
 
             LinkCreatedBox.popupX = de.x;
             LinkCreatedBox.popupY = de.y - 33;
@@ -1072,11 +1058,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
                 select={this.select}
-                onClick={this.onClickHandler}
+                onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
     }
@@ -1105,7 +1091,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
             this.props.dontRegisterView ? (null) : // view that are not registered
-            DocUtils.FilterDocs(DocListCast(this.Document.links), this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            DocUtils.FilterDocs(LinkManager.Instance.getAllDirectLinks(this.Document), this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
                 <DocumentView {...this.props} key={i + 1}
                     Document={d}
                     ContainingCollectionView={this.props.ContainingCollectionView}
@@ -1143,7 +1129,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}
                     select={this.select}
-                    onClick={this.onClickHandler}
+                    onClick={this.onClickFunc}
                     layoutKey={this.finalLayoutKey} />
             </div>);
         const titleView = (!showTitle ? (null) :

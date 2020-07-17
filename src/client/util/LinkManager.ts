@@ -63,12 +63,17 @@ export class LinkManager {
     }
 
     // finds all links that contain the given anchor
-    public getAllRelatedLinks(anchor: Doc): Doc[] {
+    public getAllDirectLinks(anchor: Doc): Doc[] {
         const related = LinkManager.Instance.getAllLinks().filter(link => {
             const protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, null));
             const protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
             return protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor);
         });
+        return related;
+    }
+    // finds all links that contain the given anchor
+    public getAllRelatedLinks(anchor: Doc): Doc[] {
+        const related = LinkManager.Instance.getAllDirectLinks(anchor);
         DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).map(anno => {
             related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
         });
@@ -208,4 +213,6 @@ export class LinkManager {
 }
 
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
-    "creates a link to inputted document", "(doc: any)");
+    "returns all the links to the document or its annotations", "(doc: any)");
+Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
+    "returns all the links directly to the document", "(doc: any)");

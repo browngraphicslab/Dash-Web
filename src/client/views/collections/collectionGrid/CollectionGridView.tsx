@@ -30,8 +30,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     private _resetListenerDisposer: Opt<Lambda>; // listens for when the reset button is clicked
     @observable private _rowHeight: Opt<number>; // temporary store of row height to make change undoable
     @observable private _scroll: number = 0; // required to make sure the decorations box container updates on scroll
+    private dropLocation: object = {}; // sets the drop location for external drops
 
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    onChildClickHandler = () => ScriptCast(this.Document.onChildClick);
 
     @computed get numCols() { return NumCast(this.props.Document.gridNumCols, 10); }
     @computed get rowHeight() { return this._rowHeight === undefined ? NumCast(this.props.Document.gridRowHeight, 100) : this._rowHeight; }
@@ -47,6 +48,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @computed get flexGrid() { return BoolCast(this.props.Document.gridFlex, true); } // is grid static/flexible i.e. whether nodes be moved around and resized
     @computed get compaction() { return StrCast(this.props.Document.gridStartCompaction, StrCast(this.props.Document.gridCompaction, "vertical")); } // is grid static/flexible i.e. whether nodes be moved around and resized
 
+    /**
+     * Sets up the listeners for the list of documents and the reset button.
+     */
     componentDidMount() {
         this._changeListenerDisposer = reaction(() => this.childLayoutPairs, (pairs) => {
             const newLayouts: Layout[] = [];
@@ -54,7 +58,15 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             pairs.forEach((pair, i) => {
                 const existing = oldLayouts.find(l => l.i === pair.layout[Id]);
                 if (existing) newLayouts.push(existing);
-                else this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.unflexedPosition(i), !this.flexGrid));
+                else {
+                    if (Object.keys(this.dropLocation).length) { // external drop
+                        this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.dropLocation as { x: number, y: number }, !this.flexGrid));
+                        this.dropLocation = {};
+                    }
+                    else { // internal drop
+                        this.addLayoutItem(newLayouts, this.makeLayoutItem(pair.layout, this.unflexedPosition(i), !this.flexGrid));
+                    }
+                }
             });
             pairs?.length && this.setLayoutList(newLayouts);
         }, { fireImmediately: true });
@@ -68,11 +80,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         });
     }
 
+    /**
+     * Disposes the listeners.
+     */
     componentWillUnmount() {
         this._changeListenerDisposer?.();
         this._resetListenerDisposer?.();
     }
 
+    /**
+     * @returns the default location of the grid node (i.e. when the grid is static)
+     * @param index 
+     */
     unflexedPosition(index: number): Omit<Layout, "i"> {
         return {
             x: (index % Math.floor(this.numCols / this.defaultW)) * this.defaultW,
@@ -83,6 +102,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         };
     }
 
+    /**
+     * Maps the x- and y- coordinates of the event to a grid cell.
+     */
     screenToCell(sx: number, sy: number) {
         const pt = this.props.ScreenToLocalTransform().transformPoint(sx, sy);
         const x = Math.floor(pt[0] / this.colWidthPlusGap);
@@ -90,10 +112,16 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         return { x, y };
     }
 
+    /**
+     * Creates a layout object for a grid item
+     */
     makeLayoutItem = (doc: Doc, pos: { x: number, y: number }, Static: boolean = false, w: number = this.defaultW, h: number = this.defaultH) => {
         return ({ i: doc[Id], w, h, x: pos.x, y: pos.y, static: Static });
     }
 
+    /**
+     * Adds a layout to the list of layouts.
+     */
     addLayoutItem = (layouts: Layout[], layout: Layout) => {
         const f = layouts.findIndex(l => l.i === layout.i);
         f !== -1 && layouts.splice(f, 1);
@@ -215,6 +243,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             this.savedLayoutList.map((layout, index) => Object.assign(layout, this.unflexedPosition(index)));
     }
 
+    /**
+     * Handles internal drop of Dash documents.
+     */
     @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const savedLayouts = this.savedLayoutList;
@@ -228,12 +259,24 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     /**
+     * Handles external drop of images/PDFs etc from outside Dash.
+     */
+    @action
+    onExternalDrop = async (e: React.DragEvent): Promise<void> => {
+        this.dropLocation = this.screenToCell(e.clientX, e.clientY);
+        super.onExternalDrop(e, {});
+    }
+
+    /**
      * Handles the change in the value of the rowHeight slider.
      */
     @action
     onSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         this._rowHeight = event.currentTarget.valueAsNumber;
     }
+    /**
+     * Handles the user clicking on the slider.
+     */
     @action
     onSliderDown = (e: React.PointerEvent) => {
         this._rowHeight = this.rowHeight; // uses _rowHeight during dragging and sets doc's rowHeight when finished so that operation is undoable
@@ -252,6 +295,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         ContextMenu.Instance.addItem({ description: "Display", subitems: displayOptionsMenu, icon: "tv" });
     }
 
+    /**
+     * Handles text document creation on double click.
+     */
     onPointerDown = (e: React.PointerEvent) => {
         if (this.props.active(true)) {
             setupMoveUpEvents(this, e, returnFalse, returnFalse,
@@ -275,8 +321,11 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             <div className="collectionGridView-contents" ref={this.createDashEventsTarget}
                 style={{ pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined }}
                 onContextMenu={this.onContextMenu}
-                onPointerDown={e => this.onPointerDown(e)} >
+                onPointerDown={this.onPointerDown}
+                onDrop={this.onExternalDrop}
+            >
                 <div className="collectionGridView-gridContainer" ref={this._containerRef}
+                    style={{ backgroundColor: StrCast(this.layoutDoc._backgroundColor, "white") }}
                     onWheel={e => e.stopPropagation()}
                     onScroll={action(e => {
                         if (!this.props.isSelected()) e.currentTarget.scrollTop = this._scroll;

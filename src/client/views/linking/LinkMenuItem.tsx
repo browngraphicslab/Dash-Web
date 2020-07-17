@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from '../../../fields/Doc';
@@ -16,7 +16,6 @@ import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import { Tooltip } from '@material-ui/core';
-import { RichTextField } from '../../../fields/RichTextField';
 import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
@@ -157,14 +156,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
 
-        if (this.props.linkDoc.follow) {
-            if (this.props.linkDoc.follow === "Default") {
-                DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
-            } else if (this.props.linkDoc.follow === "Always open in right tab") {
-                this.props.addDocTab(this.props.destinationDoc, "onRight");
-            } else if (this.props.linkDoc.follow === "Always open in new tab") {
-                this.props.addDocTab(this.props.destinationDoc, "inTab");
-            }
+        if (this.props.linkDoc.followLinkLocation && this.props.linkDoc.followLinkLocation !== "Default") {
+            this.props.addDocTab(this.props.destinationDoc, StrCast(this.props.linkDoc.followLinkLocation));
         } else {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
         }
@@ -189,7 +182,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         const eyeIcon = this.props.linkDoc.hidden ? "eye-slash" : "eye";
 
-        let destinationIcon: string = "";;
+        let destinationIcon: FontAwesomeIconProps["icon"] = "question";
         switch (this.props.destinationDoc.type) {
             case DocumentType.IMG: destinationIcon = "image"; break;
             case DocumentType.COMPARISON: destinationIcon = "columns"; break;
@@ -205,11 +198,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
             case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
-            default: "question";
+            case DocumentType.VID: destinationIcon = "video"; break;
+            case DocumentType.INK: destinationIcon = "pen-nib"; break;
+            default: destinationIcon = "question"; break;
         }
 
         const title = StrCast(this.props.destinationDoc.title).length > 18 ?
-            StrCast(this.props.destinationDoc.title).substr(0, 19) + "..." : this.props.destinationDoc.title;
+            StrCast(this.props.destinationDoc.title).substr(0, 14) + "..." : this.props.destinationDoc.title;
 
         //  ...
         // from anika to bob: here's where the text that is specifically linked would show up (linkDoc.storedText)
@@ -218,8 +213,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             StrCast(this.props.linkDoc.storedText).length > 17 ?
                 StrCast(this.props.linkDoc.storedText).substr(0, 18)
                 : this.props.linkDoc.storedText : undefined : undefined;
-
-        const showTitle = this.props.linkDoc.hidden ? "Show link" : "Hide link";
 
         return (
             <div className="linkMenu-item">
@@ -253,16 +246,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
 
-                            <Tooltip title={showTitle}>
+                            <Tooltip title={<><div className="dash-tooltip">{this.props.linkDoc.hidden ? "Show link" : "Hide link"}</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.showLink}>
                                     <FontAwesomeIcon className="fa-icon" icon={eyeIcon} size="sm" /></div>
                             </Tooltip>
 
-                            <Tooltip title="Edit Link">
+                            <Tooltip title={<><div className="dash-tooltip">Edit Link</div></>}>
                                 <div className="button" ref={this._editRef} onPointerDown={this.onEdit}>
                                     <FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             </Tooltip>
-                            <Tooltip title="Delete Link">
+                            <Tooltip title={<><div className="dash-tooltip">Delete Link</div></>}>
                                 <div className="button" onPointerDown={this.deleteLink}>
                                     <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
                             </Tooltip>

@@ -38,15 +38,15 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     panelWidth = () => this.props.PanelWidth() / 3;
     panelHeight = () => this.props.PanelHeight() * 0.6;
+    onChildDoubleClick = () => ScriptCast(this.layoutDoc.onChildDoubleClick);
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
+            const script = ScriptField.MakeScript("child._showCaption = 'caption'", { child: Doc.name }, { child: childPair.layout });
+            const onChildClick = script && (() => script);
             return <ContentFittingDocumentView {...this.props}
-                onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                onClick={ScriptField.MakeScript(
-                    "child._showCaption = 'caption'",
-                    { child: Doc.name },
-                    { child: childPair.layout })}
+                onDoubleClick={this.onChildDoubleClick}
+                onClick={onChildClick}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.ChildLayoutTemplate}
                 LayoutTemplateString={this.props.ChildLayoutString}

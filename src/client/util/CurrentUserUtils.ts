@@ -775,17 +775,17 @@ export class CurrentUserUtils {
 
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
+            // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target 
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
-                "docCast(thisContainer.target).then((target) => {" +
-                "     target && docCast(this.source).then((source) => { " +
-                "           target.proto.data = new List([source || this]); " +
-                "      }); " +
-                "})",
-                { target: Doc.name }), { title: "Click to open in target", _width: 300, _height: 200, targetScriptKey: "onChildClick" });
+                "docCast(thisContainer.target).then((target) => target && (target.proto.data = new List([self]))) ",
+                { thisContainer: Doc.name }), {
+                title: "Click to open in target", _width: 300, _height: 200,
+                targetScriptKey: "onChildClick",
+            });
 
             const openDetail = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "openOnRight(self.doubleClickView)",
-                { target: Doc.name }), { title: "Double click to open doubleClickView", _width: 300, _height: 200, targetScriptKey: "onChildDoubleClick" });
+                {}), { title: "Double click to open doubleClickView", _width: 300, _height: 200, targetScriptKey: "onChildDoubleClick" });
 
             doc["clickFuncs-child"] = Docs.Create.TreeDocument([openInTarget, openDetail], { title: "on Child Click function templates" });
         }
@@ -797,14 +797,22 @@ export class CurrentUserUtils {
                 title: "onClick", "onClick-rawScript": "console.log('click')",
                 isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200
             }, "onClick");
+            const onChildClick = Docs.Create.ScriptingDocument(undefined, {
+                title: "onChildClick", "onChildClick-rawScript": "console.log('child click')",
+                isTemplateDoc: true, isTemplateForField: "onChildClick", _width: 300, _height: 200
+            }, "onChildClick");
             const onDoubleClick = Docs.Create.ScriptingDocument(undefined, {
                 title: "onDoubleClick", "onDoubleClick-rawScript": "console.log('double click')",
                 isTemplateDoc: true, isTemplateForField: "onDoubleClick", _width: 300, _height: 200
             }, "onDoubleClick");
+            const onChildDoubleClick = Docs.Create.ScriptingDocument(undefined, {
+                title: "onChildDoubleClick", "onChildDoubleClick-rawScript": "console.log('child double click')",
+                isTemplateDoc: true, isTemplateForField: "onChildDoubleClick", _width: 300, _height: 200
+            }, "onChildDoubleClick");
             const onCheckedClick = Docs.Create.ScriptingDocument(undefined, {
                 title: "onCheckedClick", "onCheckedClick-rawScript": "console.log(heading + checked + containingTreeView)", "onCheckedClick-params": new List<string>(["heading", "checked", "containingTreeView"]), isTemplateDoc: true, isTemplateForField: "onCheckedClick", _width: 300, _height: 200
             }, "onCheckedClick");
-            doc.clickFuncs = Docs.Create.TreeDocument([onClick, onDoubleClick, onCheckedClick], { title: "onClick funcs" });
+            doc.clickFuncs = Docs.Create.TreeDocument([onClick, onChildClick, onDoubleClick, onCheckedClick], { title: "onClick funcs" });
         }
         PromiseValue(Cast(doc.clickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
 

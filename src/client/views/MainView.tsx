@@ -8,7 +8,7 @@ import {
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
     faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
     faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH
+    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -66,6 +66,7 @@ import { LinkCreatedBox } from './nodes/LinkCreatedBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
+import CollectionMenu from './collections/CollectionMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -150,7 +151,7 @@ export class MainView extends React.Component {
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
             faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH);
+            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -391,7 +392,7 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
+    sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (InkOptionsMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
@@ -465,11 +466,13 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
+        const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (InkOptionsMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
+        const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 //change to times 2 for both pinned
-                height: (RichTextMenu.Instance?.Pinned || InkOptionsMenu.Instance?.Pinned) ? (RichTextMenu.Instance?.Pinned && InkOptionsMenu.Instance?.Pinned) ? `calc(100% - 2*${ANTIMODEMENU_HEIGHT})` : `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%",
+                height,
                 width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
@@ -609,6 +612,7 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
+            <CollectionMenu />
             <InkOptionsMenu />
             <FormatShapePane />
             <RichTextMenu key="rich" />

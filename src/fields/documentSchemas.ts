@@ -3,7 +3,6 @@ import { ScriptField } from "./ScriptField";
 import { Doc } from "./Doc";
 import { DateField } from "./DateField";
 import { SchemaHeaderField } from "./SchemaHeaderField";
-import { Schema } from "prosemirror-model";
 
 export const documentSchema = createSchema({
     // content properties
@@ -66,6 +65,7 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
     fontSize: "string",
+    hidden: "boolean",          // whether a document should not be displayed
     isInkMask: "boolean",       // is the document a mask (ie, sits on top of other documents, has an unbounded width/height that is dark, and content uses 'hard-light' mix-blend-mode to let other documents pop through)
     layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
@@ -88,6 +88,8 @@ export const documentSchema = createSchema({
     onPointerUp: ScriptField,   // script to run when document is clicked (can be overriden by an onClick prop)
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
     followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
+    hideLinkButton: "boolean",  // whether the blue link counter button should be hidden
+    hideAllLinks: "boolean",    // whether all individual blue anchor dots should be hidden
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
