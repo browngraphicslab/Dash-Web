@@ -732,12 +732,6 @@ export class CurrentUserUtils {
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
-        if (doc["dockedBtn-pen"] === undefined) {
-            doc["dockedBtn-pen"] = CurrentUserUtils.ficon({
-                onClick: ScriptField.MakeScript("activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)"),
-                author: "systemTemplates", toolTip: "open drawing tools", title: "draw", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activeInkPen,  this)`), activeInkPen: doc
-            });
-        }
         if (doc["dockedBtn-undo"] === undefined) {
             doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), toolTip: "click to undo", title: "undo", icon: "undo-alt" });
         }
@@ -745,7 +739,7 @@ export class CurrentUserUtils {
             doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), toolTip: "click to redo", title: "redo", icon: "redo-alt" });
         }
         if (doc.dockedBtns === undefined) {
-            doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc, doc["dockedBtn-pen"] as Doc]);
+            doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
         }
     }
     // sets up the default set of documents to be shown in the Overlay layer
