@@ -75,7 +75,8 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
-    scaleField?: string;
+    scaleField?: string; // used by formattedTextBox when displaying a sidebar freeform view which needs its own scale field
+    noOverlay?: boolean; // used to suppress docs in the overlay (z) layer (ie, for minimap since overlay doesn't scale)
 };
 
 @observer
@@ -1444,7 +1445,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }}>
             {this.Document._freeformLOD && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
-            <CollectionFreeFormOverlayView elements={this.elementFunc} />
+            {!this.props.noOverlay ? <CollectionFreeFormOverlayView elements={this.elementFunc} /> : (null)}
 
             <div className={"pullpane-indicator"}
                 style={{
