@@ -262,7 +262,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         const eventBus = new PDFJSViewer.EventBus(true);
         eventBus._on("pagesinit", this.pagesinit);
         eventBus._on("pagerendered", action(() => this._showCover = this._showWaiting = false));
-        const pdfLinkService = new PDFJSViewer.PDFLinkService();
+        const pdfLinkService = new PDFJSViewer.PDFLinkService({ eventBus });
         const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService, eventBus });
         this._pdfViewer = new PDFJSViewer.PDFViewer({
             container: this._mainCont.current,
@@ -392,7 +392,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     search = (searchString: string, fwd: boolean, clear: boolean = false) => {
         if (clear) {
-            this._pdfViewer.findController.executeCommand('reset', {});
+            this._pdfViewer.findController.executeCommand('reset', { query: "" });
         } else if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
         } else if (this._pdfViewer.pageViewsReady) {

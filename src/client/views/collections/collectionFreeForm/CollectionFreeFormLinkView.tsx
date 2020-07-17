@@ -5,12 +5,10 @@ import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import { DocumentType } from "../../../documents/DocumentTypes";
-import { observable, action, reaction, IReactionDisposer } from "mobx";
+import { observable, action, reaction, IReactionDisposer, trace, computed } from "mobx";
 import { StrCast, Cast, NumCast } from "../../../../fields/Types";
 import { Id } from "../../../../fields/FieldSymbols";
 import { SnappingManager } from "../../../util/SnappingManager";
-import { OverlayView } from "../../OverlayView";
-import { LinkEditor } from "../../linking/LinkEditor";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -21,14 +19,20 @@ export interface CollectionFreeFormLinkViewProps {
 @observer
 export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFormLinkViewProps> {
     @observable _opacity: number = 0;
+    @observable _start = 0;
     _anchorDisposer: IReactionDisposer | undefined;
-
+    _timeout: NodeJS.Timeout | undefined;
     componentWillUnmount() {
         this._anchorDisposer?.();
     }
+    @action
+    timeout = () => (Date.now() < this._start++ + 1000) && setTimeout(this.timeout, 25);
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
+                this._start = Date.now();
+                this._timeout && clearTimeout(this._timeout);
+                this._timeout = setTimeout(this.timeout, 25);
                 if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv) return;
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
@@ -101,9 +105,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         });
     }
 
-
-    render() {
-        if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) return (null);
+    @computed get renderData() {
+        this._start;
+        if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) {
+            return undefined;
+        }
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
         const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
@@ -129,9 +135,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
 
         const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetX);
         const textY = (pt1[1] + pt2[1]) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetY);
+        return { a, b, pt1norm, pt2norm, aActive, bActive, textX, textY, pt1, pt2 };
+    }
 
+    render() {
+        if (!this.renderData) return (null);
+        const { a, b, pt1norm, pt2norm, aActive, bActive, textX, textY, pt1, pt2 } = this.renderData;
         return !a.width || !b.width || ((!this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
-
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
             <text className="collectionfreeformlinkview-linkText" x={textX} y={textY} onPointerDown={this.pointerDown} >
