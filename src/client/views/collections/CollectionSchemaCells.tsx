@@ -245,43 +245,67 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         // );   
         trace();
         let positions = [];
-        if (type === "string") {
-            let term = contents
+        if (StrCast(this.props.Document._searchString) !== "") {
+            console.log(StrCast(this.props.Document._searchString));
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+            // if (cfield[Text]!==undefined){
+
+            // }
+            console.log(cfield?.valueOf());
+            let term = StrCast(cfield);
+            console.log(term);
             let search = StrCast(this.props.Document._searchString)
             let start = term.indexOf(search) as number;
             let tally = 0;
             positions.push(start);
             while (start < contents.length && start !== -1) {
-                console.log(start, search.length + 1);
-                console.log(term.slice(start, start + search.length + 1));
                 term = term.slice(start + search.length + 1);
                 tally += start + search.length + 1;
-                console.log(term);
                 start = term.indexOf(search);
                 positions.push(tally + start);
-                console.log(start);
             }
-            positions.pop();
             console.log(positions);
+            if (positions.length > 1) {
+                positions.pop();
+            }
         }
-
-        StrCast(this.props.Document._searchString) ? console.log(StrCast(this.props.Document._searchString)) : undefined;
 
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
-                            positions={positions}
+                            positions={positions.length > 0 ? positions : undefined}
+                            search={StrCast(this.props.Document._searchString) ? StrCast(this.props.Document._searchString) : undefined}
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents ? contents : type === "number" ? "0" : "undefined"}
-                            highlight={true}
+                            highlight={positions.length > 0 ? true : undefined}
                             //contents={StrCast(contents)}
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             placeholder={"enter value"}
+                            bing={() => {
+                                console.log("FLAMINGO");
+                                if (type === "number" && (contents === 0 || contents === "0")) {
+                                    return "0";
+                                } else {
+                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                    console.log(cfield);
+                                    // if (type === "number") {
+                                    return StrCast(cfield);
+                                    // }
+                                    // return cfield;
+                                    // const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
+                                    // const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
+                                    // const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
+                                    //     Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
+                                    // return val;
+
+                                }
+
+                            }}
                             GetValue={() => {
                                 if (type === "number" && (contents === 0 || contents === "0")) {
                                     return "0";
@@ -296,6 +320,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
                                         Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
                                     return val;
+
                                 }
 
                             }}

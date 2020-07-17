@@ -6,6 +6,8 @@ import { ObjectField } from '../../fields/ObjectField';
 import { SchemaHeaderField } from '../../fields/SchemaHeaderField';
 import "./EditableView.scss";
 import { DragManager } from '../util/DragManager';
+import { ComputedField } from '../../fields/ScriptField';
+import { FieldValue } from '../../fields/Types';
 
 export interface EditableProps {
     /**
@@ -54,6 +56,8 @@ export interface EditableProps {
     placeholder?: string;
     highlight?: boolean;
     positions?: number[];
+    search?: string;
+    bing?: () => string;
 }
 
 /**
@@ -183,8 +187,26 @@ export class EditableView extends React.Component<EditableProps> {
             />;
     }
 
+    returnHighlights() {
+        let results = [];
+        let length = this.props.search!.length + 1;
+        let contents = "";
+        contents = this.props.bing!();
+        console.log(contents);
+        // contents = String(this.props.contents.valueOf());
+        results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(0, this.props.positions![0]) : this.props.placeholder?.valueOf()}</span>);
+        this.props.positions?.forEach((num, cur) => {
+            results.push(<span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : this.props.placeholder?.valueOf()}</span>);
+            let end = 0;
+            cur === this.props.positions!.length - 1 ? end = contents.length - 1 : end = this.props.positions![cur + 1];
+            results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num + length - 1, end) : this.props.placeholder?.valueOf()}</span>);
+        }
+        )
+
+        return results;
+    }
+
     render() {
-        console.log(this.props.contents.valueOf())
         if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.sizeToContent ?
                 <div style={{ display: "grid", minWidth: 100 }}>
@@ -198,10 +220,8 @@ export class EditableView extends React.Component<EditableProps> {
                     ref={this._ref}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick} placeholder={this.props.placeholder}>
-                    {this.props.highlight ? this.props.contents.forEach(el => {
-                        console.log(el.valueOf());
-                    }) : undefined}
-                    <span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
+                    {this.props.highlight === undefined ? <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
+                        : this.returnHighlights()}
                 </div>
             );
         }
