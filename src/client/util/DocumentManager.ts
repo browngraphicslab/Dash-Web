@@ -146,7 +146,7 @@ export class DocumentManager {
         };
         const docView = getFirstDocView(targetDoc, originatingDoc);
         let annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
-        if (annotatedDoc && !linkDoc?.isPushpin) {
+        if (annotatedDoc && !targetDoc?.isPushpin) {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.props.Document;
@@ -156,7 +156,7 @@ export class DocumentManager {
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            if (linkDoc?.isPushpin) docView.props.Document.hidden = !docView.props.Document.hidden;
+            if (originatingDoc?.isPushpin) docView.props.Document.hidden = !docView.props.Document.hidden;
             else {
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);

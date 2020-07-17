@@ -28,7 +28,6 @@ import { DockedFrameRenderer } from '../client/views/collections/CollectionDocki
 import { InkTool } from '../fields/InkField';
 import GestureOverlay from "../client/views/GestureOverlay";
 import { ScriptField } from "../fields/ScriptField";
-import InkOptionsMenu from "../client/views/collections/collectionFreeForm/InkOptionsMenu";
 import { RadialMenu } from "../client/views/nodes/RadialMenu";
 import { UndoManager } from "../client/util/UndoManager";
 import { List } from "../fields/List";
@@ -38,6 +37,7 @@ import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
 import { AudioBox } from "../client/views/nodes/AudioBox";
 import { CollectionViewType } from "../client/views/collections/CollectionView";
 import { DocumentType } from "../client/documents/DocumentTypes";
+import { CollectionFreeFormViewChrome } from "../client/views/collections/CollectionMenu";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -429,7 +429,7 @@ export class MobileInterface extends React.Component {
     @computed get inkMenu() {
         return this._activeDoc._viewType !== CollectionViewType.Docking || !this._ink ? (null) :
             <div className="colorSelector">
-                <InkOptionsMenu />
+                {/* <CollectionFreeFormViewChrome /> */}
             </div>;
     }
 

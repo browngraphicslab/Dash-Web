@@ -16,6 +16,7 @@ import { Id } from '../../../fields/FieldSymbols';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { LinkDescriptionPopup } from '../nodes/LinkDescriptionPopup';
+import { Tooltip } from '@material-ui/core';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -110,17 +111,22 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const flexDir: any = StrCast(this.Document.flexDirection);
         const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
         const color = StrCast(this.props.Document.color, "white");
+
+        const menuOpener = <label htmlFor={`${guid}`} style={{
+            background: backgroundColor === color ? "black" : backgroundColor,
+            // width: "18px", height: "18px", fontSize: "12.5px",
+            // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
+            // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
+        }}
+            onPointerDown={e => e.stopPropagation()} >
+            <p>+</p>
+        </label>;
+
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <label htmlFor={`${guid}`} title="Close Menu" style={{
-                    background: backgroundColor === color ? "black" : backgroundColor,
-                    // width: "18px", height: "18px", fontSize: "12.5px",
-                    // transition: this.props.Document.linearViewIsExpanded ? "transform 0.2s" : "transform 0.5s",
-                    // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
-                }}
-                    onPointerDown={e => e.stopPropagation()} >
-                    <p>+</p>
-                </label>
+                <Tooltip title={<><div className="dash-tooltip">{BoolCast(this.props.Document.linearViewIsExpanded) ? "Close menu" : "Open menu"}</div></>} placement="top">
+                    {menuOpener}
+                </Tooltip>
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
                     onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 
@@ -170,12 +176,21 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
-                        Creating link from: {DocumentLinksButton.StartLink.title} </span>
-                    <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}
-                    > Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                        Creating link from: {DocumentLinksButton.StartLink.title}
                     </span>
-                    <span className="bottomPopup-exit" onClick={this.exitLongLinks}
-                    >Exit</span>
+
+                    <Tooltip title={<><div className="dash-tooltip">{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :
+                        "Turn on description pop-up"} </div></>} placement="top">
+                        <span className="bottomPopup-descriptions" onClick={this.changeDescriptionSetting}>
+                            Labels: {LinkDescriptionPopup.showDescriptions ? LinkDescriptionPopup.showDescriptions : "ON"}
+                        </span>
+                    </Tooltip>
+
+                    <Tooltip title={<><div className="dash-tooltip">Exit link clicking mode </div></>} placement="top">
+                        <span className="bottomPopup-exit" onClick={this.exitLongLinks}>
+                            Clear
+                        </span>
+                    </Tooltip>
 
                     {/* <FontAwesomeIcon icon="times-circle" size="lg" style={{ color: "red" }}
                         onClick={this.exitLongLinks} /> */}

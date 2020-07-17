@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
 import { Doc, Opt, Field } from "../../../fields/Doc";
@@ -19,6 +19,7 @@ import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
 import React = require("react");
 import * as rp from 'request-promise';
+import ReactLoading from 'react-loading';
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -377,13 +378,20 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     });
                 }
             }
+            this.slowLoadDocuments(files, options, generatedDocuments, text, completed, e.clientX, e.clientY);
+            batch.end();
+        }
+        slowLoadDocuments = async (files: File[], options: DocumentOptions, generatedDocuments: Doc[], text: string, completed: (() => void) | undefined, clientX: number, clientY: number) => {
+            runInAction(() => CollectionSubViewLoader.Waiting = "block");
+            const disposer = OverlayView.Instance.addElement(
+                <ReactLoading type={"spinningBubbles"} color={"green"} height={250} width={250} />, { x: clientX - 125, y: clientY - 125 });
             generatedDocuments.push(...await DocUtils.uploadFilesToDocs(files, options));
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => DocUtils.iconify(d));
                 if (set) {
-                    this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!);
+                    UndoManager.RunInBatch(() => this.addDocument(DocUtils.pileup(generatedDocuments, options.x!, options.y!)!), "drop");
                 } else {
-                    generatedDocuments.forEach(this.addDocument);
+                    UndoManager.RunInBatch(() => generatedDocuments.forEach(this.addDocument), "drop");
                 }
                 completed?.();
             } else {
@@ -391,11 +399,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
                 }
             }
-            batch.end();
+            disposer();
         }
     }
 
     return CollectionSubView;
+}
+
+export class CollectionSubViewLoader {
+    @observable public static Waiting = "none";
 }
 
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -405,4 +417,5 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { OverlayView } from "../OverlayView";
 
