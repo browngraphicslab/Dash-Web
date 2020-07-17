@@ -16,7 +16,7 @@
 
     .antimodeMenu-button {
         padding:0;
-        width:40px;
+        width:30px;
         display: flex;
         svg {
             margin:auto;
@@ -37,13 +37,11 @@
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                //text-transform: uppercase;
-                //letter-spacing: 2px;
                 background: #121721;
-                color: white;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -67,8 +65,9 @@
                 margin-right: 0px;
                 font-size: 75%;
                 background: #121721;
-                border: none;
                 color: white;
+                border: none;
+                border-right: solid gray 1px;
             }
 
             .commandEntry-outerDiv {
@@ -89,7 +88,7 @@
             .collectionViewBaseChrome-collapse {
                 transition: all .5s, opacity 0.3s;
                 position: absolute;
-                width: 40px;
+                width: 30px;
                 transform-origin: top left;
                 pointer-events: all;
                 // margin-top: 10px;
@@ -112,6 +111,8 @@
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 5px;
                 display: grid;
+                border: none;
+                border-right: solid gray 1px;
 
                 .collectionViewBaseChrome-filterIcon {
                     position: relative;
@@ -123,6 +124,8 @@
                     height: 30px;
                     align-items: center;
                     justify-content: center;
+                    border: none;
+                    border-right: solid gray 1px;
                 }
 
                 .collectionViewBaseChrome-viewSpecsInput {
@@ -201,8 +204,9 @@
                 background: #121721;
                 color: white;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionGridViewChrome-viewPicker:active {

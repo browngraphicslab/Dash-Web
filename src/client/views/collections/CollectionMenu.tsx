@@ -211,9 +211,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get templateChrome() {
         return <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
-                <div className="commandEntry-drop">
-                    <FontAwesomeIcon icon="bullseye" size="2x" />
-                </div>
+                <button className={"antimodeMenu-button"} >
+                    <FontAwesomeIcon icon="bullseye" size="lg" />
+                </button>
                 <select
                     className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}>
                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
@@ -228,9 +228,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get viewModes() {
         return <div className="collectionViewBaseChrome-viewModes" >
             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
-                <div className="commandEntry-drop">
-                    <FontAwesomeIcon icon="bullseye" size="2x" />
-                </div>
+                <button className={"antimodeMenu-button"}>
+                    <FontAwesomeIcon icon="bullseye" size="lg" />
+                </button>
                 <select
                     className="collectionViewBaseChrome-viewPicker"
                     onPointerDown={stopPropagation}
@@ -256,12 +256,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
                         {this.viewModes}
-                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
-                            <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.toggleViewSpecs} >
-                                <FontAwesomeIcon icon="filter" size="2x" />
-                            </div>
-                        </div>
                         {this.templateChrome}
+                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
+                            <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
+                                <FontAwesomeIcon icon="filter" size="lg" />
+                            </button>
+                        </div>
                     </div>
                     {this.subChrome}
                 </div>
