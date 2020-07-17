@@ -319,7 +319,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     destroy() {
-        !this.TextView.props.isSelected(false) && this.fadeOut(true);
+        !this.TextView?.props.isSelected(false) && this.fadeOut(true);
     }
 
     @action
@@ -657,7 +657,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
-    get TextView() { return (this.view as any).TextView as FormattedTextBox; }
+    get TextView() { return (this.view as any)?.TextView as FormattedTextBox; }
 
     createColorButton() {
         const self = this;

@@ -62,37 +62,37 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
-        params: ["target", "source"], title: "=> item view",
-        script: "this.target.childLayout = getDocTemplate(this.source?.[0])",
-        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayout = Doc.getDocTemplate(source?.[0]))),
+        params: ["target", "source"], title: "item view",
+        script: "this.target.childLayoutTemplate = getDocTemplate(this.source?.[0])",
+        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
-        params: ["target", "source"], title: "=> child click view",
+        params: ["target", "source"], title: "child click view",
         script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
         immediate: undoBatch((source: Doc[]) => source.length && (this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _contentCommand = {
-        params: ["target", "source"], title: "=> clear content",
+        params: ["target", "source"], title: "clear content",
         script: "getProto(this.target).data = copyField(this.source);",
         immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
         initialize: emptyFunction,
     };
     _viewCommand = {
-        params: ["target"], title: "=> reset view",
-        script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; }),
-        initialize: (button: Doc) => { button.restoredPanX = this.target._panX; button.restoredPanY = this.target._panY; button.restoredScale = this.target.scale; },
+        params: ["target"], title: "bookmark view",
+        script: "this.target._panX = this['target-panX']; this.target._panY = this['target-panY']; this.target._viewScale = this['target-viewScale'];",
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
     };
     _clusterCommand = {
-        params: ["target"], title: "=> fit content",
+        params: ["target"], title: "fit content",
         script: "this.target._fitToBox = !this.target._fitToBox;",
         immediate: undoBatch((source: Doc[]) => this.target._fitToBox = !this.target._fitToBox),
         initialize: emptyFunction
     };
     _fitContentCommand = {
-        params: ["target"], title: "=> toggle clusters",
+        params: ["target"], title: "toggle clusters",
         script: "this.target.useClusters = !this.target.useClusters;",
         immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
         initialize: emptyFunction

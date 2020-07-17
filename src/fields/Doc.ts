@@ -899,9 +899,12 @@ export namespace Doc {
     }
 
     export function getDocTemplate(doc?: Doc) {
-        return doc?.isTemplateDoc ? doc :
-            Cast(doc?.dragFactory, Doc, null)?.isTemplateDoc ? doc?.dragFactory :
-                Cast(doc?.layout, Doc, null)?.isTemplateDoc ? doc?.layout : undefined;
+        return !doc ? undefined :
+            doc.isTemplateDoc ? doc :
+                Cast(doc.dragFactory, Doc, null)?.isTemplateDoc ? doc.dragFactory :
+                    Cast(Doc.Layout(doc), Doc, null)?.isTemplateDoc ?
+                        (Cast(Doc.Layout(doc), Doc, null).resolvedDataDoc ? Doc.Layout(doc).proto : Doc.Layout(doc)) :
+                        undefined;
     }
 
     export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
