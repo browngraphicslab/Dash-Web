@@ -249,7 +249,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             return wid * aspect;
         }
         return layoutDoc._fitWidth ? !nh ? this.props.PanelHeight() - 2 * this.yMargin :
-            Math.min(wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1), this.props.PanelHeight() - 2 * this.yMargin) : layoutDoc[HeightSym]();
+            Math.min(wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1), this.props.PanelHeight() - 2 * this.yMargin) : Math.max(20, layoutDoc[HeightSym]());
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

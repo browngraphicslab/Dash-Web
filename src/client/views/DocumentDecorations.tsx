@@ -433,6 +433,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let nheight = doc._nativeHeight || 0;
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
+                height = !height || isNaN(height) ? 20 : height;
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height) {
