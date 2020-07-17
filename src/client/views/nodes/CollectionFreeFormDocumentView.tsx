@@ -15,8 +15,9 @@ import { numberRange } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
-// @ts-ignore
-import Zoom from 'react-reveal/Zoom';
+import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
+import { PresBox } from "./PresBox";
+
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -118,8 +119,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && (t < NumCast(doc.appearFrame)) ? 0 : 1));
-            const oarray = new List<number>();
+            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
+            const oarray: number[] = [];
+            console.log(doc.title + "AF: " + doc.appearFrame);
+            console.log("timecode: " + timecode);
             oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
             oarray.fill(1, NumCast(doc.appearFrame), timecode);
             console.log(oarray);
@@ -139,6 +142,35 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     nudge = (x: number, y: number) => {
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
+    }
+
+    @computed get freeformNodeDiv() {
+        const node = <DocumentView {...this.props}
+            nudge={this.nudge}
+            dragDivName={"collectionFreeFormDocumentView-container"}
+            ContentScaling={this.contentScaling}
+            ScreenToLocalTransform={this.getTransform}
+            backgroundColor={this.props.backgroundColor}
+            opacity={this.opacity}
+            NativeHeight={this.NativeHeight}
+            NativeWidth={this.NativeWidth}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight} />;
+        if (this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
+            switch (this.layoutDoc.presEffect) {
+                case "Zoom": return (<Zoom>{node}</Zoom>); break;
+                case "Fade": return (<Fade>{node}</Fade>); break;
+                case "Flip": return (<Flip>{node}</Flip>); break;
+                case "Rotate": return (<Rotate>{node}</Rotate>); break;
+                case "Bounce": return (<Bounce>{node}</Bounce>); break;
+                case "Roll": return (<Roll>{node}</Roll>); break;
+                case "LightSpeed": return (<LightSpeed>{node}</LightSpeed>); break;
+                case "None": return node; break;
+                default: return node; break;
+            }
+        } else {
+            return node;
+        }
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
@@ -171,6 +203,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK || this.props.Document.isInkMask ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
+
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :
                 <div style={{ width: "100%", height: "100%", position: "absolute" }}>
                     <svg style={{ transform: `scale(1,${this.props.PanelHeight() / this.props.PanelWidth()})`, transformOrigin: "top left", overflow: "visible" }} viewBox="0 0 12 14">
@@ -180,17 +213,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 </div>}
 
             {!this.props.fitToBox ?
-                <DocumentView {...this.props}
-                    nudge={this.nudge}
-                    dragDivName={"collectionFreeFormDocumentView-container"}
-                    ContentScaling={this.contentScaling}
-                    ScreenToLocalTransform={this.getTransform}
-                    backgroundColor={this.props.backgroundColor}
-                    opacity={this.opacity}
-                    NativeHeight={this.NativeHeight}
-                    NativeWidth={this.NativeWidth}
-                    PanelWidth={this.panelWidth}
-                    PanelHeight={this.panelHeight} />
+                <>{this.freeformNodeDiv}</>
                 : <ContentFittingDocumentView {...this.props}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     DataDoc={this.props.DataDoc}

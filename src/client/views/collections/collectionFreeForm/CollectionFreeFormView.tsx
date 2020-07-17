@@ -48,6 +48,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { PresBox } from "../../nodes/PresBox";
 
+
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
 export const panZoomSchema = createSchema({
@@ -1352,7 +1353,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 centeringShiftX={this.centeringShiftX}
                 centeringShiftY={this.centeringShiftY}
                 presPaths={BoolCast(this.Document.presPathView)}
-                progressivize={BoolCast(this.Document.editProgressivize)}
+                // progressivize={BoolCast(this.Document.editProgressivize)}
                 transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                 viewDefDivClick={this.props.viewDefDivClick}
                 zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1436,21 +1437,21 @@ interface CollectionFreeFormViewPannableContentsProps {
     children: () => JSX.Element[];
     transition?: string;
     presPaths?: boolean;
-    progressivize?: boolean;
+    // progressivize?: boolean;
 }
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
-    @computed get progressivize() {
-        if (this.props.progressivize) {
-            console.log("should render");
-            return (
-                <>
-                    {PresBox.Instance.progressivizeChildDocs}
-                </>
-            );
-        }
-    }
+    // @computed get progressivize() {
+    //     if (this.props.progressivize) {
+    //         console.log("should render");
+    //         return (
+    //             <>
+    //                 {PresBox.Instance.progressivizeChildDocs}
+    //             </>
+    //         );
+    //     }
+    // }
 
     @computed get presPaths() {
         const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
@@ -1458,11 +1459,12 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             return (
                 <svg className={presPaths}>
                     <defs>
-                        <marker id="arrow" markerWidth="10" overflow="visible" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
-                            <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
+                        <marker id="arrow" markerWidth="5" overflow="visible" markerHeight="3" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#40B3D8" />
                         </marker>
-                        <marker id={`dot`} orient="auto" overflow="visible">
-                            <circle r={3} fill="#69a6db" />
+                        <marker id="square" markerWidth="3" markerHeight="3"
+                            refX="5" refY="5" orient="auto">
+                            <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#40B3D8" />
                         </marker>
                     </defs>;
                     {PresBox.Instance.paths}
@@ -1486,7 +1488,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             }}>
             {this.props.children()}
             {this.presPaths}
-            {this.progressivize}
+            {/* {this.progressivize} */}
         </div>;
     }
 }

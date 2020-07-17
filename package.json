@@ -123,6 +123,7 @@
         "@hig/theme-data": "^2.16.1",
         "@material-ui/core": "^4.11.0",
         "@types/google-maps": "^3.2.2",
+        "@types/reveal": "^3.3.33",
         "@types/webscopeio__react-textarea-autocomplete": "^4.6.1",
         "@webscopeio/react-textarea-autocomplete": "^4.7.0",
         "adm-zip": "^0.4.16",

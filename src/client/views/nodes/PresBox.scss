@@ -141,6 +141,15 @@
         outline: none;
     }
 
+    .effectDirection {
+        justify-self: center;
+        align-self: center;
+        align-items: center;
+        justify-content: center;
+        grid-template-columns: 13px 13px 13px;
+        display: grid;
+    }
+
     .toolbar-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
         background-color: #40B3D8;
@@ -232,6 +241,25 @@
             padding-right: 10;
             border-radius: 10px;
             background-color: #979797;
+        }
+
+        .ribbon-final-button-hidden {
+            position: relative;
+            font-size: 10;
+            font-weight: normal;
+            letter-spacing: normal;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 5px;
+            height: 25px;
+            color: lightgrey;
+            width: 100%;
+            max-width: 120;
+            padding-left: 10;
+            padding-right: 10;
+            border-radius: 10px;
+            background-color: black;
         }
     }
 

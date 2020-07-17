@@ -24,7 +24,7 @@ import { HighlightSpanKind } from "typescript";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { child } from "serializr";
-
+import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
 
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -226,6 +226,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.navigateToElement(this.childDocs[index], fromDoc);
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
+            this.onHideDocumentUntilPressClick();
         }
     });
 
@@ -237,6 +238,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     startOrResetPres = (startSlide: number) => {
         this.updateCurrentPresentation();
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         if (this._presTimer && this.layoutDoc.presStatus === "auto") {
             clearInterval(this._presTimer);
             this.layoutDoc.presStatus = "manual";
@@ -250,7 +252,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     clearInterval(this._presTimer);
                     this.layoutDoc.presStatus = "manual";
                 }
-            }, activeItem.presDuration ? NumCast(activeItem.presDuration) : 2000);
+            }, targetDoc.presDuration ? NumCast(targetDoc.presDuration) + NumCast(targetDoc.presTransition) : 2000);
             // for (let i = this.itemIndex + 1; i <= this.childDocs.length; i++) {
             //     if (this.itemIndex + 1 === this.childDocs.length) {
             //         clearTimeout(this._presTimer);
@@ -323,12 +325,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     movementChanged = action((movement: string) => {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         if (movement === 'zoom') {
             activeItem.presZoomButton = !activeItem.presZoomButton;
             activeItem.presNavButton = false;
         } else if (movement === 'nav') {
             activeItem.presZoomButton = false;
             activeItem.presNavButton = !activeItem.presNavButton;
+        } else if (movement === 'swap') {
+            targetDoc.presTransition = 0;
         } else {
             activeItem.presZoomButton = false;
             activeItem.presNavButton = false;
@@ -443,13 +448,29 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    @action
+    onHideDocumentUntilPressClick = () => {
+        this.childDocs.forEach((doc, index) => {
+            const curDoc = Cast(doc, Doc, null);
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
+            if (tagDoc.presEffect === 'None' || !tagDoc.presEffect) {
+                tagDoc.opacity = 1;
+            } else {
+                if (index <= this.itemIndex) {
+                    tagDoc.opacity = 1;
+                } else {
+                    tagDoc.opacity = 0;
+                }
+            }
+        });
+    }
+
 
     @observable private transitionTools: boolean = false;
     @observable private newDocumentTools: boolean = false;
     @observable private progressivizeTools: boolean = false;
     @observable private moreInfoTools: boolean = false;
     @observable private playTools: boolean = false;
-
     @observable private pathBoolean: boolean = false;
 
     // For toggling transition toolbar
@@ -556,11 +577,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 paths.push(<polyline
                     points={pathPoints}
                     style={{
-                        opacity: 1,
+                        opacity: 0.7,
                         stroke: "#69a6db",
                         strokeWidth: 5,
                     }}
-                    markerStart="url(#dot)"
+                    markerStart="url(#square)"
                     markerEnd="url(#arrow)" />);
             }
         }
@@ -608,15 +629,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (targetDoc) targetDoc.presTransition = timeInMS;
     }
 
+    setDurationTime = (number: String) => {
+        const timeInMS = Number(number) * 1000;
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        if (targetDoc) targetDoc.presDuration = timeInMS;
+    }
+
     @computed get transitionDropdown() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
 
         if (activeItem) {
             const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-            const transitionSpeed = targetDoc ? String(Number(targetDoc.presTransition) / 1000) : 0.5;
-            const visibilityTime = targetDoc ? String(Number(targetDoc.presTransition) / 1000) : 0.5;
-            const thumbLocation = String(-9.48 * Number(transitionSpeed) + 93);
+            const transitionSpeed = targetDoc.presTransition ? String(Number(targetDoc.presTransition) / 1000) : 0.5;
+            const duration = targetDoc.presDuration ? String(Number(targetDoc.presDuration) / 1000) : 2;
+            const transitionThumbLocation = String(-9.48 * Number(transitionSpeed) + 93);
+            const durationThumbLocation = String(9.48 * Number(duration));
             const movement = activeItem.presZoomButton ? 'Zoom' : activeItem.presNavbutton ? 'Navigate' : 'None';
+            const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
             const visibility = activeItem.presFadeButton ? 'Fade' : activeItem.presHideTillShownButton ? 'Hide till shown' : activeItem.presHideAfter ? 'Hide on exit' : 'None';
             return (
                 <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
@@ -632,37 +662,30 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className={`presBox-dropdownOption ${!activeItem.presZoomButton && !activeItem.presNavButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('none')}>None</div>
                                 <div className={`presBox-dropdownOption ${activeItem.presZoomButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('zoom')}>Pan and Zoom</div>
                                 <div className={`presBox-dropdownOption ${activeItem.presNavButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('nav')}>Pan</div>
+                                <div className={`presBox-dropdownOption ${activeItem.presNavButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('swap')}>Swap</div>
                             </div>
                         </div>
                         <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed} className={`toolbar-slider ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
                         <div className={`slider-headers ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`}>
-                            <div className={`slider-value ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`} style={{ left: thumbLocation + '%' }}>{transitionSpeed}s</div>
+                            <div className={`slider-value ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`} style={{ left: transitionThumbLocation + '%' }}>{transitionSpeed}s</div>
                             <div className="slider-text">Slow</div>
                             <div className="slider-text">Medium</div>
                             <div className="slider-text">Fast</div>
                         </div>
                     </div>
                     <div className="ribbon-box">
-                        Visibility
+                        Duration
                         <div className="presBox-dropdown"
                             onPointerDown={e => e.stopPropagation()}
-                        // onClick={() => this.dropdownToggle('Movement')}
                         >
-                            {visibility}
-                            <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2 }} icon={"angle-down"} />
-                            <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onClick={e => e.stopPropagation()}>
-                                <div className={`presBox-dropdownOption ${!activeItem.presFadeButton && !activeItem.presHideAfterButton && !activeItem.presHideTillShownButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.visibilityChanged('none')}>None</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presFadeButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.visibilityChanged('fade')}>Fade on exit</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presHideAfterButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.visibilityChanged('hideAfter')}>Hide on exit</div>
-                                <div className={`presBox-dropdownOption ${activeItem.presHideTillShownButton ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.visibilityChanged('hideBefore')}>Hidden til presented</div>
-                            </div>
+                            {duration} seconds
                         </div>
-                        <div className={`slider-value ${activeItem.presFadeButton ? "" : "none"}`} style={{ left: thumbLocation + '%' }}>{transitionSpeed}s</div>
-                        <input type="range" step="0.1" min="0.1" max="10" value={visibilityTime} className={`toolbar-slider ${activeItem.presFadeButton ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
-                        <div className={`slider-headers ${activeItem.presFadeButton ? "" : "none"}`}>
-                            <div className="slider-text">Slow</div>
-                            <div className="slider-text">Medium</div>
-                            <div className="slider-text">Fast</div>
+                        <input type="range" step="0.1" min="0.1" max="10" value={duration} style={{ transform: 'rotate(0deg)' }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
+                        <div className={"slider-headers"}>
+                            <div className={"slider-value"} style={{ left: durationThumbLocation + '%' }}>{duration}s</div>
+                            <div className="slider-text">Short</div>
+                            <div className="slider-text"></div>
+                            <div className="slider-text">Long</div>
                         </div>
                         {/* <div title="Fade After" className={`ribbon-button ${activeItem.presFadeButton ? "active" : ""}`} onClick={this.onFadeDocumentAfterPresentedClick}>Fade After</div> */}
                         {/* <div title="Hide After" className={`ribbon-button ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => console.log("hide before")}>Hide Before</div> */}
@@ -674,11 +697,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             onPointerDown={e => e.stopPropagation()}
                         // onClick={() => this.dropdownToggle('Movement')}
                         >
-                            None
+                            {effect}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2 }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onClick={e => e.stopPropagation()}>
-                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()}>None</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'None'}>None</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Fade'}>Fade In</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Flip'}>Flip</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Rotate'}>Rotate</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Bounce'}>Bounce</div>
+                                <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Roll'}>Roll</div>
                             </div>
+                        </div>
+                        <div className="effectDirection">
+                            <div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div>
+                            <div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div>
+                            <div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'top'}><FontAwesomeIcon icon={"angle-down"} /></div>
+                            <div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'bottom'}><FontAwesomeIcon icon={"angle-up"} /></div>
+                            <div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%" }} onClick={() => targetDoc.presEffectDirection = false}></div>
                         </div>
                     </div>
                     <div className="ribbon-final-box">
@@ -688,16 +723,30 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </div>
                     </div>
                     <div className="ribbon-final-box">
-                        <div className="ribbon-final-button">
+                        <div className={this._selectedArray.length === 0 ? "ribbon-final-button" : "ribbon-final-button-hidden"} onClick={() => this.applyTo(this._selectedArray)}>
                             Apply to selected
                         </div>
-                        <div className="ribbon-final-button">
+                        <div className="ribbon-final-button-hidden" onClick={() => this.applyTo(this.childDocs)}>
                             Apply to all
                         </div>
                     </div>
                 </div>
             );
         }
+    }
+
+    applyTo = (array: Doc[]) => {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        array.forEach((doc, index) => {
+            const curDoc = Cast(doc, Doc, null);
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
+            if (tagDoc && targetDoc) {
+                tagDoc.presTransition = targetDoc.presTransition;
+                tagDoc.presDuration = targetDoc.presDuration;
+                tagDoc.presEffect = targetDoc.presEffect;
+            }
+        });
     }
 
     public inputRef = React.createRef<HTMLInputElement>();
@@ -846,7 +895,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @computed get moreInfoDropdown() {
         return (<div></div>);
+    }
 
+    @computed get effectOpenBracket() {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        if (targetDoc.presEffect && this.itemIndex) {
+            return ("<" + targetDoc.presEffect + "when=" + this.layoutDoc === PresBox.Instance.childDocs[this.itemIndex].presentationTargetDoc + ">");
+        } else return;
+    }
+
+    @computed get effectCloseBracket() {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        if (targetDoc.presEffect && this.itemIndex) {
+            return ("</" + targetDoc.presEffect + ">");
+        } else return;
     }
 
     @computed get toolbar() {
@@ -895,8 +959,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="toolbar-button">
                         <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"thumbtack"} />
                     </div>
-                    <div className="toolbar-button" onClick={this.toggleMoreInfo}>
-                        <div className="toolbar-moreInfo">
+                    <Fade left when={this.moreInfoTools}>
+                        <h1>uppercase</h1>
+                    </Fade>
+                    <div className={`toolbar-button ${this.moreInfoTools ? "active" : ""}`} onClick={this.toggleMoreInfo}>
+                        <div className={`toolbar-moreInfo ${this.moreInfoTools ? "active" : ""}`}>
                             <div className="toolbar-moreInfoBall" />
                             <div className="toolbar-moreInfoBall" />
                             <div className="toolbar-moreInfoBall" />
