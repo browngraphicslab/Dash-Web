@@ -268,6 +268,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                                 LayoutTemplate={undefined}
                                                 LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
                                                 ContainingCollectionDoc={this.props.Document}
+                                                dontRegisterView={true}
                                                 parentActive={returnTrue}
                                                 bringToFront={emptyFunction}
                                                 backgroundColor={returnTransparent} />

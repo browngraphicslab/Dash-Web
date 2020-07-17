@@ -108,8 +108,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     return100 = () => 100;
     @computed get scriptField() {
-        return ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+        const script = ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
             { docs: new List<Doc>(this.props.docViews.map(dv => dv.props.Document)) });
+        return script ? () => script : undefined;
     }
     templateIsUsed = (selDoc: Doc, templateDoc: Doc) => {
         const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
@@ -142,8 +143,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionView={undefined}
                 docFilters={returnEmptyFilter}
                 rootSelected={returnFalse}
-                onCheckedClick={this.scriptField!}
-                onChildClick={this.scriptField!}
+                onCheckedClick={this.scriptField}
+                onChildClick={this.scriptField}
                 LibraryPath={emptyPath}
                 dropAction={undefined}
                 active={returnTrue}

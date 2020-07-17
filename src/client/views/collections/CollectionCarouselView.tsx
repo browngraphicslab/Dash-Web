@@ -14,6 +14,7 @@ import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
 import { returnFalse } from '../../../Utils';
+import { ScriptField } from '../../../fields/ScriptField';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const CarouselDocument = makeInterface(documentSchema, collectionSchema);
@@ -40,14 +41,16 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
     panelHeight = () => this.props.PanelHeight() - 50;
+    onContentDoubleClick = () => ScriptCast(this.layoutDoc.onChildDoubleClick);
+    onContentClick = () => ScriptCast(this.layoutDoc.onChildClick);
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
-                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        onDoubleClick={this.onContentDoubleClick}
+                        onClick={this.onContentClick}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
@@ -83,18 +86,6 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         </>;
     }
 
-
-    onContextMenu = (e: React.MouseEvent): void => {
-        // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped()) {
-            ContextMenu.Instance?.addItem({
-                description: "Make Hero Image", event: () => {
-                    const index = NumCast(this.layoutDoc._itemIndex);
-                    (this.dataDoc || Doc.GetProto(this.props.Document)).hero = ObjectField.MakeCopy(this.childLayoutPairs[index].layout.data as ObjectField);
-                }, icon: "plus"
-            });
-        }
-    }
     _downX = 0;
     _downY = 0;
     onPointerDown = (e: React.PointerEvent) => {
@@ -119,7 +110,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     }
 
     render() {
-        return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
+        return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget}>
             {this.content}
             {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
         </div>;

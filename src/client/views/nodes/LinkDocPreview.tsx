@@ -98,23 +98,11 @@ export class LinkDocPreview extends React.Component<Props> {
                     {this._toolTipText}
                 </div>
             </div> :
-            // <div style={{
-            //     border: "6px solid white",
-            // }}>
-            //     <div style={{ backgroundColor: "white" }}> {this._targetDoc.title}
-            //         <div className="wrapper" style={{ float: "right" }}>
-            //             <div title="Delete link" className="button" style={{ display: "inline" }} ref={this._editRef} onPointerDown={this.deleteLink}>
-            //                 <FontAwesomeIcon className="fa-icon" icon="trash" size="sm" /></div>
-            //             <div title="Follow link" className="button" style={{ display: "inline" }} onClick={this.followDefault} onContextMenu={this.onContextMenu}>
-            //                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
-            //             </div>
-            //         </div>
-            //     </div>
+
             <ContentFittingDocumentView
                 Document={this._targetDoc}
                 LibraryPath={emptyPath}
                 fitToBox={true}
-                backgroundColor={this.props.backgroundColor}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
@@ -128,16 +116,15 @@ export class LinkDocPreview extends React.Component<Props> {
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
                 renderDepth={0}
-                PanelWidth={this.width}
-                PanelHeight={this.height}
+                PanelWidth={() => this.width() - 16} //Math.min(350, NumCast(target._width, 350))}
+                PanelHeight={() => this.height() - 16} //Math.min(250, NumCast(target._height, 250))}
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
                 NativeWidth={returnZero}
                 NativeHeight={returnZero}
-            />;
-        //</div>;
+                backgroundColor={this.props.backgroundColor} />;
     }
 
     render() {
@@ -145,7 +132,10 @@ export class LinkDocPreview extends React.Component<Props> {
             style={{
                 position: "absolute", left: this.props.location[0],
                 top: this.props.location[1], width: this.width(), height: this.height(),
-                boxShadow: "black 2px 2px 1em", zIndex: 1000
+                zIndex: 1000,
+                border: "8px solid white", borderRadius: "7px",
+                boxShadow: "3px 3px 1.5px grey",
+                borderBottom: "8px solid white", borderRight: "8px solid white"
             }}>
             {this.targetDocView}
         </div>;

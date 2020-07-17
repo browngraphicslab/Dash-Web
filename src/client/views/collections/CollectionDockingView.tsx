@@ -11,7 +11,7 @@ import { Id } from '../../../fields/FieldSymbols';
 import { FieldId } from "../../../fields/RefField";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnTrue, Utils, returnZero, returnEmptyFilter, setupMoveUpEvents, returnFalse } from "../../../Utils";
+import { emptyFunction, returnOne, returnTrue, Utils, returnZero, returnEmptyFilter, setupMoveUpEvents, returnFalse, emptyPath, aggregateBounds } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -28,6 +28,9 @@ import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { CollectionViewType } from './CollectionView';
 import { SnappingManager } from '../../util/SnappingManager';
+import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { listSpec } from '../../../fields/Schema';
+import { clamp } from 'lodash';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -390,6 +393,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     reactionDisposer?: Lambda;
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
+            const observer = new _global.ResizeObserver(action((entries: any) => {
+                for (const entry of entries) {
+                    this.onResize(null as any);
+                }
+            }));
+            observer.observe(this._containerRef.current);
             this.reactionDisposer = reaction(
                 () => this.props.Document.dockingConfig,
                 () => {
@@ -430,7 +439,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         const cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout && this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout?.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
@@ -646,16 +655,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (this.props.renderDepth > 0) {
             return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
         }
-        return (
-            <Measure offset onResize={this.onResize}>
-                {({ measureRef }) =>
-                    <div ref={measureRef}>
-                        <div className="collectiondockingview-container" id="menuContainer"
-                            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
-                    </div>
-                }
-            </Measure>
-        );
+        return <div className="collectiondockingview-container" id="menuContainer"
+            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />;
     }
 
 }
@@ -664,7 +665,6 @@ interface DockedFrameProps {
     documentId: FieldId;
     glContainer: any;
     libraryPath: (FieldId[]);
-    backgroundColor?: (doc: Doc) => string | undefined;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -818,35 +818,106 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
+    @computed get renderContentBounds() {
+        const bounds = this._document ? Cast(this._document._renderContentBounds, listSpec("number"), [0, 0, this.returnMiniSize(), this.returnMiniSize()]) : [0, 0, 0, 0];
+        const xbounds = bounds[2] - bounds[0];
+        const ybounds = bounds[3] - bounds[1];
+        const dim = Math.max(xbounds, ybounds);
+        return { l: bounds[0] + xbounds / 2 - dim / 2, t: bounds[1] + ybounds / 2 - dim / 2, cx: bounds[0] + xbounds / 2, cy: bounds[1] + ybounds / 2, dim };
+    }
+    @computed get miniLeft() { return 50 + (NumCast(this._document?._panX) - this.renderContentBounds.cx) / this.renderContentBounds.dim * 100 - this.miniWidth / 2; }
+    @computed get miniTop() { return 50 + (NumCast(this._document?._panY) - this.renderContentBounds.cy) / this.renderContentBounds.dim * 100 - this.miniHeight / 2; }
+    @computed get miniWidth() { return this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
+    @computed get miniHeight() { return this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
+    returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
+    miniDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            this._document!._panX = clamp(NumCast(this._document!._panX) + delta[0] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.l, this.renderContentBounds.l + this.renderContentBounds.dim);
+            this._document!._panY = clamp(NumCast(this._document!._panY) + delta[1] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.t, this.renderContentBounds.t + this.renderContentBounds.dim);
+            return false;
+        }), emptyFunction, emptyFunction);
+    }
+    renderMiniMap() {
+        return <div className="miniMap" style={{
+            width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
+                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!))),
+        }}>
+            <CollectionFreeFormView
+                Document={this._document!}
+                LibraryPath={emptyPath}
+                CollectionView={undefined}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                active={returnTrue}
+                select={emptyFunction}
+                dropAction={undefined}
+                isSelected={returnFalse}
+                dontRegisterView={true}
+                annotationsKey={""}
+                fieldKey={Doc.LayoutFieldKey(this._document!)}
+                bringToFront={emptyFunction}
+                rootSelected={returnTrue}
+                addDocument={returnFalse}
+                moveDocument={returnFalse}
+                removeDocument={returnFalse}
+                ContentScaling={returnOne}
+                PanelWidth={this.returnMiniSize}
+                PanelHeight={this.returnMiniSize}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                ScreenToLocalTransform={this.ScreenToLocalTransform}
+                renderDepth={0}
+                whenActiveChanged={emptyFunction}
+                focus={emptyFunction}
+                backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
+                addDocTab={this.addDocTab}
+                pinToPres={DockedFrameRenderer.PinDoc}
+                docFilters={returnEmptyFilter}
+                fitToBox={true}
+            />
+            <div className="miniOverlay" onPointerDown={this.miniDown} >
+                <div className="miniThumb" style={{
+                    width: `${this.miniWidth}%`,
+                    height: `${this.miniHeight}%`,
+                    left: `${this.miniLeft}%`,
+                    top: `${this.miniTop}%`,
+                }}
+                />
+            </div>
+        </div>;
+    }
     @computed get docView() {
         TraceMobx();
         if (!this._document) return (null);
         const document = this._document;
-        const resolvedDataDoc = !Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined;// document.layout instanceof Doc ? document : this._dataDoc;
-        return <DocumentView key={document[Id]}
-            LibraryPath={this._libraryPath}
-            Document={document}
-            DataDoc={resolvedDataDoc}
-            bringToFront={emptyFunction}
-            rootSelected={returnTrue}
-            addDocument={undefined}
-            removeDocument={undefined}
-            ContentScaling={this.contentScaling}
-            PanelWidth={this.panelWidth}
-            PanelHeight={this.panelHeight}
-            NativeHeight={this.nativeHeight}
-            NativeWidth={this.nativeWidth}
-            ScreenToLocalTransform={this.ScreenToLocalTransform}
-            renderDepth={0}
-            parentActive={returnTrue}
-            whenActiveChanged={emptyFunction}
-            focus={emptyFunction}
-            backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
-            addDocTab={this.addDocTab}
-            pinToPres={DockedFrameRenderer.PinDoc}
-            docFilters={returnEmptyFilter}
-            ContainingCollectionView={undefined}
-            ContainingCollectionDoc={undefined} />;
+        const resolvedDataDoc = !Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined;
+        return <>
+            <DocumentView key={document[Id]}
+                LibraryPath={this._libraryPath}
+                Document={document}
+                DataDoc={resolvedDataDoc}
+                bringToFront={emptyFunction}
+                rootSelected={returnTrue}
+                addDocument={undefined}
+                removeDocument={undefined}
+                ContentScaling={this.contentScaling}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
+                NativeHeight={this.nativeHeight}
+                NativeWidth={this.nativeWidth}
+                ScreenToLocalTransform={this.ScreenToLocalTransform}
+                renderDepth={0}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                focus={emptyFunction}
+                backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
+                addDocTab={this.addDocTab}
+                pinToPres={DockedFrameRenderer.PinDoc}
+                docFilters={returnEmptyFilter}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined} />
+            {document._viewType === CollectionViewType.Freeform ? this.renderMiniMap() : (null)}
+        </>;
     }
 
     render() {

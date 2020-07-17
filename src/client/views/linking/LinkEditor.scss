@@ -3,31 +3,60 @@
 .linkEditor {
     width: 100%;
     height: auto;
-    font-size: 12px; // TODO
+    font-size: 13px; // TODO
     user-select: none;
 }
 
 .linkEditor-button-back {
-    margin-bottom: 6px;
+    //margin-bottom: 6px;
     border-radius: 10px;
     width: 18px;
     height: 18px;
     padding: 0;
+
+    &:hover {
+        cursor: pointer;
+    }
 }
 
 .linkEditor-info {
     //border-bottom: 0.5px solid $light-color-secondary;
-    padding-bottom: 4px;
+    //padding-bottom: 1px;
     padding-top: 5px;
     padding-left: 5px;
     //margin-bottom: 6px;
     display: flex;
     justify-content: space-between;
+    color: black;
 
     .linkEditor-linkedTo {
         width: calc(100% - 26px);
         padding-left: 5px;
-        padding-right: 5px
+        padding-right: 5px;
+
+        .linkEditor-downArrow {
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+}
+
+.linkEditor-moreInfo {
+    margin-left: 12px;
+    padding-left: 13px;
+    padding-right: 6.5px;
+    padding-bottom: 4px;
+    font-size: 9px;
+    //font-style: italic;
+    text-decoration-color: grey;
+
+    .button {
+        color: black;
+
+        &:hover {
+            cursor: pointer;
+        }
     }
 }
 
@@ -36,25 +65,58 @@
     padding-right: 6.5px;
     padding-bottom: 3.5px;
 
-    .linkEditor-description-text {
-        text-decoration-color: grey;
+    .linkEditor-description-label {
+        text-decoration-color: black;
+        color: black;
     }
 
     .linkEditor-description-input {
-        border: 1px solid grey;
-        border-radius: 4px;
-        background-color: rgb(236, 236, 236);
-        padding-left: 2px;
-        padding-right: 2px;
-        color: grey;
-        text-decoration-color: grey;
+        display: flex;
+
+        .linkEditor-description-editing {
+            min-width: 85%;
+            //border: 1px solid grey;
+            //border-radius: 4px;
+            padding-left: 2px;
+            padding-right: 2px;
+            //margin-right: 4px;
+            color: black;
+            text-decoration-color: grey;
+        }
+
+        .linkEditor-description-add-button {
+            display: inline;
+            /* float: right; */
+            border-radius: 7px;
+            font-size: 9px;
+            background-color: black;
+            /* padding: 3px; */
+            padding-top: 4px;
+            padding-left: 7px;
+            padding-bottom: 4px;
+            padding-right: 8px;
+            height: 80%;
+            color: white;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
     }
 }
 
 .linkEditor-followingDropdown {
     padding-left: 6.5px;
     padding-right: 6.5px;
-    padding-bottom: 3.5px;
+    padding-bottom: 6px;
+
+    &:hover {
+        cursor: pointer;
+    }
+
+    .linkEditor-followingDropdown-label {
+        color: black;
+    }
 
     .linkEditor-followingDropdown-dropdown {
 
@@ -62,14 +124,15 @@
 
             border: 1px solid grey;
             border-radius: 4px;
-            background-color: rgb(236, 236, 236);
+            //background-color: rgb(236, 236, 236);
             padding-left: 2px;
             padding-right: 2px;
-            color: grey;
-            text-decoration-color: grey;
+            text-decoration-color: black;
+            color: rgb(94, 94, 94);
 
             .linkEditor-followingDropdown-icon {
                 float: right;
+                color: black;
             }
         }
 
@@ -77,17 +140,22 @@
             padding-left: 3px;
             padding-right: 3px;
 
+            &:last-child {
+                border-bottom: none;
+            }
+
             .linkEditor-followingDropdown-option {
-                border: 0.25px dotted grey;
-                background-color: rgb(236, 236, 236);
+                border: 0.25px solid grey;
+                //background-color: rgb(236, 236, 236);
                 padding-left: 2px;
                 padding-right: 2px;
                 color: grey;
                 text-decoration-color: grey;
                 font-size: 9px;
+                border-top: none;
 
                 &:hover {
-                    background-color: rgb(211, 210, 210);
+                    background-color: rgb(187, 220, 231);
                 }
             }
 
@@ -96,6 +164,10 @@
 
 
 }
+
+
+
+
 
 
 .linkEditor-button,
