@@ -916,7 +916,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 docFilters={returnEmptyFilter}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
-            {document._viewType === CollectionViewType.Freeform ? this.renderMiniMap() : (null)}
+            {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
         </>;
     }
 
