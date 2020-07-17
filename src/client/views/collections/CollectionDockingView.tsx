@@ -852,6 +852,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 select={emptyFunction}
                 dropAction={undefined}
                 isSelected={returnFalse}
+                dontRegisterView={true}
                 annotationsKey={""}
                 fieldKey={Doc.LayoutFieldKey(this._document!)}
                 bringToFront={emptyFunction}
