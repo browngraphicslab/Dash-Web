@@ -319,7 +319,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     destroy() {
-        !this.TextView?.props.isSelected(false) && this.fadeOut(true);
+        !this.TextView?.props.isSelected(true) && this.fadeOut(true);
     }
 
     @action
