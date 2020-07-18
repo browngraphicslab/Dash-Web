@@ -28,6 +28,9 @@ export default class FormatShapePane extends AntimodeMenu {
     @observable private _lock = false;
     @observable private _fillBtn = false;
     @observable private _lineBtn = false;
+    @observable _controlBtn = false;
+    @observable private _controlPoints: { X: number, Y: number }[] = [];
+    @observable _currPoint = -1;
 
     getField(key: string) {
         return this.selectedInk?.reduce((p, i) =>
@@ -158,6 +161,51 @@ export default class FormatShapePane extends AntimodeMenu {
         }));
     }
 
+    @undoBatch
+    @action
+    control = (xDiff: number, yDiff: number, controlNum: number) => {
+        this.selectedInk?.forEach(action(inkView => {
+            if (this.selectedInk?.length === 1) {
+                const doc = Document(inkView.rootDoc);
+                if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
+                    const ink = Cast(doc.data, InkField)?.inkData;
+                    if (ink) {
+
+                        const newPoints: { X: number, Y: number }[] = [];
+                        const order = controlNum % 4;
+                        for (var i = 0; i < ink.length; i++) {
+                            if (controlNum === i ||
+                                (order === 0 && i === controlNum + 1) ||
+                                (order === 0 && controlNum !== 0 && i === controlNum - 2) ||
+                                (order === 0 && controlNum !== 0 && i === controlNum - 1) ||
+                                (order === 3 && i === controlNum - 1) ||
+                                (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 1) ||
+                                (order === 3 && controlNum !== ink.length - 1 && i === controlNum + 2)) {
+                                newPoints.push({ X: ink[i].X - (xDiff), Y: ink[i].Y - (yDiff) });
+                            }
+                            else {
+                                newPoints.push({ X: ink[i].X, Y: ink[i].Y });
+                            }
+                        }
+                        const oldx = doc.x;
+                        const oldy = doc.y;
+                        doc.data = new InkField(newPoints);
+                        const xs2 = newPoints.map(p => p.X);
+                        const ys2 = newPoints.map(p => p.Y);
+                        const left2 = Math.min(...xs2);
+                        const top2 = Math.min(...ys2);
+                        const right2 = Math.max(...xs2);
+                        const bottom2 = Math.max(...ys2);
+                        doc._height = (bottom2 - top2) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc._width = (right2 - left2) * inkView.props.ScreenToLocalTransform().Scale;
+                        doc.x = oldx;
+                        doc.y = oldy;
+                    }
+                }
+            }
+        }));
+    }
+
 
     colorPicker(setter: (color: string) => {}) {
         return <div className="btn-group-palette" key="colorpicker" >
@@ -193,6 +241,14 @@ export default class FormatShapePane extends AntimodeMenu {
         </>;
     }
 
+    controlPointsButton() {
+        return <>
+            <button className="antimodeMenu-button" key="fill" onPointerDown={action(() => this._controlBtn = this._controlBtn ? false : true)} style={{ position: "absolute", right: 80, backgroundColor: this._controlBtn ? "black" : "" }}>
+                <FontAwesomeIcon icon="bezier-curve" size="lg" />
+            </button>
+            <br /> <br />
+        </>;
+    }
     @computed get fillButton() { return this.colorButton(this.colorFil, () => this._fillBtn = !this._fillBtn); }
     @computed get lineButton() { return this.colorButton(this.colorStk, () => this._lineBtn = !this._lineBtn); }
 
@@ -205,6 +261,8 @@ export default class FormatShapePane extends AntimodeMenu {
     @computed get rotInput() { return this.inputBox("rot", this.shapeRot, (val: string) => this.shapeRot = val); }
     @computed get XpsInput() { return this.inputBox("Xps", this.shapeXps, (val: string) => this.shapeXps = val); }
     @computed get YpsInput() { return this.inputBox("Yps", this.shapeYps, (val: string) => this.shapeYps = val); }
+
+    @computed get controlPoints() { return this.controlPointsButton(); }
 
     @computed get propertyGroupItems() {
         const fillCheck = <div key="fill" style={{ display: this._subOpen[0] ? "" : "none", width: "inherit", backgroundColor: "#323232", color: "white", }}>
@@ -260,6 +318,7 @@ export default class FormatShapePane extends AntimodeMenu {
             <br />  <br />
                 Rotation {this.rotInput}
             <br /> <br />
+                Edit Points {this.controlPoints}
         </div>;
 
         const positionCheck = <div key="posCheck" style={{ display: this._subOpen[3] ? "" : "none", width: "inherit", backgroundColor: "#323232", color: "white", }}>

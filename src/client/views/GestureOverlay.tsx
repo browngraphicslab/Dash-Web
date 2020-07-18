@@ -23,6 +23,7 @@ import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
+import * as fitCurve from 'fit-curve';
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -632,6 +633,22 @@ export default class GestureOverlay extends Touchable {
 
                 // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
+                    const newPoints = this._points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+                    newPoints.pop();
+                    const controlPoints: { X: number, Y: number }[] = [];
+
+                    const bezierCurves = fitCurve(newPoints, 10);
+                    for (const curve of bezierCurves) {
+
+                        controlPoints.push({ X: curve[0][0], Y: curve[0][1] });
+                        controlPoints.push({ X: curve[1][0], Y: curve[1][1] });
+                        controlPoints.push({ X: curve[2][0], Y: curve[2][1] });
+                        controlPoints.push({ X: curve[3][0], Y: curve[3][1] });
+
+
+                    }
+                    this._points = controlPoints;
+
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 }
                 this._points = [];

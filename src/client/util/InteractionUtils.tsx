@@ -99,6 +99,15 @@ export namespace InteractionUtils {
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
         }
+        else if (points.length > 9 && points[3].X === points[4].X && points[7].X === points[8].X) {
+            for (var i = 0; i < points.length; i += 4) {
+                const array = [[points[i].X, points[i].Y], [points[i + 1].X, points[i + 1].Y], [points[i + 2].X, points[i + 2].Y], [points[i + 3].X, points[i + 3].Y]];
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, array);
+                    pts.push({ X: point[0], Y: point[1] });
+                }
+            }
+        }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
             const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
