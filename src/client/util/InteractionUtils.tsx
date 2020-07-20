@@ -99,8 +99,8 @@ export namespace InteractionUtils {
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
         }
-        else if (points.length > 9 && points[3].X === points[4].X && points[7].X === points[8].X) {
-            for (var i = 0; i < points.length; i += 4) {
+        else if (points.length >= 5 && points[3].X === points[4].X) {
+            for (var i = 0; i < points.length - 3; i += 4) {
                 const array = [[points[i].X, points[i].Y], [points[i + 1].X, points[i + 1].Y], [points[i + 2].X, points[i + 2].Y], [points[i + 3].X, points[i + 3].Y]];
                 for (var t = 0; t < 1; t += 0.01) {
                     const point = beziercurve(t, array);
@@ -223,10 +223,28 @@ export namespace InteractionUtils {
                 points.push({ X: left, Y: top });
                 return points;
             case "triangle":
+                // points.push({ X: left, Y: bottom });
+                // points.push({ X: right, Y: bottom });
+                // points.push({ X: (right + left) / 2, Y: top });
+                // points.push({ X: left, Y: bottom });
+
                 points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: bottom });
+
                 points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+
                 points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+
                 points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: bottom });
+
+
                 return points;
             case "circle":
                 const centerX = (right + left) / 2;
@@ -262,6 +280,7 @@ export namespace InteractionUtils {
             //     points.push({ X: x2, Y: y2 });
             //     return points;
             case "line":
+
                 points.push({ X: left, Y: top });
                 points.push({ X: right, Y: bottom });
                 return points;

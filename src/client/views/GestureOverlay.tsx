@@ -703,18 +703,53 @@ export default class GestureOverlay extends Touchable {
             //must be (points[0].X,points[0]-1)
             case "rectangle":
                 this._points.push({ X: left, Y: top });
-                this._points.push({ X: right, Y: top });
-                this._points.push({ X: right, Y: bottom });
-                this._points.push({ X: left, Y: bottom });
                 this._points.push({ X: left, Y: top });
-                this._points.push({ X: left, Y: top - 1 });
+
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+
+                // this._points.push({ X: left, Y: top - 1 });
                 break;
             case "triangle":
+                // this._points.push({ X: left, Y: bottom });
+                // this._points.push({ X: right, Y: bottom });
+                // this._points.push({ X: (right + left) / 2, Y: top });
+                // this._points.push({ X: left, Y: bottom });
+                // this._points.push({ X: left, Y: bottom - 1 });
                 this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+
                 this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
                 this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+
                 this._points.push({ X: left, Y: bottom });
-                this._points.push({ X: left, Y: bottom - 1 });
+                this._points.push({ X: left, Y: bottom });
+
+
                 break;
             case "circle":
                 const centerX = (right + left) / 2;
@@ -731,10 +766,48 @@ export default class GestureOverlay extends Touchable {
                 }
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+                // this._points.push({ X: centerX, Y: top });
+                // this._points.push({ X: centerX + radius / 2, Y: top });
+
+                // this._points.push({ X: right, Y: top + radius / 2 });
+                // this._points.push({ X: right, Y: top + radius });
+                // this._points.push({ X: right, Y: top + radius });
+                // this._points.push({ X: right, Y: bottom - radius / 2 });
+
+                // this._points.push({ X: right - radius / 2, Y: bottom });
+                // this._points.push({ X: right - radius, Y: bottom });
+                // this._points.push({ X: right - radius, Y: bottom });
+                // this._points.push({ X: left + radius / 2, Y: bottom });
+
+                // this._points.push({ X: left, Y: bottom - radius / 2 });
+                // this._points.push({ X: left, Y: bottom - radius });
+                // this._points.push({ X: left, Y: bottom - radius });
+                // this._points.push({ X: left, Y: top + radius / 2 });
+
+                // this._points.push({ X: left + radius / 2, Y: top });
+                // this._points.push({ X: left + radius, Y: top });
+
+
+
+
+
+
+
                 break;
             case "line":
                 this._points.push({ X: left, Y: top });
+
+                this._points.push({ X: left, Y: top });
+
+                // this._points.push({ X: right, Y: bottom });
+                // this._points.push({ X: right, Y: bottom });
+                // this._points.push({ X: right, Y: bottom });
+                // this._points.push({ X: right, Y: bottom });
+
+
                 this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
                 // this._points.push({ X: right, Y: bottom - 1 });
                 break;
             case "arrow":
