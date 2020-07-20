@@ -2,10 +2,10 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync } from "../../../fields/Doc";
+import { Doc, DocListCast, DocCastAsync, WidthSym } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne } from "../../../Utils";
+import { returnFalse, returnOne, numberRange } from "../../../Utils";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -25,6 +25,9 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionFreeFormDocumentView } from "./CollectionFreeFormDocumentView";
 import { child } from "serializr";
 import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
+import { List } from "../../../fields/List";
+import { Tooltip } from "@material-ui/core";
+import { CollectionFreeFormViewChrome } from "../collections/CollectionMenu";
 
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -60,11 +63,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
-        document.addEventListener("keydown", this.keyEvents, false);
+        // document.addEventListener("keydown", this.keyEvents, false);
     }
 
-    componentWillUnmount() {
-        document.removeEventListener("keydown", this.keyEvents, false);
+    // componentWillUnmount() {
+    //     document.removeEventListener("keydown", this.keyEvents, false);
+    // }
+
+    onPointerOver = () => {
+        document.addEventListener("keydown", this.keyEvents, true);
+        // document.addEventListener("keydown", this.keyEvents, false);
+    }
+
+    onPointerLeave = () => {
+        // document.removeEventListener("keydown", this.keyEvents, false);
+        document.removeEventListener("keydown", this.keyEvents, true);
     }
 
     updateCurrentPresentation = () => Doc.UserDoc().activePresentation = this.rootDoc;
@@ -114,6 +127,57 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+
+    @action
+    onHideDocumentUntilPressClick = () => {
+        this.childDocs.forEach((doc, index) => {
+            const curDoc = Cast(doc, Doc, null);
+            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
+            if (tagDoc.presEffect === 'None' || !tagDoc.presEffect) {
+                tagDoc.opacity = 1;
+            } else {
+                if (index <= this.itemIndex) {
+                    tagDoc.opacity = 1;
+                } else {
+                    tagDoc.opacity = 0;
+                }
+            }
+        });
+    }
+
+    /**
+     * This is the method that checks for the actions that need to be performed
+     * before the document has been presented, which involves 3 button options:
+     * Hide Until Presented, Hide After Presented, Fade After Presented
+     */
+    @action
+    hideDocumentInPres = () => {
+        this.updateCurrentPresentation();
+        this.childDocs.forEach((doc, i) => {
+            const tagDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            console.log("HB: " + doc.presHideTillShownButton);
+            console.log("HA: " + doc.presHideAfterButton);
+            if (doc.presHideTillShownButton) {
+                if (i < this.itemIndex) {
+                    console.log(i + 1 + "hide before");
+                    tagDoc.opacity = 0;
+                    console.log(tagDoc.opacity);
+                } else {
+                    tagDoc.opacity = 1;
+                }
+            }
+            if (doc.presHideAfterButton) {
+                if (i > this.itemIndex) {
+                    console.log(i + 1 + "hide after");
+                    tagDoc.opacity = 0;
+                    console.log(tagDoc.opacity);
+                } else {
+                    tagDoc.opacity = 1;
+                }
+            }
+        });
+    }
+
     /**
      * This is the method that checks for the actions that need to be performed
      * after the document has been presented, which involves 3 button options:
@@ -130,33 +194,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (doc.presHideAfterButton && ind < index) {
                 presTargetDoc.opacity = 0;
             }
-            if (doc.presFadeButton && ind < index) {
-                presTargetDoc.opacity = 0.5;
-            }
         });
     }
 
-    /**
-     * This is the method that checks for the actions that need to be performed
-     * before the document has been presented, which involves 3 button options:
-     * Hide Until Presented, Hide After Presented, Fade After Presented
-     */
-    hideIfNotPresented = (index: number) => {
-        this.updateCurrentPresentation();
-        this.childDocs.forEach((key, ind) => {
-            //the order of cases is aligned based on priority
-            const presTargetDoc = key.presentationTargetDoc as Doc;
-            if (key.hideAfterButton && ind >= index) {
-                presTargetDoc.opacity = 1;
-            }
-            if (key.fadeButton && ind >= index) {
-                presTargetDoc.opacity = 1;
-            }
-            if (key.hideTillShownButton && ind > index) {
-                presTargetDoc.opacity = 0;
-            }
-        });
-    }
 
     /**
      * This method makes sure that cursor navigates to the element that
@@ -224,9 +264,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             //     this.startPresentation(index);
             // }
             this.navigateToElement(this.childDocs[index], fromDoc);
-            this.hideIfNotPresented(index);
-            this.showAfterPresented(index);
-            this.onHideDocumentUntilPressClick();
+            // this.hideIfNotPresented(index);
+            // this.showAfterPresented(index);
+            this.hideDocumentInPres();
+            // this.onHideDocumentUntilPressClick();
         }
     });
 
@@ -340,24 +381,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     });
 
-    @undoBatch
-    visibilityChanged = action((visibility: string) => {
-        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-        if (visibility === 'fade') {
-            activeItem.presFadeButton = !activeItem.presFadeButton;
-        } else if (visibility === 'hideBefore') {
-            activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton;
-            activeItem.presHideAfterButton = false;
-        } else if (visibility === 'hideAfter') {
-            activeItem.presHideAfterButton = !activeItem.presHideAfterButton;
-            activeItem.presHideAfterButton = false;
-        } else {
-            activeItem.presHideAfterButton = false;
-            activeItem.presHideTillShownButton = false;
-            activeItem.presFadeButton = false;
-        }
-    });
-
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     addDocumentFilter = (doc: Doc | Doc[]) => {
         const docs = doc instanceof Doc ? [doc] : doc;
@@ -433,38 +456,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this.layoutDoc.presStatus === "edit") this._selectedArray = [];
             else this.layoutDoc.presStatus = "edit";
             // Ctrl-A to select all
-        } else if ((e.metaKey || e.altKey) && e.keyCode === 65) {
+        } if ((e.metaKey || e.altKey) && e.keyCode === 65) {
             if (this.layoutDoc.presStatus === "edit") this._selectedArray = this.childDocs;
             // left / a / up to go back
-        } else if (e.keyCode === 37 || 65 || 38) {
+        } if (e.keyCode === 37 || 65 || 38) {
             if (this.layoutDoc.presStatus !== "edit") this.back();
             // right / d / down to go to next
-        } else if (e.keyCode === 39 || 68 || 40) {
+        } if (e.keyCode === 39 || 68 || 40) {
             if (this.layoutDoc.presStatus !== "edit") this.next();
             // spacebar to 'present' or go to next slide
-        } else if (e.keyCode === 32) {
+        } if (e.keyCode === 32) {
             if (this.layoutDoc.presStatus !== "edit") this.next();
             else this.layoutDoc.presStatus = "manual";
         }
     }
-
-    @action
-    onHideDocumentUntilPressClick = () => {
-        this.childDocs.forEach((doc, index) => {
-            const curDoc = Cast(doc, Doc, null);
-            const tagDoc = Cast(curDoc.presentationTargetDoc, Doc, null);
-            if (tagDoc.presEffect === 'None' || !tagDoc.presEffect) {
-                tagDoc.opacity = 1;
-            } else {
-                if (index <= this.itemIndex) {
-                    tagDoc.opacity = 1;
-                } else {
-                    tagDoc.opacity = 0;
-                }
-            }
-        });
-    }
-
 
     @observable private transitionTools: boolean = false;
     @observable private newDocumentTools: boolean = false;
@@ -562,30 +567,60 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // }
     }
 
+    @computed get order() {
+        const order: JSX.Element[] = [];
+        this.childDocs.forEach((doc, index) => {
+            const targetDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            order.push(
+                <div className="pathOrder" style={{ top: NumCast(targetDoc.y), left: NumCast(targetDoc.x) }}>
+                    <div className="pathOrder-frame">{index + 1}</div>
+                </div>);
+        });
+        return order;
+    }
+
     @computed get paths() {
-        const paths = []; //List of all of the paths that need to be added
+        // const paths = []; //List of all of the paths that need to be added
+        let pathPoints = "";
         console.log(this.childDocs.length - 1);
-        for (let i = 0; i <= this.childDocs.length - 1; i++) {
-            const targetDoc = Cast(this.childDocs[i].presentationTargetDoc, Doc, null);
-            if (this.childDocs[i + 1] && targetDoc) {
-                const nextTargetDoc = Cast(this.childDocs[i + 1].presentationTargetDoc, Doc, null);
+        this.childDocs.forEach((doc, index) => {
+            const targetDoc = Cast(doc.presentationTargetDoc, Doc, null);
+            if (targetDoc) {
                 const n1x = NumCast(targetDoc.x) + (NumCast(targetDoc._width) / 2);
                 const n1y = NumCast(targetDoc.y) + (NumCast(targetDoc._height) / 2);
-                const n2x = NumCast(nextTargetDoc.x) + (NumCast(targetDoc._width) / 2);
-                const n2y = NumCast(nextTargetDoc.y) + (NumCast(targetDoc._height) / 2);
-                const pathPoints = n1x + "," + n1y + " " + n2x + "," + n2y;
-                paths.push(<polyline
-                    points={pathPoints}
-                    style={{
-                        opacity: 0.7,
-                        stroke: "#69a6db",
-                        strokeWidth: 5,
-                    }}
-                    markerStart="url(#square)"
-                    markerEnd="url(#arrow)" />);
+                // const n2x = NumCast(nextTargetDoc.x) + (NumCast(targetDoc._width) / 2);
+                // const n2y = NumCast(nextTargetDoc.y) + (NumCast(targetDoc._height) / 2);
+                if (index = 0) pathPoints = n1x + "," + n1y;
+                else pathPoints = pathPoints + " " + n1x + "," + n1y;
+                // const pathPoints = n1x + "," + n1y + " " + n2x + "," + n2y;
+                // else pathPoints = pathPoints + " " + n1x + "," + n1y;
+                // paths.push(<polyline
+                //     points={pathPoints}
+                //     style={{
+                //         opacity: 1,
+                //         stroke: "#69a6db",
+                //         strokeWidth: 5,
+                //     }}
+                //     markerStart="url(#square)"
+                //     markerEnd="url(#arrow)" />);
             }
-        }
-        return paths;
+        });
+        console.log(pathPoints);
+        // return paths;
+        return (<polyline
+            points={pathPoints}
+            style={{
+                opacity: 1,
+                stroke: "#69a6db",
+                strokeWidth: 5,
+            }}
+            fill="none"
+            // markerStart="url(#square)"
+            // markerEnd="url(#arrow)" 
+            marker-start="url(#markerSquare)"
+            marker-mid="url(#markerSquare)"
+            marker-end="url(#markerArrow)"
+        />);
     }
 
     @action togglePath = () => this.pathBoolean = !this.pathBoolean;
@@ -638,16 +673,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @computed get transitionDropdown() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-
-        if (activeItem) {
-            const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        if (activeItem && targetDoc) {
             const transitionSpeed = targetDoc.presTransition ? String(Number(targetDoc.presTransition) / 1000) : 0.5;
             const duration = targetDoc.presDuration ? String(Number(targetDoc.presDuration) / 1000) : 2;
             const transitionThumbLocation = String(-9.48 * Number(transitionSpeed) + 93);
             const durationThumbLocation = String(9.48 * Number(duration));
             const movement = activeItem.presZoomButton ? 'Zoom' : activeItem.presNavbutton ? 'Navigate' : 'None';
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
-            const visibility = activeItem.presFadeButton ? 'Fade' : activeItem.presHideTillShownButton ? 'Hide till shown' : activeItem.presHideAfter ? 'Hide on exit' : 'None';
             return (
                 <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                     <div className="ribbon-box">
@@ -669,16 +702,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div className={`slider-headers ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`}>
                             <div className={`slider-value ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`} style={{ left: transitionThumbLocation + '%' }}>{transitionSpeed}s</div>
                             <div className="slider-text">Slow</div>
-                            <div className="slider-text">Medium</div>
+                            <div className="slider-text"></div>
                             <div className="slider-text">Fast</div>
                         </div>
                     </div>
                     <div className="ribbon-box">
-                        Duration
-                        <div className="presBox-dropdown"
-                            onPointerDown={e => e.stopPropagation()}
-                        >
-                            {duration} seconds
+                        Visibility
+                        <div className="ribbon-doubleButton">
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton}>HB</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton}>HA</div></Tooltip>
                         </div>
                         <input type="range" step="0.1" min="0.1" max="10" value={duration} style={{ transform: 'rotate(0deg)' }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
                         <div className={"slider-headers"}>
@@ -709,11 +741,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </div>
                         <div className="effectDirection">
-                            <div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div>
-                            <div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div>
-                            <div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'top'}><FontAwesomeIcon icon={"angle-down"} /></div>
-                            <div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'bottom'}><FontAwesomeIcon icon={"angle-up"} /></div>
-                            <div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%" }} onClick={() => targetDoc.presEffectDirection = false}></div>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'top'}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'bottom'}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%" }} onClick={() => targetDoc.presEffectDirection = false}></div></Tooltip>
                         </div>
                     </div>
                     <div className="ribbon-final-box">
@@ -782,9 +814,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     </div>
                     <div className="ribbon-box">
                         Choose type:
-                        <div style={{ display: "flex", alignSelf: "center" }}>
-                            <div title="Text" className={`ribbon-button ${type === "text" ? "active" : ""}`} onClick={() => { type = "text"; }}>Text</div>
-                            <div title="Freeform" className={`ribbon-button ${type === "freeform" ? "active" : ""}`} onClick={() => { type = "freeform"; }}>Freeform</div>
+                        <div style={{ display: 'block', alignSelf: 'center' }}>
+                            <div title="Text" className={'ribbon-button'} style={{ background: type === 'text' ? "#000000" : "#f6f6f6" }} onClick={action(() => { type = "text"; })}>Text</div>
+                            <div title="Freeform" className={'ribbon-button'} style={{ background: type === 'freeform' ? "#000000" : "#f6f6f6" }} onClick={action(() => { type = "freeform"; })}>Freeform</div>
                         </div>
                     </div>
                     <div className="ribbon-final-box">
@@ -810,17 +842,43 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         );
     }
 
-    progressivizeOptions = (viewType: string) => {
-        const buttons = [];
-        buttons.push(<div className="ribbon-button" title="Progressivize child documents" onClick={this.progressivize}>Progressivize child documents</div>);
-        buttons.push(<div className="ribbon-button" title="Internal navigation" onClick={() => console.log("hide after")}>Internal navigation</div>);
-        if (viewType === "rtf") {
-            buttons.push(<div className="ribbon-button" title="Progressivize bullet points" onClick={() => console.log("hide after")}>Bullet points</div>);
+    // progressivizeOptions = (viewType: string) => {
+    //     const buttons = [];
+    //     buttons.push(<div className="ribbon-button" onClick={this.progressivize}>Child documents</div>);
+    //     buttons.push(<div className="ribbon-button" onClick={() => console.log("hide after")}>Internal zoom</div>);
+    //     buttons.push(<div className="ribbon-button" onClick={() => console.log("hide after")}>Bullet points</div>);
+    //     if (viewType === "rtf") {
+    //         buttons.push(<div className="ribbon-button" title="Progressivize bullet points" onClick={() => console.log("hide after")}>Bullet points</div>);
+    //     }
+    //     return buttons;
+    // }
+
+    @undoBatch
+    @action
+    nextKeyframe = (tagDoc: Doc): void => {
+        const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
+        const currentFrame = Cast(tagDoc.currentFrame, "number", null);
+        if (currentFrame === undefined) {
+            tagDoc.currentFrame = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
         }
-        return buttons;
+        CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
+        tagDoc.currentFrame = Math.max(0, (currentFrame || 0) + 1);
+        tagDoc.lastFrame = Math.max(NumCast(tagDoc.currentFrame), NumCast(tagDoc.lastFrame));
     }
 
-
+    @undoBatch
+    @action
+    prevKeyframe = (tagDoc: Doc): void => {
+        const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
+        const currentFrame = Cast(tagDoc.currentFrame, "number", null);
+        if (currentFrame === undefined) {
+            tagDoc.currentFrame = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
+        }
+        CollectionFreeFormDocumentView.gotoKeyframe(childDocs.slice());
+        tagDoc.currentFrame = Math.max(0, (currentFrame || 0) - 1);
+    }
 
     @computed get progressivizeDropdown() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
@@ -832,16 +890,38 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {targetDoc.type} selected
-                            <div className="selectedList">
-                                <div className="selectedList-items">1. {targetDoc.title}</div>
+                            <div className="selectedList" style={{ height: 'max-content' }}>
+                                <div className="selectedList-items">{targetDoc.title}</div>
+                            </div>
+                            <div className="ribbon-doubleButton">
+                                <div className="ribbon-frameSelector">
+                                    <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc); }}>
+                                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                                    </div>
+                                    <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: targetDoc.editing ? "#5a9edd" : "#5a9edd" }}
+                                        onClick={action(() => targetDoc.editing = !targetDoc.editing)} >
+                                        {NumCast(targetDoc.currentFrame)}
+                                    </div>
+                                    <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc); }}>
+                                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                                    </div>
+                                </div>
+                                <Tooltip title={<><div className="dash-tooltip">{"Last frame"}</div></>}><div style={{ fontWeight: 600, marginTop: 0, marginLeft: 3 }} className="ribbon-button">{NumCast(targetDoc.lastFrame)}</div></Tooltip>
                             </div>
                         </div>
                         <div className="ribbon-final-box">
-                            <div className="progressivizeEdit">
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} title="Progressivize child documents" onClick={this.progressivize}>Progressivize child documents</div>
-                                <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "block" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} title="Edit progresivize" onClick={this.editProgressivize}>Edit</div>
+                            <div className="ribbon-doubleButton">
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Child documents</div>
+                                <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "flex" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
-                            <div className="ribbon-button" title="Internal navigation" onClick={() => console.log("hide after")}>Internal navigation</div>
+                            <div className="ribbon-doubleButton">
+                                <div className="ribbon-button" onClick={this.progressivizeZoom}>Internal zoom</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.zoomProgressivize ? "#aedef8" : "" }} onClick={this.zoomProgressivize}>Edit</div>
+                            </div>
+                            <div className="ribbon-doubleButton">
+                                <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
+                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.textProgressivize ? "#aedef8" : "" }} onClick={this.textProgressivize}>Edit</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -849,8 +929,38 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    //Progressivize Zoom
     @action
-    editProgressivize = (e: React.MouseEvent) => {
+    zoomProgressivize = (e: React.MouseEvent) => {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        targetDoc.currentFrame = targetDoc.lastFrame;
+        if (targetDoc?.zoomProgressivize) {
+            targetDoc.zoomProgressivize = false;
+        } else {
+            targetDoc.zoomProgressivize = true;
+        }
+    }
+
+    @action
+    progressivizeZoom = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        activeItem.zoomProgressivize = !activeItem.zoomProgressivize;
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
+        targetDoc.zoomProgressivize = !targetDoc.zoomProgressivize;
+        console.log(targetDoc.zoomProgressivize);
+        if (activeItem.zoomProgressivize) {
+            console.log("progressivize");
+            targetDoc.currentFrame = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
+        }
+    }
+
+    //Progressivize Text nodes
+    @action
+    textProgressivize = (e: React.MouseEvent) => {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         targetDoc.currentFrame = targetDoc.lastFrame;
@@ -862,7 +972,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    progressivize = (e: React.MouseEvent) => {
+    progressivizeText = (e: React.MouseEvent) => {
         e.stopPropagation();
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         activeItem.presProgressivize = !activeItem.presProgressivize;
@@ -878,67 +988,163 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    //Progressivize Child Docs
+    @action
+    editProgressivize = (e: React.MouseEvent) => {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        targetDoc.currentFrame = targetDoc.lastFrame;
+        if (targetDoc?.editProgressivize) {
+            targetDoc.editProgressivize = false;
+        } else {
+            targetDoc.editProgressivize = true;
+        }
+    }
+
+    @action
+    progressivizeChild = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
+        if (!activeItem.presProgressivize) {
+            activeItem.presProgressivize = true;
+            targetDoc.presProgressivize = true;
+            targetDoc.currentFrame = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
+            targetDoc.lastFrame = docs.length - 1;
+        } else {
+            activeItem.presProgressivize = false;
+            targetDoc.presProgressivize = false;
+            docs.forEach((doc, index) => {
+                doc.appearFrame = 0;
+            });
+            targetDoc.currentFrame = 0;
+            targetDoc.lastFrame = 0;
+        }
+    }
+
+    @action
+    checkMovementLists = (doc: Doc, xlist: any, ylist: any) => {
+        const x: List<number> = xlist;
+        const y: List<number> = ylist;
+        const tags: JSX.Element[] = [];
+        let pathPoints = ""; //List of all of the paths that need to be added
+        // console.log(x);
+        // console.log(x.length);
+        // console.log(x[0]);
+        for (let i = 0; i < x.length - 1; i++) {
+            if (y[i] || x[i]) {
+                if (i === 0) pathPoints = (x[i] - 11) + "," + (y[i] + 33);
+                else pathPoints = pathPoints + " " + (x[i] - 11) + "," + (y[i] + 33);
+                tags.push(<div className="progressivizeMove-frame" style={{ position: 'absolute', top: y[i], left: x[i] }}>{i}</div>);
+            }
+        }
+        tags.push(<svg style={{ overflow: 'visible', position: 'absolute' }}><polyline
+            points={pathPoints}
+            style={{
+                position: 'absolute',
+                opacity: 1,
+                stroke: "#000000",
+                strokeWidth: 2,
+            }}
+            fill="none"
+        /></svg>);
+        return tags;
+    }
+
+    @observable
+    toggleDisplayMovement = (doc: Doc) => {
+        if (doc.displayMovement) doc.displayMovement = false;
+        else doc.displayMovement = true;
+    }
+
     @computed get progressivizeChildDocs() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
         const docs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
         const tags: JSX.Element[] = [];
         docs.forEach((doc, index) => {
+            if (doc["x-indexed"] && doc["y-indexed"]) {
+                tags.push(<div style={{ position: 'absolute', display: doc.displayMovement ? "block" : "none" }}>{this.checkMovementLists(doc, doc["x-indexed"], doc["y-indexed"])}</div>);
+            }
             tags.push(
-                <div className="progressivizeButton" style={{ top: NumCast(doc.y), left: NumCast(doc.x) }}>{doc.appearFrame}</div>
-            );
+                <div className="progressivizeButton" onPointerLeave={() => { if (NumCast(targetDoc.currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0; }} onPointerOver={() => { if (NumCast(targetDoc.currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0.5; }} onClick={e => { this.toggleDisplayMovement(doc); e.stopPropagation(); }} style={{ backgroundColor: doc.displayMovement ? "#aedff8" : "#c8c8c8", top: NumCast(doc.y), left: NumCast(doc.x) }}>
+                    <div className="progressivizeButton-prev"><FontAwesomeIcon icon={"caret-left"} size={"lg"} onClick={e => { e.stopPropagation(); this.prevAppearFrame(doc, index); }} /></div>
+                    <div className="progressivizeButton-frame">{doc.appearFrame}</div>
+                    <div className="progressivizeButton-next"><FontAwesomeIcon icon={"caret-right"} size={"lg"} onClick={e => { e.stopPropagation(); this.nextAppearFrame(doc, index); }} /></div>
+                </div>);
         });
         return tags;
     }
 
+    @undoBatch
+    @action
+    nextAppearFrame = (doc: Doc, i: number): void => {
+        console.log("next");
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        const appearFrame = Cast(doc.appearFrame, "number", null);
+        if (appearFrame === undefined) {
+            doc.appearFrame = 0;
+        }
+        doc.appearFrame = appearFrame + 1;
+        const olist = new List<number>(numberRange(NumCast(targetDoc.lastFrame)).map(t => targetDoc.presProgressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
+        doc["opacity-indexed"] = olist;
+        console.log(doc.appearFrame);
+    }
 
+    @undoBatch
+    @action
+    prevAppearFrame = (doc: Doc, i: number): void => {
+        console.log("prev");
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        const appearFrame = Cast(doc.appearFrame, "number", null);
+        if (appearFrame === undefined) {
+            doc.appearFrame = 0;
+        }
+        doc.appearFrame = Math.max(0, appearFrame - 1);
+        const olist = new List<number>(numberRange(NumCast(targetDoc.lastFrame)).map(t => targetDoc.presProgressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
+        doc["opacity-indexed"] = olist;
+        console.log(doc.appearFrame);
+    }
 
     @computed get moreInfoDropdown() {
         return (<div></div>);
     }
 
-    @computed get effectOpenBracket() {
-        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-        if (targetDoc.presEffect && this.itemIndex) {
-            return ("<" + targetDoc.presEffect + "when=" + this.layoutDoc === PresBox.Instance.childDocs[this.itemIndex].presentationTargetDoc + ">");
-        } else return;
-    }
-
-    @computed get effectCloseBracket() {
-        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-        if (targetDoc.presEffect && this.itemIndex) {
-            return ("</" + targetDoc.presEffect + ">");
-        } else return;
-    }
-
     @computed get toolbar() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-
+        const parent = document.getElementById('toolbarContainer');
+        let width = 0;
+        if (parent) width = parent.offsetWidth;
+        console.log(width);
         if (activeItem) {
             return (
                 <>
-                    <div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={this.toggleNewDocument}><FontAwesomeIcon icon={"plus"} />
+                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={this.toggleNewDocument}><FontAwesomeIcon icon={"plus"} />
                         <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
-                    </div>
+                    </div></Tooltip>
                     <div className="toolbar-divider" />
-                    <div className={`toolbar-button ${this.pathBoolean ? "active" : ""}`}><FontAwesomeIcon title={"View Paths"} icon={"object-group"} onClick={this.viewPaths} /></div>
+                    <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}><div className={`toolbar-button ${this.pathBoolean ? "active" : ""}`}>
+                        <FontAwesomeIcon icon={"object-group"} onClick={this.viewPaths} />
+                    </div></Tooltip>
                     {/* <div className="toolbar-button"><FontAwesomeIcon title={"Portal"} icon={"eye"} onClick={this.toolbarTest} /></div> */}
                     <div className="toolbar-divider" />
                     <div className={`toolbar-button ${this.transitionTools ? "active" : ""}`} onClick={this.toggleTransitionTools}>
                         <FontAwesomeIcon icon={"rocket"} />
-                        <div className="toolbar-buttonText">&nbsp; Transitions</div>
+                        <div style={{ display: width > 400 ? "block" : "none" }} className="toolbar-buttonText">&nbsp; Transitions</div>
                         <FontAwesomeIcon className={`dropdown ${this.transitionTools ? "active" : ""}`} icon={"angle-down"} />
                     </div>
                     <div className="toolbar-divider" />
                     <div className={`toolbar-button ${this.progressivizeTools ? "active" : ""}`} onClick={this.toggleProgressivize}>
                         <FontAwesomeIcon icon={"tasks"} />
-                        <div className="toolbar-buttonText">&nbsp; Progressivize</div>
+                        <div style={{ display: width > 400 ? "block" : "none" }} className="toolbar-buttonText">&nbsp; Progressivize</div>
                         <FontAwesomeIcon className={`dropdown ${this.progressivizeTools ? "active" : ""}`} icon={"angle-down"} />
                     </div>
                     <div className="toolbar-divider" />
-                    <div className="toolbar-button">
+                    <div className="toolbar-button" style={{ position: 'absolute', right: 23, transform: 'rotate(45deg)', fontSize: 16 }}>
                         <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"thumbtack"} />
                     </div>
                     <div className={`toolbar-button ${this.moreInfoTools ? "active" : ""}`} onClick={this.toggleMoreInfo}>
@@ -977,7 +1183,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     render() {
         this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields 
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
-        return <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
+        return <div onPointerOver={this.onPointerOver} onPointerLeave={this.onPointerLeave} className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
                 <select className="presBox-viewPicker"
                     onPointerDown={e => e.stopPropagation()}
@@ -1010,7 +1216,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     </div>
                 </div>
             </div>
-            <div className={`presBox-toolbar ${this.layoutDoc.presStatus === "edit" ? "active" : ""}`}> {this.toolbar} </div>
+            <div id="toolbarContainer" className={`presBox-toolbar ${this.layoutDoc.presStatus === "edit" ? "active" : ""}`}> {this.toolbar} </div>
             {this.newDocumentDropdown}
             {this.moreInfoDropdown}
             {this.transitionDropdown}
@@ -1038,7 +1244,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 }
 Scripting.addGlobal(function lookupPresBoxField(container: Doc, field: string, data: Doc) {
     if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
-    if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
+    if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 30 : 26;
     if (field === 'presStatus') return container.presStatus;
     if (field === '_itemIndex') return container._itemIndex;
     if (field === 'presBox') return container;

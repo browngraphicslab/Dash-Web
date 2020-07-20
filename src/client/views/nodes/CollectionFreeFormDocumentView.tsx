@@ -119,18 +119,23 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
-            const oarray: number[] = [];
+            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
+            let oarray: List<number>;
             console.log(doc.title + "AF: " + doc.appearFrame);
             console.log("timecode: " + timecode);
+            oarray = olist;
             oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
             oarray.fill(1, NumCast(doc.appearFrame), timecode);
+            // oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
+            // oarray.fill(1, NumCast(doc.appearFrame), timecode);
             console.log(oarray);
             xlist[curTimecode] = NumCast(doc.x);
             ylist[curTimecode] = NumCast(doc.y);
+            doc.xArray = xlist;
+            doc.yArray = ylist;
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
-            doc["opacity-indexed"] = olist;
+            doc["opacity-indexed"] = oarray;
             doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
@@ -157,14 +162,23 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight} />;
         if (this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
+            const effectProps = {
+                left: this.layoutDoc.presEffectDirection === 'left',
+                right: this.layoutDoc.presEffectDirection === 'right',
+                top: this.layoutDoc.presEffectDirection === 'top',
+                bottom: this.layoutDoc.presEffectDirection === 'bottom',
+                opposite: true,
+                delay: this.layoutDoc.presTransition,
+                // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
+            };
             switch (this.layoutDoc.presEffect) {
-                case "Zoom": return (<Zoom>{node}</Zoom>); break;
-                case "Fade": return (<Fade>{node}</Fade>); break;
-                case "Flip": return (<Flip>{node}</Flip>); break;
-                case "Rotate": return (<Rotate>{node}</Rotate>); break;
-                case "Bounce": return (<Bounce>{node}</Bounce>); break;
-                case "Roll": return (<Roll>{node}</Roll>); break;
-                case "LightSpeed": return (<LightSpeed>{node}</LightSpeed>); break;
+                case "Zoom": return (<Zoom {...effectProps}>{node}</Zoom>); break;
+                case "Fade": return (<Fade {...effectProps}>{node}</Fade>); break;
+                case "Flip": return (<Flip {...effectProps}>{node}</Flip>); break;
+                case "Rotate": return (<Rotate {...effectProps}>{node}</Rotate>); break;
+                case "Bounce": return (<Bounce {...effectProps}>{node}</Bounce>); break;
+                case "Roll": return (<Roll {...effectProps}>{node}</Roll>); break;
+                case "LightSpeed": return (<LightSpeed {...effectProps}>{node}</LightSpeed>); break;
                 case "None": return node; break;
                 default: return node; break;
             }

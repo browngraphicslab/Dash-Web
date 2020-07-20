@@ -46,21 +46,69 @@
     }
 }
 
+.pathOrder {
+    position: absolute;
+    z-index: 200000;
+
+    .pathOrder-frame {
+        position: absolute;
+        width: 40;
+        text-align: center;
+        font-size: 30;
+        background-color: #69a6db;
+        font-family: Roboto;
+        font-weight: 300;
+    }
+}
+
 .progressivizeButton {
     position: absolute;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 20px auto;
     transform: translate(-105%, 0);
     align-items: center;
     border: black solid 1px;
     border-radius: 3px;
     justify-content: center;
-    width: 30;
+    width: 40;
+    z-index: 30000;
     height: 20;
-    background-color: #c8c8c8;
+    overflow: hidden;
+    background-color: #d5dce2;
+    transition: all 1s;
+
+    .progressivizeButton-prev:hover {
+        color: #5a9edd;
+    }
+
+    .progressivizeButton-frame {
+        justify-self: center;
+        text-align: center;
+        width: 15px;
+    }
+
+    .progressivizeButton-next:hover {
+        color: #5a9edd;
+    }
+}
+
+.progressivizeMove-frame {
+    width: 40px;
+    border-radius: 2px;
+    z-index: 100000;
+    color: white;
+    text-align: center;
+    background-color: #5a9edd;
+    transform: translate(-105%, -110%);
 }
 
 .progressivizeButton:hover {
-    background-color: #aedef8;
+    box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.5);
+
+    .progressivizeButton-frame {
+        background-color: #5a9edd;
+        color: white;
+    }
 }
 
 .collectionFreeform-customText {

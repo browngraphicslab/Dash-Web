@@ -17,6 +17,7 @@ import React = require("react");
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { PresBox } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { Tooltip } from "@material-ui/core";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -214,6 +215,20 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
             </div>;
     }
 
+    @computed get duration() {
+        let durationInS: number;
+        if (this.targetDoc.presDuration) durationInS = NumCast(this.targetDoc.presDuration) / 1000;
+        else durationInS = 2;
+        return "D: " + durationInS + "s";
+    }
+
+    @computed get transition() {
+        let transitionInS: number;
+        if (this.targetDoc.presTransition) transitionInS = NumCast(this.targetDoc.presTransition) / 1000;
+        else transitionInS = 0.5;
+        return "T: " + transitionInS + "s";
+    }
+
     render() {
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (this.itemIndex === this.indexInPres ? " presElementBox-active" : "");
@@ -232,7 +247,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         console.log("normal click");
                     }
                 }}
-            // onPointerDown={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
             >
                 {treecontainer ? (null) : <>
                     <div className="presElementBox-number">
@@ -241,8 +256,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presElementBox-name">
                         {`${this.targetDoc?.title}`}
                     </div>
-                    <div className="presElementBox-time">{"Transition speed: " + (this.targetDoc?.presTransition) + "ms"}</div>
-                    <div className="presElementBox-time" style={{ display: this.targetDoc.presDuration ? "block" : "none" }}>{"Duration: " + (this.targetDoc?.presDuration) + "ms"}</div>
+                    <Tooltip title={<><div className="dash-tooltip">{"Transition speed"}</div></>}><div className="presElementBox-time">{this.transition}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time">{this.duration}</div></Tooltip>
                     <button
                         title="Close"
                         className="presElementBox-closeIcon"
@@ -258,13 +273,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </button>
                 </>}
                 <div className="presElementBox-highlight" style={{ display: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "block" : "none" }} />
-                <div className="presElementBox-buttons">
+                <div className="presElementBox-buttons" style={{ display: this.rootDoc.presExpandInlineButton ? "grid" : "none" }}>
                     <button title="Zoom" className={pbi + (this.rootDoc.presZoomButton ? "-selected" : "")} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search-plus"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Navigate" className={pbi + (this.rootDoc.presNavButton ? "-selected" : "")} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Hide Before" className={pbi + (this.rootDoc.presHideTillShownButton ? "-selected" : "")} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={"file"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Fade After" className={pbi + (this.rootDoc.presFadeButton ? "-selected" : "")} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Progressivize" className={pbi + (this.rootDoc.presProgressivize ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button>
+                    <button title="Effect" className={pbi + (this.rootDoc.presEffect ? "-selected" : "")}>E</button>
                 </div>
                 {this.renderEmbeddedInline}
             </div>

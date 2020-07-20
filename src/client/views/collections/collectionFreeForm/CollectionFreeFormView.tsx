@@ -1408,7 +1408,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     centeringShiftX={this.centeringShiftX}
                     centeringShiftY={this.centeringShiftY}
                     presPaths={BoolCast(this.Document.presPathView)}
-                    // progressivize={BoolCast(this.Document.editProgressivize)}
+                    progressivize={BoolCast(this.Document.editProgressivize)}
                     transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                     viewDefDivClick={this.props.viewDefDivClick}
                     zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1493,44 +1493,56 @@ interface CollectionFreeFormViewPannableContentsProps {
     children: () => JSX.Element[];
     transition?: string;
     presPaths?: boolean;
-    // progressivize?: boolean;
+    progressivize?: boolean;
 }
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
-    // @computed get progressivize() {
-    //     if (this.props.progressivize) {
-    //         console.log("should render");
-    //         return (
-    //             <>
-    //                 {PresBox.Instance.progressivizeChildDocs}
-    //             </>
-    //         );
-    //     }
-    // }
+    @computed get progressivize() {
+        if (this.props.progressivize) {
+            console.log("should render");
+            return (
+                <>
+                    {PresBox.Instance.progressivizeChildDocs}
+                </>
+            );
+        }
+    }
 
     @computed get presPaths() {
         const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
         if (this.props.presPaths) {
             return (
-                <svg className={presPaths}>
-                    <defs>
-                        <marker id="arrow" markerWidth="5" overflow="visible" markerHeight="3" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
-                            <path d="M0,0 L0,6 L9,3 z" fill="#40B3D8" />
-                        </marker>
-                        <marker id="square" markerWidth="3" markerHeight="3"
-                            refX="5" refY="5" orient="auto">
-                            <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#40B3D8" />
-                        </marker>
-                    </defs>;
+                <>
+                    <div>{PresBox.Instance.order}</div>
+                    <svg className={presPaths}>
+                        <defs>
+                            <marker id="arrow" markerWidth="3" overflow="visible" markerHeight="3" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                                <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
+                            </marker>
+                            <marker id="square" markerWidth="3" markerHeight="3" overflow="visible"
+                                refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                                <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#69a6db" />
+                            </marker>
+                            <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
+                                orient="auto" overflow="visible">
+                                <rect width="3" height="3" fill="#69a6db" />
+                            </marker>
+
+                            <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="3"
+                                orient="auto" overflow="visible">
+                                <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
+                            </marker>
+                        </defs>;
                     {PresBox.Instance.paths}
-                </svg>
+                    </svg>
+                </>
             );
         }
     }
 
     render() {
-        trace();
+        // trace();
         const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : "-none");
         const cenx = this.props.centeringShiftX();
         const ceny = this.props.centeringShiftY();
@@ -1544,7 +1556,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             }}>
             {this.props.children()}
             {this.presPaths}
-            {/* {this.progressivize} */}
+            {this.progressivize}
         </div>;
     }
 }

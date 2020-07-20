@@ -1,14 +1,13 @@
 .presElementBox-item {
     display: grid;
-    grid-template-rows: max-content max-content max-content;
-    background-color: #d0d0d0;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    grid-template-columns: max-content max-content max-content;
+    background-color: #d5dce2;
+    box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.25);
     position: relative;
     pointer-events: all;
     width: 100%;
     height: 100%;
-    outline-color: maroon;
-    outline-style: dashed;
+    font-weight: 400;
     border-radius: 6px;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -16,7 +15,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    transition: all .1s;
+    transition: all .3s;
     padding: 0px;
     padding-bottom: 3px;
 
@@ -88,26 +87,36 @@
 }
 
 .presElementBox-name {
+    align-self: center;
     font-size: 13px;
+    font-family: Roboto;
+    font-weight: 500;
     position: relative;
-    left: 10px;
-    top: 4px;
+    top: 1px;
+    padding-left: 10px;
+    padding-right: 10px;
     letter-spacing: normal;
-    width: calc(100% - 60px);
+    max-width: max-content;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: pre;
 }
 
 .presElementBox-time {
+    align-self: center;
     position: relative;
-    font-size: 8;
-    font-style: italic;
+    top: 2px;
+    padding-right: 10px;
+    font-size: 10;
+    font-weight: 300;
+    font-family: Roboto;
+    /* font-style: italic; */
     letter-spacing: normal;
-    left: 10px;
+    /* left: 10px; */
 }
 
 .presElementBox-embedded {
+    grid-column: 1/8;
     position: relative;
     display: flex;
     width: auto;
@@ -119,10 +128,11 @@
     width: 100%;
     height: 100%;
     position: absolute;
-    left: 0;
+    border-radius: 3px;
     top: 0;
-    background: transparent;
-    z-index: 2;
+    left: 0;
+    z-index: 1;
+    overflow: hidden;
 }
 
 .presElementBox-closeIcon {

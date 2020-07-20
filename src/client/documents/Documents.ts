@@ -133,8 +133,11 @@ export interface DocumentOptions {
     currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
+    appearFrame?: number; // the frame in which the document appears
     presTransition?: number; //the time taken for the transition TO a document
     presDuration?: number; //the duration of the slide in presentation view
+    // xArray?: number[];
+    // yArray?: number[];
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;

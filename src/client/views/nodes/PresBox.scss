@@ -3,6 +3,7 @@
     display: block;
     pointer-events: inherit;
     z-index: 2;
+    font-family: Roboto;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     width: 100%;
     min-width: 20px;
@@ -16,7 +17,7 @@
         position: relative;
         height: calc(100% - 25px);
         width: 100%;
-        margin-top: 10px;
+        margin-top: 3px;
     }
 
     .presBox-toolbar {
@@ -39,12 +40,6 @@
             display: flex;
             align-items: center;
             transition: 0.5s;
-
-            @media only screen and (max-width: 400) {
-                .toolbar-buttonText {
-                    display: none;
-                }
-            }
         }
 
         .toolbar-button.active {
@@ -116,12 +111,17 @@
 .presBox-ribbon {
     position: relative;
     display: none;
+    font-family: Roboto;
     background-color: white;
     color: black;
     width: 100%;
     height: 0;
     z-index: 100;
     transition: 0.7s;
+
+    .ribbon-doubleButton {
+        display: inline-flex;
+    }
 
     .toolbar-slider {
         position: relative;
@@ -199,14 +199,54 @@
 
     .ribbon-textInput {
         border-radius: 2px;
-        height: 25px;
+        height: 20px;
         font-size: 10;
         font-weight: 100;
         align-self: center;
         justify-self: center;
         padding-left: 10px;
         border: solid 1px black;
+        min-width: 80px;
         width: 100%;
+    }
+
+    .ribbon-frameSelector {
+        border: black solid 1px;
+        width: 60px;
+        height: 20px;
+        display: grid;
+        grid-template-columns: auto 27px auto;
+        position: relative;
+        border-radius: 5px;
+        overflow: hidden;
+        align-items: center;
+        justify-self: left;
+
+        .fwdKeyframe,
+        .backKeyframe {
+            cursor: pointer;
+            position: relative;
+            height: 100%;
+            background: #d5dce2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: black;
+        }
+
+        .numKeyframe {
+            font-size: 10;
+            font-weight: 600;
+            position: relative;
+            color: black;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
     }
 
     .ribbon-final-box {
@@ -279,10 +319,12 @@
     .ribbon-button {
         font-size: 10;
         font-weight: 200;
-        height: 25;
+        height: 20;
         border: solid 1px black;
         display: flex;
-        border-radius: 10px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        border-radius: 5px;
         margin-right: 5px;
         width: max-content;
         justify-content: center;
@@ -326,8 +368,8 @@
                 display: block;
                 padding-left: 5px;
                 padding-right: 5px;
-                margin-top: 3;
-                margin-bottom: 3;
+                padding-top: 3;
+                padding-bottom: 3;
             }
 
             .presBox-dropdownOption:hover {
@@ -337,7 +379,7 @@
 
             .presBox-dropdownOption.active {
                 position: relative;
-                background-color: #9CE2F8;
+                background-color: #aedef8;
             }
 
             .presBox-dropdownOptions {
