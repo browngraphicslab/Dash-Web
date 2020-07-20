@@ -23,6 +23,7 @@ import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
 import GroupManager from "../util/GroupManager";
+import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -109,6 +110,7 @@ export default class KeyManager {
                 HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();
+                CollectionFreeFormViewChrome.Instance.clearKeep();
                 break;
             case "delete":
             case "backspace":

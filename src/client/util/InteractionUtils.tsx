@@ -112,7 +112,11 @@ export namespace InteractionUtils {
                 }
             }
         } else {
-            pts = points;
+            pts = points.slice();
+            // bcz: Ugh... this is ugly, but shapes apprently have an extra point added that is = (p[0].x,p[0].y+1) as some sort of flag.  need to remove it here.
+            if (pts.length > 2 && pts[pts.length - 2].X === pts[0].X && pts[pts.length - 2].Y === pts[0].Y) {
+                pts.pop();
+            }
         }
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},

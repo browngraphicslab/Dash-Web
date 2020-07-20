@@ -38,7 +38,6 @@ import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import InkOptionsMenu from './collections/collectionFreeForm/InkOptionsMenu';
 import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionView, CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
@@ -392,7 +391,7 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (InkOptionsMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
+    sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
@@ -466,7 +465,7 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
-        const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (InkOptionsMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
+        const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
@@ -613,7 +612,6 @@ export class MainView extends React.Component {
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
             <CollectionMenu />
-            <InkOptionsMenu />
             <FormatShapePane />
             <RichTextMenu key="rich" />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}

@@ -51,7 +51,6 @@ enum UtilityButtonState {
 
 @observer
 export class DocumentButtonBar extends React.Component<{ views: () => (DocumentView | undefined)[], stack?: any }, {}> {
-    private _linkButton = React.createRef<HTMLDivElement>();
     private _dragRef = React.createRef<HTMLDivElement>();
     private _pullAnimating = false;
     private _pushAnimating = false;

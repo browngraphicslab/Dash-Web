@@ -93,9 +93,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (doubleTap && this.props.InMenu && !!!this.props.StartLink) {
                 if (DocumentLinksButton.StartLink === this.props.View) {
                     DocumentLinksButton.StartLink = undefined;
-                    // action((e: React.PointerEvent<HTMLDivElement>) => {
-                    //     Doc.UnBrushDoc(this.props.View.Document);
-                    // });
                 } else {
 
                     if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
@@ -126,13 +123,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     finishLinkClick = (e: React.MouseEvent) => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
-            // action((e: React.PointerEvent<HTMLDivElement>) => {
-            //     Doc.UnBrushDoc(this.props.View.Document);
-            // });
         } else {
             if (this.props.InMenu && !!!this.props.StartLink) {
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                    // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
+                    runInAction(() => DocumentLinksButton.StartLink!._link = this.props.View._link = linkDoc);
+                    setTimeout(action(() => DocumentLinksButton.StartLink!._link = this.props.View._link = undefined), 0);
                     LinkManager.currentLink = linkDoc;
 
                     runInAction(() => {

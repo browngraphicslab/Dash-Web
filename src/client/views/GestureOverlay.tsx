@@ -22,7 +22,7 @@ import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
+import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -603,12 +603,12 @@ export default class GestureOverlay extends Touchable {
                         break;
                 }
             }
-            //if any of the shape is activated in the InkOptionsMenu
+            //if any of the shape is activated in the CollectionFreeFormViewChrome
             else if (this.InkShape) {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (!InkOptionsMenu.Instance._keepMode) {
+                if (!CollectionFreeFormViewChrome.Instance._keepMode) {
                     this.InkShape = "";
                 }
             }
@@ -639,9 +639,9 @@ export default class GestureOverlay extends Touchable {
             this._points = [];
         }
         //get out of ink mode after each stroke=
-        if (!InkOptionsMenu.Instance._keepMode) {
+        if (!CollectionFreeFormViewChrome.Instance._keepMode) {
             Doc.SetSelectedTool(InkTool.None);
-            InkOptionsMenu.Instance._selected = InkOptionsMenu.Instance._shapesNum;
+            CollectionFreeFormViewChrome.Instance._selected = CollectionFreeFormViewChrome.Instance._shapesNum;
             SetActiveArrowStart("none");
             GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
             SetActiveArrowEnd("none");

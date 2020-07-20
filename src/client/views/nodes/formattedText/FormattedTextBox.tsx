@@ -232,6 +232,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
+            let unchanged = true;
             if (GetEffectiveAcl(this.dataDoc) === AclEdit) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
@@ -243,21 +244,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
                             this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                             ScriptCast(this.layoutDoc.onTextChanged, null)?.script.run({ this: this.layoutDoc, self: this.rootDoc, text: curText });
+                            unchanged = false;
                         }
                     } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                         this.dataDoc[this.props.fieldKey] = undefined;
                         this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
                         this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
+                        unchanged = false;
                     }
                     this._applyingChange = false;
+                    if (!unchanged) {
+                        this.updateTitle();
+                        this.tryUpdateHeight();
+                    }
                 }
             } else {
                 const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
                 json.selection = state.toJSON().selection;
                 this._editorView.updateState(EditorState.fromJSON(this.config, json));
             }
-            this.updateTitle();
-            this.tryUpdateHeight();
         }
     }
 
@@ -1036,7 +1041,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._editorView?.destroy();
     }
 
-    static _downEvent: any;
+    _downEvent: any;
     _downX = 0;
     _downY = 0;
     _break = false;
@@ -1056,7 +1061,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._downX = e.clientX;
         this._downY = e.clientY;
         this.doLinkOnDeselect();
-        FormattedTextBox._downEvent = true;
+        this._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
@@ -1072,8 +1077,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        if (!FormattedTextBox._downEvent) return;
-        FormattedTextBox._downEvent = false;
+        if (!this._downEvent) return;
+        this._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
@@ -1092,7 +1097,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     onDoubleClick = (e: React.MouseEvent): void => {
 
         this.doLinkOnDeselect();
-        FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
@@ -1244,7 +1248,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     richTextMenuPlugin() {
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance && RichTextMenu.Instance.changeView(newView);
+                RichTextMenu.Instance?.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });

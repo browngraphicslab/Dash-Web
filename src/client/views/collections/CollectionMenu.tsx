@@ -1,5 +1,5 @@
 import React = require("react");
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FontAwesomeIcon, FontAwesomeIconProps } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction, Lambda } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, Opt } from "../../../fields/Doc";
@@ -15,6 +15,15 @@ import { List } from "../../../fields/List";
 import { EditableView } from "../EditableView";
 import { Id } from "../../../fields/FieldSymbols";
 import { listSpec } from "../../../fields/Schema";
+import FormatShapePane from "./collectionFreeForm/FormatShapePane";
+import { ActiveFillColor, SetActiveInkWidth, ActiveInkColor, SetActiveBezierApprox, SetActiveArrowEnd, SetActiveArrowStart, SetActiveFillColor, SetActiveInkColor } from "../InkingStroke";
+import GestureOverlay from "../GestureOverlay";
+import { InkTool } from "../../../fields/InkField";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Document } from "../../../fields/documentSchemas";
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentView } from "../nodes/DocumentView";
+import { ColorState } from "react-color";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -62,37 +71,37 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
-        params: ["target", "source"], title: "=> item view",
-        script: "this.target.childLayout = getDocTemplate(this.source?.[0])",
-        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayout = Doc.getDocTemplate(source?.[0]))),
+        params: ["target", "source"], title: "item view",
+        script: "this.target.childLayoutTemplate = getDocTemplate(this.source?.[0])",
+        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
-        params: ["target", "source"], title: "=> child click view",
+        params: ["target", "source"], title: "child click view",
         script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
         immediate: undoBatch((source: Doc[]) => source.length && (this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _contentCommand = {
-        params: ["target", "source"], title: "=> clear content",
+        params: ["target", "source"], title: "clear content",
         script: "getProto(this.target).data = copyField(this.source);",
         immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
         initialize: emptyFunction,
     };
     _viewCommand = {
-        params: ["target"], title: "=> reset view",
-        script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; }),
-        initialize: (button: Doc) => { button.restoredPanX = this.target._panX; button.restoredPanY = this.target._panY; button.restoredScale = this.target.scale; },
+        params: ["target"], title: "bookmark view",
+        script: "this.target._panX = this['target-panX']; this.target._panY = this['target-panY']; this.target._viewScale = this['target-viewScale'];",
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
     };
     _clusterCommand = {
-        params: ["target"], title: "=> fit content",
+        params: ["target"], title: "fit content",
         script: "this.target._fitToBox = !this.target._fitToBox;",
         immediate: undoBatch((source: Doc[]) => this.target._fitToBox = !this.target._fitToBox),
         initialize: emptyFunction
     };
     _fitContentCommand = {
-        params: ["target"], title: "=> toggle clusters",
+        params: ["target"], title: "toggle clusters",
         script: "this.target.useClusters = !this.target.useClusters;",
         immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
         initialize: emptyFunction
@@ -211,9 +220,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get templateChrome() {
         return <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
-                <div className="commandEntry-drop">
-                    <FontAwesomeIcon icon="bullseye" size="2x" />
-                </div>
+                <button className={"antimodeMenu-button"} >
+                    <FontAwesomeIcon icon="bullseye" size="lg" />
+                </button>
                 <select
                     className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}>
                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
@@ -228,9 +237,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get viewModes() {
         return <div className="collectionViewBaseChrome-viewModes" >
             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
-                <div className="commandEntry-drop">
-                    <FontAwesomeIcon icon="bullseye" size="2x" />
-                </div>
+                <button className={"antimodeMenu-button"}>
+                    <FontAwesomeIcon icon="bullseye" size="lg" />
+                </button>
                 <select
                     className="collectionViewBaseChrome-viewPicker"
                     onPointerDown={stopPropagation}
@@ -256,12 +265,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
                         {this.viewModes}
-                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
-                            <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.toggleViewSpecs} >
-                                <FontAwesomeIcon icon="filter" size="2x" />
-                            </div>
-                        </div>
                         {this.templateChrome}
+                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
+                            <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
+                                <FontAwesomeIcon icon="filter" size="lg" />
+                            </button>
+                        </div>
                     </div>
                     {this.subChrome}
                 </div>
@@ -272,7 +281,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
 @observer
 export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps> {
-
+    public static Instance: CollectionFreeFormViewChrome;
+    constructor(props: any) {
+        super(props);
+        CollectionFreeFormViewChrome.Instance = this;
+    }
     get Document() { return this.props.CollectionView.props.Document; }
     @computed get dataField() {
         return this.props.CollectionView.props.Document[Doc.LayoutFieldKey(this.props.CollectionView.props.Document)];
@@ -303,6 +316,144 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
+    private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
+    private _width = ["1", "5", "10", "100"];
+    private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
+    private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
+    private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
+    private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
+
+    @observable _shapesNum = this._shape.length;
+    @observable _selected = this._shapesNum;
+
+    @observable _keepMode = false;
+
+    @observable _colorBtn = false;
+    @observable _widthBtn = false;
+    @observable _fillBtn = false;
+
+    @action
+    clearKeep() { this._selected = this._shapesNum; }
+
+    @action
+    changeColor = (color: string, type: string) => {
+        const col: ColorState = {
+            hex: color, hsl: { a: 0, h: 0, s: 0, l: 0, source: "" }, hsv: { a: 0, h: 0, s: 0, v: 0, source: "" },
+            rgb: { a: 0, r: 0, b: 0, g: 0, source: "" }, oldHue: 0, source: "",
+        };
+        if (type === "color") {
+            SetActiveInkColor(Utils.colorString(col));
+        } else if (type === "fill") {
+            SetActiveFillColor(Utils.colorString(col));
+        }
+    }
+
+    @action
+    editProperties = (value: any, field: string) => {
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK) {
+                switch (field) {
+                    case "width": doc.strokeWidth = Number(value); break;
+                    case "color": doc.color = String(value); break;
+                    case "fill": doc.fillColor = String(value); break;
+                    case "dash": doc.strokeDash = value;
+                }
+            }
+        }));
+    }
+
+    @computed get drawButtons() {
+        const func = action((i: number, keep: boolean) => {
+            this._keepMode = keep;
+            if (this._selected !== i) {
+                this._selected = i;
+                Doc.SetSelectedTool(InkTool.Pen);
+                SetActiveArrowStart(this._head[i]);
+                SetActiveArrowEnd(this._end[i]);
+                SetActiveBezierApprox("300");
+
+                GestureOverlay.Instance.InkShape = this._shape[i];
+            } else {
+                this._selected = this._shapesNum;
+                Doc.SetSelectedTool(InkTool.None);
+                SetActiveArrowStart("");
+                SetActiveArrowEnd("");
+                GestureOverlay.Instance.InkShape = "";
+                SetActiveBezierApprox("0");
+            }
+        });
+        return <div className="btn-draw" key="draw">
+            {this._draw.map((icon, i) =>
+                <button className="antimodeMenu-button" key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
+                    style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
+                    {this._draw[i]}
+                </button>)}
+        </div>;
+    }
+
+    toggleButton = (key: string, value: boolean, setter: () => {}, icon: FontAwesomeIconProps["icon"], ele: JSX.Element | null) => {
+        return <button className="antimodeMenu-button" key={key} title={key}
+            onPointerDown={action(e => setter())}
+            style={{ backgroundColor: value ? "121212" : "" }}>
+            <FontAwesomeIcon icon={icon} size="lg" />
+            {ele}
+        </button>;
+    }
+
+    @computed get widthPicker() {
+        var widthPicker = this.toggleButton("stroke width", this._widthBtn, () => this._widthBtn = !this._widthBtn, "bars", null);
+        return !this._widthBtn ? widthPicker :
+            <div className="btn2-group" key="width">
+                {widthPicker}
+                {this._width.map(wid =>
+                    <button className="antimodeMenu-button" key={wid}
+                        onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001 }}>
+                        {wid}
+                    </button>)}
+            </div>;
+    }
+
+    @computed get colorPicker() {
+        var colorPicker = this.toggleButton("stroke color", this._colorBtn, () => this._colorBtn = !this._colorBtn, "pen-nib",
+            <div className="color-previewI" style={{ backgroundColor: ActiveInkColor() ?? "121212" }} />);
+        return !this._colorBtn ? colorPicker :
+            <div className="btn-group" key="color">
+                {colorPicker}
+                {this._palette.map(color =>
+                    <button className="antimodeMenu-button" key={color}
+                        onPointerDown={action(() => { this.changeColor(color, "color"); this._colorBtn = false; this.editProperties(color, "color"); })}
+                        style={{ backgroundColor: this._colorBtn ? "121212" : "", zIndex: 1001 }}>
+                        {/* <FontAwesomeIcon icon="pen-nib" size="lg" /> */}
+                        <div className="color-previewII" style={{ backgroundColor: color }} />
+                    </button>)}
+            </div>;
+    }
+    @computed get fillPicker() {
+        var fillPicker = this.toggleButton("shape fill color", this._fillBtn, () => this._fillBtn = !this._fillBtn, "fill-drip",
+            <div className="color-previewI" style={{ backgroundColor: ActiveFillColor() ?? "121212" }} />);
+        return !this._fillBtn ? fillPicker :
+            <div className="btn-group" key="fill" >
+                {fillPicker}
+                {this._palette.map(color =>
+                    <button className="antimodeMenu-button" key={color}
+                        onPointerDown={action(() => { this.changeColor(color, "fill"); this._fillBtn = false; this.editProperties(color, "fill"); })}
+                        style={{ backgroundColor: this._fillBtn ? "121212" : "", zIndex: 1001 }}>
+                        <div className="color-previewII" style={{ backgroundColor: color }}></div>
+                    </button>)}
+
+            </div>;
+    }
+
+    @computed get formatPane() {
+        return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
+            onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
+            style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
+            <FontAwesomeIcon icon="chevron-right" size="lg" />
+        </button>;
+    }
+
     render() {
         return this.Document.isAnnotationOverlay ? (null) :
             <div className="collectionFreeFormMenu-cont">
@@ -316,6 +467,12 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
                     <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                 </div>
+
+                {this.widthPicker}
+                {this.colorPicker}
+                {this.fillPicker}
+                {this.drawButtons}
+                {this.formatPane}
             </div>;
     }
 }
