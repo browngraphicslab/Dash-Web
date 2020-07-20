@@ -8,7 +8,7 @@ import {
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
     faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
     faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper
+    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -66,6 +66,7 @@ import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import CollectionMenu from './collections/CollectionMenu';
+import { Tooltip } from '@material-ui/core';
 
 @observer
 export class MainView extends React.Component {
@@ -150,7 +151,7 @@ export class MainView extends React.Component {
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
             faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper);
+            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -466,6 +467,83 @@ export class MainView extends React.Component {
         </div>;
     }
 
+    @computed get menuPanel() {
+        return <div className="mainView-menuPanel">
+            <Tooltip title={<div className="dash-tooltip">Open Workspaces</div>}>
+                <button className="mainView-menuPanel-button"
+                    style={{
+                        padding: "5px",
+                        background: "black",
+                        boxShadow: "4px 4px 12px black"
+                    }}>
+                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
+                    <div className="mainView-menuPanel-button-label"> Workspaces </div>
+                </button>
+            </Tooltip>
+
+            <Tooltip title={<div className="dash-tooltip">Open Catalog</div>}>
+                <button className="mainView-menuPanel-button"
+                    style={{
+                        padding: "5px",
+                        background: "black",
+                        boxShadow: "4px 4px 12px black"
+                    }}>
+                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
+                    <div className="mainView-menuPanel-button-label"> Catalog </div>
+                </button>
+            </Tooltip>
+
+            <Tooltip title={<div className="dash-tooltip">Open Recently Deleted</div>}>
+                <button className="mainView-menuPanel-button"
+                    style={{
+                        padding: "5px",
+                        background: "black",
+                        boxShadow: "4px 4px 12px black"
+                    }}>
+                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-restore" color="white" size="lg" />
+                    <div className="mainView-menuPanel-button-label"> Recently Deleted </div>
+                </button>
+            </Tooltip>
+
+            <Tooltip title={<div className="dash-tooltip"> Import </div>}>
+                <button className="mainView-menuPanel-button"
+                    style={{
+                        padding: "5px",
+                        background: "black",
+                        boxShadow: "4px 4px 12px black"
+                    }}>
+                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
+                    <div className="mainView-menuPanel-button-label"> Import </div>
+                </button>
+            </Tooltip>
+
+            <Tooltip title={<div className="dash-tooltip">Open Sharing Preferences</div>}>
+                <button className="mainView-menuPanel-button"
+                    style={{
+                        padding: "5px",
+                        background: "black",
+                        boxShadow: "4px 4px 12px black"
+                    }}>
+                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
+                    <div className="mainView-menuPanel-button-label"> Sharing </div>
+                </button>
+            </Tooltip>
+
+            <Tooltip title={<div className="dash-tooltip">Open Tools </div>}>
+                <button className="mainView-menuPanel-button"
+                    style={{
+                        padding: "5px",
+                        background: "black",
+                        boxShadow: "4px 4px 12px black"
+                    }}>
+                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
+                    <div className="mainView-menuPanel-button-label"> Tools </div>
+                </button>
+            </Tooltip>
+        </div>;
+
+    }
+
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
         const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
@@ -477,6 +555,7 @@ export class MainView extends React.Component {
                 height,
                 width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
+                {this.menuPanel}
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                         <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
