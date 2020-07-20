@@ -248,28 +248,36 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (StrCast(this.props.Document._searchString) !== "") {
             console.log(StrCast(this.props.Document._searchString));
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-            // if (cfield[Text]!==undefined){
-
-            // }
-            console.log(cfield?.valueOf());
-            let term = StrCast(cfield);
-            console.log(term);
+            let term = "";
+            if (cfield!==undefined){
+                if (cfield.Text!==undefined){
+                    term = cfield.Text;
+                }
+                else if (StrCast(cfield)){
+                    term= StrCast(cfield);
+                }
+                else {
+                    term = String(NumCast(cfield));
+                }
+            }
             let search = StrCast(this.props.Document._searchString)
             let start = term.indexOf(search) as number;
+            console.log(start);
             let tally = 0;
+            if (start!==-1){
             positions.push(start);
+            }
             while (start < contents.length && start !== -1) {
                 term = term.slice(start + search.length + 1);
                 tally += start + search.length + 1;
                 start = term.indexOf(search);
                 positions.push(tally + start);
             }
-            console.log(positions);
             if (positions.length > 1) {
                 positions.pop();
             }
         }
-
+        console.log(positions.length);
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
@@ -287,23 +295,29 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             placeholder={"enter value"}
                             bing={() => {
-                                console.log("FLAMINGO");
-                                if (type === "number" && (contents === 0 || contents === "0")) {
-                                    return "0";
-                                } else {
+                                // if (type === "number" && (contents === 0 || contents === "0")) {
+                                //     return "0";
+                                // } else {
                                     const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                     console.log(cfield);
-                                    // if (type === "number") {
-                                    return StrCast(cfield);
-                                    // }
-                                    // return cfield;
-                                    // const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
-                                    // const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
-                                    // const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
-                                    //     Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
-                                    // return val;
-
+                                    if (cfield!==undefined){
+                                    if (cfield.Text!==undefined){
+                                        console.log
+                                        return(cfield.Text)
+                                    }
+                                    else if (StrCast(cfield)){
+                                        console.log("strcast");
+                                        return StrCast(cfield);
+                                    }
+                                    else {
+                                        console.log("numcast");
+                                        return String(NumCast(cfield));
+                                    }
                                 }
+                                    // console.log(cfield.Text);
+                                    // console.log(StrCast(cfield));
+                                    // return StrCast(cfield);
+                                // }
 
                             }}
                             GetValue={() => {

@@ -19,8 +19,7 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    padding-left: 2px;
-
+    background-color: black;
     .searchBox-barChild {
 
         &.searchBox-collection {
@@ -30,17 +29,20 @@
         }
 
         &.searchBox-input {
+            margin:5px;
+            border-radius:20px;
+            border:black;    
             display: block;
             width: 130px;
             -webkit-transition: width 0.4s;
             transition: width 0.4s;
             align-self: stretch;
-
+            outline:none;
         }
 
         .searchBox-input:focus {
             width: 500px;
-            outline: 3px solid lightblue;
+            outline:none;
         }
 
         &.searchBox-filter {

@@ -1104,13 +1104,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar">
-                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
+                    {/* <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
-                    </span>
+                    </span> */}
                     <input value={StrCast(this.layoutDoc._searchString)} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-filter" style={{ transform: "none" }} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
+                    {/* <button className="searchBox-barChild searchBox-filter" style={{ transform: "none" }} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button> */}
                 </div>
                 <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults > 0 ? { overflow: "visible" } : { overflow: "hidden" }}>
                     <div id={`filterhead2${this.props.Document[Id]}`} className="filter-header"  >
