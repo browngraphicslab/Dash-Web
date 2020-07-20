@@ -435,7 +435,7 @@ export namespace DragManager {
 
             const complete = new DragCompleteEvent(false, dragData);
 
-            if (target && !options?.noAutoscroll) {
+            if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
                 target.dispatchEvent(
                     new CustomEvent<React.DragEvent>("dashDragging", {
                         bubbles: true,
