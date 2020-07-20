@@ -109,15 +109,15 @@ const AclMap = new Map<string, symbol>([
 ]);
 
 export function fetchProto(doc: Doc) {
-    if (doc.author !== Doc.CurrentUserEmail) {
-        untracked(() => {
-            const permissions: { [key: string]: symbol } = {};
+    // if (doc.author !== Doc.CurrentUserEmail) {
+    untracked(() => {
+        const permissions: { [key: string]: symbol } = {};
 
-            Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+        Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
 
-            if (Object.keys(permissions).length) doc[AclSym] = permissions;
-        });
-    }
+        if (Object.keys(permissions).length) doc[AclSym] = permissions;
+    });
+    // }
 
     if (doc.proto instanceof Promise) {
         doc.proto.then(fetchProto);

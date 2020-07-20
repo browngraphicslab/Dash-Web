@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, DocListCast, AclReadonly, AclAddonly } from '../../fields/Doc';
+import { Doc, Opt, DataSym, DocListCast, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
@@ -7,7 +7,8 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl } from '../../fields/util';
+import { GetEffectiveAcl, getPlaygroundMode } from '../../fields/util';
+import { SharingPermissions } from '../util/SharingManager';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -92,6 +93,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
 
+        private AclMap = new Map<symbol, string>([
+            [AclPrivate, SharingPermissions.None],
+            [AclReadonly, SharingPermissions.View],
+            [AclAddonly, SharingPermissions.Add],
+            [AclEdit, SharingPermissions.Edit]
+        ]);
+
         lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
 
         styleFromLayoutString = (scale: number) => {
@@ -139,11 +147,21 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+
+            if (this.props.Document[AclSym]) {
+                added.forEach(d => {
+                    const dataDoc = d[DataSym];
+                    dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                    for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                        dataDoc[key] = d[key] = this.AclMap.get(value);
+                    }
+                });
+            }
             if (added.length) {
-                if (effectiveAcl === AclReadonly) {
+                if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                     return false;
                 } else if (effectiveAcl === AclAddonly) {
-                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
+                    added.map(doc => console.log(Doc.AddDocToList(targetDataDoc, this.annotationKey, doc)));
                 } else {
                     added.map(doc => doc.context = this.props.Document);
                     targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);

@@ -354,7 +354,7 @@ export default class GroupManager extends React.Component<{}> {
                 isDisplayed={this.createGroupModalOpen}
                 interactive={true}
                 contents={contents}
-                dialogueBoxStyle={{ width: "70%", height: "70%" }}
+                dialogueBoxStyle={{ width: "90%", height: "70%" }}
                 closeOnExternalClick={action(() => this.createGroupModalOpen = false)}
             />
         );
@@ -424,8 +424,8 @@ export default class GroupManager extends React.Component<{}> {
                 contents={this.groupInterface}
                 isDisplayed={this.isOpen}
                 interactive={true}
-                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                overlayDisplayedOpacity={this.overlayOpacity}
+                dialogueBoxStyle={{ zIndex: 1002 }}
+                overlayStyle={{ zIndex: 1001 }}
                 closeOnExternalClick={this.close}
             />
         );

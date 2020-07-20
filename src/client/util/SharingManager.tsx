@@ -1,13 +1,12 @@
 import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocListCastAsync } from "../../fields/Doc";
+import { Doc, Opt, DocListCastAsync, DataSym, DocListCast } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../fields/Types";
 import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
 import "./SharingManager.scss";
-import { Id } from "../../fields/FieldSymbols";
 import { observer } from "mobx-react";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
@@ -82,6 +81,7 @@ export default class SharingManager extends React.Component<{}> {
             this.targetDoc = target.props.Document;
             DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = true;
+            this.permissions = SharingPermissions.Edit;
         }));
 
     }
@@ -127,9 +127,11 @@ export default class SharingManager extends React.Component<{}> {
 
         const target = this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
+        // fix this - not needed (here and setinternalsharing and removegroup)
+        // target[ACL] = permission;
+        // Doc.GetProto(target)[ACL] = permission;
 
-        target[ACL] = permission;
-        Doc.GetProto(target)[ACL] = permission;
+        this.distributeAcls(ACL, permission as SharingPermissions);
 
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
 
@@ -170,7 +172,9 @@ export default class SharingManager extends React.Component<{}> {
             DocListCastAsync(group.docsShared).then(resolved => {
                 resolved?.forEach(doc => {
                     const ACL = `ACL-${StrCast(group.groupName)}`;
-                    doc[ACL] = "Not Shared";
+                    // doc[ACL] = doc[DataSym][ACL] = "Not Shared";
+
+                    this.distributeAcls(ACL, SharingPermissions.None, doc);
 
                     const members: string[] = JSON.parse(StrCast(group.members));
                     const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
@@ -189,8 +193,10 @@ export default class SharingManager extends React.Component<{}> {
 
         const ACL = `ACL-${key}`;
 
-        target[ACL] = permission;
-        Doc.GetProto(target)[ACL] = permission;
+        // target[ACL] = permission;
+        // Doc.GetProto(target)[ACL] = permission;
+
+        this.distributeAcls(ACL, permission as SharingPermissions);
 
         if (permission !== SharingPermissions.None) {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
@@ -202,6 +208,40 @@ export default class SharingManager extends React.Component<{}> {
                 Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
             });
         }
+    }
+
+    @action
+    distributeAcls = (key: string, acl: SharingPermissions, doc?: Doc) => {
+        const target = doc ? doc : this.targetDoc!;
+        const dataDoc = target[DataSym];
+        target[key] = acl;
+        if (dataDoc) dataDoc[key] = acl;
+        // dataDoc[key] = target[key] = acl;
+        // next line distributes the acl to all children of the target
+        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
+            if (d.author === Doc.CurrentUserEmail) {
+                this.distributeAcls(key, acl, d);
+                d[key] = acl;
+            }
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail) {
+                this.distributeAcls(key, acl, data);
+                data[key] = acl;
+            }
+        });
+
+        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
+            if (d.author === Doc.CurrentUserEmail) {
+                this.distributeAcls(key, acl, d);
+                d[key] = acl;
+            }
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail) {
+                this.distributeAcls(key, acl, data);
+                data[key] = acl;
+            }
+            console.log(d, d[DataSym]);
+        });
 
     }
 
@@ -308,9 +348,9 @@ export default class SharingManager extends React.Component<{}> {
         const groupList = GroupManager.Instance?.getAllGroups() || [];
 
         const sortedUsers = this.users.sort(this.sortUsers)
-            .map(({ user: { email } }) => ({ label: email, value: "!indType/" + email }));
+            .map(({ user: { email } }) => ({ label: email, value: indType + email }));
         const sortedGroups = groupList.sort(this.sortGroups)
-            .map(({ groupName }) => ({ label: StrCast(groupName), value: "!groupType/" + StrCast(groupName) }));
+            .map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
 
         const options: GroupOptions[] = GroupManager.Instance ?
             [

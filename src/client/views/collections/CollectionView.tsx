@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -48,6 +48,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
+import { SharingPermissions } from '../../util/SharingManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -106,6 +107,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    private AclMap = new Map<symbol, string>([
+        [AclPrivate, SharingPermissions.None],
+        [AclReadonly, SharingPermissions.View],
+        [AclAddonly, SharingPermissions.Add],
+        [AclEdit, SharingPermissions.Edit]
+    ]);
+
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
@@ -128,11 +136,26 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (this.props.filterAddDocument?.(doc) === false) {
             return false;
         }
+
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        if (this.props.Document[AclSym]) {
+            // change so it only adds if more restrictive
+            added.forEach(d => {
+                console.log(d[Id]);
+                const dataDoc = d[DataSym];
+                console.log(dataDoc[Id]);
+                for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                    dataDoc[key] = d[key] = this.AclMap.get(value);
+                }
+                dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+
+            });
+        }
+
         if (added.length) {
             if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                 return false;

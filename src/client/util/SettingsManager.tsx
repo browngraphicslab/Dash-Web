@@ -119,10 +119,10 @@ export default class SettingsManager extends React.Component<{}> {
                         <button onClick={this.togglePlaygroundMode}>{`${this.playgroundMode ? "Disable" : "Enable"} playground mode`}</button>
                         <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
                         <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
+                        <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
                         <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                             {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                         </button>
-                        <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
                     </div>
                     {this.settingsContent === "password" ?
                         <div className="settings-content">
@@ -155,8 +155,6 @@ export default class SettingsManager extends React.Component<{}> {
                 contents={this.settingsInterface}
                 isDisplayed={this.isOpen}
                 interactive={true}
-                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                overlayDisplayedOpacity={this.overlayOpacity}
                 closeOnExternalClick={this.close}
             />
         );

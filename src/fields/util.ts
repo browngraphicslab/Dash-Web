@@ -129,27 +129,30 @@ export function setGroups(groups: string[]) {
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclEdit;
 
-    const HierarchyMapping = new Map<symbol, number>([
-        [AclPrivate, 0],
-        [AclReadonly, 1],
-        [AclAddonly, 2],
-        [AclEdit, 3]
-    ]);
-
     if (!target[AclSym] && target instanceof Doc) {
         fetchProto(target);
     }
 
+
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        if (target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclEdit;
+        // console.log(target[AclSym]);
+
+        if (target.__fields?.author === Doc.CurrentUserEmail || target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclEdit;
 
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
-        if (target[AclSym].ACL) return target[AclSym].ACL;
+        // if (target[AclSym].ACL) return target[AclSym].ACL;
 
         let effectiveAcl = AclPrivate;
         let aclPresent = false;
+
+        const HierarchyMapping = new Map<symbol, number>([
+            [AclPrivate, 0],
+            [AclReadonly, 1],
+            [AclAddonly, 2],
+            [AclEdit, 3]
+        ]);
 
         for (const [key, value] of Object.entries(target[AclSym])) {
             if (currentUserGroups.includes(key.substring(4)) || Doc.CurrentUserEmail === key.substring(4).replace("_", ".")) {
