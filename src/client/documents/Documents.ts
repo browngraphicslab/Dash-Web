@@ -69,7 +69,7 @@ export interface DocumentOptions {
     _showTitle?: string; // which field to display in the title area.  leave empty to have no title
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
-    _noAutoscroll?: boolean;// whether collectoins autoscroll when this item is dragged
+    _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
