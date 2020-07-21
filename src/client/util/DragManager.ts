@@ -412,7 +412,6 @@ export namespace DragManager {
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
-        let paused = false;
         let scrollAwaiter: Opt<NodeJS.Timeout>;
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
@@ -437,8 +436,6 @@ export namespace DragManager {
             const target = document.elementFromPoint(e.x, e.y);
 
             if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
-                scrollAwaiter && clearTimeout(scrollAwaiter);
-                scrollAwaiter = setTimeout(() => autoScrollHandler(), 250);
                 const autoScrollHandler = () => {
                     target.dispatchEvent(
                         new CustomEvent<React.DragEvent>("dashDragAutoScroll", {
@@ -483,8 +480,10 @@ export namespace DragManager {
                     );
 
                     scrollAwaiter && clearTimeout(scrollAwaiter);
-                    SnappingManager.GetIsDragging() && (scrollAwaiter = setTimeout(() => autoScrollHandler(), 25));
-                }
+                    SnappingManager.GetIsDragging() && (scrollAwaiter = setTimeout(autoScrollHandler, 25));
+                };
+                scrollAwaiter && clearTimeout(scrollAwaiter);
+                scrollAwaiter = setTimeout(autoScrollHandler, 250);
             }
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);

@@ -38,7 +38,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         let field: Field | undefined | null = null;
         let onProto: boolean = false;
         let value: string | undefined = undefined;
-        let docs = this.props.docs;
+        const docs = this.props.docs;
         for (const doc of docs) {
             const v = await doc[this._currentKey];
             onProto = onProto || !Object.keys(doc).includes(this._currentKey);
@@ -110,7 +110,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
 
     getKeySuggestions = (value: string) => {
         value = value.toLowerCase();
-        let docs = this.props.docs;
+        const docs = this.props.docs;
         const keys = new Set<string>();
         docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
         return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
