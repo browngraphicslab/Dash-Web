@@ -42,6 +42,9 @@ export class CurrentUserUtils {
     @observable public static searchBtn: any | undefined;
 
     @observable public static toolsStack: any | undefined;
+    @observable public static workspaceStack: any | undefined;
+    @observable public static catalogStack: any | undefined;
+    @observable public static closedStack: any | undefined;
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
@@ -641,6 +644,7 @@ export class CurrentUserUtils {
 
     static setupWorkspaces(doc: Doc) {
         // setup workspaces library item
+        doc.myWorkspaces === undefined;
         if (doc.myWorkspaces === undefined) {
             doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true,
@@ -650,19 +654,38 @@ export class CurrentUserUtils {
         (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
         (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
 
+        const workspaces = doc.myWorkspaces as Doc;
+
+        CurrentUserUtils.workspaceStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
+            title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+            treeViewTruncateTitleWidth: 150,
+            lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+        })) as any as Doc;
+
         return doc.myWorkspaces as Doc;
     }
     static setupCatalog(doc: Doc) {
+        doc.myCatalog === undefined;
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
                 childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
             }));
         }
+
+        const catalog = doc.myCatalog as Doc;
+
+        CurrentUserUtils.catalogStack = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
+            title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+            treeViewTruncateTitleWidth: 150,
+            lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+        })) as any as Doc;
+
         return doc.myCatalog as Doc;
     }
     static setupRecentlyClosed(doc: Doc) {
         // setup Recently Closed library item
+        doc.myRecentlyClosed === undefined;
         if (doc.myRecentlyClosed === undefined) {
             doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, stayInCollection: true,
@@ -673,6 +696,14 @@ export class CurrentUserUtils {
         const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
         (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
         (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+
+        const recentlyClosed = doc.myRecentlyClosed as Doc;
+
+        CurrentUserUtils.closedStack = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
+            title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+            treeViewTruncateTitleWidth: 150,
+            lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+        })) as any as Doc;
 
         return doc.myRecentlyClosed as Doc;
     }

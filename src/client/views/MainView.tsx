@@ -89,6 +89,7 @@ export class MainView extends React.Component {
     @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
     @observable public sidebarContent: any = this.userDoc?.["tabs-panelContainer"];
+    @observable public panelContent: string = "none";
 
     public isPointerDown = false;
 
@@ -506,7 +507,7 @@ export class MainView extends React.Component {
                     boxShadow: "4px 4px 12px black",
                     marginBottom: "30px"
                 }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-restore" color="white" size="lg" />
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Recently Deleted </div>
             </button>
             {/* </Tooltip> */}
@@ -554,14 +555,27 @@ export class MainView extends React.Component {
 
     @action
     selectPanel = (str: string) => {
-        //this.sidebarContent = null;
 
-        if (str === "tools") {
-            // this.userDoc?.["tabs-button-tools"] = undefined;
-            CurrentUserUtils.toolsBtn;
-            this.sidebarContent.proto = CurrentUserUtils.toolsStack;
-        } else if (str === "catalog") {
-            //this.sidebarContent = CurrentUserUtils.libraryBtn;
+        if (this.panelContent === str) {
+            this.sidebarContent = null;
+            this.panelContent = "none";
+            MainView.Instance._flyoutTranslate = false;
+        } else {
+            MainView.expandFlyout();
+            if (str === "tools") {
+                CurrentUserUtils.toolsBtn;
+                this.sidebarContent.proto = CurrentUserUtils.toolsStack;
+            } else if (str === "workspace") {
+                this.sidebarContent.proto = CurrentUserUtils.workspaceStack;
+            } else if (str === "catalog") {
+                this.sidebarContent.proto = CurrentUserUtils.catalogStack;
+            } else if (str === "deleted") {
+                this.sidebarContent.proto = CurrentUserUtils.closedStack;
+            } else if (str === "upload") {
+                this.sidebarContent.proto = "uploads";
+            } else if (str === "sharing") {
+                this.sidebarContent.proto = "sharing";
+            }
         }
     }
 
