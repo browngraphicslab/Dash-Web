@@ -151,11 +151,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 if (this.props.Document[AclSym]) {
                     // change so it only adds if more restrictive
                     added.forEach(d => {
-                        const dataDoc = d[DataSym];
+                        // const dataDoc = d[DataSym];
                         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d);
+                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                         }
-                        dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                        // dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
                     });
                 }
 

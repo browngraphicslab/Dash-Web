@@ -1,7 +1,7 @@
-import { observable, runInAction, action, computed } from "mobx";
+import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocListCastAsync, DataSym, DocListCast } from "../../fields/Doc";
+import { Doc, Opt, DocListCastAsync } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../fields/Types";
 import * as RequestPromise from "request-promise";
@@ -41,9 +41,9 @@ interface GroupOptions {
     options: UserOptions[];
 }
 
-const SharingKey = "sharingPermissions";
-const PublicKey = "publicLinkPermissions";
-const DefaultColor = "black";
+// const SharingKey = "sharingPermissions";
+// const PublicKey = "publicLinkPermissions";
+// const DefaultColor = "black";
 
 const groupType = "!groupType/";
 const indType = "!indType/";
@@ -192,11 +192,7 @@ export default class SharingManager extends React.Component<{}> {
         const { user, notificationDoc } = recipient;
         const target = this.targetDoc!;
         const key = user.email.replace('.', '_');
-
         const ACL = `ACL-${key}`;
-
-        // target[ACL] = permission;
-        // Doc.GetProto(target)[ACL] = permission;
 
         distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
 

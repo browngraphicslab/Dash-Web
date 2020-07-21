@@ -137,13 +137,9 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        // console.log(target[AclSym]);
-
         if (target.__fields?.author === Doc.CurrentUserEmail || target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclEdit;
 
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
-
-        // if (target[AclSym].ACL) return target[AclSym].ACL;
 
         let effectiveAcl = AclPrivate;
         let aclPresent = false;
@@ -169,7 +165,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
     return AclEdit;
 }
 
-export function distributeAcls(key: string, acl: SharingPermissions, target: Doc) {
+export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean) {
 
     const HierarchyMapping = new Map<string, number>([
         ["Not Shared", 0],
@@ -180,30 +176,30 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
 
     const dataDoc = target[DataSym];
 
-    if (!target[key] || HierarchyMapping.get(StrCast(target[key]))! < HierarchyMapping.get(acl)!) target[key] = acl;
+    if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) target[key] = acl;
 
-    if (dataDoc && (!dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! < HierarchyMapping.get(acl)!)) {
+    if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
         dataDoc[key] = acl;
 
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail && d[key] && HierarchyMapping.get(StrCast(d[key]))! < HierarchyMapping.get(acl)!) {
+            if (d.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, d);
                 d[key] = acl;
             }
             const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail && data[key] && HierarchyMapping.get(StrCast(data[key]))! < HierarchyMapping.get(acl)!) {
+            if (data && data.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, data);
                 data[key] = acl;
             }
         });
 
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
-            if (d.author === Doc.CurrentUserEmail && d[key] && HierarchyMapping.get(StrCast(d[key]))! < HierarchyMapping.get(acl)!) {
+            if (d.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, d);
                 d[key] = acl;
             }
             const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail && data[key] && HierarchyMapping.get(StrCast(data[key]))! < HierarchyMapping.get(acl)!) {
+            if (data && data.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, data);
                 data[key] = acl;
             }
