@@ -156,7 +156,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action
     changeView(view: EditorView) {
-        this.view = view;
+        if ((view as any)?.TextView?.props.isSelected(true)) {
+            this.view = view;
+        }
     }
 
     update(view: EditorView, lastState: EditorState | undefined) {
@@ -165,8 +167,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action
     public async updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
-        if (!view) {
-            console.log("no editor?  why?");
+        if (!view || !(view as any).TextView?.props.isSelected(true)) {
             return;
         }
         this.view = view;
@@ -318,7 +319,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     destroy() {
-        this.fadeOut(true);
+        !this.TextView?.props.isSelected(true) && this.fadeOut(true);
     }
 
     @action
@@ -656,7 +657,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     @action toggleColorDropdown() { this.showColorDropdown = !this.showColorDropdown; }
     @action setActiveColor(color: string) { this.activeFontColor = color; }
-    get TextView() { return (this.view as any).TextView as FormattedTextBox; }
+    get TextView() { return (this.view as any)?.TextView as FormattedTextBox; }
 
     createColorButton() {
         const self = this;

@@ -266,8 +266,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.navigateToElement(this.childDocs[index], fromDoc);
             // this.hideIfNotPresented(index);
             // this.showAfterPresented(index);
-            this.hideDocumentInPres();
-            // this.onHideDocumentUntilPressClick();
+            // this.hideDocumentInPres();
+            this.onHideDocumentUntilPressClick();
         }
     });
 
@@ -477,6 +477,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable private moreInfoTools: boolean = false;
     @observable private playTools: boolean = false;
     @observable private pathBoolean: boolean = false;
+    @observable private expandBoolean: boolean = false;
 
     // For toggling transition toolbar
     @action toggleTransitionTools = () => {
@@ -624,6 +625,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action togglePath = () => this.pathBoolean = !this.pathBoolean;
+    @action toggleExpand = () => this.expandBoolean = !this.expandBoolean;
 
     /**
      * The function that is called on click to turn fading document after presented option on/off.
@@ -1014,6 +1016,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
             targetDoc.lastFrame = docs.length - 1;
         } else {
+            targetDoc.editProgressivize = false;
             activeItem.presProgressivize = false;
             targetDoc.presProgressivize = false;
             docs.forEach((doc, index) => {
@@ -1128,21 +1131,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     </div></Tooltip>
                     <div className="toolbar-divider" />
                     <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}><div className={`toolbar-button ${this.pathBoolean ? "active" : ""}`}>
-                        <FontAwesomeIcon icon={"object-group"} onClick={this.viewPaths} />
+                        <FontAwesomeIcon icon={"exchange-alt"} onClick={this.viewPaths} />
                     </div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{this.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
+                        <div className={`toolbar-button ${this.expandBoolean ? "active" : ""}`} onClick={() => { this.toggleExpand(); this.childDocs.forEach((doc, ind) => { doc.presExpandInlineButton = !doc.presExpandInlineButton; }); }}>
+                            <FontAwesomeIcon icon={"image"} />
+                        </div>
+                    </Tooltip>
                     {/* <div className="toolbar-button"><FontAwesomeIcon title={"Portal"} icon={"eye"} onClick={this.toolbarTest} /></div> */}
                     <div className="toolbar-divider" />
-                    <div className={`toolbar-button ${this.transitionTools ? "active" : ""}`} onClick={this.toggleTransitionTools}>
+                    <Tooltip title={<><div className="dash-tooltip">{"Transitions"}</div></>}><div className={`toolbar-button ${this.transitionTools ? "active" : ""}`} onClick={this.toggleTransitionTools}>
                         <FontAwesomeIcon icon={"rocket"} />
                         <div style={{ display: width > 400 ? "block" : "none" }} className="toolbar-buttonText">&nbsp; Transitions</div>
                         <FontAwesomeIcon className={`dropdown ${this.transitionTools ? "active" : ""}`} icon={"angle-down"} />
-                    </div>
+                    </div></Tooltip>
                     <div className="toolbar-divider" />
-                    <div className={`toolbar-button ${this.progressivizeTools ? "active" : ""}`} onClick={this.toggleProgressivize}>
+                    <Tooltip title={<><div className="dash-tooltip">{"Progressivize"}</div></>}><div className={`toolbar-button ${this.progressivizeTools ? "active" : ""}`} onClick={this.toggleProgressivize}>
                         <FontAwesomeIcon icon={"tasks"} />
                         <div style={{ display: width > 400 ? "block" : "none" }} className="toolbar-buttonText">&nbsp; Progressivize</div>
                         <FontAwesomeIcon className={`dropdown ${this.progressivizeTools ? "active" : ""}`} icon={"angle-down"} />
-                    </div>
+                    </div></Tooltip>
                     <div className="toolbar-divider" />
                     <div className="toolbar-button" style={{ position: 'absolute', right: 23, transform: 'rotate(45deg)', fontSize: 16 }}>
                         <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"thumbtack"} />

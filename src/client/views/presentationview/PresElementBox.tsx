@@ -219,14 +219,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         let durationInS: number;
         if (this.targetDoc.presDuration) durationInS = NumCast(this.targetDoc.presDuration) / 1000;
         else durationInS = 2;
-        return "D: " + durationInS + "s";
+        return "V: " + durationInS + "s";
     }
 
     @computed get transition() {
         let transitionInS: number;
         if (this.targetDoc.presTransition) transitionInS = NumCast(this.targetDoc.presTransition) / 1000;
         else transitionInS = 0.5;
-        return "T: " + transitionInS + "s";
+        return "M: " + transitionInS + "s";
     }
 
     render() {
@@ -256,9 +256,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presElementBox-name">
                         {`${this.targetDoc?.title}`}
                     </div>
-                    <Tooltip title={<><div className="dash-tooltip">{"Transition speed"}</div></>}><div className="presElementBox-time">{this.transition}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time">{this.duration}</div></Tooltip>
-                    <button
+                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time">{this.transition}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Duration of visibility"}</div></>}><div className="presElementBox-time">{this.duration}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><button
                         title="Close"
                         className="presElementBox-closeIcon"
                         onPointerDown={e => e.stopPropagation()}
@@ -267,10 +267,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             e.stopPropagation();
                         }}>
                         <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
-                    </button>
-                    <button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
+                    </button></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Expand" : "Minimize"}</div></>}><button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                         <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
-                    </button>
+                    </button></Tooltip>
                 </>}
                 <div className="presElementBox-highlight" style={{ display: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "block" : "none" }} />
                 <div className="presElementBox-buttons" style={{ display: this.rootDoc.presExpandInlineButton ? "grid" : "none" }}>

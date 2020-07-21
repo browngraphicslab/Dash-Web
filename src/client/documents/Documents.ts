@@ -91,7 +91,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
-    label?: string; // short form of title for use as an icon label
+    toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
     description?: string; // added for links

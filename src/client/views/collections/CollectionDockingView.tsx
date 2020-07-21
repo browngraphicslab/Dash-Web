@@ -829,6 +829,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @computed get miniTop() { return 50 + (NumCast(this._document?._panY) - this.renderContentBounds.cy) / this.renderContentBounds.dim * 100 - this.miniHeight / 2; }
     @computed get miniWidth() { return this.panelWidth() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
     @computed get miniHeight() { return this.panelHeight() / NumCast(this._document?._viewScale, 1) / this.renderContentBounds.dim * 100; }
+    childLayoutTemplate = () => Cast(this._document?.childLayoutTemplate, Doc, null);
     returnMiniSize = () => NumCast(this._document?._miniMapSize, 150);
     miniDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
@@ -848,6 +849,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 CollectionView={undefined}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
+                ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid havin to set stuff like this.
+                noOverlay={true} // don't render overlay Docs since they won't scale
                 active={returnTrue}
                 select={emptyFunction}
                 dropAction={undefined}
@@ -916,7 +919,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 docFilters={returnEmptyFilter}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
-            {document._viewType === CollectionViewType.Freeform ? this.renderMiniMap() : (null)}
+            {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
         </>;
     }
 

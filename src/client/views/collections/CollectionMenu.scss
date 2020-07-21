@@ -2,24 +2,25 @@
 
 
 .collectionMenu-cont {
-    position:relative;
-    display:inline-flex;
+    position: relative;
+    display: inline-flex;
     width: 100%;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    background: #121721;
+    background: #323232;
     color: white;
     transform-origin: top left;
     top: 0;
-    width:100%;
+    width: 100%;
 
     .antimodeMenu-button {
-        padding:0;
-        width:40px;
+        padding: 0;
+        width: 30px;
         display: flex;
+
         svg {
-            margin:auto;
+            margin: auto;
         }
     }
 
@@ -37,13 +38,11 @@
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                //text-transform: uppercase;
-                //letter-spacing: 2px;
-                background: #121721;
-                color: white;
+                background: #323232;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -66,14 +65,15 @@
                 margin-left: 3px;
                 margin-right: 0px;
                 font-size: 75%;
-                background: #121721;
-                border: none;
+                background: #323232;
                 color: white;
+                border: none;
+                border-right: solid gray 1px;
             }
 
             .commandEntry-outerDiv {
                 pointer-events: all;
-                background-color: #121721;
+                background-color: #323232;
                 display: flex;
                 flex-direction: row;
                 height: 30px;
@@ -89,7 +89,7 @@
             .collectionViewBaseChrome-collapse {
                 transition: all .5s, opacity 0.3s;
                 position: absolute;
-                width: 40px;
+                width: 30px;
                 transform-origin: top left;
                 pointer-events: all;
                 // margin-top: 10px;
@@ -109,20 +109,25 @@
                 margin-top: auto;
                 margin-bottom: auto;
             }
+
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 5px;
                 display: grid;
+                border: none;
+                border-right: solid gray 1px;
 
                 .collectionViewBaseChrome-filterIcon {
                     position: relative;
                     display: flex;
                     margin: auto;
-                    background: #121721;
+                    background: #323232;
                     color: white;
                     width: 30px;
                     height: 30px;
                     align-items: center;
                     justify-content: center;
+                    border: none;
+                    border-right: solid gray 1px;
                 }
 
                 .collectionViewBaseChrome-viewSpecsInput {
@@ -201,8 +206,9 @@
                 background: #121721;
                 color: white;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionGridViewChrome-viewPicker:active {
@@ -306,49 +312,76 @@
 }
 
 .collectionFreeFormMenu-cont {
-    width: 60px;
-    display: flex;
+    display: inline-flex;
     position: relative;
     align-items: center;
 
+    .antimodeMenu-button {
+        text-align: center;
+        display: block;
+    }
+
+    .color-previewI {
+        width: 80%;
+        height: 20%;
+        bottom: 0;
+        position: absolute;
+    }
+
+    .color-previewII {
+        width: 80%;
+        height: 80%;
+        margin-left: 10%;
+    }
+
+    .btn-group {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        margin: auto;
+        /* Make the buttons appear below each other */
+    }
+
+    .btn-draw {
+        display: inline-flex;
+        margin: auto;
+        /* Make the buttons appear below each other */
+    }
+
     .fwdKeyframe,
-.numKeyframe,
-.backKeyframe {
-    cursor: pointer;
-    position: absolute;
-    width: 20;
-    height: 30;
-    bottom: 0;
-    background: #121721;
-    display: flex;
-    align-items: center;
-    color: white;
-}
-
-.backKeyframe {
-    left: 0;
-
-    svg {
-        display: block;
-        margin: auto;
+    .numKeyframe,
+    .backKeyframe {
+        cursor: pointer;
+        position: relative;
+        width: 20;
+        height: 30;
+        bottom: 0;
+        background: #323232;
+        display: inline-flex;
+        align-items: center;
+        color: white;
     }
-}
 
-.numKeyframe {
-    left: 20;
-    display: flex;
-    flex-direction: column;
-    padding: 5px;
-}
-
-.fwdKeyframe {
-    left: 40;
-
-    svg {
-        display: block;
-        margin: auto;
+    .backKeyframe {
+        svg {
+            display: block;
+            margin: auto;
+        }
     }
-}
+
+
+    .numKeyframe {
+        flex-direction: column;
+        padding-top: 5px;
+    }
+
+    .fwdKeyframe {
+        svg {
+            display: block;
+            margin: auto;
+        }
+
+        border-right: solid gray 1px;
+    }
 }
 
 .collectionSchemaViewChrome-cont {

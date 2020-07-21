@@ -1526,10 +1526,10 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                             </marker>
                             <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
                                 orient="auto" overflow="visible">
-                                <rect width="3" height="3" fill="#69a6db" />
+                                <rect x="1" y="1" width="5" height="5" fill="#69a6db" />
                             </marker>
 
-                            <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="3"
+                            <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="7"
                                 orient="auto" overflow="visible">
                                 <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
                             </marker>

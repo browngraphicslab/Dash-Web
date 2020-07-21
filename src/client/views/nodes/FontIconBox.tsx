@@ -11,6 +11,7 @@ import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
+import { Tooltip } from '@material-ui/core';
 const FontIconSchema = createSchema({
     icon: "string"
 });
@@ -60,14 +61,16 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     render() {
         const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
         const refLayout = Doc.Layout(referenceDoc);
-        return <button className="fontIconBox-outerDiv" title={StrCast(this.layoutDoc.title)} ref={this._ref} onContextMenu={this.specificContextMenu}
-            style={{
-                padding: Cast(this.layoutDoc._xPadding, "number", null),
-                background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
-                boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
-            }}>
-            <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
-            {!this.rootDoc.label ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.label).substring(0, 6)} </div>}
-        </button>;
+        return <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
+            <button className="fontIconBox-outerDiv" ref={this._ref} onContextMenu={this.specificContextMenu}
+                style={{
+                    padding: Cast(this.layoutDoc._xPadding, "number", null),
+                    background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
+                    boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
+                }}>
+                <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
+                {!this.rootDoc.title ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.title).substring(0, 6)} </div>}
+            </button>
+        </Tooltip>;
     }
 }
