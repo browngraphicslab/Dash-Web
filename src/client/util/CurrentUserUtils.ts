@@ -37,6 +37,12 @@ export class CurrentUserUtils {
     @observable public static GuestWorkspace: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
 
+    @observable public static toolsBtn: any | undefined;
+    @observable public static libraryBtn: any | undefined;
+    @observable public static searchBtn: any | undefined;
+
+    @observable public static toolsStack: any | undefined;
+
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
         if (doc["template-button-query"] === undefined) {
@@ -593,6 +599,8 @@ export class CurrentUserUtils {
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
 
+        doc["tabs-button-tools"] = undefined;
+
         if (doc.myCreators === undefined) {
             doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
                 title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
@@ -611,6 +619,9 @@ export class CurrentUserUtils {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             })) as any as Doc;
+
+            CurrentUserUtils.toolsStack = toolsStack;
+
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
                 _width: 35, _height: 25, title: "Tools", _fontSize: "10pt",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
@@ -624,6 +635,7 @@ export class CurrentUserUtils {
             }));
         }
         (doc["tabs-button-tools"] as Doc).sourcePanel; // prefetch sourcePanel
+
         return doc["tabs-button-tools"] as Doc;
     }
 
@@ -720,17 +732,17 @@ export class CurrentUserUtils {
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
         const sidebarContainer = CurrentUserUtils.setupSidebarContainer(doc);
-        const toolsBtn = await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
-        const libraryBtn = CurrentUserUtils.setupLibraryPanel(doc, sidebarContainer);
-        const searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
+        CurrentUserUtils.toolsBtn = await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
+        CurrentUserUtils.libraryBtn = CurrentUserUtils.setupLibraryPanel(doc, sidebarContainer);
+        CurrentUserUtils.searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
 
         // Finally, setup the list of buttons to display in the sidebar
         if (doc["tabs-buttons"] === undefined) {
-            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
+            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([CurrentUserUtils.libraryBtn, CurrentUserUtils.searchBtn, CurrentUserUtils.toolsBtn], {
                 _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
                 title: "sidebar btn row stack", backgroundColor: "dimGray",
             }));
-            (toolsBtn.onClick as ScriptField).script.run({ this: toolsBtn });
+            (CurrentUserUtils.toolsBtn.onClick as ScriptField).script.run({ this: CurrentUserUtils.toolsBtn });
         }
     }
 

@@ -88,6 +88,8 @@ export class MainView extends React.Component {
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
+    @observable public sidebarContent: any = this.userDoc?.["tabs-panelContainer"];
+
     public isPointerDown = false;
 
     componentDidMount() {
@@ -396,8 +398,7 @@ export class MainView extends React.Component {
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
-        const sidebarContent = this.userDoc?.["tabs-panelContainer"];
-        if (!(sidebarContent instanceof Doc)) {
+        if (!(this.sidebarContent instanceof Doc)) {
             return (null);
         }
         return <div className="mainView-flyoutContainer" >
@@ -428,9 +429,10 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>
+
             <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "visible" }}>
                 <DocumentView
-                    Document={sidebarContent}
+                    Document={this.sidebarContent}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     addDocument={undefined}
@@ -454,14 +456,14 @@ export class MainView extends React.Component {
                     docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
-                <div className="buttonContainer" >
-                    <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                        <FontAwesomeIcon icon="cog" size="lg" />
-                    </button>
-                    <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
-                        <FontAwesomeIcon icon="columns" size="lg" />
-                    </button>
-                </div>
+            </div>
+            <div className="buttonContainer" >
+                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                    <FontAwesomeIcon icon="cog" size="lg" />
+                </button>
+                <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
+                    <FontAwesomeIcon icon="columns" size="lg" />
+                </button>
             </div>
             {this.docButtons}
         </div>;
@@ -469,86 +471,104 @@ export class MainView extends React.Component {
 
     @computed get menuPanel() {
         return <div className="mainView-menuPanel">
-            <Tooltip title={<div className="dash-tooltip">Open Workspaces</div>}>
-                <button className="mainView-menuPanel-button"
-                    style={{
-                        padding: "5px",
-                        background: "black",
-                        boxShadow: "4px 4px 12px black"
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Workspaces </div>
-                </button>
-            </Tooltip>
+            {/* <Tooltip title={<div className="dash-tooltip">Open Workspaces</div>}> */}
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("workspace")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Workspace </div>
+            </button>
+            {/* </Tooltip> */}
 
-            <Tooltip title={<div className="dash-tooltip">Open Catalog</div>}>
-                <button className="mainView-menuPanel-button"
-                    style={{
-                        padding: "5px",
-                        background: "black",
-                        boxShadow: "4px 4px 12px black"
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Catalog </div>
-                </button>
-            </Tooltip>
+            {/* <Tooltip title={<div className="dash-tooltip">Open Catalog</div>}> */}
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("catalog")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Catalog </div>
+            </button>
+            {/* </Tooltip> */}
 
-            <Tooltip title={<div className="dash-tooltip">Open Recently Deleted</div>}>
-                <button className="mainView-menuPanel-button"
-                    style={{
-                        padding: "5px",
-                        background: "black",
-                        boxShadow: "4px 4px 12px black"
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-restore" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Recently Deleted </div>
-                </button>
-            </Tooltip>
+            {/* <Tooltip title={<div className="dash-tooltip">Open Recently Deleted</div>}> */}
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("deleted")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black",
+                    marginBottom: "30px"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-restore" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Recently Deleted </div>
+            </button>
+            {/* </Tooltip> */}
 
-            <Tooltip title={<div className="dash-tooltip"> Import </div>}>
-                <button className="mainView-menuPanel-button"
-                    style={{
-                        padding: "5px",
-                        background: "black",
-                        boxShadow: "4px 4px 12px black"
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Import </div>
-                </button>
-            </Tooltip>
+            {/* <Tooltip title={<div className="dash-tooltip"> Import </div>}> */}
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("upload")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Import </div>
+            </button>
+            {/* </Tooltip> */}
 
-            <Tooltip title={<div className="dash-tooltip">Open Sharing Preferences</div>}>
-                <button className="mainView-menuPanel-button"
-                    style={{
-                        padding: "5px",
-                        background: "black",
-                        boxShadow: "4px 4px 12px black"
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Sharing </div>
-                </button>
-            </Tooltip>
+            {/* <Tooltip title={<div className="dash-tooltip">Open Sharing Preferences</div>}> */}
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("sharing")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Sharing </div>
+            </button>
+            {/* </Tooltip> */}
 
-            <Tooltip title={<div className="dash-tooltip">Open Tools </div>}>
-                <button className="mainView-menuPanel-button"
-                    style={{
-                        padding: "5px",
-                        background: "black",
-                        boxShadow: "4px 4px 12px black"
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Tools </div>
-                </button>
-            </Tooltip>
+            {/* <Tooltip title={<div className="dash-tooltip">Open Tools </div>}> */}
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("tools")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Tools </div>
+            </button>
+            {/* </Tooltip> */}
         </div>;
+    }
 
+    @action
+    selectPanel = (str: string) => {
+        //this.sidebarContent = null;
+
+        if (str === "tools") {
+            // this.userDoc?.["tabs-button-tools"] = undefined;
+            CurrentUserUtils.toolsBtn;
+            this.sidebarContent.proto = CurrentUserUtils.toolsStack;
+        } else if (str === "catalog") {
+            //this.sidebarContent = CurrentUserUtils.libraryBtn;
+        }
     }
 
     @computed get mainContent() {
-        const sidebar = this.userDoc?.["tabs-panelContainer"];
         const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
-        return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
+        return !this.userDoc || !(this.sidebarContent instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 //change to times 2 for both pinned
@@ -559,7 +579,7 @@ export class MainView extends React.Component {
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                         <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
-                            style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
+                            style={{ backgroundColor: this.defaultBackgroundColors(this.sidebarContent) }}>
                             <span title="library View Dragger" style={{
                                 width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                                 //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",

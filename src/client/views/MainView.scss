@@ -116,9 +116,10 @@
 
 .mainView-menuPanel {
 
-    max-width: 80px;
+    max-width: 95px;
     background-color: rgb(105, 105, 105);
     padding: 20px;
+    padding-right: 50px;
 
     .mainView-menuPanel-button {
         width: 50px;
@@ -130,20 +131,30 @@
         background: black;
         border-radius: 100%;
         transform-origin: top left;
-        margin-bottom: 15px;
+        margin-bottom: 23px;
         margin-top: 5px;
 
+        margin-right: 25px;
+
         .mainView-menuPanel-button-label {
-            background: gray;
-            color: white;
+            background: rgb(168, 168, 168);
+            color: black;
             margin-left: -10px;
             border-radius: 8px;
-            width: 60px;
+            width: 65px;
             position: absolute;
             text-align: center;
-            font-size: 8px;
+            font-size: 9.5px;
             margin-top: 4px;
             letter-spacing: normal;
+            padding: 3px;
+            //margin-bottom: 23px;
+        }
+
+        .mainView-menuPanel-button-icon {
+            width: 35px;
+            height: 35px;
+            padding: 5px;
         }
 
         svg {
