@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -142,46 +142,48 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
-        if (this.props.Document[AclSym]) {
-            // change so it only adds if more restrictive
-            added.forEach(d => {
-                console.log(d[Id]);
-                const dataDoc = d[DataSym];
-                console.log(dataDoc[Id]);
-                for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                    dataDoc[key] = d[key] = this.AclMap.get(value);
-                }
-                dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
-
-            });
-        }
 
         if (added.length) {
             if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                 return false;
-            } else if (effectiveAcl === AclAddonly) {
-                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
-            } else {
-                added.map(doc => {
-                    const context = Cast(doc.context, Doc, null);
-                    if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
-                        const pushpin = Docs.Create.FontIconDocument({
-                            title: "pushpin",
-                            icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
-                            _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
-                        });
-                        pushpin.isPushpin = true;
-                        Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
-                        Doc.SetInPlace(doc, "annotationOn", undefined, true);
-                        Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                        doc.displayTimecode = undefined;
-                    }
-                    doc.context = this.props.Document;
-                });
-                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
+            else {
+                if (this.props.Document[AclSym]) {
+                    // change so it only adds if more restrictive
+                    added.forEach(d => {
+                        const dataDoc = d[DataSym];
+                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d);
+                        }
+                        dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                    });
+                }
+
+                if (effectiveAcl === AclAddonly) {
+                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+                }
+                else {
+                    added.map(doc => {
+                        const context = Cast(doc.context, Doc, null);
+                        if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+                            const pushpin = Docs.Create.FontIconDocument({
+                                title: "pushpin",
+                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                            });
+                            pushpin.isPushpin = true;
+                            Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
+                            Doc.SetInPlace(doc, "annotationOn", undefined, true);
+                            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+                            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
+                            doc.displayTimecode = undefined;
+                        }
+                        doc.context = this.props.Document;
+                    });
+                    added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+                    targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                    targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
             }
         }
         return true;

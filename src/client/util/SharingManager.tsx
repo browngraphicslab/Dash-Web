@@ -1,4 +1,4 @@
-import { observable, runInAction, action } from "mobx";
+import { observable, runInAction, action, computed } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { Doc, Opt, DocListCastAsync, DataSym, DocListCast } from "../../fields/Doc";
@@ -20,6 +20,7 @@ import GroupMemberView from "./GroupMemberView";
 import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../fields/List";
+import { distributeAcls } from "../../fields/util";
 
 library.add(fa.faCopy, fa.faTimes);
 
@@ -131,7 +132,7 @@ export default class SharingManager extends React.Component<{}> {
         // target[ACL] = permission;
         // Doc.GetProto(target)[ACL] = permission;
 
-        this.distributeAcls(ACL, permission as SharingPermissions);
+        distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
 
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
 
@@ -174,7 +175,7 @@ export default class SharingManager extends React.Component<{}> {
                     const ACL = `ACL-${StrCast(group.groupName)}`;
                     // doc[ACL] = doc[DataSym][ACL] = "Not Shared";
 
-                    this.distributeAcls(ACL, SharingPermissions.None, doc);
+                    distributeAcls(ACL, SharingPermissions.None, doc);
 
                     const members: string[] = JSON.parse(StrCast(group.members));
                     const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
@@ -186,6 +187,7 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
+    // @action
     setInternalSharing = (recipient: ValidatedUser, permission: string) => {
         const { user, notificationDoc } = recipient;
         const target = this.targetDoc!;
@@ -196,7 +198,7 @@ export default class SharingManager extends React.Component<{}> {
         // target[ACL] = permission;
         // Doc.GetProto(target)[ACL] = permission;
 
-        this.distributeAcls(ACL, permission as SharingPermissions);
+        distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
 
         if (permission !== SharingPermissions.None) {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
@@ -210,40 +212,6 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
-    @action
-    distributeAcls = (key: string, acl: SharingPermissions, doc?: Doc) => {
-        const target = doc ? doc : this.targetDoc!;
-        const dataDoc = target[DataSym];
-        target[key] = acl;
-        if (dataDoc) dataDoc[key] = acl;
-        // dataDoc[key] = target[key] = acl;
-        // next line distributes the acl to all children of the target
-        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) {
-                this.distributeAcls(key, acl, d);
-                d[key] = acl;
-            }
-            const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) {
-                this.distributeAcls(key, acl, data);
-                data[key] = acl;
-            }
-        });
-
-        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) {
-                this.distributeAcls(key, acl, d);
-                d[key] = acl;
-            }
-            const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) {
-                this.distributeAcls(key, acl, data);
-                data[key] = acl;
-            }
-            console.log(d, d[DataSym]);
-        });
-
-    }
 
     // private setExternalSharing = (permission: string) => {
     //     const sharingDoc = this.sharingDoc;
@@ -344,7 +312,6 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     private get sharingInterface() {
-
         const groupList = GroupManager.Instance?.getAllGroups() || [];
 
         const sortedUsers = this.users.sort(this.sortUsers)
@@ -368,7 +335,7 @@ export default class SharingManager extends React.Component<{}> {
         const users = this.individualSort === "ascending" ? this.users.sort(this.sortUsers) : this.individualSort === "descending" ? this.users.sort(this.sortUsers).reverse() : this.users;
         const groups = this.groupSort === "ascending" ? groupList.sort(this.sortGroups) : this.groupSort === "descending" ? groupList.sort(this.sortGroups).reverse() : groupList;
 
-        const userListContents: (JSX.Element | null)[] = users.map(({ user, notificationDoc }) => { // can't use async here
+        const userListContents: (JSX.Element | null)[] = users.map(({ user, notificationDoc }) => {
             const userKey = user.email.replace('.', '_');
             const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`], SharingPermissions.None);
 

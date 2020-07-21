@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, fetchProto } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, fetchProto, DataSym, DocListCast } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -8,7 +8,8 @@ import { action, trace } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
-import { ScriptCast } from "./Types";
+import { ScriptCast, StrCast } from "./Types";
+import { SharingPermissions } from "../client/util/SharingManager";
 
 
 function _readOnlySetter(): never {
@@ -168,6 +169,47 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
     return AclEdit;
 }
 
+export function distributeAcls(key: string, acl: SharingPermissions, target: Doc) {
+
+    const HierarchyMapping = new Map<string, number>([
+        ["Not Shared", 0],
+        ["Can View", 1],
+        ["Can Add", 2],
+        ["Can Edit", 3]
+    ]);
+
+    const dataDoc = target[DataSym];
+
+    if (!target[key] || HierarchyMapping.get(StrCast(target[key]))! < HierarchyMapping.get(acl)!) target[key] = acl;
+
+    if (dataDoc && (!dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! < HierarchyMapping.get(acl)!)) {
+        dataDoc[key] = acl;
+
+        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
+            if (d.author === Doc.CurrentUserEmail && d[key] && HierarchyMapping.get(StrCast(d[key]))! < HierarchyMapping.get(acl)!) {
+                distributeAcls(key, acl, d);
+                d[key] = acl;
+            }
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail && data[key] && HierarchyMapping.get(StrCast(data[key]))! < HierarchyMapping.get(acl)!) {
+                distributeAcls(key, acl, data);
+                data[key] = acl;
+            }
+        });
+
+        DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
+            if (d.author === Doc.CurrentUserEmail && d[key] && HierarchyMapping.get(StrCast(d[key]))! < HierarchyMapping.get(acl)!) {
+                distributeAcls(key, acl, d);
+                d[key] = acl;
+            }
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail && data[key] && HierarchyMapping.get(StrCast(data[key]))! < HierarchyMapping.get(acl)!) {
+                distributeAcls(key, acl, data);
+                data[key] = acl;
+            }
+        });
+    }
+}
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];

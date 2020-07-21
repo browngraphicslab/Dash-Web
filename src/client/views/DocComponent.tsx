@@ -150,24 +150,28 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const added = docs.filter(d => !docList.includes(d));
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
-            if (this.props.Document[AclSym]) {
-                added.forEach(d => {
-                    const dataDoc = d[DataSym];
-                    dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
-                    for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                        dataDoc[key] = d[key] = this.AclMap.get(value);
-                    }
-                });
-            }
             if (added.length) {
                 if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                     return false;
-                } else if (effectiveAcl === AclAddonly) {
-                    added.map(doc => console.log(Doc.AddDocToList(targetDataDoc, this.annotationKey, doc)));
-                } else {
-                    added.map(doc => doc.context = this.props.Document);
-                    targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
-                    targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
+                else {
+                    if (this.props.Document[AclSym]) {
+                        added.forEach(d => {
+                            const dataDoc = d[DataSym];
+                            dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                            for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                                dataDoc[key] = d[key] = this.AclMap.get(value);
+                            }
+                        });
+                    }
+                    if (effectiveAcl === AclAddonly) {
+                        added.map(doc => console.log(Doc.AddDocToList(targetDataDoc, this.annotationKey, doc)));
+                    }
+                    else {
+                        added.map(doc => doc.context = this.props.Document);
+                        targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                        targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    }
                 }
             }
             return true;
