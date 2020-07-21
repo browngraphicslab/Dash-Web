@@ -4,7 +4,7 @@ import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../documents/Documents";
 import { UndoManager } from "./UndoManager";
-import { Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, DataSym } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { ScriptField, ComputedField } from "../../fields/ScriptField";
@@ -91,29 +91,29 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-button-description"] === undefined) {
-            const descriptionTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
-            Doc.GetProto(descriptionTemplate).layout =
+            const descriptionTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header")); // text needs to be a space to allow templateText to be created
+            descriptionTemplate[DataSym].layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
-            descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
+            (descriptionTemplate.proto as Doc).isTemplateDoc = makeTemplate(descriptionTemplate.proto as Doc, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize"
             });
         }
 
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
-            const linkTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
+            const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header")); // text needs to be a space to allow templateText to be created
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
                 "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
                 "</div>";
-            linkTemplate.isTemplateDoc = makeTemplate(linkTemplate, true, "linkView");
+            (linkTemplate.proto as Doc).isTemplateDoc = makeTemplate(linkTemplate.proto as Doc, true, "linkView");
 
             const rtf2 = {
                 doc: {
@@ -146,7 +146,7 @@ export class CurrentUserUtils {
             linkTemplate.header = new RichTextField(JSON.stringify(rtf2), "");
 
             doc["template-button-link"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(linkTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize"
             });
@@ -390,6 +390,21 @@ export class CurrentUserUtils {
         if (doc.emptyScript === undefined) {
             doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script" });
         }
+        if (doc.emptyScreenshot === undefined) {
+            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" });
+        }
+        if (doc.emptyAudio === undefined) {
+            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio" });
+        }
+        if (doc.emptyImage === undefined) {
+            doc.emptyImage = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth: 250, title: "an image of a cat" });
+        }
+        if (doc.emptyButton === undefined) {
+            doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button" });
+        }
+        if (doc.emptySearch === undefined) {
+            doc.emptySearch = Docs.Create.QueryDocument({ _width: 200, title: "empty search" });
+        }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
                 ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
@@ -404,14 +419,15 @@ export class CurrentUserUtils {
         return [
             { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
             { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
-            { toolTip: "Drag a cat image", title: "Image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
+            { toolTip: "Drag a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
             { toolTip: "Drag a comparison box", title: "Comp", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
-            { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
+            { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
             //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
-            { toolTip: "Drag a button", title: "Button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding:10, _yPadding: 10, title: "Button" })' },
-            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
-            { toolTip: "Drag a search box", title: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
+            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc },
+            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc },
+
+            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc },
+            { toolTip: "Drag a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Drag a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { toolTip: "Drag a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
@@ -421,7 +437,7 @@ export class CurrentUserUtils {
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-            { toolTip: "Drag a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Drag a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
         ];
 
@@ -450,6 +466,7 @@ export class CurrentUserUtils {
             onClick: click ? ScriptField.MakeScript(click) : undefined,
             ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
             activeInkPen,
+            _noAutoscroll: true,
             backgroundColor,
             removeDropProperties: new List<string>(["dropAction"]),
             dragFactory,
@@ -599,7 +616,7 @@ export class CurrentUserUtils {
                 _width: 35, _height: 25, title: "Tools", _fontSize: "10pt",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: toolsStack,
-                onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: toolsStack,
                 removeDropProperties: new List<string>(["lockedPosition"]),
                 stayInCollection: true,
@@ -664,12 +681,12 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: libraryStack,
-                onDragStart: ScriptField.MakeFunction('getAlias(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: libraryStack,
                 removeDropProperties: new List<string>(["lockedPosition"]),
                 stayInCollection: true,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
+                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
             }));
         }
         return doc["tabs-button-library"] as Doc;
@@ -719,15 +736,13 @@ export class CurrentUserUtils {
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
-        ...opts,
-        _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
+        ...opts, _noAutoscroll: true, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
         backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts,
-        dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
+        ...opts, _noAutoscroll: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window

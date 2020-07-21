@@ -9,6 +9,7 @@ import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
 import { DocumentType } from '../documents/DocumentTypes';
+import { TraceMobx } from '../../fields/util';
 
 export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
@@ -104,8 +105,9 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
+        TraceMobx();
         const pairs = DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
-            const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
+            const linksList = DocListCast(dv.props.Document.links);
             pairs.push(...linksList.reduce((pairs, link) => {
                 const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
                 linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
