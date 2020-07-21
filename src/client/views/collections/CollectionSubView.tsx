@@ -91,6 +91,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
+            // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
+            // setTimeout changes it outside of the @computed section
+            setTimeout(() => {
+                if (!this.dataDoc[this.props.annotationsKey || this.props.fieldKey]) this.dataDoc[this.props.annotationsKey || this.props.fieldKey] = new List<Doc>();
+            }, 1000);
             return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
         }
 
@@ -418,4 +423,5 @@ import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTex
 import { CollectionView } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
+import { setTimeout } from "timers";
 

@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, DocListCast, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym } from '../../fields/Doc';
+import { Doc, Opt, DataSym, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym, DocListCastAsync, DocListCast } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
@@ -126,11 +126,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             docs.map(doc => doc.annotationOn = undefined);
             const targetDataDoc = this.dataDoc;
             const value = DocListCast(targetDataDoc[this.annotationKey]);
-            const result = value.filter(v => !docs.includes(v));
-            if (result.length !== value.length) {
-                targetDataDoc[this.annotationKey] = new List<Doc>(result);
+            const toRemove = value.filter(v => docs.includes(v));
+            // can't assign new List<Doc>(result) to this because you can't assign new values in addonly
+            if (toRemove.length !== 0) {
+                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.annotationKey, doc));
                 return true;
             }
+
             return false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.

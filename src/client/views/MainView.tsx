@@ -90,7 +90,7 @@ export class MainView extends React.Component {
     public isPointerDown = false;
 
     componentDidMount() {
-        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus", "data-annotations"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         const tag = document.createElement('script');
 

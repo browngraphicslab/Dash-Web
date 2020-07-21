@@ -549,6 +549,9 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
+            // so that the list of annotations is already initialised, prevents issues in addonly
+            dataDoc[fieldKey + "-annotations"] = new List<Doc>();
+
             proto.links = ComputedField.MakeFunction("links(self)");
 
             viewDoc.author = Doc.CurrentUserEmail;
