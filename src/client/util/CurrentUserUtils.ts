@@ -620,7 +620,7 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-tools"] === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
+                _width: 500, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, title: "tools stack", forceActive: true
             })) as any as Doc;
 
             CurrentUserUtils.toolsStack = toolsStack;
@@ -633,6 +633,7 @@ export class CurrentUserUtils {
                 dragFactory: toolsStack,
                 removeDropProperties: new List<string>(["lockedPosition"]),
                 stayInCollection: true,
+                hideFilterView: true,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
             }));
@@ -658,7 +659,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.workspaceStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -677,7 +678,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.catalogStack = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -701,7 +702,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.closedStack = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -716,7 +717,7 @@ export class CurrentUserUtils {
         if (doc["tabs-button-library"] === undefined) {
             const libraryStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150,
+                treeViewTruncateTitleWidth: 150, hideFilterView: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({

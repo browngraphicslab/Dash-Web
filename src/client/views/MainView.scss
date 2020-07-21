@@ -162,6 +162,59 @@
             height: 95%;
         }
     }
+
+    .mainView-menuPanel-bottomButton {
+        width: 50px;
+        height: 50px;
+        padding: 10px;
+        pointer-events: all;
+        touch-action: none;
+        border-radius: inherit;
+        background: dimgray;
+        background-color: dimgray;
+        border-radius: 100%;
+        transform-origin: top left;
+        margin-bottom: 23px;
+        margin-top: 5px;
+
+        margin-right: 25px;
+
+        .mainView-menuPanel-bottomButton-label {
+            background: dimgray;
+            color: black;
+            margin-left: -10px;
+            border-radius: 8px;
+            width: 65px;
+            position: absolute;
+            text-align: center;
+            font-size: 9.5px;
+            margin-top: 2px;
+            letter-spacing: normal;
+            padding: 3px;
+            //margin-bottom: 23px;
+        }
+
+        .mainView-menuPanel-bottomButton-icon {
+            width: 50px;
+            height: 50px;
+            color: black;
+        }
+
+        svg {
+            width: 95% !important;
+            height: 95%;
+        }
+    }
+}
+
+.mainView-searchPanel {
+    width: 100%;
+    height: 33px;
+    background-color: black;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
+    padding-top: 6px;
 }
 
 .mainView-mainDiv {

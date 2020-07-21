@@ -8,7 +8,7 @@ import {
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
     faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
     faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench
+    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench, faCog
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -79,7 +79,7 @@ export class MainView extends React.Component {
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
-    @observable private _flyoutTranslate: boolean = true;
+    @observable private _flyoutTranslate: boolean = false;
     @observable public flyoutWidth: number = 250;
     private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
 
@@ -154,7 +154,7 @@ export class MainView extends React.Component {
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
             faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench);
+            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench, faCog);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -402,77 +402,46 @@ export class MainView extends React.Component {
         if (!(this.sidebarContent instanceof Doc)) {
             return (null);
         }
-        return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight - 10/*margin-top*/}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
-                <DocumentView
-                    Document={this.sidebarButtonsDoc}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    rootSelected={returnTrue}
-                    addDocTab={this.addDocTabFunc}
-                    pinToPres={emptyFunction}
-                    removeDocument={undefined}
-                    onClick={undefined}
-                    ScreenToLocalTransform={this.sidebarScreenToLocal}
-                    ContentScaling={returnOne}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    PanelWidth={this.flyoutWidthFunc}
-                    PanelHeight={this.getPHeight}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    backgroundColor={this.defaultBackgroundColors}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    docFilters={returnEmptyFilter}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined} />
-            </div>
-
-            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "visible" }}>
-                <DocumentView
-                    Document={this.sidebarContent}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    addDocTab={this.addDocTabFunc}
-                    pinToPres={emptyFunction}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    rootSelected={returnTrue}
-                    removeDocument={returnFalse}
-                    onClick={undefined}
-                    ScreenToLocalTransform={this.mainContainerXf}
-                    ContentScaling={returnOne}
-                    PanelWidth={this.flyoutWidthFunc}
-                    PanelHeight={this.getContentsHeight}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    backgroundColor={this.defaultBackgroundColors}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    docFilters={returnEmptyFilter}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined} />
-            </div>
-            <div className="buttonContainer" >
+        return <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
+            <DocumentView
+                Document={this.sidebarContent}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={this.addDocTabFunc}
+                pinToPres={emptyFunction}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                rootSelected={returnTrue}
+                removeDocument={returnFalse}
+                onClick={undefined}
+                ScreenToLocalTransform={this.mainContainerXf}
+                ContentScaling={returnOne}
+                PanelWidth={this.flyoutWidthFunc}
+                PanelHeight={this.getContentsHeight}
+                renderDepth={0}
+                focus={emptyFunction}
+                backgroundColor={this.defaultBackgroundColors}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined} />
+        </div>;
+        {/* <div className="buttonContainer" >
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                     <FontAwesomeIcon icon="cog" size="lg" />
                 </button>
                 <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
                     <FontAwesomeIcon icon="columns" size="lg" />
                 </button>
-            </div>
-            {this.docButtons}
-        </div>;
+            </div> */}
+        {/* {this.docButtons} */ }
     }
 
     @computed get menuPanel() {
         return <div className="mainView-menuPanel">
-            {/* <Tooltip title={<div className="dash-tooltip">Open Workspaces</div>}> */}
             <button className="mainView-menuPanel-button"
                 onPointerDown={e => this.selectPanel("workspace")}
                 style={{
@@ -483,9 +452,7 @@ export class MainView extends React.Component {
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Workspace </div>
             </button>
-            {/* </Tooltip> */}
 
-            {/* <Tooltip title={<div className="dash-tooltip">Open Catalog</div>}> */}
             <button className="mainView-menuPanel-button"
                 onPointerDown={e => this.selectPanel("catalog")}
                 style={{
@@ -496,9 +463,7 @@ export class MainView extends React.Component {
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Catalog </div>
             </button>
-            {/* </Tooltip> */}
 
-            {/* <Tooltip title={<div className="dash-tooltip">Open Recently Deleted</div>}> */}
             <button className="mainView-menuPanel-button"
                 onPointerDown={e => this.selectPanel("deleted")}
                 style={{
@@ -508,24 +473,20 @@ export class MainView extends React.Component {
                     marginBottom: "30px"
                 }}>
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Recently Deleted </div>
+                <div className="mainView-menuPanel-button-label"> Recently Closed </div>
             </button>
-            {/* </Tooltip> */}
 
-            {/* <Tooltip title={<div className="dash-tooltip"> Import </div>}> */}
             <button className="mainView-menuPanel-button"
                 onPointerDown={e => this.selectPanel("upload")}
                 style={{
                     padding: "5px",
                     background: "black",
-                    boxShadow: "4px 4px 12px black"
+                    boxShadow: "4px 4px 12px black",
                 }}>
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Import </div>
             </button>
-            {/* </Tooltip> */}
 
-            {/* <Tooltip title={<div className="dash-tooltip">Open Sharing Preferences</div>}> */}
             <button className="mainView-menuPanel-button"
                 onPointerDown={e => this.selectPanel("sharing")}
                 style={{
@@ -536,20 +497,39 @@ export class MainView extends React.Component {
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Sharing </div>
             </button>
-            {/* </Tooltip> */}
 
-            {/* <Tooltip title={<div className="dash-tooltip">Open Tools </div>}> */}
             <button className="mainView-menuPanel-button"
                 onPointerDown={e => this.selectPanel("tools")}
                 style={{
                     padding: "5px",
                     background: "black",
-                    boxShadow: "4px 4px 12px black"
+                    boxShadow: "4px 4px 12px black",
+                    marginBottom: "45px"
                 }}>
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Tools </div>
             </button>
-            {/* </Tooltip> */}
+
+            <button className="mainView-menuPanel-bottomButton"
+                onPointerDown={e => this.selectPanel("help")}
+                style={{
+                    padding: "5px",
+                    background: "dimgrey",
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="question-circle" color="white" size="lg" />
+                <div className="mainView-menuPanel-bottomButton-label"> Help </div>
+            </button>
+
+            <button className="mainView-menuPanel-bottomButton"
+                // onPointerDown={e => this.selectPanel("settings")}
+                onClick={() => SettingsManager.Instance.open()}
+                style={{
+                    padding: "5px",
+                    background: "dimgrey",
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="cog" color="white" size="lg" />
+                <div className="mainView-menuPanel-bottomButton-label"> Settings </div>
+            </button>
         </div>;
     }
 
@@ -592,7 +572,8 @@ export class MainView extends React.Component {
                 {this.menuPanel}
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-                        <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
+                        {MainView.Instance._flyoutTranslate ? <div className="mainView-libraryHandle"
+                            onPointerDown={this.onPointerDown}
                             style={{ backgroundColor: this.defaultBackgroundColors(this.sidebarContent) }}>
                             <span title="library View Dragger" style={{
                                 width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
@@ -600,18 +581,18 @@ export class MainView extends React.Component {
                                 position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
                                 top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                             }} />
-                        </div>
+                        </div> : null}
                         <div className="mainView-libraryFlyout" style={{
                             //transformOrigin: this._flyoutTranslate ? "" : "left center",
                             transition: this._flyoutTranslate ? "" : "width .5s",
                             //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
-                            boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
+                            boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw"
                         }}>
                             {this.flyout}
-                            {this.expandButton}
+                            {MainView.Instance._flyoutTranslate ? this.expandButton : null}
                         </div>
                     </div>
-                    {this.dockingContent}
+                    {/* {this.dockingContent} */}
                 </div>
             </div>);
     }
@@ -623,7 +604,7 @@ export class MainView extends React.Component {
     });
 
     @computed get expandButton() {
-        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
+        return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="black" size="lg" /></div>) : (null);
     }
 
     addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
@@ -717,8 +698,16 @@ export class MainView extends React.Component {
         </svg>;
     }
 
+    @computed get search() {
+        return <div className="mainView-searchPanel">
+            <div style={{ float: "left", marginLeft: "10px" }}>{Doc.CurrentUserEmail}</div>
+            <div>SEARCH GOES HERE</div>
+        </div>;
+    }
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
+
             {this.inkResources}
             <DictationOverlay />
             <SharingManager />
@@ -727,6 +716,7 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
+            {/* {this.search} */}
             <CollectionMenu />
             <FormatShapePane />
             <RichTextMenu key="rich" />

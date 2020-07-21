@@ -80,6 +80,7 @@ export interface CollectionViewCustomProps {
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
     childOpacity?: () => number;
+    hideFilter?: true;
 }
 
 export interface CollectionRenderProps {
@@ -559,7 +560,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {(!this.props.isSelected() || this.props.Document.hideFilterView) && !this.props.Document.forceActive ? (null) :
+            {this.props.hideFilter || this.props.Document.hideFilterView || !this.props.isSelected() && !this.props.Document.forceActive ? (null) :
                 <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
                     style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }
