@@ -288,7 +288,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             if (Doc.GetSelectedTool() === InkTool.None) {
-                !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+                if (!(e as any).marqueeHit) {
+                    (e as any).marqueeHit = true;
+                    !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+                }
             }
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
