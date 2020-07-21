@@ -31,7 +31,7 @@ export namespace DocServer {
 
     export enum WriteMode {
         Default = 0, //Anything goes
-        Playground = 1, //Playground (write own/no read)
+        Playground = 1, //Playground (write own/no read other updates)
         LiveReadonly = 2,//Live Readonly (no write/read others)
         LivePlayground = 3,//Live Playground (write own/read others)
     }
@@ -39,9 +39,9 @@ export namespace DocServer {
     const docsWithUpdates: { [field: string]: Set<Doc> } = {};
 
     export var PlaygroundFields: string[];
-    export function setPlaygroundFields(livePlayougroundFields: string[]) {
-        DocServer.PlaygroundFields = livePlayougroundFields;
-        livePlayougroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
+    export function setPlaygroundFields(livePlaygroundFields: string[]) {
+        DocServer.PlaygroundFields = livePlaygroundFields;
+        livePlaygroundFields.forEach(f => DocServer.setFieldWriteMode(f, DocServer.WriteMode.LivePlayground));
     }
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {

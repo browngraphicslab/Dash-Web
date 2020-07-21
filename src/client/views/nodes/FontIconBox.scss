@@ -11,7 +11,6 @@
     .fontIconBox-label {
         background: gray;
         color:white;
-        margin-left: -10px;
         border-radius: 8px;
         width:100%;
         position: absolute;
@@ -19,6 +18,8 @@
         font-size: 8px;
         margin-top:4px;
         letter-spacing: normal;
+        left: 0;
+        overflow: hidden;
     }
 
     svg {

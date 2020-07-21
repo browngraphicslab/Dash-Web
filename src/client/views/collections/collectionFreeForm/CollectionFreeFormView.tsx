@@ -85,8 +85,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _lastY: number = 0;
     private _downX: number = 0;
     private _downY: number = 0;
-    private _lastClientY: number | undefined = 0;
-    private _lastClientX: number | undefined = 0;
     private _inkToTextStartX: number | undefined;
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
@@ -582,7 +580,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        this._lastClientY = this._lastClientX = undefined;
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -1152,16 +1149,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 
-        const handler = (e: any) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
-
-        document.addEventListener("dashDragging", handler);
+        this._marqueeRef.current?.addEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
 
     componentWillUnmount() {
         this._layoutComputeReaction?.();
-
-        const handler = (e: any) => this.handleDragging(e, (e as CustomEvent<DragEvent>).detail);
-        document.removeEventListener("dashDragging", handler);
+        this._marqueeRef.current?.removeEventListener("dashDragAutoScroll", this.onDragAutoScroll as any);
     }
 
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
@@ -1176,37 +1169,23 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     // <div ref={this._marqueeRef}>
 
     @action
-    handleDragging = (e: CustomEvent<React.DragEvent>, de: DragEvent) => {
-        if ((e as any).handlePan) return;
+    onDragAutoScroll = (e: CustomEvent<React.DragEvent>) => {
+        if ((e as any).handlePan || this.props.isAnnotationOverlay) return;
         (e as any).handlePan = true;
-        this._lastClientY = e.detail.clientY;
-        this._lastClientX = e.detail.clientX;
 
         if (this._marqueeRef?.current) {
             const dragX = e.detail.clientX;
             const dragY = e.detail.clientY;
             const bounds = this._marqueeRef.current?.getBoundingClientRect();
 
-            const deltaX = dragX - bounds.left < 25 ? -2 : bounds.right - dragX < 25 ? 2 : 0;
-            const deltaY = dragY - bounds.top < 25 ? -2 : bounds.bottom - dragY < 25 ? 2 : 0;
-            (deltaX !== 0 || deltaY !== 0) && this.continuePan(deltaX, deltaY);
+            const deltaX = dragX - bounds.left < 25 ? -(25 + (bounds.left - dragX)) : bounds.right - dragX < 25 ? 25 - (bounds.right - dragX) : 0;
+            const deltaY = dragY - bounds.top < 25 ? -(25 + (bounds.top - dragY)) : bounds.bottom - dragY < 25 ? 25 - (bounds.bottom - dragY) : 0;
+            if (deltaX !== 0 || deltaY !== 0) {
+                this.Document._panY = NumCast(this.Document._panY) + deltaY / 2;
+                this.Document._panX = NumCast(this.Document._panX) + deltaX / 2;
+            }
         }
         e.stopPropagation();
-    }
-
-    continuePan = (deltaX: number, deltaY: number) => {
-        setTimeout(action(() => {
-            const dragY = this._lastClientY;
-            const dragX = this._lastClientX;
-            if (dragY !== undefined && dragX !== undefined && this._marqueeRef.current) {
-                const bounds = this._marqueeRef.current.getBoundingClientRect();
-                this.Document._panY = NumCast(this.Document._panY) + deltaY;
-                this.Document._panX = NumCast(this.Document._panX) + deltaX;
-                if (dragY - bounds.top < 25 || bounds.bottom - dragY < 25 || dragX - bounds.left < 25 || bounds.right - dragX < 25) {
-                    this.continuePan(deltaX, deltaY);
-                }
-            } else this._lastClientY !== undefined && this._lastClientX !== undefined && this.continuePan(deltaX, deltaY);
-        }), 50);
     }
 
     promoteCollection = undoBatch(action(() => {

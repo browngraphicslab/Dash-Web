@@ -22,6 +22,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
+import GroupManager from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
@@ -108,6 +109,7 @@ export default class KeyManager {
                 GoogleAuthenticationManager.Instance.cancel();
                 HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
+                GroupManager.Instance.close();
                 CollectionFreeFormViewChrome.Instance.clearKeep();
                 break;
             case "delete":

@@ -51,7 +51,7 @@ async function deserializeScript(script: ScriptField) {
         return (script as any).script = (ScriptField.DeiconifyView ?? (ScriptField.DeiconifyView = ComputedField.MakeFunction('deiconifyView(self)')))?.script;
     }
     if (script.script.originalScript === 'convertToButtons(dragData)') {
-        return (script as any).script = (ScriptField.ConvertToButtons ?? (ScriptField.ConvertToButtons = ComputedField.MakeFunction('convertToButtons(dragData)')))?.script;
+        return (script as any).script = (ScriptField.ConvertToButtons ?? (ScriptField.ConvertToButtons = ComputedField.MakeFunction('convertToButtons(dragData)', { dragData: "DocumentDragData" })))?.script;
     }
     console.log(script.script.originalScript);
     const captures: ProxyField<Doc> = (script as any).captures;

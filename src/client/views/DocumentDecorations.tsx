@@ -293,13 +293,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 doc.rotation = Number(doc.rotation) + Number(angle);
-                const ink = Cast(doc.data, InkField)?.inkData;
-                if (ink) {
-
+                const inks = Cast(doc.data, InkField)?.inkData;
+                if (inks) {
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
-                        const newX = Math.cos(angle) * (ink[i].X - this._centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
-                        const newY = Math.sin(angle) * (ink[i].X - this._centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
+                    for (const ink of inks) {
+                        const newX = Math.cos(angle) * (ink.X - this._centerPoints[index].X) - Math.sin(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
+                        const newY = Math.sin(angle) * (ink.X - this._centerPoints[index].X) + Math.cos(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
                     }
                     doc.data = new InkField(newPoints);

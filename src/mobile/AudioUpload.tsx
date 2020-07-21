@@ -143,6 +143,7 @@ export class AudioUpload extends React.Component {
                 interactive={true}
                 dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
                 overlayDisplayedOpacity={this.overlayOpacity}
+                closeOnExternalClick={this.closeUpload}
             />
         );
     }
