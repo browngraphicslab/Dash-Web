@@ -219,7 +219,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: col.color, padding: "2px",
                         display: "flex", cursor: "default", height: "100%",
                     }}>
-                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
+                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop:"4px" }} />
                     {/* <div className="keys-dropdown"
                         style={{ display: "inline", zIndex: 1000 }}> */}
                     {keysDropdown}

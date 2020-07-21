@@ -59,6 +59,7 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
+import { SearchBox } from './search/SearchBox';
 
 @observer
 export class MainView extends React.Component {
@@ -79,6 +80,8 @@ export class MainView extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
+    @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
+
 
     public isPointerDown = false;
 
@@ -300,6 +303,39 @@ export class MainView extends React.Component {
             }
         }
     }
+
+    @computed get search() {
+        return <DocumentView Document={this.searchDoc!}
+            DataDoc={undefined}
+            LibraryPath={emptyPath}
+            addDocument={undefined}
+            addDocTab={this.addDocTabFunc}
+            pinToPres={emptyFunction}
+            rootSelected={returnTrue}
+            onClick={undefined}
+            backgroundColor={this.defaultBackgroundColors}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            PanelWidth={this.getPWidth}
+            PanelHeight={this.getPHeight}
+            renderDepth={0}
+            focus={emptyFunction}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            bringToFront={emptyFunction}
+            docFilters={returnEmptyFilter}
+            ContainingCollectionView={undefined}
+            ContainingCollectionDoc={undefined}
+        />;
+    }
+
+
+
+    
+
     @computed get mainDocView() {
         return <DocumentView Document={this.mainContainer!}
             DataDoc={undefined}
@@ -327,6 +363,7 @@ export class MainView extends React.Component {
             ContainingCollectionDoc={undefined}
         />;
     }
+
     @computed get dockingContent() {
         TraceMobx();
         const mainContainer = this.mainContainer;
@@ -461,6 +498,10 @@ export class MainView extends React.Component {
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
+            <div>
+            <div style={{height:"32px", width:"100%", backgroundColor:"black"}}>
+            {this.search}
+            </div> 
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 height: RichTextMenu.Instance?.Pinned ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
@@ -488,6 +529,7 @@ export class MainView extends React.Component {
                     </div>
                     {this.dockingContent}
                 </div>
+            </div>
             </div>);
     }
 

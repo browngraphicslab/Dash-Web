@@ -657,7 +657,9 @@ export class CurrentUserUtils {
         const toolsBtn = await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
         const libraryBtn = CurrentUserUtils.setupLibraryPanel(doc, sidebarContainer);
         const searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
-
+        if (doc["search-panel"] === undefined) {
+            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({ ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, title: "sidebar search stack", })) as any as Doc;
+    }
         // Finally, setup the list of buttons to display in the sidebar
         if (doc["tabs-buttons"] === undefined) {
             doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
@@ -666,6 +668,15 @@ export class CurrentUserUtils {
             }));
             (toolsBtn.onClick as ScriptField).script.run({ this: toolsBtn });
         }
+        
+        
+
+            // new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
+            //     _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
+            //     title: "sidebar btn row stack", backgroundColor: "dimGray",
+            // }));
+        
+
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
