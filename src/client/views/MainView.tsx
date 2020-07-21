@@ -402,34 +402,35 @@ export class MainView extends React.Component {
         if (!(this.sidebarContent instanceof Doc)) {
             return (null);
         }
-        return <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
-            <DocumentView
-                Document={this.sidebarContent}
-                DataDoc={undefined}
-                LibraryPath={emptyPath}
-                addDocument={undefined}
-                addDocTab={this.addDocTabFunc}
-                pinToPres={emptyFunction}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
-                rootSelected={returnTrue}
-                removeDocument={returnFalse}
-                onClick={undefined}
-                ScreenToLocalTransform={this.mainContainerXf}
-                ContentScaling={returnOne}
-                PanelWidth={this.flyoutWidthFunc}
-                PanelHeight={this.getContentsHeight}
-                renderDepth={0}
-                focus={emptyFunction}
-                backgroundColor={this.defaultBackgroundColors}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                bringToFront={emptyFunction}
-                docFilters={returnEmptyFilter}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
-        </div>;
-        {/* <div className="buttonContainer" >
+        return <div className="mainView-libraryFlyout">
+            <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
+                <DocumentView
+                    Document={this.sidebarContent}
+                    DataDoc={undefined}
+                    LibraryPath={emptyPath}
+                    addDocument={undefined}
+                    addDocTab={this.addDocTabFunc}
+                    pinToPres={emptyFunction}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    rootSelected={returnTrue}
+                    removeDocument={returnFalse}
+                    onClick={undefined}
+                    ScreenToLocalTransform={this.mainContainerXf}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getContentsHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={this.defaultBackgroundColors}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    docFilters={returnEmptyFilter}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined} />
+            </div>
+            {/* <div className="buttonContainer" >
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                     <FontAwesomeIcon icon="cog" size="lg" />
                 </button>
@@ -437,7 +438,7 @@ export class MainView extends React.Component {
                     <FontAwesomeIcon icon="columns" size="lg" />
                 </button>
             </div> */}
-        {/* {this.docButtons} */ }
+            {this.docButtons}</div>;
     }
 
     @computed get menuPanel() {
@@ -592,7 +593,7 @@ export class MainView extends React.Component {
                             {MainView.Instance._flyoutTranslate ? this.expandButton : null}
                         </div>
                     </div>
-                    {/* {this.dockingContent} */}
+                    {this.dockingContent}
                 </div>
             </div>);
     }
