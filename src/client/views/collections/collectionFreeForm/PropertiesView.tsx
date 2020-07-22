@@ -13,6 +13,7 @@ import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentVi
 import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils } from "../../../../Utils";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Transform } from "../../../util/Transform";
+import { PropertiesButtons } from "../../PropertiesButtons";
 
 
 interface PropertiesViewProps {
@@ -22,7 +23,7 @@ interface PropertiesViewProps {
     height: number;
     renderDepth: number;
     ScreenToLocalTransform: () => Transform;
-    //docView: DocumentView;
+    docView: DocumentView;
 }
 
 @observer
@@ -125,7 +126,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 Collection
             </div>
             <div className="propertiesView-settings">
-                Settings
+                <div className="propertiesView-settings-title"> Settings</div>
+                <div className="propertiesView-settings-content">
+                    <PropertiesButtons doc={this.props.Document} />
+                </div>
             </div>
             <div className="propertiesView-fields">
                 <div className="propertiesView-fields-title"> Fields</div>

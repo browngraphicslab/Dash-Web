@@ -50,6 +50,7 @@ import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
 import { SharingPermissions } from '../../util/SharingManager';
 import { PropertiesView } from './collectionFreeForm/PropertiesView';
+import { DocumentView } from '../nodes/DocumentView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -589,6 +590,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
             }}>
                 <PropertiesView dataDoc={this.dataDoc} Document={this.props.Document}
+                    docView={CollectionView as unknown as DocumentView}
                     width={this._propertiesWidth}
                     height={this.props.PanelHeight()}
                     renderDepth={this.props.renderDepth}

@@ -1,0 +1,105 @@
+@import "globalCssVariables";
+
+$linkGap : 3px;
+
+.propertiesButtons-linkFlyout {
+    grid-column: 2/4;
+}
+
+.propertiesButtons-linkButton-empty:hover {
+    background: $main-accent;
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+.propertiesButtons-linkButton-nonempty:hover {
+    background: $main-accent;
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+.propertiesButtons-linkButton-empty,
+.propertiesButtons-linkButton-nonempty {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    opacity: 0.9;
+    pointer-events: auto;
+    background-color: $dark-color;
+    color: $light-color;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 75%;
+    transition: transform 0.2s;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &:hover {
+        background: $main-accent;
+        transform: scale(1.05);
+        cursor: pointer;
+    }
+}
+
+.propertiesButtons {
+    margin-top: $linkGap;
+    grid-column: 1/4;
+    width: max-content;
+    height: auto;
+    display: flex;
+    flex-direction: row;
+}
+
+.propertiesButtons-button {
+    pointer-events: auto;
+    padding-right: 5px;
+    width: 25px;
+}
+
+.propertiesButtons-linker {
+    height: 20px;
+    width: 20px;
+    text-align: center;
+    border-radius: 50%;
+    pointer-events: auto;
+    color: $dark-color;
+    border: $dark-color 1px solid;
+    transition: 0.2s ease all;
+}
+
+.propertiesButtons-linker:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+}
+
+
+@-moz-keyframes spin {
+    100% {
+        -moz-transform: rotate(360deg);
+    }
+}
+
+@-webkit-keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shadow-pulse {
+    0% {
+        box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+    }
+}
