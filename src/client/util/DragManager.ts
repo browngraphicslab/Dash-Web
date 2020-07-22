@@ -7,7 +7,7 @@ import { listSpec } from "../../fields/Schema";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, NumCast, ScriptCast, StrCast } from "../../fields/Types";
-import { emptyFunction } from "../../Utils";
+import { emptyFunction, returnTrue } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
@@ -235,7 +235,8 @@ export namespace DragManager {
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
             return e;
         };
-        options && (options.noAutoscroll = true);
+        options = options ?? {};
+        options.noAutoscroll = true;  // these buttons are being dragged on the overlay layer, so scrollin the underlay is not appropriate
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
     }
 
@@ -411,6 +412,7 @@ export namespace DragManager {
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
+        let scrollAwaiter: Opt<NodeJS.Timeout>;
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
@@ -433,50 +435,55 @@ export namespace DragManager {
 
             const target = document.elementFromPoint(e.x, e.y);
 
-            const complete = new DragCompleteEvent(false, dragData);
-
             if (target && !options?.noAutoscroll && !dragData.draggedDocuments?.some((d: any) => d._noAutoscroll)) {
-                target.dispatchEvent(
-                    new CustomEvent<React.DragEvent>("dashDragging", {
-                        bubbles: true,
-                        detail: {
-                            shiftKey: e.shiftKey,
-                            altKey: e.altKey,
-                            metaKey: e.metaKey,
-                            ctrlKey: e.ctrlKey,
-                            clientX: e.clientX,
-                            clientY: e.clientY,
-                            dataTransfer: new DataTransfer,
-                            button: e.button,
-                            buttons: e.buttons,
-                            getModifierState: e.getModifierState,
-                            movementX: e.movementX,
-                            movementY: e.movementY,
-                            pageX: e.pageX,
-                            pageY: e.pageY,
-                            relatedTarget: e.relatedTarget,
-                            screenX: e.screenX,
-                            screenY: e.screenY,
-                            detail: e.detail,
-                            view: e.view ? e.view : new Window,
-                            nativeEvent: new DragEvent("dashDragging"),
-                            currentTarget: target,
-                            target: target,
+                const autoScrollHandler = () => {
+                    target.dispatchEvent(
+                        new CustomEvent<React.DragEvent>("dashDragAutoScroll", {
                             bubbles: true,
-                            cancelable: true,
-                            defaultPrevented: true,
-                            eventPhase: e.eventPhase,
-                            isTrusted: true,
-                            preventDefault: e.preventDefault,
-                            isDefaultPrevented: () => true,
-                            stopPropagation: e.stopPropagation,
-                            isPropagationStopped: () => true,
-                            persist: emptyFunction,
-                            timeStamp: e.timeStamp,
-                            type: "dashDragging"
-                        }
-                    })
-                );
+                            detail: {
+                                shiftKey: e.shiftKey,
+                                altKey: e.altKey,
+                                metaKey: e.metaKey,
+                                ctrlKey: e.ctrlKey,
+                                clientX: e.clientX,
+                                clientY: e.clientY,
+                                dataTransfer: new DataTransfer,
+                                button: e.button,
+                                buttons: e.buttons,
+                                getModifierState: e.getModifierState,
+                                movementX: e.movementX,
+                                movementY: e.movementY,
+                                pageX: e.pageX,
+                                pageY: e.pageY,
+                                relatedTarget: e.relatedTarget,
+                                screenX: e.screenX,
+                                screenY: e.screenY,
+                                detail: e.detail,
+                                view: e.view ? e.view : new Window,
+                                nativeEvent: new DragEvent("dashDragAutoScroll"),
+                                currentTarget: target,
+                                target: target,
+                                bubbles: true,
+                                cancelable: true,
+                                defaultPrevented: true,
+                                eventPhase: e.eventPhase,
+                                isTrusted: true,
+                                preventDefault: () => "not implemented for this event" ? false : false,
+                                isDefaultPrevented: () => "not implemented for this event" ? false : false,
+                                stopPropagation: () => "not implemented for this event" ? false : false,
+                                isPropagationStopped: () => "not implemented for this event" ? false : false,
+                                persist: emptyFunction,
+                                timeStamp: e.timeStamp,
+                                type: "dashDragAutoScroll"
+                            }
+                        })
+                    );
+
+                    scrollAwaiter && clearTimeout(scrollAwaiter);
+                    SnappingManager.GetIsDragging() && (scrollAwaiter = setTimeout(autoScrollHandler, 25));
+                };
+                scrollAwaiter && clearTimeout(scrollAwaiter);
+                scrollAwaiter = setTimeout(autoScrollHandler, 250);
             }
 
             const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);

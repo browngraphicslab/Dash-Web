@@ -13,7 +13,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclEdit } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
 import { removeMarkWithAttrs } from "./prosemirrorPatches";
@@ -24,7 +24,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../fields/Types";
-import { TraceMobx, OVERRIDE_ACL } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_ACL, GetEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -233,12 +233,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
             let unchanged = true;
-            if (!this.dataDoc[AclSym]) {
+            if (GetEffectiveAcl(this.dataDoc) === AclEdit) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                        if (json !== curLayout?.Data) {
+                        if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);

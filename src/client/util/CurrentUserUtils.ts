@@ -466,7 +466,6 @@ export class CurrentUserUtils {
             onClick: click ? ScriptField.MakeScript(click) : undefined,
             ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
             activeInkPen,
-            _noAutoscroll: true,
             backgroundColor,
             removeDropProperties: new List<string>(["dropAction"]),
             dragFactory,
@@ -736,13 +735,13 @@ export class CurrentUserUtils {
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
-        ...opts, _noAutoscroll: true, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
+        ...opts, _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
         dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
         backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts, _noAutoscroll: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
+        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window

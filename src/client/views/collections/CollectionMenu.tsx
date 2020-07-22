@@ -402,7 +402,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get widthPicker() {
-        var widthPicker = this.toggleButton("stroke width", this._widthBtn, () => this._widthBtn = !this._widthBtn, "bars", null);
+        const widthPicker = this.toggleButton("stroke width", this._widthBtn, () => this._widthBtn = !this._widthBtn, "bars", null);
         return !this._widthBtn ? widthPicker :
             <div className="btn2-group" key="width">
                 {widthPicker}
@@ -416,7 +416,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get colorPicker() {
-        var colorPicker = this.toggleButton("stroke color", this._colorBtn, () => this._colorBtn = !this._colorBtn, "pen-nib",
+        const colorPicker = this.toggleButton("stroke color", this._colorBtn, () => this._colorBtn = !this._colorBtn, "pen-nib",
             <div className="color-previewI" style={{ backgroundColor: ActiveInkColor() ?? "121212" }} />);
         return !this._colorBtn ? colorPicker :
             <div className="btn-group" key="color">
@@ -431,7 +431,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
     @computed get fillPicker() {
-        var fillPicker = this.toggleButton("shape fill color", this._fillBtn, () => this._fillBtn = !this._fillBtn, "fill-drip",
+        const fillPicker = this.toggleButton("shape fill color", this._fillBtn, () => this._fillBtn = !this._fillBtn, "fill-drip",
             <div className="color-previewI" style={{ backgroundColor: ActiveFillColor() ?? "121212" }} />);
         return !this._fillBtn ? fillPicker :
             <div className="btn-group" key="fill" >

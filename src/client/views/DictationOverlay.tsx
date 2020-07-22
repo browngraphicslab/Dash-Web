@@ -66,6 +66,7 @@ export class DictationOverlay extends React.Component {
             interactive={false}
             dialogueBoxStyle={dialogueBoxStyle}
             overlayStyle={overlayStyle}
+            closeOnExternalClick={this.initiateDictationFade}
         />);
     }
 }
