@@ -22,6 +22,7 @@ import { DocumentType } from "../documents/DocumentTypes";
 import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 import { LabelBox } from "../views/nodes/LabelBox";
+import { LinkManager } from "./LinkManager";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -888,3 +889,8 @@ export class CurrentUserUtils {
 
 Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
     "creates a new workspace when called");
+
+Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
+    "returns all the links to the document or its annotations", "(doc: any)");
+Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
+    "returns all the links directly to the document", "(doc: any)");

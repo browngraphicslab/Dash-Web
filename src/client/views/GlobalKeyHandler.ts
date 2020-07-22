@@ -309,13 +309,13 @@ export default class KeyManager {
                 const targetDataDoc = Doc.GetProto(first.props.Document);
                 const fieldKey = Doc.LayoutFieldKey(first.props.Document);
                 const docList = DocListCast(targetDataDoc[fieldKey]);
-                docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
+                docids.map((did, i) => i && DocServer.GetRefField(did).then(async doc => {
                     count++;
                     if (doc instanceof Doc) {
                         list.push(doc);
                     }
                     if (count === docids.length) {
-                        const added = list.filter(d => !docList.includes(d)).map(d => clone ? Doc.MakeClone(d) : d);
+                        const added = await Promise.all(list.filter(d => !docList.includes(d)).map(async d => clone ? await Doc.MakeClone(d) : d));
                         if (added.length) {
                             added.map(doc => doc.context = targetDataDoc);
                             undoBatch(() => {

@@ -17,6 +17,7 @@ import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import { Tooltip } from '@material-ui/core';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { undoBatch } from '../../util/UndoManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
@@ -163,10 +164,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
     }
 
+    @undoBatch
     @action
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
-        //this.props.showLinks();
         LinkDocPreview.LinkInfo = undefined;
         DocumentLinksButton.EditLink = undefined;
     }

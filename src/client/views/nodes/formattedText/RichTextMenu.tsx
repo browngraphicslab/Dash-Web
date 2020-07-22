@@ -23,7 +23,7 @@ import { updateBullets } from "./ProsemirrorExampleTransfer";
 import "./RichTextMenu.scss";
 import { schema } from "./schema_rts";
 import { TraceMobx } from "../../../../fields/util";
-import { UndoManager } from "../../../util/UndoManager";
+import { UndoManager, undoBatch } from "../../../util/UndoManager";
 import { Tooltip } from "@material-ui/core";
 const { toggleMark } = require("prosemirror-commands");
 
@@ -831,6 +831,8 @@ export default class RichTextMenu extends AntimodeMenu {
         ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRight", "", target);
     }
 
+    @undoBatch
+    @action
     deleteLink = () => {
         if (this.view) {
             const link = this.view.state.selection.$from.nodeAfter?.marks.find(m => m.type === this.view!.state.schema.marks.linkAnchor);

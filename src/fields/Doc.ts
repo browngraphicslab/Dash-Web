@@ -483,25 +483,25 @@ export namespace Doc {
         return alias;
     }
 
-
-
-    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
+    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[]): Promise<Doc> {
         if (Doc.IsBaseProto(doc)) return doc;
         if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
         const copy = new Doc(undefined, true);
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
-        Object.keys(doc).forEach(key => {
-            if (exclude.includes(key)) return;
+        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), exclusions);
+        Object.keys(doc).forEach(async key => {
+            if (filter.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
-            const copyObjectField = (field: ObjectField) => {
-                const list = Cast(doc[key], listSpec(Doc));
-                if (list !== undefined && !(list instanceof Promise)) {
-                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+            const copyObjectField = async (field: ObjectField) => {
+                const list = await Cast(doc[key], listSpec(Doc));
+                const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
+                if (docs !== undefined && docs.length) {
+                    const clones = docs.map(async d => await Doc.makeClone(d as Doc, cloneMap, rtfs, exclusions));
+                    copy[key] = new List<Doc>(await Promise.all(clones));
                 } else if (doc[key] instanceof Doc) {
-                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                    copy[key] = key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions); // reference documents except copy documents that are expanded teplate fields 
                 } else {
                     copy[key] = ObjectField.MakeCopy(field);
                     if (field instanceof RichTextField) {
@@ -513,7 +513,7 @@ export namespace Doc {
             };
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
+                    copy[key] = await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions);
                 }
             } else {
                 if (field instanceof RefField) {
@@ -535,10 +535,10 @@ export namespace Doc {
         cloneMap.set(doc[Id], copy);
         return copy;
     }
-    export function MakeClone(doc: Doc): Doc {
+    export async function MakeClone(doc: Doc): Promise<Doc> {
         const cloneMap = new Map<string, Doc>();
         const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf"]);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
                 const mapped = cloneMap.get(id);
@@ -657,7 +657,7 @@ export namespace Doc {
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        const exclude = Cast(doc.cloneFieldFilter, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
