@@ -142,7 +142,7 @@
             margin-left: -13px;
             border-radius: 8px;
             width: 65px;
-            position: absolute;
+            position: relative;
             text-align: center;
             font-size: 9.5px;
             margin-top: 4px;
@@ -290,7 +290,8 @@
         width: 10px;
         height: 10px;
         float: right;
-        margin-right: 1px;
+        margin-right: 3px;
+        padding-top: 19px;
     }
 
 }

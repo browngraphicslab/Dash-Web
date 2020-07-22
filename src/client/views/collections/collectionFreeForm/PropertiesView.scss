@@ -1,0 +1,32 @@
+.propertiesView {
+
+    background-color: rgb(168, 168, 168);
+    height: 100%;
+    z-index: 1;
+
+    .propertiesView-title {
+        background-color: rgb(134, 134, 134);
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+    }
+
+    .propertiesView-name {
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+    }
+
+    .propertiesView-settings {
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+    }
+
+    .propertiesView-fields {
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+    }
+
+    .propertiesView-layout {
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+    }
+}

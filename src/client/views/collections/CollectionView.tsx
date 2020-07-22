@@ -49,6 +49,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
 import { SharingPermissions } from '../../util/SharingManager';
+import { PropertiesView } from './collectionFreeForm/PropertiesView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -367,8 +368,21 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
     set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
-    bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
+    get _propertiesWidth() { return NumCast(this.props.Document._propertiesWidth); }
+    set _propertiesWidth(value) { this.props.Document._propertiesWidth = value; }
+
+    bodyPanelWidth = () => this.props.PanelWidth() - this.propertiesWidth();
     facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
+
+    propertiesWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._propertiesWidth));
+
+    @computed get propertiesIcon() {
+        if (this.propertiesWidth() < 10) {
+            return "chevron-left";
+        } else {
+            return "chevron-right";
+        }
+    }
 
     @computed get dataDoc() {
         return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
@@ -489,6 +503,14 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return false;
         }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
     }
+
+    onDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            this._propertiesWidth = this.props.PanelWidth() - Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
+            return false;
+        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
+    }
+
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
@@ -558,6 +580,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </div>
             </div>;
     }
+
+    @computed get propertiesView() {
+        TraceMobx();
+        return !this._propertiesWidth || this.props.dontRegisterView ? (null) :
+            <div className="collectionView-propertiesView" style={{
+                width: `${this.propertiesWidth()}px`,
+                overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
+            }}>
+                <PropertiesView />
+            </div>;
+    }
+
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
@@ -588,11 +622,20 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {this.props.hideFilter || this.props.Document.hideFilterView || !this.props.isSelected() && !this.props.Document.forceActive ? (null) :
+            {/* {this.props.hideFilter || this.props.Document.hideFilterView || !this.props.isSelected() && !this.props.Document.forceActive ? (null) :
                 <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
                     style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }
-            {this.facetWidth() < 10 ? (null) : this.filterView}
+            {this.facetWidth() < 10 ? (null) : this.filterView} */}
+
+            {this.props.hideFilter || this.props.Document.hideFilterView || !this.props.isSelected() && !this.props.Document.forceActive ? (null) :
+                <div className="collectionView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onDown}
+                    style={{ right: this.propertiesWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }}>
+                    <div className="collectionView-propertiesDragger-icon">
+                        <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
+                </div>
+            }
+            {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
         </div>);
     }
 }
