@@ -51,9 +51,18 @@
     }
 
     .propertiesView-layout {
-        border-bottom: 1px solid black;
         padding: 8.5px;
-        font-size: 12.5px;
-        font-weight: bold;
+
+        .propertiesView-layout-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding-bottom: 7px;
+        }
+
+        .propertiesView-layout-content {
+            margin-left: 5px;
+            overflow: hidden;
+        }
+
     }
 }

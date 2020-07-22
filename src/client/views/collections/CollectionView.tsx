@@ -588,7 +588,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 width: `${this.propertiesWidth()}px`,
                 overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
             }}>
-                <PropertiesView document={this.dataDoc} />
+                <PropertiesView dataDoc={this.dataDoc} Document={this.props.Document}
+                    width={this._propertiesWidth}
+                    height={this.props.PanelHeight()}
+                    renderDepth={this.props.renderDepth}
+                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                />
             </div>;
     }
 
