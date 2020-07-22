@@ -660,7 +660,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.workspaceStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -679,7 +679,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.catalogStack = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -703,7 +703,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.closedStack = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -718,7 +718,7 @@ export class CurrentUserUtils {
         if (doc["tabs-button-library"] === undefined) {
             const libraryStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150, hideFilterView: true,
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({

@@ -588,7 +588,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 width: `${this.propertiesWidth()}px`,
                 overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
             }}>
-                <PropertiesView />
+                <PropertiesView document={this.dataDoc} />
             </div>;
     }
 

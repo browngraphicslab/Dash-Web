@@ -121,6 +121,9 @@
     padding: 20px;
     padding-right: 50px;
 
+    overflow-y: scroll;
+    overflow-x: hidden;
+
     .mainView-menuPanel-button {
         width: 45px;
         height: 45px;
@@ -174,7 +177,7 @@
         background-color: dimgray;
         border-radius: 100%;
         transform-origin: top left;
-        margin-bottom: 23px;
+        margin-bottom: 20px;
         margin-top: 5px;
 
         margin-right: 25px;

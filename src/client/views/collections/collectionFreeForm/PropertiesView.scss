@@ -1,32 +1,59 @@
 .propertiesView {
 
-    background-color: rgb(168, 168, 168);
+    background-color: rgb(205, 205, 205);
     height: 100%;
     z-index: 1;
+    font-family: "Noto Sans";
+    cursor: auto;
+
+    //overflow-y: scroll;
 
     .propertiesView-title {
-        background-color: rgb(134, 134, 134);
-        border-top: 1px solid black;
-        border-bottom: 1px solid black;
+        background-color: rgb(159, 159, 159);
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        padding-top: 12px;
+        padding-bottom: 12px;
     }
 
     .propertiesView-name {
-        border-top: 1px solid black;
         border-bottom: 1px solid black;
+        padding: 8.5px;
+        font-size: 12.5px;
     }
 
     .propertiesView-settings {
-        border-top: 1px solid black;
         border-bottom: 1px solid black;
+        padding: 8.5px;
+        font-size: 12.5px;
+        font-weight: bold;
     }
 
     .propertiesView-fields {
-        border-top: 1px solid black;
         border-bottom: 1px solid black;
+        padding: 8.5px;
+
+        .propertiesView-fields-title {
+            font-size: 12.5px;
+            font-weight: bold;
+            padding-bottom: 7px;
+        }
+
+        .propertiesView-fields-content {
+            font-size: 10px;
+            margin-left: 5px;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
     }
 
     .propertiesView-layout {
-        border-top: 1px solid black;
         border-bottom: 1px solid black;
+        padding: 8.5px;
+        font-size: 12.5px;
+        font-weight: bold;
     }
 }
