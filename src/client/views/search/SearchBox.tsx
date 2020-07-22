@@ -199,12 +199,25 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
-            if (this._icons !== this._allIcons) {
-                runInAction(() => { this.expandedBucket = false });
+            // if (this._icons !== this._allIcons) {
+            //     runInAction(() => { this.expandedBucket = false });
+            // }
+            console.log(StrCast(this.layoutDoc._searchString));
+            if (StrCast(this.layoutDoc._searchString)!==""){
+                console.log("OPEN");
+                runInAction(()=>{this.open=true});
+            }
+            else {
+                console.log("CLOSE");
+                runInAction(()=>{this.open=false});
+
             }
             this.submitSearch();
         }
     }
+
+    @observable open: boolean = false;
+
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
@@ -377,7 +390,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
 
-    @observable expandedBucket: boolean = false;
     @action
     submitSearch = async (reset?: boolean) => {
         this.checkIcons();
@@ -1109,7 +1121,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     </span> */}
                     <input value={StrCast(this.layoutDoc._searchString)} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
-                        style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
+                        style={{ width: this._searchbarOpen ? "200px" : "200px" }} />
                     {/* <button className="searchBox-barChild searchBox-filter" style={{ transform: "none" }} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button> */}
                 </div>
                 <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults > 0 ? { overflow: "visible" } : { overflow: "hidden" }}>
@@ -1123,12 +1135,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         {this.keyButtons}
                     </div>
                 </div>
+                <div style={{zIndex:2000}}>
                 {this.headerscale > 0 ? <CollectionView {...this.props}
                     Document={this.props.Document}
                     moveDocument={returnFalse}
                     removeDocument={returnFalse}
+                    PanelHeight={this.open===true?()=>200 :()=>0}
+                    PanelWidth={this.open===true? ()=>600 : ()=>0}
+                    PanelPosition={"absolute"}
                     focus={this.selectElement}
-                    ScreenToLocalTransform={Transform.Identity} /> : undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                     /> : undefined}
+                     </div>
 
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",

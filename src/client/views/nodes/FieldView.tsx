@@ -48,10 +48,12 @@ export interface FieldViewProps {
     ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    PanelPosition: string;
     NativeHeight: () => number;
     NativeWidth: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
+
     ChromeHeight?: () => number;
     childLayoutTemplate?: () => Opt<Doc>;
     highlighting?: string[];
