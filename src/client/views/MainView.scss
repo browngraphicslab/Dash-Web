@@ -122,8 +122,8 @@
     padding-right: 50px;
 
     .mainView-menuPanel-button {
-        width: 50px;
-        height: 50px;
+        width: 45px;
+        height: 45px;
         padding: 10px;
         pointer-events: all;
         touch-action: none;
@@ -139,7 +139,7 @@
         .mainView-menuPanel-button-label {
             background: rgb(168, 168, 168);
             color: black;
-            margin-left: -10px;
+            margin-left: -13px;
             border-radius: 8px;
             width: 65px;
             position: absolute;
@@ -269,22 +269,30 @@
 
 .mainView-expandFlyoutButton {
     position: absolute;
-    top: 100px;
-    right: 30px;
+    top: 120px;
+    right: 55px;
     cursor: pointer;
 }
 
 .mainView-libraryHandle {
-    width: 20px;
+    width: 28px;
     left: calc(100% - 10px);
-    height: 40px;
+    height: 55px;
     top: 50%;
     border: 1px solid black;
-    border-radius: 5px;
+    border-radius: 8px;
     position: absolute;
     z-index: 2;
     touch-action: none;
-    cursor: ew-resize;
+    cursor: grab;
+
+    .mainView-libraryHandle-icon {
+        width: 10px;
+        height: 10px;
+        float: right;
+        margin-right: 1px;
+    }
+
 }
 
 .mainView-workspace {

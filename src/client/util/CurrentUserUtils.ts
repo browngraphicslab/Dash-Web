@@ -45,6 +45,7 @@ export class CurrentUserUtils {
     @observable public static workspaceStack: any | undefined;
     @observable public static catalogStack: any | undefined;
     @observable public static closedStack: any | undefined;
+    @observable public static searchStack: any | undefined;
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
@@ -737,6 +738,7 @@ export class CurrentUserUtils {
 
     // setup the Search button which will display the search panel.
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
+        doc["tabs-button-search"] = undefined;
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
                 _width: 50, _height: 25, title: "Search", _fontSize: "10pt",
@@ -747,6 +749,7 @@ export class CurrentUserUtils {
                 lockedPosition: true,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
             }));
+            CurrentUserUtils.searchStack = new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc;
         }
         return doc["tabs-button-search"] as Doc;
     }

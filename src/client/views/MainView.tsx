@@ -489,7 +489,8 @@ export class MainView extends React.Component {
             </button>
 
             <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("sharing")}
+                //onPointerDown={e => this.selectPanel("sharing")}
+                onClick={() => GroupManager.Instance.open()}
                 style={{
                     padding: "5px",
                     background: "black",
@@ -505,10 +506,22 @@ export class MainView extends React.Component {
                     padding: "5px",
                     background: "black",
                     boxShadow: "4px 4px 12px black",
-                    marginBottom: "45px"
+                    //marginBottom: "45px"
                 }}>
                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
                 <div className="mainView-menuPanel-button-label"> Tools </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("search")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black",
+                    //marginBottom: "45px"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="search" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Search </div>
             </button>
 
             <button className="mainView-menuPanel-bottomButton"
@@ -536,12 +549,11 @@ export class MainView extends React.Component {
 
     @action
     selectPanel = (str: string) => {
-
-        if (this.panelContent === str) {
-            this.sidebarContent = null;
+        if (this.panelContent === str && this.flyoutWidth !== 0) {
             this.panelContent = "none";
-            MainView.Instance._flyoutTranslate = false;
+            this.flyoutWidth = 0;
         } else {
+            this.panelContent = str;
             MainView.expandFlyout();
             if (str === "tools") {
                 CurrentUserUtils.toolsBtn;
@@ -552,10 +564,8 @@ export class MainView extends React.Component {
                 this.sidebarContent.proto = CurrentUserUtils.catalogStack;
             } else if (str === "deleted") {
                 this.sidebarContent.proto = CurrentUserUtils.closedStack;
-            } else if (str === "upload") {
-                this.sidebarContent.proto = "uploads";
-            } else if (str === "sharing") {
-                this.sidebarContent.proto = "sharing";
+            } else if (str === "search") {
+                this.sidebarContent.proto = CurrentUserUtils.searchStack;
             }
         }
     }
@@ -573,7 +583,7 @@ export class MainView extends React.Component {
                 {this.menuPanel}
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-                        {MainView.Instance._flyoutTranslate ? <div className="mainView-libraryHandle"
+                        {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                             onPointerDown={this.onPointerDown}
                             style={{ backgroundColor: this.defaultBackgroundColors(this.sidebarContent) }}>
                             <span title="library View Dragger" style={{
@@ -582,6 +592,8 @@ export class MainView extends React.Component {
                                 position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
                                 top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                             }} />
+                            <div className="mainview-libraryHandle-icon">
+                                <FontAwesomeIcon icon="chevron-left" color="black" size="sm" /> </div>
                         </div> : null}
                         <div className="mainView-libraryFlyout" style={{
                             //transformOrigin: this._flyoutTranslate ? "" : "left center",
@@ -590,7 +602,7 @@ export class MainView extends React.Component {
                             boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw"
                         }}>
                             {this.flyout}
-                            {MainView.Instance._flyoutTranslate ? this.expandButton : null}
+                            {this.expandButton}
                         </div>
                     </div>
                     {this.dockingContent}
