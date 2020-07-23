@@ -1,5 +1,9 @@
-import { StrCast } from "../../../fields/Types";
+import { StrCast, Cast } from "../../../fields/Types";
 import HypothesisAuthenticationManager from "../HypothesisAuthenticationManager";
+import { SearchUtil } from "../../util/SearchUtil";
+import { action } from "mobx";
+import { Doc } from "../../../fields/Doc";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 export namespace Hypothesis {
 
@@ -93,5 +97,21 @@ export namespace Hypothesis {
     export const extractUsername = (userid: string) => {
         const regex = new RegExp('(?<=\:)(.*?)(?=\@)/');
         return regex.exec(userid)![0];
+    };
+
+    // Return corres
+    export const getWebDocs = async (uri: string) => {
+        const results: Doc[] = [];
+        await SearchUtil.Search(uri, true).then(action(async (res: SearchUtil.DocSearchResult) => {
+            const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
+            const filteredDocs = docs.filter(doc => doc.type === DocumentType.WEB && doc.data);
+
+            console.log("docs", docs);
+            console.log("FILTEREDDOCS: ", filteredDocs);
+            filteredDocs.forEach(doc => {
+                results.push(doc);
+            });
+        }));
+        return results;
     };
 }

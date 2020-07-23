@@ -154,7 +154,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
 
-        this.props.linkDoc.linksToAnnotation && (Doc.GetProto(this.props.destinationDoc).data = new WebField(StrCast(this.props.linkDoc.annotationUrl))); // if destination is a Hypothes.is annotation, redirect website to the annotation's URL to scroll to the annotation
+        // this.props.linkDoc.linksToAnnotation && (Doc.GetProto(this.props.destinationDoc).data = new WebField(StrCast(this.props.linkDoc.annotationUrl))); // if destination is a Hypothes.is annotation, redirect website to the annotation's URL to scroll to the annotation
 
         if (this.props.linkDoc.follow) {
             if (this.props.linkDoc.follow === "Default") {
@@ -167,6 +167,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         } else {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
         }
+
+        this.props.linkDoc.linksToAnnotation && setTimeout(() => window.open(StrCast(this.props.linkDoc.annotationUrl), '_blank'), 1000); // open external page if hypothes.is annotation
     }
 
     @action

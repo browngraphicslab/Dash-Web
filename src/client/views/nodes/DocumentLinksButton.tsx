@@ -60,10 +60,18 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     }
 
     @action
-    linkAnnotation = async (e: any) => { //  event used by hypothes.is plugin to tell Dash which annotation to link from
+    linkAnnotation = async (e: any) => { // event sent by hypothes.is plugin to tell Dash which annotation we're linking from
         const annotationId = e.detail.id;
-        const sourceUrl = e.detail.uri;
-        console.log(annotationId, sourceUrl);
+        const annotationUri = e.detail.uri;
+        console.log(annotationId, annotationUri);
+        // const source = await Hypothesis.getWebDoc(annotationUri);
+
+        const source = SelectionManager.SelectedDocuments()[0]; // TO BE FIXED, currently link just starts from whichever doc is selected
+        runInAction(() => {
+            DocumentLinksButton.AnnotationId = annotationId;
+            DocumentLinksButton.AnnotationUri = annotationUri;
+            DocumentLinksButton.StartLink = source;
+        });
     }
 
     @action
@@ -133,14 +141,14 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         const targetDoc = this.props.View.props.Document;
                         const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
 
-                        // not currently possible to drag hypothes.is annotation to form link
-                        // if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
-                        //     const sourceUrl = DocumentLinksButton.AnnotationUri;
-                        //     Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
-                        //     Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
-                        //     Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
-                        //     Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
-                        // }
+                        // TODO: Not currently possible to drag to complete links to annotations
+                        if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
+                            const sourceUrl = DocumentLinksButton.AnnotationUri;
+                            Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
+                            Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
+                            Doc.GetProto(linkDoc as Doc).annotationUrl = Hypothesis.makeAnnotationUrl(DocumentLinksButton.AnnotationId, sourceUrl); // redirect web doc to this URL when following link
+                            Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                        }
 
                         LinkManager.currentLink = linkDoc;
                         runInAction(() => {
