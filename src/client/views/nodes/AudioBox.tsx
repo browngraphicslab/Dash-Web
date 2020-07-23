@@ -2,13 +2,13 @@ import React = require("react");
 import { FieldViewProps, FieldView } from './FieldView';
 import { observer } from "mobx-react";
 import "./AudioBox.scss";
-import { Cast, DateCast, NumCast, FieldValue } from "../../../fields/Types";
+import { Cast, DateCast, NumCast, FieldValue, ScriptCast } from "../../../fields/Types";
 import { AudioField, nullAudio } from "../../../fields/URLField";
-import { ViewBoxBaseComponent } from "../DocComponent";
+import { ViewBoxBaseComponent, ViewBoxAnnotatableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../fields/Schema";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero } from "../../../Utils";
-import { runInAction, observable, reaction, IReactionDisposer, computed, action, trace } from "mobx";
+import { runInAction, observable, reaction, IReactionDisposer, computed, action, trace, toJS } from "mobx";
 import { DateField } from "../../../fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Doc, DocListCast } from "../../../fields/Doc";
@@ -18,12 +18,16 @@ import { Id } from "../../../fields/FieldSymbols";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DocumentView } from "./DocumentView";
 import { Docs, DocUtils } from "../../documents/Documents";
-import { ComputedField } from "../../../fields/ScriptField";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
 import { Networking } from "../../Network";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { RichTextField } from "../../../fields/RichTextField";
 import { AudioResizer } from "./AudioResizer";
+import { List } from "../../../fields/List";
+import { LabelBox } from "./LabelBox";
+import { Transform } from "../../util/Transform";
+import { Scripting } from "../../util/Scripting";
 
 
 // testing testing 
@@ -44,9 +48,11 @@ type AudioDocument = makeInterface<[typeof documentSchema, typeof audioSchema]>;
 const AudioDocument = makeInterface(documentSchema, audioSchema);
 
 @observer
-export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument>(AudioDocument) {
+export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
+
+    static Instance: AudioBox;
 
     _linkPlayDisposer: IReactionDisposer | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
@@ -68,7 +74,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
 
     @observable private _dragging: boolean = false;
     @observable private _duration = 0;
-    @observable private _rect: Array<any> = []
+    @observable private _rect: Array<any> = [];
     @observable private _markers: Array<any> = [];
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
@@ -86,6 +92,9 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         this._scrubbingDisposer?.();
     }
     componentDidMount() {
+        if (!this.dataDoc.markerAmount) {
+            this.dataDoc.markerAmount = 0;
+        }
         runInAction(() => this.audioState = this.path ? "paused" : undefined);
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
@@ -289,8 +298,15 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     }
 
     @action
-    newMarker(marker: number) {
+    newMarker(marker: Doc) {
         this._markers.push(marker);
+        if (this.dataDoc.markers) {
+            this.dataDoc.markers.push(marker);
+        } else {
+            this.dataDoc.markers = new List<Doc>(this._markers)
+        }
+
+        console.log(this.dataDoc.markers)
         this._amount++;
     }
 
@@ -304,7 +320,13 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     end(marker: number) {
         console.log("end!");
         this._hold = false;
-        this._markers.push([this._start, marker]);
+        //this._markers.push(Docs.Create.LabelDocument({ isLabel: false, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }))
+        if (this.dataDoc[this.annotationKey]) {
+            this.dataDoc[this.annotationKey].push(Docs.Create.LabelDocument({ title: "hi", isLabel: false, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }));
+        } else {
+            this.dataDoc[this.annotationKey] = new List<Doc>([Docs.Create.LabelDocument({ title: "hi", isLabel: false, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document })]);
+        }
+
         this._start = 0;
         this._amount++;
     }
@@ -315,7 +337,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         this._isPointerDown = true;
         console.log("click");
         this._currMarker = m;
-        let targetele = document.getElementById("timeline");
+        const targetele = document.getElementById("timeline");
         targetele?.setPointerCapture(e.pointerId);
         this._left = left;
 
@@ -336,7 +358,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         const rect = (e.target as any).getBoundingClientRect();
         this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
 
-        let targetele = document.getElementById("timeline");
+        const targetele = document.getElementById("timeline");
         targetele?.releasePointerCapture(e.pointerId);
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -357,31 +379,57 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         // if (e.target as HTMLElement === document.getElementById("timeline")) {
 
         let newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-        console.log(newTime);
+
         this.changeMarker(this._currMarker, newTime);
         // }
     }
 
     @action
     changeMarker = (m: any, time: any) => {
-        for (let i = 0; i < this._markers.length; i++) {
-            if (this.isSame(this._markers[i], m)) {
-                this._left ? this._markers[i][0] = time : this._markers[i][1] = time;
+        for (let i = 0; i < this.dataDoc.markers.length; i++) {
+            if (this.isSame(this.dataDoc.markers[i], m)) {
+                // this._left ? this._markers[i][0] = time : this._markers[i][1] = time;
+                this._left ? this.dataDoc.markers[i].audioStart = time : this.dataDoc.markers[i].audioEnd = time;
             }
         }
     }
 
     isSame = (m1: any, m2: any) => {
-        if (m1[0] == m2[0] && m1[1] == m2[1]) {
+        if (m1.audioStart === m2.audioStart && m1.audioEnd === m2.audioEnd) {
             return true;
         }
         return false;
     }
 
+    @action
+    isOverlap = (m: any, i: number) => {
+        let counter = 0;
+        let check = [];
+
+        if (i == 0) {
+            this._markers = [];
+        }
+        for (let marker of this._markers) {
+            if ((m.audioEnd > marker.audioStart && m.audioStart < marker.audioEnd)) {
+                counter++;
+                check.push(marker)
+            }
+        }
+
+
+        if (this.dataDoc.markerAmount < counter) {
+            this.dataDoc.markerAmount = counter;
+        }
+
+        this._markers.push(m);
+
+        return counter;
+    }
+
     formatTime = (time: number) => {
-        let hours = Math.floor(time / 60 / 60);
-        let minutes = Math.floor(time / 60) - (hours * 60);
-        let seconds = time % 60;
+        const hours = Math.floor(time / 60 / 60);
+        const minutes = Math.floor(time / 60) - (hours * 60);
+        const seconds = time % 60;
 
         return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
     }
@@ -463,7 +511,8 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                     }
                                 }
                                 if (e.button === 0 && e.altKey) {
-                                    this.newMarker(this._ele!.currentTime);
+
+                                    this.newMarker(Docs.Create.TextDocument("", { isLabel: true, audioStart: this._ele!.currentTime }));
                                 }
 
                                 if (e.button === 0 && e.shiftKey) {
@@ -472,21 +521,39 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                     this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
                                 }
                             }}>
-                            {this._markers.map((m, i) => {
+                            {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
+
                                 // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
                                 let rect;
-                                console.log(1 / this._amount * 100);
-                                (m.length > 1) ?
+
+                                (!m.isLabel) ?
 
                                     rect =
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(m[0]))}` + " - " + `${this.formatTime(Math.round(m[1]))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${m[0] / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(m[1] - m[0]) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / this._amount * 100}%`, top: `${i * 1 / this._amount * 100}%` }} onClick={e => { this.playFrom(m[0], m[1]); e.stopPropagation() }} >
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${this.formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 2) * 100}%`, top: `${this.isOverlap(m, i) * 1 / (this.dataDoc.markerAmount + 2) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
                                         {/* <FormattedTextBox {...this.props} key={"label" + i} /> */}
                                         <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
+                                        <DocumentView {...this.props}
+                                            Document={m}
+                                            pointerEvents={true}
+                                            NativeHeight={returnZero}
+                                            NativeWidth={returnZero}
+                                            rootSelected={returnFalse}
+                                            LayoutTemplate={undefined}
+                                            ContainingCollectionDoc={this.props.Document}
+                                            dontRegisterView={true}
+                                            removeDocument={undefined}
+                                            parentActive={returnTrue}
+                                            onClick={() => ScriptCast(ScriptField.MakeScript("this.playFrom((NumCast(m.audioStart), NumCast(m.audioEnd)))"))}
+                                            ignoreAutoHeight={false}
+                                            ScreenToLocalTransform={Transform.Identity}
+                                            bringToFront={emptyFunction}
+                                            backgroundColor={returnTransparent} />
+                                        {/* <LabelBox {... this.props} Document={m} /> */}
                                         <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
                                     </div>
                                     :
                                     rect =
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={i} style={{ left: `${m / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={i} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
                                         {/* <DocumentView {...this.props}
                                             Document={text}
                                             parentActive={returnTrue} /> */}
@@ -540,3 +607,5 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         </div>;
     }
 }
+
+Scripting.addGlobal(function playFrom(start: number, end: number) { return AudioBox.Instance.playFrom(start, end); })

@@ -190,10 +190,10 @@
                 .audiobox-marker-minicontainer {
                     position: absolute;
                     width: 10px;
-                    height: 90%;
+                    height: 10px;
                     top: 2.5%;
                     background: gray;
-                    border-radius: 5px;
+                    border-radius: 50%;
                     box-shadow: black 2px 2px 1px;
                     overflow: auto;
 
@@ -268,14 +268,14 @@
             .current-time {
                 position: absolute;
                 font-size: 12;
-                top: 70%;
+                top: calc(100% - 10px);
                 left: 30px;
                 color: white;
             }
 
             .total-time {
                 position: absolute;
-                top: 70%;
+                top: calc(100% - 10px);
                 font-size: 12;
                 right: 2px;
                 color: white;

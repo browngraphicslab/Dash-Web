@@ -189,6 +189,9 @@ export interface DocumentOptions {
     searchQuery?: string; // for queryBox
     filterQuery?: string;
     linearViewIsExpanded?: boolean; // is linear view expanded
+    isLabel?: boolean;         // whether the document is a label or not (video / audio)
+    audioStart?: number;       // the time frame where the audio should begin playing
+    audioEnd?: number;         // the time frame where the audio should stop playing  
 }
 
 class EmptyBox {
