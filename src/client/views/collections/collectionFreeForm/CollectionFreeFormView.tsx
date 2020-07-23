@@ -1258,41 +1258,44 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
             optionItems.push({ description: `${this.Document._freeformLOD ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._freeformLOD = !this.Document._freeformLOD, icon: "table" });
-            optionItems.push({
-                description: "Import document", icon: "upload", event: ({ x, y }) => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = ".zip";
-                    input.onchange = async _e => {
-                        const upload = Utils.prepend("/uploadDoc");
-                        const formData = new FormData();
-                        const file = input.files && input.files[0];
-                        if (file) {
-                            formData.append('file', file);
-                            formData.append('remap', "true");
-                            const response = await fetch(upload, { method: "POST", body: formData });
-                            const json = await response.json();
-                            if (json !== "error") {
-                                const doc = await DocServer.GetRefField(json);
-                                if (doc instanceof Doc) {
-                                    const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
-                                    doc.x = xx, doc.y = yy;
-                                    this.props.addDocument?.(doc);
-                                    setTimeout(() => {
-                                        SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
-                                            docs.docs.forEach(d => LinkManager.Instance.addLink(d));
-                                        })
-                                    }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
-                                }
-                            }
-                        }
-                    };
-                    input.click();
-                }
-            });
+
         }
         !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
-
+        const mores = ContextMenu.Instance.findByDescription("More...");
+        const moreItems = mores && "subitems" in mores ? mores.subitems : [];
+        moreItems.push({
+            description: "Import document", icon: "upload", event: ({ x, y }) => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".zip";
+                input.onchange = async _e => {
+                    const upload = Utils.prepend("/uploadDoc");
+                    const formData = new FormData();
+                    const file = input.files && input.files[0];
+                    if (file) {
+                        formData.append('file', file);
+                        formData.append('remap', "true");
+                        const response = await fetch(upload, { method: "POST", body: formData });
+                        const json = await response.json();
+                        if (json !== "error") {
+                            const doc = await DocServer.GetRefField(json);
+                            if (doc instanceof Doc) {
+                                const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
+                                doc.x = xx, doc.y = yy;
+                                this.props.addDocument?.(doc);
+                                setTimeout(() => {
+                                    SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                        docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                                    })
+                                }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+                            }
+                        }
+                    }
+                };
+                input.click();
+            }
+        });
+        !mores && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "eye" });
     }
     @observable showTimeline = false;
 
