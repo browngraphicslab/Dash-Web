@@ -493,6 +493,52 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
+    static menuBtnDescriptions(): {
+        title: string, icon: string, click: string, backgroundColor?: string,
+    }[] {
+        return [
+            { title: "Workspace", icon: "desktop", click: 'this.selectPanel("workspace")' },
+            { title: "Catalog", icon: "file", click: 'this.selectPanel("catalog")' },
+            { title: "Recently Deleted", icon: "trash-alt", click: 'this.selectPanel("deleted")' },
+            { title: "Import", icon: "upload", click: 'this.selectPanel("upload")' },
+            { title: "Sharing", icon: "users", click: 'GroupManager.Instance.open()' },
+            { title: "Tools", icon: "wrench", click: 'this.selectPanel("tools")' },
+            { title: "Search", icon: "search", click: 'this.selectPanel("search")' },
+            { title: "Help", icon: "question-circle", click: 'this.selectPanel("help")' },
+            { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
+        ];
+    }
+
+    static setupMenuButtons(doc: Doc) {
+        if (doc.menuStackBtns === undefined) {
+            const buttons = CurrentUserUtils.menuBtnDescriptions();
+            const menuBtns = buttons.map(({ title, icon, click, backgroundColor }) => Docs.Create.FontIconDocument({
+                _width: 100, _height: 100,
+                icon,
+                title,
+                onClick: click ? ScriptField.MakeScript(click) : undefined,
+                backgroundColor,
+            }));
+
+            doc.menuStackBtns = new PrefetchProxy(Docs.Create.MasonryDocument(menuBtns, {
+                _xMargin: 0, _autoHeight: true, _width: 100, _columnWidth: 60, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+            }));
+        }
+        return doc.menuStackBtns as Doc;
+    }
+
+    static setupMenuPanel(doc: Doc) {
+        if (doc.menuStack === undefined) {
+            const menuBtns = CurrentUserUtils.setupMenuButtons(doc);
+            doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument([menuBtns], {
+                title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
+                _width: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+            })) as any as Doc;
+        }
+        return doc.menuStack;
+    }
+
+
     // Sets up mobile menu if it is undefined creates a new one, otherwise returns existing menu
     static setupActiveMobileMenu(doc: Doc) {
         if (doc.activeMobileMenu === undefined) {
@@ -894,6 +940,7 @@ export class CurrentUserUtils {
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
+        this.setupMenuPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered

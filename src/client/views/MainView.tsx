@@ -456,48 +456,11 @@ export class MainView extends React.Component {
             {this.docButtons}</div>;
     }
 
-    menuBtnDescriptions(): {
-        title: string, icon: string, click: string, backgroundColor?: string,
-    }[] {
-        return [
-            { title: "Workspace", icon: "desktop", click: 'this.selectPanel("workspace")' },
-            { title: "Catalog", icon: "file", click: 'this.selectPanel("catalog")' },
-            { title: "Recently Deleted", icon: "trash-alt", click: 'this.selectPanel("deleted")' },
-            { title: "Import", icon: "upload", click: 'this.selectPanel("upload")' },
-            { title: "Sharing", icon: "users", click: 'GroupManager.Instance.open()' },
-            { title: "Tools", icon: "wrench", click: 'this.selectPanel("tools")' },
-            { title: "Search", icon: "search", click: 'this.selectPanel("search")' },
-            { title: "Help", icon: "question-circle", click: 'this.selectPanel("help")' },
-            { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
-        ];
-    }
-
-    setupMenuButtons() {
-        const buttons = this.menuBtnDescriptions();
-        const menuBtns = buttons.map(({ title, icon, click, backgroundColor }) => Docs.Create.FontIconDocument({
-            _width: 100, _height: 100,
-            icon,
-            title,
-            onClick: click ? ScriptField.MakeScript(click) : undefined,
-            backgroundColor,
-        }));
-
-        const btnStack = new PrefetchProxy(Docs.Create.MasonryDocument(menuBtns, {
-            _xMargin: 0, _autoHeight: true, _width: 100, _columnWidth: 60, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
-        }));
-        return btnStack as unknown as Doc;
-    }
-
-    @computed get setupMenuPanel() {
-        const menuBtns = this.setupMenuButtons();
-        const menuStack = new PrefetchProxy(Docs.Create.StackingDocument([menuBtns], {
-            title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
-            _width: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
-        })) as any as Doc;
+    @computed get menuPanel() {
 
         return <div className="mainView-menuPanel">
             <DocumentView
-                Document={menuStack}
+                Document={Doc.UserDoc().menuStack as Doc}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
                 addDocument={undefined}
@@ -523,8 +486,6 @@ export class MainView extends React.Component {
                 ContainingCollectionDoc={undefined} />
         </div>;
     }
-
-    @observable menuPanel: any;
 
     // @computed get menuPanel() {
     //     return <div className="mainView-menuPanel">
@@ -690,7 +651,7 @@ export class MainView extends React.Component {
                 height,
                 width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
-                {this.setupMenuPanel}
+                {this.menuPanel}
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                         {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"

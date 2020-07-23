@@ -28,10 +28,14 @@ interface PropertiesViewProps {
 export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
-    @observable numSelected: number = SelectionManager.SelectedDocuments().length;
-    @computed get selectedDocumentView() { return SelectionManager.LastSelection(); }
-    @observable selectedDoc: Doc | undefined = this.selectedDocumentView?.props.Document;
-    @observable dataDoc: Doc | undefined = this.selectedDocumentView?.props.DataDoc ? this.selectedDocumentView.props.DataDoc : this.selectedDoc;
+
+    @computed get selectedDocumentView() {
+        if (SelectionManger.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.props.Document; }
+    @computed get dataDoc() { return this.selectedDocumentView?.props.DataDoc; }
 
     @action
     rtfWidth = () => {
