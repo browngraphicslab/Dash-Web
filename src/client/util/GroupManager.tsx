@@ -48,14 +48,6 @@ export default class GroupManager extends React.Component<{}> {
 
     componentDidMount() {
         this.populateUsers();
-        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
-            groups?.forEach(group => {
-                const members: string[] = JSON.parse(StrCast(group.members));
-                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
-            });
-
-            setGroups(this.currentUserGroups);
-        });
     }
 
     /**
@@ -82,6 +74,17 @@ export default class GroupManager extends React.Component<{}> {
         return Promise.all(evaluating);
     }
 
+    populateGroups = () => {
+        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
+            groups?.forEach(group => {
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
+            });
+
+            setGroups(this.currentUserGroups);
+        });
+    }
+
     /**
      * @returns the options to be rendered in the dropdown menu to add users and create a group.
      */
@@ -97,14 +100,7 @@ export default class GroupManager extends React.Component<{}> {
         SelectionManager.DeselectAll();
         this.isOpen = true;
         this.populateUsers();
-        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
-            groups?.forEach(group => {
-                const members: string[] = JSON.parse(StrCast(group.members));
-                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
-            });
-
-            setGroups(this.currentUserGroups);
-        });
+        this.populateGroups();
     }
 
     /**
