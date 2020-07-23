@@ -123,7 +123,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                 changed = true;
             });
         }
-        changed && setTimeout(action(() => { if (this.columnHeaders) { this.columnHeaders.length = 0; this.columnHeaders.push(...columnHeaders); } }), 0);
+        changed && setTimeout(action(() => this.columnHeaders?.splice(0, this.columnHeaders.length, ...columnHeaders)), 0);
         return fields;
     }
 
