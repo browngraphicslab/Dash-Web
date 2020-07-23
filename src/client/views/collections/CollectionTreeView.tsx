@@ -64,6 +64,7 @@ export interface TreeViewProps {
     onCheckedClick?: () => ScriptField;
     onChildClick?: () => ScriptField;
     ignoreFields?: string[];
+    alwaysOpen?: boolean;
 }
 
 @observer

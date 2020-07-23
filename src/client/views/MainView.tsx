@@ -53,7 +53,7 @@ import { RadialMenu } from './nodes/RadialMenu';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { ScriptField } from '../../fields/ScriptField';
+import { ScriptField, ComputedField } from '../../fields/ScriptField';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { SnappingManager } from '../util/SnappingManager';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
@@ -69,6 +69,8 @@ import CollectionMenu from './collections/CollectionMenu';
 import { Tooltip, AccordionActions } from '@material-ui/core';
 import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
 import { SelectionManager } from '../util/SelectionManager';
+import { PrefetchProxy } from '../../fields/Proxy';
+import { DragManager } from '../util/DragManager';
 
 @observer
 export class MainView extends React.Component {
@@ -333,7 +335,8 @@ export class MainView extends React.Component {
         }
     }
     @computed get mainDocView() {
-        return <DocumentView Document={this.mainContainer!}
+        return <DocumentView
+            Document={this.mainContainer!}
             DataDoc={undefined}
             LibraryPath={emptyPath}
             addDocument={undefined}
@@ -356,6 +359,7 @@ export class MainView extends React.Component {
             docFilters={returnEmptyFilter}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
+            renderDepth={1}
         />;
     }
     @computed get dockingContent() {
@@ -449,122 +453,184 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>
-            {/* <div className="buttonContainer" >
-                <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                    <FontAwesomeIcon icon="cog" size="lg" />
-                </button>
-                <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
-                    <FontAwesomeIcon icon="columns" size="lg" />
-                </button>
-            </div> */}
             {this.docButtons}</div>;
     }
 
-    @computed get menuPanel() {
+    menuBtnDescriptions(): {
+        title: string, icon: string, click: string, backgroundColor?: string,
+    }[] {
+        return [
+            { title: "Workspace", icon: "desktop", click: 'this.selectPanel("workspace")' },
+            { title: "Catalog", icon: "file", click: 'this.selectPanel("catalog")' },
+            { title: "Recently Deleted", icon: "trash-alt", click: 'this.selectPanel("deleted")' },
+            { title: "Import", icon: "upload", click: 'this.selectPanel("upload")' },
+            { title: "Sharing", icon: "users", click: 'GroupManager.Instance.open()' },
+            { title: "Tools", icon: "wrench", click: 'this.selectPanel("tools")' },
+            { title: "Search", icon: "search", click: 'this.selectPanel("search")' },
+            { title: "Help", icon: "question-circle", click: 'this.selectPanel("help")' },
+            { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
+        ];
+    }
+
+    setupMenuButtons() {
+        const buttons = this.menuBtnDescriptions();
+        const menuBtns = buttons.map(({ title, icon, click, backgroundColor }) => Docs.Create.FontIconDocument({
+            _width: 100, _height: 100,
+            icon,
+            title,
+            onClick: click ? ScriptField.MakeScript(click) : undefined,
+            backgroundColor,
+        }));
+
+        const btnStack = new PrefetchProxy(Docs.Create.MasonryDocument(menuBtns, {
+            _xMargin: 0, _autoHeight: true, _width: 100, _columnWidth: 60, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+        }));
+        return btnStack as unknown as Doc;
+    }
+
+    @computed get setupMenuPanel() {
+        const menuBtns = this.setupMenuButtons();
+        const menuStack = new PrefetchProxy(Docs.Create.StackingDocument([menuBtns], {
+            title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
+            _width: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+        })) as any as Doc;
+
         return <div className="mainView-menuPanel">
-            <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("workspace")}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black"
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Workspace </div>
-            </button>
-
-            <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("catalog")}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black"
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Catalog </div>
-            </button>
-
-            <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("deleted")}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black",
-                    marginBottom: "30px"
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Recently Closed </div>
-            </button>
-
-            <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("upload")}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black",
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Import </div>
-            </button>
-
-            <button className="mainView-menuPanel-button"
-                //onPointerDown={e => this.selectPanel("sharing")}
-                onClick={() => GroupManager.Instance.open()}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black"
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Sharing </div>
-            </button>
-
-            <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("tools")}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black",
-                    //marginBottom: "45px"
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Tools </div>
-            </button>
-
-            <button className="mainView-menuPanel-button"
-                onPointerDown={e => this.selectPanel("search")}
-                style={{
-                    padding: "5px",
-                    background: "black",
-                    boxShadow: "4px 4px 12px black",
-                    //marginBottom: "45px"
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="search" color="white" size="lg" />
-                <div className="mainView-menuPanel-button-label"> Search </div>
-            </button>
-
-            <button className="mainView-menuPanel-bottomButton"
-                onPointerDown={e => this.selectPanel("help")}
-                style={{
-                    padding: "5px",
-                    background: "dimgrey",
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="question-circle" color="white" size="lg" />
-                <div className="mainView-menuPanel-bottomButton-label"> Help </div>
-            </button>
-
-            <button className="mainView-menuPanel-bottomButton"
-                // onPointerDown={e => this.selectPanel("settings")}
-                onClick={() => SettingsManager.Instance.open()}
-                style={{
-                    padding: "5px",
-                    background: "dimgrey",
-                }}>
-                <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="cog" color="white" size="lg" />
-                <div className="mainView-menuPanel-bottomButton-label"> Settings </div>
-            </button>
+            <DocumentView
+                Document={menuStack}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={this.addDocTabFunc}
+                pinToPres={emptyFunction}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                rootSelected={returnTrue}
+                removeDocument={returnFalse}
+                onClick={undefined}
+                ScreenToLocalTransform={this.mainContainerXf}
+                ContentScaling={returnOne}
+                PanelWidth={() => 100}
+                PanelHeight={this.getContentsHeight}
+                renderDepth={0}
+                focus={emptyFunction}
+                backgroundColor={this.defaultBackgroundColors}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined} />
         </div>;
     }
+
+    @observable menuPanel: any;
+
+    // @computed get menuPanel() {
+    //     return <div className="mainView-menuPanel">
+    //         <button className="mainView-menuPanel-button"
+    //             onPointerDown={e => this.selectPanel("workspace")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black"
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Workspace </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-button"
+    //             onPointerDown={e => this.selectPanel("catalog")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black"
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Catalog </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-button"
+    //             onPointerDown={e => this.selectPanel("deleted")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black",
+    //                 marginBottom: "30px"
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Recently Closed </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-button"
+    //             onPointerDown={e => this.selectPanel("upload")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black",
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Import </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-button"
+    //             //onPointerDown={e => this.selectPanel("sharing")}
+    //             onClick={() => GroupManager.Instance.open()}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black"
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Sharing </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-button"
+    //             onPointerDown={e => this.selectPanel("tools")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black",
+    //                 //marginBottom: "45px"
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Tools </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-button"
+    //             onPointerDown={e => this.selectPanel("search")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "black",
+    //                 boxShadow: "4px 4px 12px black",
+    //                 //marginBottom: "45px"
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="search" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-button-label"> Search </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-bottomButton"
+    //             onPointerDown={e => this.selectPanel("help")}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "323232",
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="question-circle" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-bottomButton-label"> Help </div>
+    //         </button>
+
+    //         <button className="mainView-menuPanel-bottomButton"
+    //             // onPointerDown={e => this.selectPanel("settings")}
+    //             onClick={() => SettingsManager.Instance.open()}
+    //             style={{
+    //                 padding: "5px",
+    //                 background: "323232",
+    //             }}>
+    //             <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="cog" color="white" size="lg" />
+    //             <div className="mainView-menuPanel-bottomButton-label"> Settings </div>
+    //         </button>
+    //     </div>;
+    // }
 
     @action
     selectPanel = (str: string) => {
@@ -587,6 +653,7 @@ export class MainView extends React.Component {
                 this.sidebarContent.proto = CurrentUserUtils.searchStack;
             }
         }
+        return true;
     }
 
     @action
@@ -623,7 +690,7 @@ export class MainView extends React.Component {
                 height,
                 width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
             }} >
-                {this.menuPanel}
+                {this.setupMenuPanel}
                 <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                         {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"

@@ -155,7 +155,7 @@
 .mainView-menuPanel {
 
     max-width: 95px;
-    background-color: rgb(105, 105, 105);
+    background-color: #323232;
     padding: 20px;
     padding-right: 50px;
 
@@ -211,8 +211,8 @@
         pointer-events: all;
         touch-action: none;
         border-radius: inherit;
-        background: dimgray;
-        background-color: dimgray;
+        background: #323232;
+        background-color: #323232;
         border-radius: 100%;
         transform-origin: top left;
         margin-bottom: 20px;
@@ -221,8 +221,8 @@
         margin-right: 25px;
 
         .mainView-menuPanel-bottomButton-label {
-            background: dimgray;
-            color: black;
+            background: #323232;
+            color: white;
             margin-left: -10px;
             border-radius: 8px;
             width: 65px;
@@ -238,7 +238,7 @@
         .mainView-menuPanel-bottomButton-icon {
             width: 50px;
             height: 50px;
-            color: black;
+            color: white;
         }
 
         svg {
