@@ -220,6 +220,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const { dataTransfer } = e;
             const html = dataTransfer.getData("text/html");
             const text = dataTransfer.getData("text/plain");
+            const uriList = dataTransfer.getData("text/uri-list");
 
             if (text && text.startsWith("<div")) {
                 return;
@@ -312,9 +313,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 }
             }
 
-            if (text) {
-                if (text.includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
-                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
+            if (uriList || text) {
+                if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
+                    const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
@@ -342,6 +343,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 //     console.log(mediaItems);
                 //     return;
                 // }
+            }
+            if (uriList) {
+                this.addDocument(Docs.Create.WebDocument(uriList, {
+                    ...options,
+                    title: uriList,
+                    _width: 400,
+                    _height: 315,
+                    _nativeWidth: 600,
+                    _nativeHeight: 472.5
+                }));
+                return;
             }
 
             const { items } = e.dataTransfer;
