@@ -22,6 +22,7 @@ import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Tooltip } from '@material-ui/core';
+import { SelectionManager } from '../util/SelectionManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -49,7 +50,7 @@ enum UtilityButtonState {
 }
 
 @observer
-export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
+export class PropertiesButtons extends React.Component<{}, {}> {
     private _dragRef = React.createRef<HTMLDivElement>();
     private _pullAnimating = false;
     private _pushAnimating = false;
@@ -66,6 +67,9 @@ export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
     @observable public static Instance: PropertiesButtons;
     public static hasPushedHack = false;
     public static hasPulledHack = false;
+
+    @observable selectedDocumentView: DocumentView | undefined = SelectionManager.LastSelection();
+    @observable selectedDoc: Doc | undefined = this.selectedDocumentView?.props.Document;
 
     public startPullOutcome = action((success: boolean) => {
         if (!this._pullAnimating) {
@@ -108,7 +112,7 @@ export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
 
     @computed
     get considerGoogleDocsPush() {
-        const targetDoc = this.props.doc;
+        const targetDoc = this.selectedDoc;
         const published = targetDoc && Doc.GetProto(targetDoc)[GoogleRef] !== undefined;
         const animation = this.isAnimatingPulse ? "shadow-pulse 1s linear infinite" : "none";
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${published ? "Push" : "Publish"} to Google Docs`}</div></>}>
@@ -127,7 +131,7 @@ export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
 
     @computed
     get considerGoogleDocsPull() {
-        const targetDoc = this.props.doc;
+        const targetDoc = this.selectedDoc;
         const dataDoc = targetDoc && Doc.GetProto(targetDoc);
         const animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
 
@@ -188,7 +192,7 @@ export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
     }
     @computed
     get pinButton() {
-        const targetDoc = this.props.doc;
+        const targetDoc = this.selectedDoc;
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="propertiesButtons-linker"
@@ -202,15 +206,20 @@ export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
     @computed
     get metadataButton() {
         //const view0 = this.view0;
-        return <Tooltip title={<><div className="dash-tooltip">Show metadata panel</div></>}>
-            <div className="propertiesButtons-linkFlyout">
-                <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                    content={<MetadataEntryMenu docs={[this.props.doc]} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
-                    <div className={"propertiesButtons-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
-                        {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
-                    </div>
-                </Flyout>
-            </div></Tooltip>;
+        if (this.selectedDoc) {
+            return <Tooltip title={<><div className="dash-tooltip">Show metadata panel</div></>}>
+                <div className="propertiesButtons-linkFlyout">
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                        content={<MetadataEntryMenu docs={[this.selectedDoc]} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
+                        <div className={"propertiesButtons-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
+                            {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
+                        </div>
+                    </Flyout>
+                </div></Tooltip>;
+        } else {
+            return null;
+        }
+
     }
 
     // @computed
@@ -267,9 +276,9 @@ export class PropertiesButtons extends React.Component<{ doc: Doc }, {}> {
     // }
 
     render() {
-        if (!this.props.doc) return (null);
+        if (!this.selectedDoc) return (null);
 
-        const isText = this.props.doc[Doc.LayoutFieldKey(this.props.doc)] instanceof RichTextField;
+        const isText = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="propertiesButtons">

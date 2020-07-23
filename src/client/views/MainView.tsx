@@ -21,10 +21,10 @@ import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter } from '../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter, setupMoveUpEvents } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -66,7 +66,9 @@ import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import CollectionMenu from './collections/CollectionMenu';
-import { Tooltip } from '@material-ui/core';
+import { Tooltip, AccordionActions } from '@material-ui/core';
+import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
+import { SelectionManager } from '../util/SelectionManager';
 
 @observer
 export class MainView extends React.Component {
@@ -90,8 +92,23 @@ export class MainView extends React.Component {
 
     @observable public sidebarContent: any = this.userDoc?.["tabs-panelContainer"];
     @observable public panelContent: string = "none";
+    @observable public showProperties: boolean = false;
 
+    @computed get selectedDocumentView() { return SelectionManager.LastSelection(); }
+    @observable selectedDoc: Doc | undefined = this.selectedDocumentView?.props.Document;
+    @observable selectedDataDoc: Doc | undefined = this.selectedDocumentView?.props.DataDoc ? this.selectedDocumentView.props.DataDoc : this.selectedDoc;
     public isPointerDown = false;
+
+    @observable _propertiesWidth: number = 0;
+    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, this._propertiesWidth));
+
+    @computed get propertiesIcon() {
+        if (this.propertiesWidth() < 10) {
+            return "chevron-left";
+        } else {
+            return "chevron-right";
+        }
+    }
 
     componentDidMount() {
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
@@ -216,7 +233,7 @@ export class MainView extends React.Component {
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            _width: this._panelWidth * .7,
+            _width: this._panelWidth * .7 - this._propertiesWidth,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
         };
@@ -282,10 +299,13 @@ export class MainView extends React.Component {
 
     @action
     onResize = (r: any) => {
-        this._panelWidth = r.offset.width;
+        this._panelWidth = r.offset.width - this._propertiesWidth;
         this._panelHeight = r.offset.height;
     }
-    getPWidth = () => this._panelWidth;
+
+    @action
+    getPWidth = () => this._panelWidth - this._propertiesWidth;
+
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
@@ -329,7 +349,6 @@ export class MainView extends React.Component {
             NativeWidth={returnZero}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
-            renderDepth={0}
             focus={emptyFunction}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
@@ -570,6 +589,30 @@ export class MainView extends React.Component {
         }
     }
 
+    @action
+    onDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            this._propertiesWidth = this._panelWidth - Math.max(Transform.Identity().transformPoint(e.clientX, 0)[0], 0);
+            return false;
+        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
+    }
+
+    @computed get propertiesView() {
+        TraceMobx();
+        return this._propertiesWidth === 0 ? (null) :
+            <div className="mainView-propertiesView" style={{
+                width: `${this.propertiesWidth()}px`,
+                overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
+            }}>
+                <PropertiesView
+                    width={this._propertiesWidth}
+                    height={this._panelHeight}
+                    renderDepth={1}
+                    ScreenToLocalTransform={Transform.Identity}
+                />
+            </div>;
+    }
+
     @computed get mainContent() {
         const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
@@ -606,6 +649,14 @@ export class MainView extends React.Component {
                         </div>
                     </div>
                     {this.dockingContent}
+                    {this.showProperties ? (null) :
+                        <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onDown}
+                            style={{ right: this._propertiesWidth - 1, top: "45%" }}>
+                            <div className="mainView-propertiesDragger-icon">
+                                <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
+                        </div>
+                    }
+                    {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
                 </div>
             </div>);
     }

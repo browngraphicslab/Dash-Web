@@ -12,8 +12,13 @@ export namespace SelectionManager {
 
         @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
+
+        @observable public lastSelection: DocumentView | undefined;
+
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
+
+            this.lastSelection = docView;
 
             // if doc is not in SelectedDocuments, add it
             if (!manager.SelectedDocuments.get(docView)) {
@@ -33,6 +38,15 @@ export namespace SelectionManager {
         }
         @action
         DeselectDoc(docView: DocumentView): void {
+
+            if (this.lastSelection === docView) {
+                const list = Array.from(manager.SelectedDocuments.keys());
+                if (list.length > 0) {
+                    this.lastSelection = list[list.length - 1];
+                } else {
+                    this.lastSelection = undefined;
+                }
+            }
             if (manager.SelectedDocuments.get(docView)) {
                 manager.SelectedDocuments.delete(docView);
                 docView.props.whenActiveChanged(false);
@@ -41,9 +55,15 @@ export namespace SelectionManager {
         }
         @action
         DeselectAll(): void {
+            this.lastSelection = undefined;
             Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments.clear();
             Doc.UserDoc().activeSelection = new List<Doc>([]);
+        }
+
+        @action
+        getLast(): DocumentView | undefined {
+            return this.lastSelection;
         }
     }
 
@@ -54,6 +74,10 @@ export namespace SelectionManager {
     }
     export function SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
         manager.SelectDoc(docView, ctrlPressed);
+    }
+
+    export function LastSelection(): DocumentView | undefined {
+        return manager.getLast();
     }
 
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
