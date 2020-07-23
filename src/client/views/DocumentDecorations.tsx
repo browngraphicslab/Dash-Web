@@ -549,8 +549,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>) : (
-                <Tooltip title={<><div className="dash-tooltip">Iconify</div></>} placement="top">
-                    <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
+                <Tooltip title={<><div className="dash-tooltip">Delete</div></>} placement="top">
+                    <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                         {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                         <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                     </div></Tooltip>);
@@ -616,7 +616,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"

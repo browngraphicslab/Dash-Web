@@ -48,6 +48,14 @@ export default class GroupManager extends React.Component<{}> {
 
     componentDidMount() {
         this.populateUsers();
+        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
+            groups?.forEach(group => {
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
+            });
+
+            setGroups(this.currentUserGroups);
+        });
     }
 
     /**
