@@ -1,6 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, DataSym } from "../../../../fields/Doc";
+import { Doc, Opt, DocListCast, DataSym, AclEdit, AclAddonly } from "../../../../fields/Doc";
+import { GetEffectiveAcl, getPlaygroundMode } from "../../../../fields/util";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
@@ -188,15 +189,18 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
-        // allow marquee if right click OR alt+left click OR space bar + left click
-        if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
-            // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
-            this.setPreviewCursor(e.clientX, e.clientY, true);
-            // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
-            e.preventDefault();
-            // }
-            // bcz: do we need this?   it kills the context menu on the main collection if !altKey
-            // e.stopPropagation();
+        if (!(e.nativeEvent as any).marqueeHit) {
+            (e.nativeEvent as any).marqueeHit = true;
+            // allow marquee if right click OR alt+left click OR space bar + left click
+            if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
+                // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
+                this.setPreviewCursor(e.clientX, e.clientY, true);
+                // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+                e.preventDefault();
+                // }
+                // bcz: do we need this?   it kills the context menu on the main collection if !altKey
+                // e.stopPropagation();
+            }
         }
     }
 
@@ -276,7 +280,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this._downX = x;
             this._downY = y;
-            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            const effectiveAcl = GetEffectiveAcl(this.props.Document);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAddonly || getPlaygroundMode()) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
             this.clearSelection();
         }
     });
@@ -286,7 +291,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             if (Doc.GetSelectedTool() === InkTool.None) {
-                !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+                if (!(e.nativeEvent as any).marqueeHit) {
+                    (e.nativeEvent as any).marqueeHit = true;
+                    !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
+                }
             }
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?

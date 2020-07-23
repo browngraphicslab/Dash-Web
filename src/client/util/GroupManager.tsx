@@ -3,7 +3,7 @@ import { observable, action, runInAction, computed } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from "../../fields/Doc";
+import { Doc, DocListCast, Opt, DocListCastAsync } from "../../fields/Doc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -12,10 +12,12 @@ import { Utils } from "../../Utils";
 import * as RequestPromise from "request-promise";
 import Select from 'react-select';
 import "./GroupManager.scss";
-import { StrCast } from "../../fields/Types";
+import { StrCast, Cast } from "../../fields/Types";
 import GroupMemberView from "./GroupMemberView";
+import { setGroups } from "../../fields/util";
+import { DocServer } from "../DocServer";
 
-library.add(fa.faWindowClose);
+library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle);
 
 export interface UserOptions {
     label: string;
@@ -32,26 +34,44 @@ export default class GroupManager extends React.Component<{}> {
     @observable private users: string[] = []; // list of users populated from the database.
     @observable private selectedUsers: UserOptions[] | null = null; // list of users selected in the "Select users" dropdown.
     @observable currentGroup: Opt<Doc>; // the currently selected group.
+    @observable private createGroupModalOpen: boolean = false;
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
+    private currentUserGroups: string[] = [];
+    @observable private buttonColour: "#979797" | "black" = "#979797";
+    @observable private groupSort: "ascending" | "descending" | "none" = "none";
+
 
     constructor(props: Readonly<{}>) {
         super(props);
         GroupManager.Instance = this;
     }
 
-    // sets up the list of users
     componentDidMount() {
-        this.populateUsers().then(resolved => runInAction(() => this.users = resolved));
+        this.populateUsers();
     }
 
     /**
-     * Fetches the list of users stored on the database and @returns a list of the emails.
+     * Fetches the list of users stored on the database.
      */
     populateUsers = async () => {
-        const userList: User[] = JSON.parse(await RequestPromise.get(Utils.prepend("/getUsers")));
-        const currentUserIndex = userList.findIndex(user => user.email === Doc.CurrentUserEmail);
-        currentUserIndex !== -1 && userList.splice(currentUserIndex, 1);
-        return userList.map(user => user.email);
+        runInAction(() => this.users = []);
+        const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
+        const raw = JSON.parse(userList) as User[];
+        const evaluating = raw.map(async user => {
+            // const isCandidate = user.email !== Doc.CurrentUserEmail;
+            // if (isCandidate) {
+            const userDocument = await DocServer.GetRefField(user.userDocumentId);
+            if (userDocument instanceof Doc) {
+                const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                runInAction(() => {
+                    if (notificationDoc instanceof Doc) {
+                        this.users.push(user.email);
+                    }
+                });
+            }
+            // }
+        });
+        return Promise.all(evaluating);
     }
 
     /**
@@ -68,6 +88,15 @@ export default class GroupManager extends React.Component<{}> {
     open = () => {
         SelectionManager.DeselectAll();
         this.isOpen = true;
+        this.populateUsers();
+        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
+            groups?.forEach(group => {
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
+            });
+
+            setGroups(this.currentUserGroups);
+        });
     }
 
     /**
@@ -77,6 +106,8 @@ export default class GroupManager extends React.Component<{}> {
     close = () => {
         this.isOpen = false;
         this.currentGroup = undefined;
+        // this.users = [];
+        this.createGroupModalOpen = false;
     }
 
     /**
@@ -89,7 +120,8 @@ export default class GroupManager extends React.Component<{}> {
     /**
      * @returns a list of all group documents.
      */
-    private getAllGroups(): Doc[] {
+    // private ?
+    getAllGroups(): Doc[] {
         const groupDoc = this.GroupManagerDoc;
         return groupDoc ? DocListCast(groupDoc.data) : [];
     }
@@ -98,7 +130,8 @@ export default class GroupManager extends React.Component<{}> {
      * @returns a group document based on the group name.
      * @param groupName 
      */
-    private getGroup(groupName: string): Doc | undefined {
+    // private?
+    getGroup(groupName: string): Doc | undefined {
         const groupDoc = this.getAllGroups().find(group => group.groupName === groupName);
         return groupDoc;
     }
@@ -121,6 +154,11 @@ export default class GroupManager extends React.Component<{}> {
         return this.getAllGroups().map(({ groupName, owners, members }) =>
             Doc.assign(new Doc, { groupName: (StrCast(groupName)), owners: (StrCast(owners)), members: (StrCast(members)) })
         );
+    }
+
+    getGroupMembers(group: string | Doc): string[] {
+        if (group instanceof Doc) return JSON.parse(StrCast(group.members)) as string[];
+        else return JSON.parse(StrCast(this.getGroup(group)!.members)) as string[];
     }
 
     /**
@@ -150,6 +188,10 @@ export default class GroupManager extends React.Component<{}> {
         groupDoc.groupName = groupName;
         groupDoc.owners = JSON.stringify([Doc.CurrentUserEmail]);
         groupDoc.members = JSON.stringify(memberEmails);
+        if (memberEmails.includes(Doc.CurrentUserEmail)) {
+            this.currentUserGroups.push(groupName);
+            setGroups(this.currentUserGroups);
+        }
         this.addGroup(groupDoc);
     }
 
@@ -172,8 +214,16 @@ export default class GroupManager extends React.Component<{}> {
     deleteGroup(group: Doc): boolean {
         if (group) {
             if (this.GroupManagerDoc && this.hasEditAccess(group)) {
+                // TODO look at this later
+                // SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
-                SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
+                SharingManager.Instance.removeGroup(group);
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) {
+                    const index = this.currentUserGroups.findIndex(groupName => groupName === group.groupName);
+                    index !== -1 && this.currentUserGroups.splice(index, 1);
+                    setGroups(this.currentUserGroups);
+                }
                 if (group === this.currentGroup) {
                     runInAction(() => this.currentGroup = undefined);
                 }
@@ -193,6 +243,7 @@ export default class GroupManager extends React.Component<{}> {
             const memberList: string[] = JSON.parse(StrCast(groupDoc.members));
             !memberList.includes(email) && memberList.push(email);
             groupDoc.members = JSON.stringify(memberList);
+            SharingManager.Instance.shareWithAddedMember(groupDoc, email);
         }
     }
 
@@ -205,8 +256,11 @@ export default class GroupManager extends React.Component<{}> {
         if (this.hasEditAccess(groupDoc)) {
             const memberList: string[] = JSON.parse(StrCast(groupDoc.members));
             const index = memberList.indexOf(email);
-            index !== -1 && memberList.splice(index, 1);
-            groupDoc.members = JSON.stringify(memberList);
+            if (index !== -1) {
+                const user = memberList.splice(index, 1)[0];
+                groupDoc.members = JSON.stringify(memberList);
+                SharingManager.Instance.removeMember(groupDoc, email);
+            }
         }
     }
 
@@ -243,104 +297,123 @@ export default class GroupManager extends React.Component<{}> {
         this.createGroupDoc(this.inputRef.current.value, this.selectedUsers?.map(user => user.value));
         this.selectedUsers = null;
         this.inputRef.current.value = "";
+        this.buttonColour = "#979797";
     }
 
-    /**
-     * A getter that @returns the interface rendered to view an individual group.
-     */
-    private get editingInterface() {
-        const members: string[] = this.currentGroup ? JSON.parse(StrCast(this.currentGroup.members)) : [];
-        const options: UserOptions[] = this.currentGroup ? this.options.filter(option => !(JSON.parse(StrCast(this.currentGroup!.members)) as string[]).includes(option.value)) : [];
-        return (!this.currentGroup ? null :
-            <div className="editing-interface">
-                <div className="editing-header">
-                    <b>{this.currentGroup.groupName}</b>
-                    <div className={"close-button"} onClick={action(() => this.currentGroup = undefined)}>
-                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+    private get groupCreationModal() {
+        const contents = (
+            <div className="group-create">
+                <div className="group-heading" style={{ marginBottom: 0 }}>
+                    <p><b>New Group</b></p>
+                    <div className={"close-button"} onClick={action(() => this.createGroupModalOpen = false)}>
+                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
+                </div>
+                <input
+                    className="group-input"
+                    ref={this.inputRef}
+                    onKeyDown={this.handleKeyDown}
+                    type="text"
+                    placeholder="Group name"
+                    onChange={action(() => this.buttonColour = this.inputRef.current?.value ? "black" : "#979797")} />
+                <Select
+                    isMulti={true}
+                    isSearchable={true}
+                    options={this.options}
+                    onChange={this.handleChange}
+                    placeholder={"Select users"}
+                    value={this.selectedUsers}
+                    closeMenuOnSelect={false}
+                    styles={{
+                        dropdownIndicator: (base, state) => ({
+                            ...base,
+                            transition: '0.5s all ease',
+                            transform: state.selectProps.menuIsOpen ? 'rotate(180deg)' : undefined
+                        }),
+                        multiValue: (base) => ({
+                            ...base,
+                            maxWidth: "50%",
 
-                    {this.hasEditAccess(this.currentGroup) ?
-                        <div className="group-buttons">
-                            <div className="add-member-dropdown">
-                                <Select
-                                    // isMulti={true}
-                                    isSearchable={true}
-                                    options={options}
-                                    onChange={selectedOption => this.addMemberToGroup(this.currentGroup!, (selectedOption as UserOptions).value)}
-                                    placeholder={"Add members"}
-                                    value={null}
-                                    closeMenuOnSelect={true}
-                                />
-                            </div>
-                            <button onClick={() => this.deleteGroup(this.currentGroup!)}>Delete group</button>
-                        </div> :
-                        null}
-                </div>
-                <div className="editing-contents">
-                    {members.map(member => (
-                        <div className="editing-row">
-                            <div className="user-email">
-                                {member}
-                            </div>
-                            {this.hasEditAccess(this.currentGroup!) ? <button onClick={() => this.removeMemberFromGroup(this.currentGroup!, member)}> Remove </button> : null}
-                        </div>
-                    ))}
-                </div>
+                            '&:hover': {
+                                maxWidth: "unset"
+                            }
+                        })
+                    }}
+                />
+                <button onClick={this.createGroup}
+                    style={{ background: this.buttonColour }}
+                    disabled={this.buttonColour === "#979797"}
+                >
+                    Create
+                </button>
             </div>
         );
 
+        return (
+            <MainViewModal
+                isDisplayed={this.createGroupModalOpen}
+                interactive={true}
+                contents={contents}
+                dialogueBoxStyle={{ width: "90%", height: "70%" }}
+                closeOnExternalClick={action(() => this.createGroupModalOpen = false)}
+            />
+        );
     }
 
     /**
      * A getter that @returns the main interface for the GroupManager.
      */
     private get groupInterface() {
+
+        const sortGroups = (d1: Doc, d2: Doc) => {
+            const g1 = StrCast(d1.groupName);
+            const g2 = StrCast(d2.groupName);
+
+            return g1 < g2 ? -1 : g1 === g2 ? 0 : 1;
+        };
+
+        let groups = this.getAllGroups();
+        groups = this.groupSort === "ascending" ? groups.sort(sortGroups) : this.groupSort === "descending" ? groups.sort(sortGroups).reverse() : groups;
+
         return (
             <div className="group-interface">
-                {/* <MainViewModal
-                    contents={this.editingInterface}
-                    isDisplayed={this.currentGroup ? true : false}
-                    interactive={true}
-                    dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                    overlayDisplayedOpacity={this.overlayOpacity}
-                /> */}
+                {this.groupCreationModal}
                 {this.currentGroup ?
                     <GroupMemberView
                         group={this.currentGroup}
-                        onCloseButtonClick={() => this.currentGroup = undefined}
+                        onCloseButtonClick={action(() => this.currentGroup = undefined)}
                     />
                     : null}
                 <div className="group-heading">
-                    <h1>Groups</h1>
+                    <p><b>Manage Groups</b></p>
+                    <button onClick={action(() => this.createGroupModalOpen = true)}>
+                        <FontAwesomeIcon icon={fa.faPlus} size={"sm"} /> Create Group
+                    </button>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
                 </div>
-                <div className="group-body">
-                    <div className="group-create">
-                        <button onClick={this.createGroup}>Create group</button>
-                        <input ref={this.inputRef} onKeyDown={this.handleKeyDown} type="text" placeholder="Group name" />
-                        <Select
-                            isMulti={true}
-                            isSearchable={true}
-                            options={this.options}
-                            onChange={this.handleChange}
-                            placeholder={"Select users"}
-                            value={this.selectedUsers}
-                            closeMenuOnSelect={false}
-                        />
+                <div className="main-container">
+                    <div
+                        className="sort-groups"
+                        onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
+                        Name {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""} {/* → */}
                     </div>
-                    <div className="group-content">
-                        {this.getAllGroups().map(group =>
-                            <div className="group-row">
-                                <div className="group-name">{group.groupName}</div>
-                                <button onClick={action(() => this.currentGroup = group)}>
-                                    {this.hasEditAccess(group) ? "Edit" : "View"}
-                                </button>
+                    <div className="group-body">
+                        {groups.map(group =>
+                            <div
+                                className="group-row"
+                                key={StrCast(group.groupName)}
+                            >
+                                <div className="group-name" >{group.groupName}</div>
+                                <div className="group-info" onClick={action(() => this.currentGroup = group)}>
+                                    <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
+
             </div>
         );
     }
@@ -351,8 +424,9 @@ export default class GroupManager extends React.Component<{}> {
                 contents={this.groupInterface}
                 isDisplayed={this.isOpen}
                 interactive={true}
-                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                overlayDisplayedOpacity={this.overlayOpacity}
+                dialogueBoxStyle={{ zIndex: 1002 }}
+                overlayStyle={{ zIndex: 1001 }}
+                closeOnExternalClick={this.close}
             />
         );
     }

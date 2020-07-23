@@ -13,7 +13,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclEdit } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
 import { removeMarkWithAttrs } from "./prosemirrorPatches";
@@ -24,7 +24,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../fields/Types";
-import { TraceMobx, OVERRIDE_ACL } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_ACL, GetEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -233,12 +233,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
             let unchanged = true;
-            if (!this.dataDoc[AclSym]) {
+            if (GetEffectiveAcl(this.dataDoc) === AclEdit) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                        if (json !== curLayout?.Data) {
+                        if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
@@ -425,16 +425,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "moccasin" });
         }
         if (FormattedTextBox._highlights.indexOf("Todo Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "todo", { outline: "black solid 1px" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "todo", { outline: "black solid 1px" });
         }
         if (FormattedTextBox._highlights.indexOf("Important Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "important", { "font-size": "larger" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "important", { "font-size": "larger" });
         }
         if (FormattedTextBox._highlights.indexOf("Disagree Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "disagree", { "text-decoration": "line-through" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "disagree", { "text-decoration": "line-through" });
         }
         if (FormattedTextBox._highlights.indexOf("Ignore Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "ignore", { "font-size": "1" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "ignore", { "font-size": "1" });
         }
         if (FormattedTextBox._highlights.indexOf("By Recent Minute") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
@@ -1303,9 +1303,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        const mark = e.key !== " " && this._lastTimedMark ? this._lastTimedMark : schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
-        this._lastTimedMark = mark;
-        // this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+        if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {
+            const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
+            this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+        }
 
         if (!this._undoTyping) {
             this.startUndoTypingBatch();

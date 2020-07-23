@@ -26,7 +26,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         this._anchorDisposer?.();
     }
     @action
-    timeout = () => (Date.now() < this._start++ + 1000) && setTimeout(this.timeout, 25);
+    timeout = () => (Date.now() < this._start++ + 1000) && setTimeout(this.timeout, 25)
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
@@ -111,10 +111,10 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             return undefined;
         }
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
-        const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
-        const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
-        const a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
-        const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
+        const acont = this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+        const bcont = this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+        const a = (acont.length ? acont[0] : this.props.A.ContentDiv).getBoundingClientRect();
+        const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv).getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,
             b.left, b.top, b.width, b.height,
             a.left + a.width / 2, a.top + a.height / 2);

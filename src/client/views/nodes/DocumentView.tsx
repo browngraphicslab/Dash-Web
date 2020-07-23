@@ -3,8 +3,7 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import * as rp from "request-promise";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclSym, AclReadonly, AclPrivate } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclEdit } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -12,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { TraceMobx } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -26,7 +25,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { Scripting } from '../../util/Scripting';
 import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
-import SharingManager from '../../util/SharingManager';
+import SharingManager, { SharingPermissions } from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
@@ -699,7 +698,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly" | "write") => {
+    setAcl = (acl: SharingPermissions) => {
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
             if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
@@ -707,9 +706,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
         });
     }
+
     @undoBatch
     @action
-    testAcl = (acl: "readOnly" | "addOnly" | "ownerOnly" | "write") => {
+    testAcl = (acl: SharingPermissions) => {
         this.dataDoc.author = this.props.Document.author = "ADMIN";
         this.dataDoc.ACL = this.props.Document.ACL = acl;
         DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
@@ -782,6 +782,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
+        moreItems.push({
+            description: "Download document", icon: "download", event: async () => {
+                Doc.Zip(this.props.Document);
+                // const a = document.createElement("a");
+                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                // a.href = url;
+                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                // a.click();
+            }
+        });
         if (!Doc.UserDoc().noviceMode) {
             moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
             moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -791,22 +801,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
                 moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
             }
-            moreItems.push({
-                description: "Download document", icon: "download", event: async () => {
-                    const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
-                        qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                    });
-                    console.log(response ? JSON.parse(response) : undefined);
-                }
-                // const a = document.createElement("a");
-                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-                // a.href = url;
-                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-                // a.click();
-            });
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         }
-        moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
+        GetEffectiveAcl(this.props.Document) === AclEdit && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
@@ -819,13 +816,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         // const existingAcls = cm.findByDescription("Privacy...");
         // const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
-        // aclItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Editable", event: () => this.setAcl("write"), icon: "concierge-bell" });
-        // aclItems.push({ description: "Test Private", event: () => this.testAcl("ownerOnly"), icon: "concierge-bell" });
-        // aclItems.push({ description: "Test Readonly", event: () => this.testAcl("readOnly"), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Add Only", event: () => this.setAcl(SharingPermissions.Add), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Read Only", event: () => this.setAcl(SharingPermissions.View), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Private", event: () => this.setAcl(SharingPermissions.None), icon: "concierge-bell" });
+        // aclItems.push({ description: "Make Editable", event: () => this.setAcl(SharingPermissions.Edit), icon: "concierge-bell" });
+        // aclItems.push({ description: "Test Private", event: () => this.testAcl(SharingPermissions.None), icon: "concierge-bell" });
+        // aclItems.push({ description: "Test Readonly", event: () => this.testAcl(SharingPermissions.View), icon: "concierge-bell" });
         // !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
+
+        // cm.addItem({ description: `${getPlaygroundMode() ? "Disable" : "Enable"} playground mode`, event: togglePlaygroundMode, icon: "concierge-bell" });
 
         // const recommender_subitems: ContextMenuProps[] = [];
 
@@ -1184,7 +1183,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
-        if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
+        if (GetEffectiveAcl(this.props.Document) === AclPrivate) return (null);
         if (this.props.Document.hidden) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : this.props.forcedBackgroundColor?.(this.Document) || StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));

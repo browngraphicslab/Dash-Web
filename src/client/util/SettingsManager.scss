@@ -52,6 +52,7 @@
     .settings-body {
         display: flex;
         justify-content: space-between;
+        margin-top: -10;
 
         .settings-type {
             display: flex;
@@ -105,6 +106,7 @@
         text-transform: uppercase;
         letter-spacing: 2px;
         font-size: 120%;
+        margin-top: 0;
     }
 
     .container {

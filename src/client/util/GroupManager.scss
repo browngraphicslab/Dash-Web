@@ -1,23 +1,47 @@
-@import "../views/globalCssVariables";
-
 .group-interface {
-    background-color: whitesmoke !important;
-    color: grey;
-    width: 450px;
+    width: 380px;
     height: 300px;
 
     .dialogue-box {
-        width: 450;
-        height: 300;
+        .group-create {
+            display: flex;
+            flex-direction: column;
+            height: 90%;
+            justify-content: space-between;
+            margin-left: 5px;
+
+            input {
+                border-radius: 5px;
+                padding: 8px;
+                min-width: 100%;
+                border: 1px solid hsl(0, 0%, 80%);
+                outline: none;
+                height: 30;
+
+                &:focus {
+                    border: 2.5px solid #2684FF;
+                }
+            }
+
+            p {
+                font-size: 20px;
+                text-align: left;
+                color: black;
+            }
+
+            button {
+                align-self: flex-end;
+            }
+        }
     }
 
+
     button {
-        background: $lighter-alt-accent;
+        align-self: center;
         outline: none;
         border-radius: 5px;
         border: 0px;
-        color: #fcfbf7;
-        text-transform: uppercase;
+        text-transform: none;
         letter-spacing: 2px;
         font-size: 75%;
         padding: 10px;
@@ -36,12 +60,6 @@
         border-radius: 10px;
     }
 
-    button {
-        width: 100%;
-        align-self: center;
-        background: $darker-alt-accent;
-    }
-
     .delete-button {
         background: rgb(227, 86, 86);
     }
@@ -55,33 +73,33 @@
     }
 
     .group-heading {
-        letter-spacing: .5em;
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+
+        p {
+            font-size: 20px;
+            text-align: left;
+            margin-right: 15px;
+            color: black;
+        }
     }
 
-
-    .group-body {
+    .main-container {
         display: flex;
-        justify-content: space-between;
-        max-height: 80%;
+        flex-direction: column;
 
-        .group-create {
-            display: flex;
-            flex-direction: column;
-            flex-basis: 30%;
-            margin-left: 5px;
-
-            input {
-                border-radius: 5px;
-                border: none;
-                padding: 4px;
-                min-width: 100%;
-                margin: 4px 0 4px 0;
-            }
-
+        .sort-groups {
+            text-align: left;
+            margin-left: 5;
+            cursor: pointer;
         }
 
-        .group-content {
-            padding-left: 1em;
+        .group-body {
+            justify-content: space-between;
+            height: 220;
+            background-color: #e8e8e8;
+
             padding-right: 1em;
             justify-content: space-around;
             text-align: left;
@@ -91,17 +109,18 @@
 
             .group-row {
                 display: flex;
-                position: relative;
                 margin-bottom: 5px;
-                min-height: 40px;
-                border: 1px solid;
-                border-radius: 10px;
+                min-height: 30px;
                 align-items: center;
 
                 .group-name {
-                    position: relative;
                     max-width: 65%;
-                    left: 10;
+                    margin: 0 10;
+                    color: black;
+                }
+
+                .group-info {
+                    cursor: pointer;
                 }
 
                 button {
@@ -110,10 +129,6 @@
                     right: 2;
                     margin-top: 0;
                 }
-            }
-
-            ::placeholder {
-                color: $intermediate-color;
             }
 
             input {
@@ -125,12 +140,5 @@
             }
 
         }
-    }
-
-    h1 {
-        color: $dark-color;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        font-size: 120%;
     }
 }

@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -48,6 +48,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
+import { SharingPermissions } from '../../util/SharingManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -106,6 +107,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    private AclMap = new Map<symbol, string>([
+        [AclPrivate, SharingPermissions.None],
+        [AclReadonly, SharingPermissions.View],
+        [AclAddonly, SharingPermissions.Add],
+        [AclEdit, SharingPermissions.Edit]
+    ]);
+
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
@@ -128,36 +136,54 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (this.props.filterAddDocument?.(doc) === false) {
             return false;
         }
+
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+
         if (added.length) {
-            if (this.dataDoc[AclSym] === AclReadonly) {
+            if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                 return false;
-            } else if (this.dataDoc[AclSym] === AclAddonly) {
-                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
-            } else {
-                added.map(doc => {
-                    const context = Cast(doc.context, Doc, null);
-                    if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
-                        const pushpin = Docs.Create.FontIconDocument({
-                            title: "pushpin",
-                            icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
-                            _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
-                        });
-                        pushpin.isPushpin = true;
-                        Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
-                        Doc.SetInPlace(doc, "annotationOn", undefined, true);
-                        Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                        doc.displayTimecode = undefined;
-                    }
-                    doc.context = this.props.Document;
-                });
-                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
+            else {
+                if (this.props.Document[AclSym]) {
+                    // change so it only adds if more restrictive
+                    added.forEach(d => {
+                        // const dataDoc = d[DataSym];
+                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                        }
+                        // dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                    });
+                }
+
+                if (effectiveAcl === AclAddonly) {
+                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+                }
+                else {
+                    added.map(doc => {
+                        const context = Cast(doc.context, Doc, null);
+                        if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+                            const pushpin = Docs.Create.FontIconDocument({
+                                title: "pushpin",
+                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                            });
+                            pushpin.isPushpin = true;
+                            Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
+                            Doc.SetInPlace(doc, "annotationOn", undefined, true);
+                            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+                            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
+                            doc.displayTimecode = undefined;
+                        }
+                        doc.context = this.props.Document;
+                    });
+                    added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+                    targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                    targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
             }
         }
         return true;
@@ -165,13 +191,15 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
-        const targetDataDoc = this.props.Document[DataSym];
-        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-        const result = value.filter(v => !docs.includes(v));
-        if (result.length !== value.length) {
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
-            return true;
+        if (GetEffectiveAcl(this.props.Document) === AclEdit || getPlaygroundMode()) {
+            const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+            const targetDataDoc = this.props.Document[DataSym];
+            const value = DocListCast(targetDataDoc[this.props.fieldKey]);
+            const result = value.filter(v => !docs.includes(v));
+            if (result.length !== value.length) {
+                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+                return true;
+            }
         }
         return false;
     }

@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction } from "mobx";
+import { action, observable, runInAction, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../fields/Doc";
 import { RichTextField } from "../../../fields/RichTextField";
@@ -279,8 +279,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const pt = this.props.screenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y);
     }
-
-    render() {
+    @computed get innards() {
         TraceMobx();
         const cols = this.props.cols();
         const key = StrCast(this.props.parent.props.Document._pivotField);
@@ -351,6 +350,43 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
+
+        return <>
+            {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
+            {
+                this.collapsed ? (null) :
+                    <div style={{ marginTop: 5 }}>
+                        <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
+                            style={{
+                                padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
+                                margin: "auto",
+                                width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
+                                height: 'max-content',
+                                position: "relative",
+                                gridGap: style.gridGap,
+                                gridTemplateColumns: singleColumn ? undefined : templatecols,
+                                gridAutoRows: singleColumn ? undefined : "0px"
+                            }}>
+                            {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
+                            {singleColumn ? (null) : this.props.parent.columnDragger}
+                        </div>
+                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                            <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
+                                style={{ width: style.columnWidth / style.numGroupColumns }}>
+                                <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
+                            </div> : null}
+                    </div>
+            }
+        </>;
+    }
+
+
+    render() {
+        TraceMobx();
+        const headings = this.props.headings();
+        const heading = this._heading;
+        const uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
+        const chromeStatus = this.props.parent.props.Document._chromeStatus;
         return (
             <div className={"collectionStackingViewFieldColumn" + (SnappingManager.GetIsDragging() ? "Dragging" : "")} key={heading}
                 style={{
@@ -359,31 +395,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
-                {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
-                {
-                    this.collapsed ? (null) :
-                        <div style={{ marginTop: 5 }}>
-                            <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
-                                style={{
-                                    padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
-                                    margin: "auto",
-                                    width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
-                                    height: 'max-content',
-                                    position: "relative",
-                                    gridGap: style.gridGap,
-                                    gridTemplateColumns: singleColumn ? undefined : templatecols,
-                                    gridAutoRows: singleColumn ? undefined : "0px"
-                                }}>
-                                {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
-                                {singleColumn ? (null) : this.props.parent.columnDragger}
-                            </div>
-                            {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
-                                <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                                    style={{ width: style.columnWidth / style.numGroupColumns }}>
-                                    <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
-                                </div> : null}
-                        </div>
-                }
+                {this.innards}
             </div >
         );
     }
