@@ -566,7 +566,6 @@ export namespace Doc {
     export async function Zip(doc: Doc) {
         const { clone, map } = await Doc.MakeClone(doc, true);
         function replacer(key: any, value: any) {
-            console.log("Checkin: " + key);
             if (["cloneOf", "context", "cursors"].includes(key)) return undefined;
             else if (value instanceof Doc) {
                 if (key !== "field" && Number.isNaN(Number(key))) {

@@ -209,7 +209,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                 try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
                     view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
                 } catch (e) {
-                    console.log(e);
+                    console.log("DashDocView:" + e);
                 }
             }
 

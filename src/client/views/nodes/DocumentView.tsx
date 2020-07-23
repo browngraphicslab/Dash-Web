@@ -910,7 +910,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         const documents: Doc[] = [];
         const allDocs = await SearchUtil.GetAllDocs();
-        // allDocs.forEach(doc => console.log(doc.title));
         // clears internal representation of documents as vectors
         ClientRecommender.Instance.reset_docs();
         //ClientRecommender.Instance.arxivrequest("electrons");

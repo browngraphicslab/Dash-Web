@@ -487,7 +487,6 @@ export class CurrentUserUtils {
     // Sets up mobile menu if it is undefined creates a new one, otherwise returns existing menu
     static setupActiveMobileMenu(doc: Doc) {
         if (doc.activeMobileMenu === undefined) {
-            console.log("undefined");
             doc.activeMobileMenu = this.setupMobileMenu();
         }
         return doc.activeMobileMenu as Doc;

@@ -135,7 +135,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeSorting = (col: any) => {
-        console.log(col.heading);
         if (col.desc === undefined) {
             // no sorting
             this.props.changeColumnSort(col, true);
@@ -149,7 +148,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    changeTitleMode = () => { console.log("header clicked"); this._showTitleDropdown = !this._showTitleDropdown; }
+    changeTitleMode = () => this._showTitleDropdown = !this._showTitleDropdown;
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {

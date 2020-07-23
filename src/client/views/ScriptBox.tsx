@@ -39,7 +39,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
 
     @action
     onError = (error: string) => {
-        console.log(error);
+        console.log("ScriptBox: " + error);
     }
 
     overlayDisposer?: () => void;

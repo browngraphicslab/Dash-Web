@@ -61,16 +61,18 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     render() {
         const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
         const refLayout = Doc.Layout(referenceDoc);
-        return <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
-            <button className="fontIconBox-outerDiv" ref={this._ref} onContextMenu={this.specificContextMenu}
-                style={{
-                    padding: Cast(this.layoutDoc._xPadding, "number", null),
-                    background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
-                    boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
-                }}>
-                <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
-                {!this.rootDoc.title ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.title).substring(0, 6)} </div>}
-            </button>
-        </Tooltip>;
+        const button = <button className="fontIconBox-outerDiv" ref={this._ref} onContextMenu={this.specificContextMenu}
+            style={{
+                padding: Cast(this.layoutDoc._xPadding, "number", null),
+                background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
+                boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
+            }}>
+            <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
+            {!this.rootDoc.title ? (null) : <div className="fontIconBox-label" style={{ width: this.rootDoc.label ? "max-content" : undefined }}> {StrCast(this.rootDoc.label, StrCast(this.rootDoc.title).substring(0, 6))} </div>}
+        </button>;
+        return !this.layoutDoc.toolTip ? button :
+            <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
+                {button}
+            </Tooltip>;
     }
 }
