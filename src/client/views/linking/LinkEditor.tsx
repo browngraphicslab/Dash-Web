@@ -14,6 +14,7 @@ import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
 import { EditableView } from "../EditableView";
 import { RefObject } from "react";
 import { Tooltip } from "@material-ui/core";
+import { undoBatch } from "../../util/UndoManager";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -295,6 +296,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
+    @undoBatch
     @action
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
@@ -422,8 +424,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     </Tooltip>
                     <p className="linkEditor-linkedTo">Editing Link to: <b>{
                         destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
-                    {/* <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link">
-                        <FontAwesomeIcon icon="trash" size="sm" /></button> */}
                     <Tooltip title={<><div className="dash-tooltip">Show more link information</div></>} placement="top">
                         <div className="linkEditor-downArrow"><FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} /></div>
                     </Tooltip>

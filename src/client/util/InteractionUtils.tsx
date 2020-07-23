@@ -161,7 +161,6 @@ export namespace InteractionUtils {
     //     return (
     //         InkOptionsMenu.Instance.getColors().map(color => {
     //             const id1 = "arrowStartTest" + color;
-    //             console.log(color);
     //             <marker id={id1} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
     //                 <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
     //             </marker>;
@@ -383,7 +382,6 @@ export namespace InteractionUtils {
         //                 let dist12 = TwoPointEuclidist(pt1, pt2);
         //                 let dist23 = TwoPointEuclidist(pt2, pt3);
         //                 let dist13 = TwoPointEuclidist(pt1, pt3);
-        //                 console.log(`distances: ${dist12}, ${dist23}, ${dist13}`);
         //                 let dist12close = dist12 < leniency;
         //                 let dist23close = dist23 < leniency;
         //                 let dist13close = dist13 < leniency;

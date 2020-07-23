@@ -797,9 +797,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         </div >;
     }
 
-    onKeyPress = (e: React.KeyboardEvent) => {
-        console.log(e);
-    }
     onChildClick = () => {
         return this.props.onChildClick?.() || ScriptCast(this.doc.onChildClick);
     }
@@ -820,7 +817,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         paddingTop: `${NumCast(this.doc._yPadding, 20)}px`,
                         pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                     }}
-                    onKeyPress={this.onKeyPress}
                     onWheel={(e) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                     onDrop={this.onTreeDrop}
                     ref={this.createTreeDropTarget}>

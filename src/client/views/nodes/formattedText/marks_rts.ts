@@ -258,9 +258,7 @@ export const marks: { [index: string]: MarkSpec } = {
         },
         parseDOM: [{ style: 'background: yellow' }],
         toDOM(node: any) {
-            return ['span', {
-                style: `background: ${node.attrs.selected ? "orange" : "yellow"}`
-            }];
+            return ['span', { style: `background: ${node.attrs.selected ? "orange" : "yellow"}` }];
         }
     },
 
@@ -277,8 +275,8 @@ export const marks: { [index: string]: MarkSpec } = {
             const min = Math.round(node.attrs.modified / 12);
             const hr = Math.round(min / 60);
             const day = Math.round(hr / 60 / 24);
-            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
-            return ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0];
+            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " UM-remote" : "";
+            return ['span', { class: "UM-" + uid + remote + " UM-min-" + min + " UM-hr-" + hr + " UM-day-" + day }, 0];
         }
     },
     // the id of the user who entered the text
@@ -292,7 +290,7 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         toDOM(node: any) {
             const uid = node.attrs.userid.replace(".", "").replace("@", "");
-            return ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0];
+            return ['span', { class: "UT-" + uid + " UT-" + node.attrs.tag }, 0];
         }
     },
 

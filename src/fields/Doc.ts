@@ -1,6 +1,6 @@
 import { action, computed, observable, ObservableMap, runInAction, untracked } from "mobx";
 import { computedFn } from "mobx-utils";
-import { alias, map, serializable } from "serializr";
+import { alias, map, serializable, list } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
@@ -14,12 +14,16 @@ import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
+import { ImageField, VideoField, WebField, AudioField, PdfField } from "./URLField";
+import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
 import { SharingPermissions } from "../client/util/SharingManager";
+import JSZip = require("jszip");
+import { saveAs } from "file-saver";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -93,6 +97,7 @@ export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
+export const FieldsSym = Symbol("Fields");
 export const AclSym = Symbol("Acl");
 export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
@@ -180,7 +185,6 @@ export class Doc extends RefField {
     }
 
     @observable
-    //{ [key: string]: Field | FieldWaiting | undefined }
     private ___fields: any = {};
 
     private [UpdatingFromServer]: boolean = false;
@@ -191,6 +195,7 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
+    public [FieldsSym] = () => this.___fields;
     public [AclSym]: { [key: string]: symbol };
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
@@ -483,27 +488,28 @@ export namespace Doc {
         return alias;
     }
 
-
-
-    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
+    export async function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[], exclusions: string[], dontCreate: boolean): Promise<Doc> {
         if (Doc.IsBaseProto(doc)) return doc;
         if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
-        const copy = new Doc(undefined, true);
+        const copy = dontCreate ? doc : new Doc(undefined, true);
         cloneMap.set(doc[Id], copy);
         if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
-        Object.keys(doc).forEach(key => {
-            if (exclude.includes(key)) return;
+        const filter = Cast(doc.cloneFieldFilter, listSpec("string"), exclusions);
+        await Promise.all(Object.keys(doc).map(async key => {
+            if (filter.includes(key)) return;
+            const assignKey = (val: any) => !dontCreate && (copy[key] = val);
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
-            const copyObjectField = (field: ObjectField) => {
-                const list = Cast(doc[key], listSpec(Doc));
-                if (list !== undefined && !(list instanceof Promise)) {
-                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+            const copyObjectField = async (field: ObjectField) => {
+                const list = await Cast(doc[key], listSpec(Doc));
+                const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
+                if (docs !== undefined && docs.length) {
+                    const clones = await Promise.all(docs.map(async d => await Doc.makeClone(d as Doc, cloneMap, rtfs, exclusions, dontCreate)));
+                    !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
-                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                    assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate)); // reference documents except copy documents that are expanded teplate fields 
                 } else {
-                    copy[key] = ObjectField.MakeCopy(field);
+                    assignKey(ObjectField.MakeCopy(field));
                     if (field instanceof RichTextField) {
                         if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
                             rtfs.push({ copy, key, field });
@@ -513,32 +519,34 @@ export namespace Doc {
             };
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
+                    assignKey(await Doc.makeClone(doc[key]!, cloneMap, rtfs, exclusions, dontCreate));
                 }
             } else {
                 if (field instanceof RefField) {
-                    copy[key] = field;
+                    assignKey(field);
                 } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
-                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
+                    !dontCreate && assignKey(ComputedField.MakeFunction(cfield.script.originalScript));
+                    (key === "links" && field instanceof ObjectField) && await copyObjectField(field);
                 } else if (field instanceof ObjectField) {
-                    copyObjectField(field);
+                    await copyObjectField(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
-                    copy[key] = field;
+                    assignKey(field);
                 }
             }
-        });
-        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
-        copy.cloneOf = doc;
-        cloneMap.set(doc[Id], copy);
+        }));
+        if (!dontCreate) {
+            Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+            copy.cloneOf = doc;
+            cloneMap.set(doc[Id], copy);
+        }
         return copy;
     }
-    export function MakeClone(doc: Doc): Doc {
+    export async function MakeClone(doc: Doc, dontCreate: boolean = false) {
         const cloneMap = new Map<string, Doc>();
         const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
-        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        const copy = await Doc.makeClone(doc, cloneMap, rtfMap, ["context", "annotationOn", "cloneOf"], dontCreate);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
                 const mapped = cloneMap.get(id);
@@ -552,9 +560,55 @@ export namespace Doc {
             const re = new RegExp(regex, "g");
             copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
         });
-        return copy;
+        return { clone: copy, map: cloneMap };
     }
 
+    export async function Zip(doc: Doc) {
+        const { clone, map } = await Doc.MakeClone(doc, true);
+        function replacer(key: any, value: any) {
+            if (["cloneOf", "context", "cursors"].includes(key)) return undefined;
+            else if (value instanceof Doc) {
+                if (key !== "field" && Number.isNaN(Number(key))) {
+                    const __fields = value[FieldsSym]();
+                    return { id: value[Id], __type: "Doc", fields: __fields };
+                } else {
+                    return { fieldId: value[Id], __type: "proxy" };
+                }
+            }
+            else if (value instanceof RichTextField) return { Data: value.Data, Text: value.Text, __type: "RichTextField" };
+            else if (value instanceof ImageField) return { url: value.url.href, __type: "image" };
+            else if (value instanceof PdfField) return { url: value.url.href, __type: "pdf" };
+            else if (value instanceof AudioField) return { url: value.url.href, __type: "audio" };
+            else if (value instanceof VideoField) return { url: value.url.href, __type: "video" };
+            else if (value instanceof WebField) return { url: value.url.href, __type: "web" };
+            else if (value instanceof DateField) return { date: value.toString(), __type: "date" };
+            else if (value instanceof ProxyField) return { fieldId: value.fieldId, __type: "proxy" };
+            else if (value instanceof Array && key !== "fields") return { fields: value, __type: "list" };
+            else if (value instanceof ComputedField) return { script: value.script, __type: "computed" };
+            else return value;
+        }
+
+        const docs: { [id: string]: any } = {};
+        Array.from(map.entries()).forEach(f => docs[f[0]] = f[1]);
+        const docString = JSON.stringify({ id: doc[Id], docs }, replacer);
+
+        var zip = new JSZip();
+
+        zip.file("doc.json", docString);
+
+        // // Generate a directory within the Zip file structure
+        // var img = zip.folder("images");
+
+        // // Add a file to the directory, in this case an image with data URI as contents
+        // img.file("smile.gif", imgData, {base64: true});
+
+        // Generate the zip file asynchronously
+        zip.generateAsync({ type: "blob" })
+            .then((content: any) => {
+                // Force down of the Zip file
+                saveAs(content, "download.zip");
+            });
+    }
     //
     // Determines whether the layout needs to be expanded (as a template).
     // template expansion is rquired when the layout is a template doc/field and there's a datadoc which isn't equal to the layout template
@@ -657,7 +711,7 @@ export namespace Doc {
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
-        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        const exclude = Cast(doc.cloneFieldFilter, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));

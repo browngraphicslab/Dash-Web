@@ -151,7 +151,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     //     let field = this.props.rowProps.original[this.props.rowProps.column.id as string];
     //     let doc = FieldValue(Cast(field, Doc));
 
-    //     console.log("Expanding doc", StrCast(doc!.title));
     //     this.props.setPreviewDoc(doc!);
 
     //     // this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
@@ -265,7 +264,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     return "0";
                                 } else {
                                     const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                    console.log(cfield);
                                     if (type === "number") {
                                         return StrCast(cfield);
                                     }
@@ -286,7 +284,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                     if (script.compiled) {
                                         retVal = this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
-                                        console.log("compiled");
                                     }
 
                                 }
@@ -350,17 +347,13 @@ export class CollectionSchemaDateCell extends CollectionSchemaCell {
 
     @action
     handleChange = (date: any) => {
-        console.log(date);
         this._date = date;
         // const script = CompileScript(date.toString(), { requiredType: "Date", addReturn: true, params: { this: Doc.name } });
         // if (script.compiled) {
-        //     console.log("scripting");
         //     this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
         // } else {
-        console.log(DateCast(date));
         // ^ DateCast is always undefined for some reason, but that is what the field should be set to
         this._document[this.props.rowProps.column.id as string] = date as Date;
-        console.log(this._document[this.props.rowProps.column.id as string]);
         //}
     }
 
@@ -425,8 +418,6 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
         const results = script.compiled && script.run();
         if (results && results.success) {
-
-            console.log(results.result);
             this._doc = results.result;
             this._document[this.prop.fieldKey] = results.result;
             this._docTitle = this._doc?.title;
@@ -457,10 +448,8 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
             this._preview = false;
         } else {
             if (bool) {
-                console.log("show doc");
                 this.props.showDoc(this._doc, this.prop.DataDoc, e.clientX, e.clientY);
             } else {
-                console.log("no doc");
                 this.props.showDoc(undefined);
             }
         }
@@ -675,7 +664,6 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
 
     @action
     toggleOpened(open: boolean) {
-        console.log("open: " + open);
         this._opened = open;
     }
 

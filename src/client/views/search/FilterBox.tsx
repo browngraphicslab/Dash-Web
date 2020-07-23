@@ -352,7 +352,6 @@ export class FilterBox extends React.Component {
     getDataStatus() { return this._deletedDocsStatus; }
 
     getActiveFilters() {
-        console.log(this._authorFieldStatus, this._titleFieldStatus, this._dataFieldStatus);
         return (
             <div className="active-filters">
                 {!this._basicWordStatus ? <div className="active-icon container">

@@ -3,7 +3,6 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import * as rp from "request-promise";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclEdit } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
@@ -754,11 +753,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.contextMenuItems?.().forEach(item =>
             cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
+        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
+        const appearance = cm.findByDescription("Appearance...");
+        const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
+        templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
+        !appearance && cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "compass" });
+
         const options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
-        templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
 
@@ -783,6 +786,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
+        moreItems.push({
+            description: "Download document", icon: "download", event: async () => {
+                Doc.Zip(this.props.Document);
+                // const a = document.createElement("a");
+                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                // a.href = url;
+                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                // a.click();
+            }
+        });
         if (!Doc.UserDoc().noviceMode) {
             moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
             moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -792,19 +805,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
                 moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
             }
-            moreItems.push({
-                description: "Download document", icon: "download", event: async () => {
-                    const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
-                        qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                    });
-                    console.log(response ? JSON.parse(response) : undefined);
-                }
-                // const a = document.createElement("a");
-                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-                // a.href = url;
-                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-                // a.click();
-            });
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         }
         GetEffectiveAcl(this.props.Document) === AclEdit && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
@@ -910,7 +910,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         const documents: Doc[] = [];
         const allDocs = await SearchUtil.GetAllDocs();
-        // allDocs.forEach(doc => console.log(doc.title));
         // clears internal representation of documents as vectors
         ClientRecommender.Instance.reset_docs();
         //ClientRecommender.Instance.arxivrequest("electrons");
