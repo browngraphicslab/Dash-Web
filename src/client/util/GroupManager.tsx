@@ -48,6 +48,7 @@ export default class GroupManager extends React.Component<{}> {
 
     componentDidMount() {
         this.populateUsers();
+        this.populateGroups();
     }
 
     /**

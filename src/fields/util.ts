@@ -210,7 +210,8 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
         return true;
     }
 
-    if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+    if (typeof prop === "string" && prop.startsWith("ACL") && ((target.author && Doc.CurrentUserEmail !== target.author) || !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value))) return true;
+    // if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
