@@ -16,6 +16,7 @@ const imageDataUri = require('image-data-uri');
 import { isWebUri } from "valid-url";
 import { launch } from "puppeteer";
 import { Opt } from "../../fields/Doc";
+import { SolrManager } from "./SearchManager";
 
 export enum Directory {
     parsed_files = "parsed_files",
@@ -204,6 +205,7 @@ export default class UploadManager extends ApiManager {
                                 } catch (e) { console.log(e); }
                                 unlink(path_2, () => { });
                             }
+                            SolrManager.update();
                             res.send(JSON.stringify(id ? getId(id) : "error"));
                         } catch (e) { console.log(e); }
                         resolve();

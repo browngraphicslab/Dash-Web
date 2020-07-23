@@ -46,6 +46,8 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { SearchUtil } from "../../../util/SearchUtil";
+import { LinkManager } from "../../../util/LinkManager";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -1276,6 +1278,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                                     const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
                                     doc.x = xx, doc.y = yy;
                                     this.props.addDocument?.(doc);
+                                    setTimeout(() => {
+                                        SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                            docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                                        })
+                                    }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
                                 }
                             }
                         }

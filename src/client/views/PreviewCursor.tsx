@@ -73,7 +73,7 @@ export class PreviewCursor extends React.Component<{}> {
                         count++;
                         if (doc instanceof Doc) {
                             i === 1 && (first = doc);
-                            const alias = clone ? await Doc.MakeClone(doc) : doc;
+                            const alias = clone ? (await Doc.MakeClone(doc)).clone : doc;
                             const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
                             const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
                             alias.x = newPoint[0] + deltaX;

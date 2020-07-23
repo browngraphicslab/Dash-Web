@@ -315,7 +315,7 @@ export default class KeyManager {
                         list.push(doc);
                     }
                     if (count === docids.length) {
-                        const added = await Promise.all(list.filter(d => !docList.includes(d)).map(async d => clone ? await Doc.MakeClone(d) : d));
+                        const added = await Promise.all(list.filter(d => !docList.includes(d)).map(async d => clone ? (await Doc.MakeClone(d)).clone : d));
                         if (added.length) {
                             added.map(doc => doc.context = targetDataDoc);
                             undoBatch(() => {

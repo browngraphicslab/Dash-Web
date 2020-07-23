@@ -180,7 +180,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     render() {
         const containedDoc = Cast(this.dataDoc[this.fieldKey], Doc, null);
         TraceMobx();
-        return <div className="documentBox-container" ref={this._contRef}
+        return !containedDoc ? (null) : <div className="documentBox-container" ref={this._contRef}
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{

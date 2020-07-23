@@ -3,7 +3,6 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import * as rp from "request-promise";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclEdit } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
@@ -794,11 +793,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             moreItems.push({
                 description: "Download document", icon: "download", event: async () => {
-                    const a = document.createElement("a");
-                    const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-                    a.href = url;
-                    a.download = `DocExport-${this.props.Document[Id]}.zip`;
-                    a.click();
+                    Doc.Zip(this.props.Document);
+                    // const a = document.createElement("a");
+                    // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                    // a.href = url;
+                    // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                    // a.click();
                 }
             });
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
