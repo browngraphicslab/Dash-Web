@@ -95,10 +95,6 @@ export class MainView extends React.Component {
     @observable public sidebarContent: any = this.userDoc?.["tabs-panelContainer"];
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
-
-    @computed get selectedDocumentView() { return SelectionManager.LastSelection(); }
-    @observable selectedDoc: Doc | undefined = this.selectedDocumentView?.props.Document;
-    @observable selectedDataDoc: Doc | undefined = this.selectedDocumentView?.props.DataDoc ? this.selectedDocumentView.props.DataDoc : this.selectedDoc;
     public isPointerDown = false;
 
     @observable _propertiesWidth: number = 0;
@@ -359,7 +355,7 @@ export class MainView extends React.Component {
             docFilters={returnEmptyFilter}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
-            renderDepth={1}
+            renderDepth={0}
         />;
     }
     @computed get dockingContent() {

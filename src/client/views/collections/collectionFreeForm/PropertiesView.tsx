@@ -30,12 +30,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
     @computed get selectedDocumentView() {
-        if (SelectionManger.SelectedDocuments().length) {
+        if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
         } else { return undefined; }
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.props.Document; }
-    @computed get dataDoc() { return this.selectedDocumentView?.props.DataDoc; }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @action
     rtfWidth = () => {
@@ -156,7 +156,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     render() {
 
-        if (!this.selectedDocumentView || !this.selectedDoc || !this.dataDoc) {
+        if (!this.selectedDoc) {
             return <div className="propertiesView" >
                 <div className="propertiesView-title">
                     No Document Selected
@@ -168,7 +168,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 Properties
             </div>
             <div className="propertiesView-name">
-                {this.dataDoc.title}
+                {this.selectedDoc.title}
             </div>
             <div className="propertiesView-settings">
                 <div className="propertiesView-settings-title"> Settings</div>

@@ -68,8 +68,14 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     public static hasPushedHack = false;
     public static hasPulledHack = false;
 
-    @observable selectedDocumentView: DocumentView | undefined = SelectionManager.LastSelection();
-    @observable selectedDoc: Doc | undefined = this.selectedDocumentView?.props.Document;
+
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.props.Document; }
+    @computed get dataDoc() { return this.selectedDocumentView?.props.DataDoc; }
 
     public startPullOutcome = action((success: boolean) => {
         if (!this._pullAnimating) {
