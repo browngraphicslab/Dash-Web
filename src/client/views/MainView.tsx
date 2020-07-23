@@ -164,7 +164,7 @@ export class MainView extends React.Component {
         if (targets && targets.length && SearchBox.Instance._searchbarOpen){
             let check = false;
             targets.forEach((thing)=>{
-            if (thing.className.toString()==="collectionSchemaView-table" || thing.className.toString()==="beta") {
+            if (thing.className.toString()==="collectionSchemaView-table" || thing.className.toString()==="beta"|| thing.className.toString()==="collectionSchemaView-menuOptions-wrapper") {
                 check=true;
             }
         });
