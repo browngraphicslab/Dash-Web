@@ -84,7 +84,7 @@ export class MainView extends React.Component {
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = false;
-    @observable public flyoutWidth: number = 250;
+    @observable public flyoutWidth: number = 275;
     private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
@@ -96,6 +96,11 @@ export class MainView extends React.Component {
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
 
     @observable _propertiesWidth: number = 0;
     propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, this._propertiesWidth));
@@ -447,147 +452,151 @@ export class MainView extends React.Component {
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
                     ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined} />
+                    ContainingCollectionDoc={undefined}
+                    relative={true}
+                />
             </div>
             {this.docButtons}</div>;
     }
 
-    @computed get menuPanel() {
-
-        return <div className="mainView-menuPanel">
-            <DocumentView
-                Document={Doc.UserDoc().menuStack as Doc}
-                DataDoc={undefined}
-                LibraryPath={emptyPath}
-                addDocument={undefined}
-                addDocTab={this.addDocTabFunc}
-                pinToPres={emptyFunction}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
-                rootSelected={returnTrue}
-                removeDocument={returnFalse}
-                onClick={undefined}
-                ScreenToLocalTransform={this.mainContainerXf}
-                ContentScaling={returnOne}
-                PanelWidth={() => 100}
-                PanelHeight={this.getContentsHeight}
-                renderDepth={0}
-                focus={emptyFunction}
-                backgroundColor={this.defaultBackgroundColors}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                bringToFront={emptyFunction}
-                docFilters={returnEmptyFilter}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
-        </div>;
-    }
-
     // @computed get menuPanel() {
+
     //     return <div className="mainView-menuPanel">
-    //         <button className="mainView-menuPanel-button"
-    //             onPointerDown={e => this.selectPanel("workspace")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black"
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Workspace </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-button"
-    //             onPointerDown={e => this.selectPanel("catalog")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black"
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Catalog </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-button"
-    //             onPointerDown={e => this.selectPanel("deleted")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black",
-    //                 marginBottom: "30px"
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Recently Closed </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-button"
-    //             onPointerDown={e => this.selectPanel("upload")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black",
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Import </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-button"
-    //             //onPointerDown={e => this.selectPanel("sharing")}
-    //             onClick={() => GroupManager.Instance.open()}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black"
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Sharing </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-button"
-    //             onPointerDown={e => this.selectPanel("tools")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black",
-    //                 //marginBottom: "45px"
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Tools </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-button"
-    //             onPointerDown={e => this.selectPanel("search")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "black",
-    //                 boxShadow: "4px 4px 12px black",
-    //                 //marginBottom: "45px"
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="search" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-button-label"> Search </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-bottomButton"
-    //             onPointerDown={e => this.selectPanel("help")}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "323232",
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="question-circle" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-bottomButton-label"> Help </div>
-    //         </button>
-
-    //         <button className="mainView-menuPanel-bottomButton"
-    //             // onPointerDown={e => this.selectPanel("settings")}
-    //             onClick={() => SettingsManager.Instance.open()}
-    //             style={{
-    //                 padding: "5px",
-    //                 background: "323232",
-    //             }}>
-    //             <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="cog" color="white" size="lg" />
-    //             <div className="mainView-menuPanel-bottomButton-label"> Settings </div>
-    //         </button>
+    //         <DocumentView
+    //             Document={Doc.UserDoc().menuStack as Doc}
+    //             DataDoc={undefined}
+    //             LibraryPath={emptyPath}
+    //             addDocument={undefined}
+    //             addDocTab={this.addDocTabFunc}
+    //             pinToPres={emptyFunction}
+    //             NativeHeight={returnZero}
+    //             NativeWidth={returnZero}
+    //             rootSelected={returnTrue}
+    //             removeDocument={returnFalse}
+    //             onClick={undefined}
+    //             ScreenToLocalTransform={this.mainContainerXf}
+    //             ContentScaling={returnOne}
+    //             PanelWidth={() => 80}
+    //             PanelHeight={this.getContentsHeight}
+    //             renderDepth={0}
+    //             focus={emptyFunction}
+    //             backgroundColor={this.defaultBackgroundColors}
+    //             parentActive={returnTrue}
+    //             whenActiveChanged={emptyFunction}
+    //             bringToFront={emptyFunction}
+    //             docFilters={returnEmptyFilter}
+    //             ContainingCollectionView={undefined}
+    //             ContainingCollectionDoc={undefined}
+    //             relative={true}
+    //         />
     //     </div>;
     // }
+
+    @computed get menuPanel() {
+        return <div className="mainView-menuPanel">
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("workspace")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Workspace </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("catalog")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Catalog </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("deleted")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black",
+                    marginBottom: "30px"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Recently Closed </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("upload")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black",
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Import </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                //onPointerDown={e => this.selectPanel("sharing")}
+                onClick={() => GroupManager.Instance.open()}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Sharing </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("tools")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black",
+                    //marginBottom: "45px"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Tools </div>
+            </button>
+
+            <button className="mainView-menuPanel-button"
+                onPointerDown={e => this.selectPanel("search")}
+                style={{
+                    padding: "5px",
+                    background: "black",
+                    boxShadow: "4px 4px 12px black",
+                    //marginBottom: "45px"
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="search" color="white" size="lg" />
+                <div className="mainView-menuPanel-button-label"> Search </div>
+            </button>
+
+            <button className="mainView-menuPanel-bottomButton"
+                onPointerDown={e => this.selectPanel("help")}
+                style={{
+                    padding: "5px",
+                    background: "323232",
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="question-circle" color="white" size="lg" />
+                <div className="mainView-menuPanel-bottomButton-label"> Help </div>
+            </button>
+
+            <button className="mainView-menuPanel-bottomButton"
+                // onPointerDown={e => this.selectPanel("settings")}
+                onClick={() => SettingsManager.Instance.open()}
+                style={{
+                    padding: "5px",
+                    background: "323232",
+                }}>
+                <FontAwesomeIcon className="mainView-menuPanel-bottomButton-icon" icon="cog" color="white" size="lg" />
+                <div className="mainView-menuPanel-bottomButton-label"> Settings </div>
+            </button>
+        </div>;
+    }
 
     @action
     selectPanel = (str: string) => {
@@ -623,23 +632,24 @@ export class MainView extends React.Component {
 
     @computed get propertiesView() {
         TraceMobx();
-        return this._propertiesWidth === 0 ? (null) :
-            <div className="mainView-propertiesView" style={{
-                width: `${this.propertiesWidth()}px`,
-                overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
-            }}>
-                <PropertiesView
-                    width={this._propertiesWidth}
-                    height={this._panelHeight}
-                    renderDepth={1}
-                    ScreenToLocalTransform={Transform.Identity}
-                />
-            </div>;
+        return <div className="mainView-propertiesView" style={{
+            width: `200px`,
+            overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
+        }}>
+            <PropertiesView
+                width={200}
+                height={this._panelHeight}
+                renderDepth={1}
+                ScreenToLocalTransform={Transform.Identity}
+            />
+        </div>;
     }
 
     @computed get mainContent() {
         const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
+
+        const rightFlyout = this.selectedDocumentView ? this._propertiesWidth - 1 : this.propertiesWidth() > 10 ? 151.5 : 0;
         return !this.userDoc || !(this.sidebarContent instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
@@ -675,7 +685,7 @@ export class MainView extends React.Component {
                     {this.dockingContent}
                     {this.showProperties ? (null) :
                         <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onDown}
-                            style={{ right: this._propertiesWidth - 1, top: "45%" }}>
+                            style={{ right: rightFlyout, top: "45%" }}>
                             <div className="mainView-propertiesDragger-icon">
                                 <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
                         </div>

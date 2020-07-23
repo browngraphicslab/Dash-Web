@@ -100,6 +100,7 @@ export interface DocumentViewProps {
     layoutKey?: string;
     radialMenu?: String[];
     display?: string;
+    relative?: boolean;
 }
 
 @observer
@@ -1021,8 +1022,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
+        const pos = this.props.relative ? "relative " : "absolute";
         TraceMobx();
-        return (<div style={{ position: "absolute", width: "100%", height: "100%" }}>
+        return (<div style={{ position: pos, width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
                 ContainingCollectionView={this.props.ContainingCollectionView}
@@ -1109,8 +1111,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get innards() {
         TraceMobx();
+        const pos = this.props.relative ? "relative" : undefined;
         if (this.props.treeViewDoc && !this.props.LayoutTemplateString?.includes("LinkAnchorBox")) {  // this happens when the document is a tree view label (but not an anchor dot)
-            return <div className="documentView-treeView" style={{ maxWidth: this.props.PanelWidth() || undefined }}>
+            return <div className="documentView-treeView" style={{
+                maxWidth: this.props.PanelWidth() || undefined,
+                position: pos
+            }}>
                 {StrCast(this.props.Document.title)}
                 {this.allAnchors}
             </div>;
@@ -1235,7 +1241,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
-                fontSize: Cast(this.Document._fontSize, "string", null)
+                fontSize: Cast(this.Document._fontSize, "string", null),
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
