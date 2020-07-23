@@ -470,9 +470,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
 
-        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
-        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
-
         const changeItems: ContextMenuProps[] = [];
         const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
         DocListCast(noteTypesDoc?.data).forEach(note => {
@@ -484,24 +481,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
         });
         changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
-        appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
-        const uicontrols: ContextMenuProps[] = [];
-        uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
-        uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
-        uicontrols.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
-        !Doc.UserDoc().noviceMode && uicontrols.push({
-            description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
-                proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
-        });
-
-        appearanceItems.push({ description: "UI Controls...", noexpand: true, subitems: uicontrols, icon: "asterisk" });
-        this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-
-        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
-
-        const funcs: ContextMenuProps[] = [];
-
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             highlighting.push({
@@ -515,8 +494,24 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.updateHighlights();
                 }, icon: "expand-arrows-alt"
             }));
-        funcs.push({ description: "highlighting...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
-        funcs.push({
+
+
+        const uicontrols: ContextMenuProps[] = [];
+        uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
+        !Doc.UserDoc().noviceMode && uicontrols.push({
+            description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
+                proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
+        });
+        cm.addItem({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+
+        const appearance = cm.findByDescription("Appearance...");
+        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
+        appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
+        this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
+        Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
+        appearanceItems.push({
             description: "Convert to be a template style", event: () => {
                 if (!this.layoutDoc.isTemplateDoc) {
                     const title = StrCast(this.rootDoc.title);
@@ -541,11 +536,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
-        funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+        cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
-        funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
-        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+        const options = cm.findByDescription("Options...");
+        const optionItems = options && "subitems" in options ? options.subitems : [];
+        !Doc.UserDoc().noviceMode && optionItems.push({ description: this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+        optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
+        !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
     }
 
@@ -561,11 +559,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
     }
     stopDictation = (abort: boolean) => { DictationManager.Controls.stop(!abort); };
-
-    @action
-    toggleMenubar = () => {
-        this.layoutDoc._chromeStatus = this.layoutDoc._chromeStatus === "disabled" ? "enabled" : "disabled";
-    }
 
     recordBullet = async () => {
         const completedCue = "end session";
