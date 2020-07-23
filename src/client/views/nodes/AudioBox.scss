@@ -152,7 +152,6 @@
                     background: gray;
                     border-radius: 100%;
                     opacity: 0.9;
-                    background-color: transparent;
                     box-shadow: black 2px 2px 1px;
 
                     .linkAnchorBox-cont {
@@ -199,8 +198,10 @@
 
                     .audiobox-marker {
                         position: relative;
-                        height: calc(100% - 15px);
-                        margin-top: 15px;
+                        height: 100%;
+                        // height: calc(100% - 15px);
+                        width: 100%;
+                        //margin-top: 15px;
                     }
 
                     .audio-marker:hover {
@@ -235,6 +236,13 @@
                         cursor: ew-resize;
                         height: 100%;
                         width: 2px;
+                        z-index: 100;
+                    }
+
+                    .click {
+                        position: relative;
+                        height: 100%;
+                        width: 100%;
                         z-index: 100;
                     }
 

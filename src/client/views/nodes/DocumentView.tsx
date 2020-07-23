@@ -100,6 +100,7 @@ export interface DocumentViewProps {
     layoutKey?: string;
     radialMenu?: String[];
     display?: string;
+    scriptContext?: any;
 }
 
 @observer
@@ -322,6 +323,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
+                    scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
                 }, console.log);
                 if (this.props.Document !== Doc.UserDoc()["dockedBtn-undo"] && this.props.Document !== Doc.UserDoc()["dockedBtn-redo"]) {
