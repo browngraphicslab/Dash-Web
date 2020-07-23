@@ -195,15 +195,13 @@ export class EditableView extends React.Component<EditableProps> {
         if (this.props.positions!==undefined){
         let positions = this.props.positions;
         let length = this.props.search!.length;
-        console.log(contents);
-        console.log(this.props.contents?.valueOf());
+
         // contents = String(this.props.contents.valueOf());
 
         results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(0, this.props.positions![0]) : this.props.placeholder?.valueOf()}</span>);
         positions.forEach((num, cur) => {
             results.push(<span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : this.props.placeholder?.valueOf()}</span>);
             let end = 0;
-            console.log
             cur === positions.length-1? end = contents.length: end = positions[cur + 1];
             results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : this.props.placeholder?.valueOf()}</span>);
         }
@@ -217,7 +215,6 @@ else{
     }
 
     render() {
-        console.log(this.props.highlight === undefined);
         if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.sizeToContent ?
                 <div style={{ display: "grid", minWidth: 100 }}>

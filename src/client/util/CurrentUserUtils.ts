@@ -658,7 +658,7 @@ export class CurrentUserUtils {
         const libraryBtn = CurrentUserUtils.setupLibraryPanel(doc, sidebarContainer);
         const searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
         if (doc["search-panel"] === undefined) {
-            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({_width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, title: "sidebar search stack", })) as any as Doc;
+            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({_width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", })) as any as Doc;
     }
         // Finally, setup the list of buttons to display in the sidebar
         if (doc["tabs-buttons"] === undefined) {

@@ -156,10 +156,24 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
+            //SearchBox.Instance.closeSearch();
         }
         if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
             TimelineMenu.Instance.closeMenu();
         }
+        if (targets && targets.length && SearchBox.Instance._searchbarOpen){
+            let check = false;
+            targets.forEach((thing)=>{
+            if (thing.className.toString()==="collectionSchemaView-table" || thing.className.toString()==="beta") {
+                check=true;
+            }
+        });
+        if (check===false){
+            SearchBox.Instance.closeSearch();
+        }
+    }
+
+
     });
 
     globalPointerUp = () => this.isPointerDown = false;

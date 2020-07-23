@@ -189,7 +189,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 addNew={false}
                 onSelect={this.props.changeColumns}
                 setIsEditing={this.props.setHeaderIsEditing}
-
+                docs={this.props.childDocs}
                 // try commenting this out
                 width={"100%"}
             />;
@@ -451,10 +451,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
         const rerender = [...this.textWrappedRows]; // TODO: get component to rerender on text wrap change without needign to console.log :((((
-        let overflow = "auto";
-        StrCast(this.props.Document.type) === "search" ? overflow = "overlay" : "auto";
         return <ReactTable
-            style={{ position: "relative", overflow: overflow }}
+            style={{ position: "relative" }}
             data={children}
             page={0}
             pageSize={children.length}

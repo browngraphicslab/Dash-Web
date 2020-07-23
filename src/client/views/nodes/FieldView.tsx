@@ -46,8 +46,8 @@ export interface FieldViewProps {
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     ignoreAutoHeight?: boolean;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
+    PanelWidth: () => number|string;
+    PanelHeight: () => number|string;
     PanelPosition: string;
     NativeHeight: () => number;
     NativeWidth: () => number;

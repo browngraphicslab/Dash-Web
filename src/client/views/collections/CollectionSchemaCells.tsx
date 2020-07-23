@@ -246,7 +246,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         trace();
         let positions = [];
         if (StrCast(this.props.Document._searchString) !== "") {
-            console.log(StrCast(this.props.Document._searchString));
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
             let term = "";
             if (cfield!==undefined){
@@ -262,7 +261,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             }
             let search = StrCast(this.props.Document._searchString)
             let start = term.indexOf(search) as number;
-            console.log(start);
             let tally = 0;
             if (start!==-1){
             positions.push(start);
@@ -277,7 +275,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 positions.pop();
             }
         }
-        console.log(positions.length);
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
@@ -299,18 +296,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 //     return "0";
                                 // } else {
                                     const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                    console.log(cfield);
                                     if (cfield!==undefined){
                                     if (cfield.Text!==undefined){
-                                        console.log
-                                        return(cfield.Text)
+                                        return(cfield.Text);
                                     }
                                     else if (StrCast(cfield)){
-                                        console.log("strcast");
                                         return StrCast(cfield);
                                     }
                                     else {
-                                        console.log("numcast");
                                         return String(NumCast(cfield));
                                     }
                                 }
@@ -325,7 +318,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     return "0";
                                 } else {
                                     const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                    console.log(cfield);
                                     if (type === "number") {
                                         return StrCast(cfield);
                                     }

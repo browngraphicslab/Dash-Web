@@ -9,6 +9,8 @@ import { ColumnType } from "./CollectionSchemaView";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+import { Doc } from "../../../fields/Doc";
+import { StrCast } from "../../../fields/Types";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -291,6 +293,7 @@ export interface KeysDropdownProps {
     onSelect: (oldKey: string, newKey: string, addnew: boolean, filter?: string) => void;
     setIsEditing: (isEditing: boolean) => void;
     width?: string;
+    docs?: Doc[];
 }
 @observer
 export class KeysDropdown extends React.Component<KeysDropdownProps> {
@@ -309,7 +312,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         if (key.slice(0, this._key.length) === this._key && this._key !== key) {
             let filter = key.slice(this._key.length - key.length);
             this.props.onSelect(this._key, this._key, this.props.addNew, filter);
-            console.log("YEE");
         }
         else {
             this.props.onSelect(this._key, key, this.props.addNew);
@@ -317,6 +319,13 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this._isOpen = false;
             this.props.setIsEditing(false);
         }
+    }
+
+    @action
+    onSelect2 = (key: string): void => {
+        this._searchTerm=this._searchTerm.slice(0,this._key.length) +key;
+        this._isOpen = false;
+
     }
 
     @undoBatch
@@ -394,7 +403,35 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         return options;
     }
 
+    renderFilterOptions = (): JSX.Element[] | JSX.Element => {
+        console.log("HEHEHE")
+        if (!this._isOpen) return <></>;
+
+        const keyOptions:string[]=[];
+        console.log(this._searchTerm.slice(this._key.length))
+        let temp = this._searchTerm.slice(this._key.length);
+        this.props.docs?.forEach((doc)=>{
+            let key = StrCast(doc[this._key]);
+            if (keyOptions.includes(key)===false && key.includes(temp)){
+            keyOptions.push(key);
+            }
+        });
+
+
+        const options = keyOptions.map(key => {
+            return <div key={key} className="key-option" style={{
+                border: "1px solid lightgray",
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+            }}
+                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect2(key);  }}>{key}</div>;
+        });
+
+        return options;
+    }
+
+
     render() {
+        console.log(this.props.docs);
         return (
             <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
                 {this._key === this._searchTerm.slice(0, this._key.length) ?
@@ -414,7 +451,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                     width: this.props.width, maxWidth: this.props.width,
                 }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
-                    {this.renderOptions()}
+                    {this._key === this._searchTerm.slice(0, this._key.length) ?
+                    this.renderFilterOptions():this.renderOptions()}
                 </div>
             </div >
         );

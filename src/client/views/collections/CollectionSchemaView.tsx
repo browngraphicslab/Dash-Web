@@ -609,7 +609,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        console.log("yeet2");
     }
     render() {
         TraceMobx();
@@ -631,10 +630,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return <div className="collectionSchemaView-container"
             style={{
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
-                width: this.props.PanelWidth() || "100%", height: this.props.PanelPosition === "absolute" ? this.props.PanelHeight() : this.props.PanelHeight()  || "100%", top: this.props.PanelPosition === "absolute" ? 32 : 0, position: this.props.PanelPosition || "relative",
+                width: this.props.PanelWidth() || "100%", height: this.props.PanelPosition === "absolute" ? this.props.PanelHeight() : this.props.PanelHeight()  || "100%", top: this.props.PanelPosition === "absolute" ? 52 : 0, position: this.props.PanelPosition || "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
-                style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
+                style={{ backgroundColor:"white", width: `calc(100% - ${this.previewWidth()}px)` }}
                 onKeyPress={this.onKeyPress}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
