@@ -19,6 +19,7 @@ export interface OriginalMenuProps {
 export interface SubmenuProps {
     description: string;
     subitems: ContextMenuProps[];
+    noexpand?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
@@ -96,6 +97,11 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                 <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px", marginTop }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
+            if (!("noexpand" in this.props)) {
+                return <div className="contextMenu-inlineMenu">
+                    {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
+                </div>;
+            }
             return (
                 <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} style={{ alignItems: where }}
                     onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>

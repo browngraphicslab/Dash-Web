@@ -14,6 +14,7 @@ export namespace SelectionManager {
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
+
             // if doc is not in SelectedDocuments, add it
             if (!manager.SelectedDocuments.get(docView)) {
                 if (!ctrlPressed) {
@@ -21,7 +22,6 @@ export namespace SelectionManager {
                 }
 
                 manager.SelectedDocuments.set(docView, true);
-                // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
             } else if (!ctrlPressed && Array.from(manager.SelectedDocuments.entries()).length > 1) {
                 Array.from(manager.SelectedDocuments.keys()).map(dv => dv !== docView && dv.props.whenActiveChanged(false));

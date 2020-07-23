@@ -60,8 +60,6 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         runInAction(() => {
-            console.log("didit"
-            );
             this.query = StrCast(this.props.Document.searchText);
             this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query }));
 
@@ -83,12 +81,9 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
         if (newKey.length > 1) {
             const newdocs = await this.getAllResults(this.query);
             const things = newdocs.docs;
-            console.log(things);
-            console.log(this.content);
             runInAction(() => {
                 this.content = Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query });
             });
-            console.log(this.content);
         }
 
 
@@ -150,12 +145,9 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
     }
 
     enter = async (e: React.KeyboardEvent) => {
-        console.log(e.key);
         if (e.key === "Enter") {
             const newdocs = await this.getAllResults(this.query);
-            console.log(newdocs.docs);
             this.content = Docs.Create.TreeDocument(newdocs.docs, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` });
-
         }
     }
 
@@ -256,7 +248,6 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
     startDragCollection = async () => {
         const res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
         const filtered = FilterBox.Instance.filterDocsByType(res.docs);
-        // console.log(this._results)
         const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {

@@ -157,29 +157,32 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const field = Cast(this.dataDoc[this.fieldKey], ImageField);
         if (field) {
             const funcs: ContextMenuProps[] = [];
-            funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
-            funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
-            funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
-            // funcs.push({
-            //     description: "Reset Native Dimensions", event: action(async () => {
-            //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-            //         const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-            //         if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
-            //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
-            //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
-            //         } else {
-            //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
-            //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
-            //         }
-            //     }), icon: "expand-arrows-alt"
-            // });
+            funcs.push({ description: "Rotate Clockwise 90", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({ description: "Make Background", event: () => this.layoutDoc.isBackground = true, icon: "expand-arrows-alt" });
+            if (!Doc.UserDoc().noviceMode) {
+                funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
+                funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
+                // funcs.push({
+                //     description: "Reset Native Dimensions", event: action(async () => {
+                //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
+                //         const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
+                //         if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
+                //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
+                //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
+                //         } else {
+                //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
+                //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
+                //         }
+                //     }), icon: "expand-arrows-alt"
+                // });
 
-            const existingAnalyze = ContextMenu.Instance?.findByDescription("Analyzers...");
-            const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
-            modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
-            modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
-            //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
-            !existingAnalyze && ContextMenu.Instance?.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
+                const existingAnalyze = ContextMenu.Instance?.findByDescription("Analyzers...");
+                const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
+                modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
+                modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
+                //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
+                !existingAnalyze && ContextMenu.Instance?.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
+            }
 
             ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
         }
@@ -313,7 +316,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     considerGooglePhotosLink = () => {
         const remoteUrl = this.dataDoc.googlePhotosUrl;
-        return !remoteUrl ? (null) : (<img
+        return !remoteUrl ? (null) : (<img draggable={false}
             style={{ transform: `scale(${this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
             id={"google-photos"}
             src={"/assets/google_photos.png"}
@@ -338,7 +341,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         }
         return (
             <img
-                id={"upload-icon"}
+                id={"upload-icon"} draggable={false}
                 style={{ transform: `scale(${1 / this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
                 src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
@@ -413,7 +416,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
-                    style={{ transform, transformOrigin }}
+                    style={{ transform, transformOrigin }} draggable={false}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
@@ -421,7 +424,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                     <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
-                        style={{ transform, transformOrigin }}
+                        style={{ transform, transformOrigin }} draggable={false}
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} /></div>}

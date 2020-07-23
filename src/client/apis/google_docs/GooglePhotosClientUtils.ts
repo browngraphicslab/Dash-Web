@@ -156,8 +156,6 @@ export namespace GooglePhotos {
             const values = Object.values(ContentCategories).filter(value => value !== ContentCategories.NONE);
             for (const value of values) {
                 const searched = (await ContentSearch({ included: [value] }))?.mediaItems?.map(({ id }) => id);
-                console.log("Searching " + value);
-                console.log(searched);
                 searched?.forEach(async id => {
                     const image = await Cast(idMapping[id], Doc);
                     if (image) {

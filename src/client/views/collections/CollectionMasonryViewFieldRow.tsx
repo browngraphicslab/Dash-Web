@@ -84,7 +84,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @undoBatch
     rowDrop = action((e: Event, de: DragManager.DropEvent) => {
-        console.log("masronry row drop");
         this._createAliasSelected = false;
         if (de.complete.docDragData) {
             (this.props.parent.Document.dropConverter instanceof ScriptField) &&

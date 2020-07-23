@@ -142,7 +142,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
 
     private get dialogueBoxStyle() {
         const borderColor = this.success === undefined ? "black" : this.success ? "green" : "red";
-        return { borderColor, transition: "0.2s borderColor ease" };
+        return { borderColor, transition: "0.2s borderColor ease", zIndex: 1002 };
     }
 
     render() {
@@ -151,8 +151,10 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
                 isDisplayed={this.openState}
                 interactive={true}
                 contents={this.renderPrompt}
-                overlayDisplayedOpacity={0.9}
+                // overlayDisplayedOpacity={0.9}
                 dialogueBoxStyle={this.dialogueBoxStyle}
+                overlayStyle={{ zIndex: 1001 }}
+                closeOnExternalClick={action(() => this.isOpen = false)}
             />
         );
     }

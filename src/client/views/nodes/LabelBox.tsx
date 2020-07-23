@@ -41,7 +41,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
             }, icon: "trash"
         });
 
-        ContextMenu.Instance.addItem({ description: "OnClick...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: funcs, icon: "asterisk" });
     }
 
     @undoBatch
@@ -67,7 +67,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
                     color: StrCast(this.layoutDoc.color, "inherit"),
-                    fontSize: NumCast(this.layoutDoc._fontSize) || "inherit",
+                    fontSize: StrCast(this.layoutDoc._fontSize) || "inherit",
                     fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
                     textTransform: StrCast(this.layoutDoc.textTransform) as any,

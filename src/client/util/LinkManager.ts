@@ -2,7 +2,6 @@ import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
-import { Scripting } from "./Scripting";
 
 /* 
  * link doc: 
@@ -24,12 +23,12 @@ export class LinkManager {
 
     private static _instance: LinkManager;
 
-
     public static currentLink: Opt<Doc>;
 
     public static get Instance(): LinkManager {
         return this._instance || (this._instance = new this());
     }
+
     private constructor() {
     }
 
@@ -61,12 +60,17 @@ export class LinkManager {
     }
 
     // finds all links that contain the given anchor
-    public getAllRelatedLinks(anchor: Doc): Doc[] {
+    public getAllDirectLinks(anchor: Doc): Doc[] {
         const related = LinkManager.Instance.getAllLinks().filter(link => {
             const protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, null));
             const protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
             return protomatch1 || protomatch2 || Doc.AreProtosEqual(link, anchor);
         });
+        return related;
+    }
+    // finds all links that contain the given anchor
+    public getAllRelatedLinks(anchor: Doc): Doc[] {
+        const related = LinkManager.Instance.getAllDirectLinks(anchor);
         DocListCast(anchor[Doc.LayoutFieldKey(anchor) + "-annotations"]).map(anno => {
             related.push(...LinkManager.Instance.getAllRelatedLinks(anno));
         });
@@ -204,6 +208,3 @@ export class LinkManager {
         if (Doc.AreProtosEqual(anchor, linkDoc)) return linkDoc;
     }
 }
-
-Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
-    "creates a link to inputted document", "(doc: any)");

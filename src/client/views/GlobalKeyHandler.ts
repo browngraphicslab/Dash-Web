@@ -22,6 +22,8 @@ import { DocumentView } from "./nodes/DocumentView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
 import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
+import GroupManager from "../util/GroupManager";
+import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -107,6 +109,8 @@ export default class KeyManager {
                 GoogleAuthenticationManager.Instance.cancel();
                 HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
+                GroupManager.Instance.close();
+                CollectionFreeFormViewChrome.Instance.clearKeep();
                 break;
             case "delete":
             case "backspace":
@@ -305,13 +309,13 @@ export default class KeyManager {
                 const targetDataDoc = Doc.GetProto(first.props.Document);
                 const fieldKey = Doc.LayoutFieldKey(first.props.Document);
                 const docList = DocListCast(targetDataDoc[fieldKey]);
-                docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
+                docids.map((did, i) => i && DocServer.GetRefField(did).then(async doc => {
                     count++;
                     if (doc instanceof Doc) {
                         list.push(doc);
                     }
                     if (count === docids.length) {
-                        const added = list.filter(d => !docList.includes(d)).map(d => clone ? Doc.MakeClone(d) : d);
+                        const added = await Promise.all(list.filter(d => !docList.includes(d)).map(async d => clone ? (await Doc.MakeClone(d)).clone : d));
                         if (added.length) {
                             added.map(doc => doc.context = targetDataDoc);
                             undoBatch(() => {

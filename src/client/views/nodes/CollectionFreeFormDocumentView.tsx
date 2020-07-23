@@ -15,6 +15,7 @@ import { numberRange } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { InkingStroke } from "../InkingStroke";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -37,7 +38,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return min + rnd * (max - min);
     }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
-    get maskCentering() { return this.props.Document.isInkMask ? 2500 : 0; }
+    get maskCentering() { return this.props.Document.isInkMask ? InkingStroke.MaskDim / 2 : 0; }
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
@@ -73,9 +74,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
         return ({
-            x: Cast(doc["x-indexed"], listSpec("number"), []).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
-            y: Cast(doc["y-indexed"], listSpec("number"), []).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
-            opacity: Cast(doc["opacity-indexed"], listSpec("number"), []).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
+            x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
+            y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
+            opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
 
@@ -157,8 +158,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
-                width: this.props.Document.isInkMask ? 5000 : this.width,
-                height: this.props.Document.isInkMask ? 5000 : this.height,
+                width: this.props.Document.isInkMask ? InkingStroke.MaskDim : this.width,
+                height: this.props.Document.isInkMask ? InkingStroke.MaskDim : this.height,
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,

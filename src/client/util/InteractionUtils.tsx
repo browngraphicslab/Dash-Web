@@ -94,6 +94,7 @@ export namespace InteractionUtils {
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
         dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
+
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
@@ -111,7 +112,11 @@ export namespace InteractionUtils {
                 }
             }
         } else {
-            pts = points;
+            pts = points.slice();
+            // bcz: Ugh... this is ugly, but shapes apprently have an extra point added that is = (p[0].x,p[0].y+1) as some sort of flag.  need to remove it here.
+            if (pts.length > 2 && pts[pts.length - 2].X === pts[0].X && pts[pts.length - 2].Y === pts[0].Y) {
+                pts.pop();
+            }
         }
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},
@@ -119,15 +124,15 @@ export namespace InteractionUtils {
         const dashArray = String(Number(width) * Number(dash));
         const defGuid = Utils.GenerateGuid();
         const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
-        return (<svg fill={fill === "none" ? color : fill}> {/* setting the svg fill sets the arrowhead fill */}
+        return (<svg fill={color}> {/* setting the svg fill sets the arrowStart fill */}
             {nodefs ? (null) : <defs>
                 {arrowStart !== "dot" && arrowEnd !== "dot" ? (null) : <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
                     <circle r={1} fill="context-stroke" />
                 </marker>}
-                {arrowStart !== "arrowHead" && arrowEnd !== "arrowHead" ? (null) : <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
+                {arrowStart !== "arrow" && arrowEnd !== "arrow" ? (null) : <marker id={`arrowStart${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
                     <polygon points={`${arrowDim} ${-Math.max(1, arrowDim / 2)}, ${arrowDim} ${Math.max(1, arrowDim / 2)}, -1 0`} />
                 </marker>}
-                {arrowStart !== "arrowEnd" && arrowEnd !== "arrowEnd" ? (null) : <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
+                {arrowStart !== "arrow" && arrowEnd !== "arrow" ? (null) : <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
                     <polygon points={`${2 - arrowDim} ${-Math.max(1, arrowDim / 2)}, ${2 - arrowDim} ${Math.max(1, arrowDim / 2)}, 3 0`} />
                 </marker>}
             </defs>}
@@ -136,7 +141,7 @@ export namespace InteractionUtils {
                 points={strpts}
                 style={{
                     filter: drawHalo ? "url(#inkSelectionHalo)" : undefined,
-                    fill,
+                    fill: fill ? fill : "transparent",
                     opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
@@ -145,8 +150,8 @@ export namespace InteractionUtils {
                     strokeLinecap: "round",
                     strokeDasharray: dashArray
                 }}
-                markerStart={`url(#${arrowStart + defGuid})`}
-                markerEnd={`url(#${arrowEnd + defGuid})`}
+                markerStart={`url(#${arrowStart + "Start" + defGuid})`}
+                markerEnd={`url(#${arrowEnd + "End" + defGuid})`}
             />
 
         </svg>);
@@ -155,8 +160,7 @@ export namespace InteractionUtils {
     // export function makeArrow() {
     //     return (
     //         InkOptionsMenu.Instance.getColors().map(color => {
-    //             const id1 = "arrowHeadTest" + color;
-    //             console.log(color);
+    //             const id1 = "arrowStartTest" + color;
     //             <marker id={id1} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
     //                 <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
     //             </marker>;
@@ -378,7 +382,6 @@ export namespace InteractionUtils {
         //                 let dist12 = TwoPointEuclidist(pt1, pt2);
         //                 let dist23 = TwoPointEuclidist(pt2, pt3);
         //                 let dist13 = TwoPointEuclidist(pt1, pt3);
-        //                 console.log(`distances: ${dist12}, ${dist23}, ${dist13}`);
         //                 let dist12close = dist12 < leniency;
         //                 let dist23close = dist23 < leniency;
         //                 let dist13close = dist13 < leniency;

@@ -189,7 +189,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             this.dataDoc[this.fieldKey] = new WebField(URLy);
             this.dataDoc[this.annotationKey] = new List<Doc>([]);
         } catch (e) {
-            console.log("Error in URL :" + this._url);
+            console.log("WebBox URL error:" + this._url);
         }
     }
 

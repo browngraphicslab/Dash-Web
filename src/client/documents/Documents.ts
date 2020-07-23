@@ -70,6 +70,7 @@ export interface DocumentOptions {
     _showTitle?: string; // which field to display in the title area.  leave empty to have no title
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
+    _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
@@ -92,7 +93,8 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
-    label?: string; // short form of title for use as an icon label
+    label?: string;
+    toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
     description?: string; // added for links
@@ -103,6 +105,8 @@ export interface DocumentOptions {
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     childLayoutString?: string; // template string for collection to use to render its children
     hideFilterView?: boolean; // whether to hide the filter popout on collections
+    hideLinkButton?: boolean; // whether the blue link counter button should be hidden
+    hideAllLinks?: boolean; // whether all individual blue anchor dots should be hidden
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
@@ -124,7 +128,7 @@ export interface DocumentOptions {
     isBackground?: boolean;
     isLinkButton?: boolean;
     _columnWidth?: number;
-    _fontSize?: number;
+    _fontSize?: string;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -137,6 +141,8 @@ export interface DocumentOptions {
     dontRegisterChildViews?: boolean;
     lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
+    "onChildDoubleClick-rawScript"?: string; // onChildDoubleClick script in raw text form
+    "onChildClick-rawScript"?: string; // on ChildClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
@@ -490,7 +496,7 @@ export namespace Docs {
                     Doc.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
-                    console.log(errors);
+                    console.log("Documents:" + errors);
                 } else {
                     alert("A Buxton document import was completely empty (??)");
                 }
@@ -545,6 +551,11 @@ export namespace Docs {
 
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
+
+            // so that the list of annotations is already initialised, prevents issues in addonly.
+            // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
+
+            dataDoc[fieldKey + "-annotations"] = new List<Doc>();
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -672,12 +683,12 @@ export namespace Docs {
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
-            I.strokeWidth = strokeWidth;
-            I.strokeBezier = strokeBezier;
             I.fillColor = fillColor;
-            I.arrowStart = arrowStart;
-            I.arrowEnd = arrowEnd;
-            I.dash = dash;
+            I.strokeWidth = Number(strokeWidth);
+            I.strokeBezier = strokeBezier;
+            I.strokeStartMarker = arrowStart;
+            I.strokeEndMarker = arrowEnd;
+            I.strokeDash = dash;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -686,14 +697,9 @@ export namespace Docs {
             I._width = options._width;
             I._height = options._height;
             I.author = Doc.CurrentUserEmail;
+            I.rotation = 0;
             I.data = new InkField(points);
             return I;
-            // return I;
-            // const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
-            // doc.color = color;
-            // doc.strokeWidth = strokeWidth;
-            // doc.tool = tool;
-            // return doc;
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
@@ -783,7 +789,7 @@ export namespace Docs {
 
 
         export function FontIconDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
@@ -916,6 +922,8 @@ export namespace DocUtils {
         if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
+        linkDoc.linkDisplay = true;
+        linkDoc.hidden = true;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
@@ -978,6 +986,7 @@ export namespace DocUtils {
         }
         if (type.indexOf("pdf") !== -1) {
             ctor = Docs.Create.PdfDocument;
+            if (!options._fitWidth) options._fitWidth = true;
             if (!options._width) options._width = 400;
             if (!options._height) options._height = options._width * 1200 / 927;
         }

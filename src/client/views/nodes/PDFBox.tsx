@@ -268,7 +268,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
             if (!this._pdfjsRequested) {
                 this._pdfjsRequested = true;
                 const promise = Pdfjs.getDocument(pdfUrl.url.href).promise;
-                promise.then(action(pdf => { this._pdf = pdf; console.log("promise"); }));
+                promise.then(action(pdf => this._pdf = pdf));
 
             }
         }

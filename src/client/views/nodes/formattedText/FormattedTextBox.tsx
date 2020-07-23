@@ -13,7 +13,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../../fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclSym } from "../../../../fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym, AclEdit } from "../../../../fields/Doc";
 import { documentSchema } from '../../../../fields/documentSchemas';
 import applyDevTools = require("prosemirror-dev-tools");
 import { removeMarkWithAttrs } from "./prosemirrorPatches";
@@ -24,7 +24,7 @@ import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../fields/Types";
-import { TraceMobx, OVERRIDE_ACL } from '../../../../fields/util';
+import { TraceMobx, OVERRIDE_ACL, GetEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../../DocServer";
@@ -174,19 +174,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     linkOnDeselect: Map<string, string> = new Map();
 
     doLinkOnDeselect() {
+
         Array.from(this.linkOnDeselect.entries()).map(entry => {
             const key = entry[0];
             const value = entry[1];
+
             const id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
             DocServer.GetRefField(value).then(doc => {
                 DocServer.GetRefField(id).then(linkDoc => {
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
-                    if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "link to named target", id);
+                    if (linkDoc) {
+                        (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc;
+                    } else {
+                        DocUtils.MakeLink({ doc: this.rootDoc }, { doc: this.dataDoc[key] as Doc }, "portal link", "link to named target", id);
+                    }
                 });
             });
         });
+
         this.linkOnDeselect.clear();
     }
 
@@ -226,32 +232,37 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
             const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
             const json = JSON.stringify(state.toJSON());
-            if (!this.dataDoc[AclSym]) {
+            let unchanged = true;
+            if (GetEffectiveAcl(this.dataDoc) === AclEdit) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                        if (json !== curLayout?.Data) {
+                        if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
                             this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                             ScriptCast(this.layoutDoc.onTextChanged, null)?.script.run({ this: this.layoutDoc, self: this.rootDoc, text: curText });
+                            unchanged = false;
                         }
                     } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                         this.dataDoc[this.props.fieldKey] = undefined;
                         this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
                         this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
+                        unchanged = false;
                     }
                     this._applyingChange = false;
+                    if (!unchanged) {
+                        this.updateTitle();
+                        this.tryUpdateHeight();
+                    }
                 }
             } else {
                 const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
                 json.selection = state.toJSON().selection;
                 this._editorView.updateState(EditorState.fromJSON(this.config, json));
             }
-            this.updateTitle();
-            this.tryUpdateHeight();
         }
     }
 
@@ -414,16 +425,16 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "moccasin" });
         }
         if (FormattedTextBox._highlights.indexOf("Todo Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "todo", { outline: "black solid 1px" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "todo", { outline: "black solid 1px" });
         }
         if (FormattedTextBox._highlights.indexOf("Important Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "important", { "font-size": "larger" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "important", { "font-size": "larger" });
         }
         if (FormattedTextBox._highlights.indexOf("Disagree Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "disagree", { "text-decoration": "line-through" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "disagree", { "text-decoration": "line-through" });
         }
         if (FormattedTextBox._highlights.indexOf("Ignore Items") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "ignore", { "font-size": "1" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UT-" + "ignore", { "font-size": "1" });
         }
         if (FormattedTextBox._highlights.indexOf("By Recent Minute") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
@@ -459,9 +470,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
 
-        const appearance = ContextMenu.Instance.findByDescription("Appearance...");
-        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
-
         const changeItems: ContextMenuProps[] = [];
         const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
         DocListCast(noteTypesDoc?.data).forEach(note => {
@@ -473,17 +481,34 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
         });
         changeItems.push({ description: "FreeForm", event: () => DocUtils.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
-        appearanceItems.push({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
+        const highlighting: ContextMenuProps[] = [];
+        ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
+            highlighting.push({
+                description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
+                    e.stopPropagation();
+                    if (FormattedTextBox._highlights.indexOf(option) === -1) {
+                        FormattedTextBox._highlights.push(option);
+                    } else {
+                        FormattedTextBox._highlights.splice(FormattedTextBox._highlights.indexOf(option), 1);
+                    }
+                    this.updateHighlights();
+                }, icon: "expand-arrows-alt"
+            }));
+
+
         const uicontrols: ContextMenuProps[] = [];
-        uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
-        uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
-        uicontrols.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
+        uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
             description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
         });
+        cm.addItem({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
 
-        appearanceItems.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
+        const appearance = cm.findByDescription("Appearance...");
+        const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
+        appearanceItems.push({ description: "Change Perspective...", noexpand: true, subitems: changeItems, icon: "external-link-alt" });
         this.rootDoc.isTemplateDoc && appearanceItems.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
         Doc.UserDoc().defaultTextLayout && appearanceItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         appearanceItems.push({
@@ -511,30 +536,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
-        !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+        cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
-        const funcs: ContextMenuProps[] = [];
-
-        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
-        funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
-
-        const highlighting: ContextMenuProps[] = [];
-        ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
-            highlighting.push({
-                description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
-                    e.stopPropagation();
-                    if (FormattedTextBox._highlights.indexOf(option) === -1) {
-                        FormattedTextBox._highlights.push(option);
-                    } else {
-                        FormattedTextBox._highlights.splice(FormattedTextBox._highlights.indexOf(option), 1);
-                    }
-                    this.updateHighlights();
-                }, icon: "expand-arrows-alt"
-            }));
-        funcs.push({ description: "highlighting...", subitems: highlighting, icon: "hand-point-right" });
-
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+        const options = cm.findByDescription("Options...");
+        const optionItems = options && "subitems" in options ? options.subitems : [];
+        !Doc.UserDoc().noviceMode && optionItems.push({ description: this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+        optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
+        !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
     }
 
@@ -550,11 +559,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
     }
     stopDictation = (abort: boolean) => { DictationManager.Controls.stop(!abort); };
-
-    @action
-    toggleMenubar = () => {
-        this.layoutDoc._chromeStatus = this.layoutDoc._chromeStatus === "disabled" ? "enabled" : "disabled";
-    }
 
     recordBullet = async () => {
         const completedCue = "end session";
@@ -944,6 +948,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             frag.forEach(node => nodes.push(marker(node)));
             return Fragment.fromArray(nodes);
         }
+
+
         function addLinkMark(node: Node, title: string, linkId: string) {
             if (!node.isText) {
                 const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title, linkId));
@@ -1028,7 +1034,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._editorView?.destroy();
     }
 
-    static _downEvent: any;
+    _downEvent: any;
     _downX = 0;
     _downY = 0;
     _break = false;
@@ -1048,7 +1054,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._downX = e.clientX;
         this._downY = e.clientY;
         this.doLinkOnDeselect();
-        FormattedTextBox._downEvent = true;
+        this._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
@@ -1064,8 +1070,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        if (!FormattedTextBox._downEvent) return;
-        FormattedTextBox._downEvent = false;
+        if (!this._downEvent) return;
+        this._downEvent = false;
         if (!(e.nativeEvent as any).formattedHandled) {
             const editor = this._editorView!;
             FormattedTextBoxComment.textBox = this;
@@ -1084,7 +1090,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     onDoubleClick = (e: React.MouseEvent): void => {
 
         this.doLinkOnDeselect();
-        FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
         if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
@@ -1168,7 +1173,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             } else if ([this._editorView!.state.schema.nodes.ordered_list, this._editorView!.state.schema.nodes.listItem].includes(node?.type) &&
                 node !== (this._editorView!.state.selection as NodeSelection)?.node && pcords) {
-                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos!)));
+                this._editorView!.dispatch(this._editorView!.state.tr.setSelection(NodeSelection.create(this._editorView!.state.doc, pcords.pos)));
             }
         }
         if ((e.nativeEvent as any).formattedHandled) { e.stopPropagation(); return; }
@@ -1236,7 +1241,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     richTextMenuPlugin() {
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance && RichTextMenu.Instance.changeView(newView);
+                RichTextMenu.Instance?.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });
@@ -1291,9 +1296,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        const mark = e.key !== " " && this._lastTimedMark ? this._lastTimedMark : schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
-        this._lastTimedMark = mark;
-        // this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+        if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {
+            const mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) });
+            this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark.create({})).addStoredMark(mark));
+        }
 
         if (!this._undoTyping) {
             this.startUndoTypingBatch();
@@ -1343,9 +1349,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
-        if (this.props.isSelected()) {
-            setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), 0);
-        } else if (FormattedTextBoxComment.textBox === this) {
+        setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), this.props.isSelected() ? 10 : 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
+        if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }
         const selPad = this.props.isSelected() ? -10 : 0;
@@ -1368,7 +1373,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
-                        fontSize: Cast(this.layoutDoc._fontSize, "number", null),
+                        fontSize: Cast(this.layoutDoc._fontSize, "string", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                         transition: "opacity 1s"
                     }}

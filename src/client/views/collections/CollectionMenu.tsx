@@ -1,74 +1,107 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, runInAction, Lambda } from "mobx";
+import React = require("react");
+import { FontAwesomeIcon, FontAwesomeIconProps } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, reaction, runInAction, Lambda } from "mobx";
 import { observer } from "mobx-react";
-import * as React from "react";
 import { Doc, DocListCast, Opt } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
-import { List } from "../../../fields/List";
-import { listSpec } from "../../../fields/Schema";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Utils, emptyFunction, setupMoveUpEvents } from "../../../Utils";
-import { DragManager } from "../../util/DragManager";
+import { BoolCast, Cast, StrCast, NumCast } from "../../../fields/Types";
+import AntimodeMenu from "../AntimodeMenu";
+import "./CollectionMenu.scss";
 import { undoBatch } from "../../util/UndoManager";
-import { EditableView } from "../EditableView";
-import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
-import { CollectionViewType } from "./CollectionView";
-import { CollectionView } from "./CollectionView";
-import "./CollectionViewChromes.scss";
+import { CollectionViewType, CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
+import { DragManager } from "../../util/DragManager";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { List } from "../../../fields/List";
+import { EditableView } from "../EditableView";
+import { Id } from "../../../fields/FieldSymbols";
+import { listSpec } from "../../../fields/Schema";
+import FormatShapePane from "./collectionFreeForm/FormatShapePane";
+import { ActiveFillColor, SetActiveInkWidth, ActiveInkColor, SetActiveBezierApprox, SetActiveArrowEnd, SetActiveArrowStart, SetActiveFillColor, SetActiveInkColor } from "../InkingStroke";
+import GestureOverlay from "../GestureOverlay";
+import { InkTool } from "../../../fields/InkField";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Document } from "../../../fields/documentSchemas";
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentView } from "../nodes/DocumentView";
+import { ColorState } from "react-color";
 
-interface CollectionViewChromeProps {
-    CollectionView: CollectionView;
-    type: CollectionViewType;
-    collapse?: (value: boolean) => any;
-    PanelWidth: () => number;
+@observer
+export default class CollectionMenu extends AntimodeMenu {
+    static Instance: CollectionMenu;
+
+    @observable SelectedCollection: CollectionView | undefined;
+
+    constructor(props: Readonly<{}>) {
+        super(props);
+        CollectionMenu.Instance = this;
+        this._canFade = false; // don't let the inking menu fade away
+        this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true);
+        this.jumpTo(300, 300);
+    }
+
+    @action
+    toggleMenuPin = (e: React.MouseEvent) => {
+        Doc.UserDoc()["menuCollections-pinned"] = this.Pinned = !this.Pinned;
+        if (!this.Pinned && this._left < 0) {
+            this.jumpTo(300, 300);
+        }
+    }
+
+    render() {
+        const button = <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
+            <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
+        </button>;
+
+        return this.getElement(!this.SelectedCollection ? [button] :
+            [<CollectionViewBaseChrome key="chrome" CollectionView={this.SelectedCollection} type={StrCast(this.SelectedCollection.props.Document._viewType) as CollectionViewType} />,
+                button]);
+    }
 }
 
-interface Filter {
-    key: string;
-    value: string;
-    contains: boolean;
+interface CollectionMenuProps {
+    CollectionView: CollectionView;
+    type: CollectionViewType;
 }
 
 const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
-export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionViewBaseChrome extends React.Component<CollectionMenuProps> {
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
     get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
-        params: ["target", "source"], title: "=> item view",
-        script: "this.target.childLayout = getDocTemplate(this.source?.[0])",
-        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayout = Doc.getDocTemplate(source?.[0]))),
+        params: ["target", "source"], title: "item view",
+        script: "this.target.childLayoutTemplate = getDocTemplate(this.source?.[0])",
+        immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
-        params: ["target", "source"], title: "=> child click view",
+        params: ["target", "source"], title: "child click view",
         script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
         immediate: undoBatch((source: Doc[]) => source.length && (this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _contentCommand = {
-        params: ["target", "source"], title: "=> clear content",
+        params: ["target", "source"], title: "clear content",
         script: "getProto(this.target).data = copyField(this.source);",
         immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
         initialize: emptyFunction,
     };
     _viewCommand = {
-        params: ["target"], title: "=> reset view",
-        script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; }),
-        initialize: (button: Doc) => { button.restoredPanX = this.target._panX; button.restoredPanY = this.target._panY; button.restoredScale = this.target.scale; },
+        params: ["target"], title: "bookmark view",
+        script: "this.target._panX = this['target-panX']; this.target._panY = this['target-panY']; this.target._viewScale = this['target-viewScale'];",
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
     };
     _clusterCommand = {
-        params: ["target"], title: "=> fit content",
+        params: ["target"], title: "fit content",
         script: "this.target._fitToBox = !this.target._fitToBox;",
         immediate: undoBatch((source: Doc[]) => this.target._fitToBox = !this.target._fitToBox),
         initialize: emptyFunction
     };
     _fitContentCommand = {
-        params: ["target"], title: "=> toggle clusters",
+        params: ["target"], title: "toggle clusters",
         script: "this.target.useClusters = !this.target.useClusters;",
         immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
         initialize: emptyFunction
@@ -99,14 +132,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     componentDidMount = action(() => {
         this._currentKey = this._currentKey || (this._buttonizableCommands.length ? this._buttonizableCommands[0]?.title : "");
-        // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-        switch (this.props.CollectionView.props.Document._chromeStatus) {
-            case "disabled":
-                throw new Error("how did you get here, if chrome status is 'disabled' on a collection, a chrome shouldn't even be instantiated!");
-            case "collapsed":
-                this.props.collapse?.(true);
-                break;
-        }
     });
 
     @undoBatch
@@ -130,93 +155,16 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         this.document._facetWidth = 0;
     }
 
-    // @action
-    // openDatePicker = (e: React.PointerEvent) => {
-    //     if (this._picker) {
-    //         this._picker.alwaysShow = true;
-    //         this._picker.show();
-    //         // TODO: calendar is offset when zoomed in/out
-    //         // this._picker.calendar.style.position = "absolute";
-    //         // let transform = this.props.CollectionView.props.ScreenToLocalTransform();
-    //         // let x = parseInt(this._picker.calendar.style.left) / transform.Scale;
-    //         // let y = parseInt(this._picker.calendar.style.top) / transform.Scale;
-    //         // this._picker.calendar.style.left = x;
-    //         // this._picker.calendar.style.top = y;
-
-    //         e.stopPropagation();
-    //     }
-    // }
-
-    // <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
-    //     id={Utils.GenerateGuid()}
-    //     ref={this.datePickerRef}
-    //     value={this._dateValue instanceof Date ? this._dateValue.toLocaleDateString() : this._dateValue}
-    //     onChange={(e) => runInAction(() => this._dateValue = e.target.value)}
-    //     onPointerDown={this.openDatePicker}
-    //     placeholder="Value" />
-    // @action.bound
-    // applyFilter = (e: React.MouseEvent) => {
-    //     const keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
-    //     const yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
-    //     const monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
-    //     const weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
-    //     const dayOffset = (this._dateWithinValue[1] === 'd' ? parseInt(this._dateWithinValue[0]) : 0) + weekOffset * 7;
-    //     let dateRestrictionScript = "";
-    //     if (this._dateValue instanceof Date) {
-    //         const lowerBound = new Date(this._dateValue.getFullYear() - yearOffset, this._dateValue.getMonth() - monthOffset, this._dateValue.getDate() - dayOffset);
-    //         const upperBound = new Date(this._dateValue.getFullYear() + yearOffset, this._dateValue.getMonth() + monthOffset, this._dateValue.getDate() + dayOffset + 1);
-    //         dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
-    //     }
-    //     else {
-    //         const createdDate = new Date(this._dateValue);
-    //         if (!isNaN(createdDate.getTime())) {
-    //             const lowerBound = new Date(createdDate.getFullYear() - yearOffset, createdDate.getMonth() - monthOffset, createdDate.getDate() - dayOffset);
-    //             const upperBound = new Date(createdDate.getFullYear() + yearOffset, createdDate.getMonth() + monthOffset, createdDate.getDate() + dayOffset + 1);
-    //             dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
-    //         }
-    //     }
-    //     const fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
-    //         `${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
-    //         `(${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
-    //         "true";
-
-    //     this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction(fullScript, { doc: Doc.name });
-    // }
-
-    // datePickerRef = (node: HTMLInputElement) => {
-    //     if (node) {
-    //         try {
-    //             this._picker = datepicker("#" + node.id, {
-    //                 disabler: (date: Date) => date > new Date(),
-    //                 onSelect: (instance: any, date: Date) => runInAction(() => {}), //  this._dateValue = date),
-    //                 dateSelected: new Date()
-    //             });
-    //         } catch (e) {
-    //             console.log("date picker exception:" + e);
-    //         }
-    //     }
-    // }
-
-
-    @action
-    toggleCollapse = () => {
-        this.document._chromeStatus = this.document._chromeStatus === "enabled" ? "collapsed" : "enabled";
-        if (this.props.collapse) {
-            this.props.collapse(this.props.CollectionView.props.Document._chromeStatus !== "enabled");
-        }
-    }
 
     @computed get subChrome() {
-        const collapsed = this.document._chromeStatus !== "enabled";
-        if (collapsed) return null;
         switch (this.props.type) {
-            case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
@@ -270,15 +218,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     @computed get templateChrome() {
-        const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
-        return <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{ display: collapsed ? "none" : undefined }}>
+        return <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
-                <div className="commandEntry-drop">
-                    <FontAwesomeIcon icon="bullseye" size="2x" />
-                </div>
+                <button className={"antimodeMenu-button"} >
+                    <FontAwesomeIcon icon="bullseye" size="lg" />
+                </button>
                 <select
-                    className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}
-                    style={{ width: this.props.PanelWidth() < 300 ? 15 : undefined }}>
+                    className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}>
                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
                     {this._buttonizableCommands.map(cmd =>
                         <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={cmd.title} value={cmd.title}>{cmd.title}</option>
@@ -289,14 +235,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     @computed get viewModes() {
-        const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
-        return <div className="collectionViewBaseChrome-viewModes" style={{ display: collapsed ? "none" : undefined }}>
+        return <div className="collectionViewBaseChrome-viewModes" >
             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
-                <div className="commandEntry-drop">
-                    <FontAwesomeIcon icon="bullseye" size="2x" />
-                </div>
+                <button className={"antimodeMenu-button"}>
+                    <FontAwesomeIcon icon="bullseye" size="lg" />
+                </button>
                 <select
-                    className="collectionViewBaseChrome-viewPicker" style={{ width: this.props.PanelWidth() < 300 ? 15 : undefined }}
+                    className="collectionViewBaseChrome-viewPicker"
                     onPointerDown={stopPropagation}
                     onChange={this.viewChanged}
                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
@@ -315,34 +260,17 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     render() {
-        const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
-        const scale = Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform()?.Scale);
         return (
-            <div className="collectionViewChrome-cont" style={{
-                top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined,
-                transform: collapsed ? "" : `scale(${scale})`,
-                width: `${this.props.PanelWidth() / scale}px`
-            }}>
-                <div className="collectionViewChrome" style={{ border: "unset", pointerEvents: collapsed ? "none" : undefined }}>
+            <div className="collectionMenu-cont" >
+                <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        <button className="collectionViewBaseChrome-collapse"
-                            style={{
-                                top: collapsed ? 70 : 10,
-                                transform: `rotate(${collapsed ? 180 : 0}deg) scale(0.5) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
-                                opacity: 0.9,
-                                display: (collapsed && !this.props.CollectionView.props.isSelected()) ? "none" : undefined,
-                                left: (collapsed ? 0 : "unset"),
-                            }}
-                            title="Collapse collection chrome" onClick={this.toggleCollapse}>
-                            <FontAwesomeIcon icon="caret-up" size="2x" />
-                        </button>
                         {this.viewModes}
-                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
-                            <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.toggleViewSpecs} >
-                                <FontAwesomeIcon icon="filter" size="2x" />
-                            </div>
-                        </div>
                         {this.templateChrome}
+                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
+                            <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
+                                <FontAwesomeIcon icon="filter" size="lg" />
+                            </button>
+                        </div>
                     </div>
                     {this.subChrome}
                 </div>
@@ -352,8 +280,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 }
 
 @observer
-export class CollectionFreeFormViewChrome extends React.Component<CollectionViewChromeProps> {
-
+export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps> {
+    public static Instance: CollectionFreeFormViewChrome;
+    constructor(props: any) {
+        super(props);
+        CollectionFreeFormViewChrome.Instance = this;
+    }
     get Document() { return this.props.CollectionView.props.Document; }
     @computed get dataField() {
         return this.props.CollectionView.props.Document[Doc.LayoutFieldKey(this.props.CollectionView.props.Document)];
@@ -364,7 +296,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionView
     @undoBatch
     @action
     nextKeyframe = (): void => {
-        const currentFrame = NumCast(this.Document.currentFrame);
+        const currentFrame = Cast(this.Document.currentFrame, "number", null);
         if (currentFrame === undefined) {
             this.Document.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
@@ -376,7 +308,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionView
     @undoBatch
     @action
     prevKeyframe = (): void => {
-        const currentFrame = NumCast(this.Document.currentFrame);
+        const currentFrame = Cast(this.Document.currentFrame, "number", null);
         if (currentFrame === undefined) {
             this.Document.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
@@ -384,9 +316,155 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionView
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
+    @undoBatch
+    @action
+    miniMap = (): void => {
+        this.Document.hideMinimap = !this.Document.hideMinimap;
+    }
+    private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
+    private _width = ["1", "5", "10", "100"];
+    private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
+    private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
+    private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
+    private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
+
+    @observable _shapesNum = this._shape.length;
+    @observable _selected = this._shapesNum;
+
+    @observable _keepMode = false;
+
+    @observable _colorBtn = false;
+    @observable _widthBtn = false;
+    @observable _fillBtn = false;
+
+    @action
+    clearKeep() { this._selected = this._shapesNum; }
+
+    @action
+    changeColor = (color: string, type: string) => {
+        const col: ColorState = {
+            hex: color, hsl: { a: 0, h: 0, s: 0, l: 0, source: "" }, hsv: { a: 0, h: 0, s: 0, v: 0, source: "" },
+            rgb: { a: 0, r: 0, b: 0, g: 0, source: "" }, oldHue: 0, source: "",
+        };
+        if (type === "color") {
+            SetActiveInkColor(Utils.colorString(col));
+        } else if (type === "fill") {
+            SetActiveFillColor(Utils.colorString(col));
+        }
+    }
+
+    @action
+    editProperties = (value: any, field: string) => {
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK) {
+                switch (field) {
+                    case "width": doc.strokeWidth = Number(value); break;
+                    case "color": doc.color = String(value); break;
+                    case "fill": doc.fillColor = String(value); break;
+                    case "dash": doc.strokeDash = value;
+                }
+            }
+        }));
+    }
+
+    @computed get drawButtons() {
+        const func = action((i: number, keep: boolean) => {
+            this._keepMode = keep;
+            if (this._selected !== i) {
+                this._selected = i;
+                Doc.SetSelectedTool(InkTool.Pen);
+                SetActiveArrowStart(this._head[i]);
+                SetActiveArrowEnd(this._end[i]);
+                SetActiveBezierApprox("300");
+
+                GestureOverlay.Instance.InkShape = this._shape[i];
+            } else {
+                this._selected = this._shapesNum;
+                Doc.SetSelectedTool(InkTool.None);
+                SetActiveArrowStart("");
+                SetActiveArrowEnd("");
+                GestureOverlay.Instance.InkShape = "";
+                SetActiveBezierApprox("0");
+            }
+        });
+        return <div className="btn-draw" key="draw">
+            {this._draw.map((icon, i) =>
+                <button className="antimodeMenu-button" key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
+                    style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
+                    {this._draw[i]}
+                </button>)}
+        </div>;
+    }
+
+    toggleButton = (key: string, value: boolean, setter: () => {}, icon: FontAwesomeIconProps["icon"], ele: JSX.Element | null) => {
+        return <button className="antimodeMenu-button" key={key} title={key}
+            onPointerDown={action(e => setter())}
+            style={{ backgroundColor: value ? "121212" : "" }}>
+            <FontAwesomeIcon icon={icon} size="lg" />
+            {ele}
+        </button>;
+    }
+
+    @computed get widthPicker() {
+        const widthPicker = this.toggleButton("stroke width", this._widthBtn, () => this._widthBtn = !this._widthBtn, "bars", null);
+        return !this._widthBtn ? widthPicker :
+            <div className="btn2-group" key="width">
+                {widthPicker}
+                {this._width.map(wid =>
+                    <button className="antimodeMenu-button" key={wid}
+                        onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001 }}>
+                        {wid}
+                    </button>)}
+            </div>;
+    }
+
+    @computed get colorPicker() {
+        const colorPicker = this.toggleButton("stroke color", this._colorBtn, () => this._colorBtn = !this._colorBtn, "pen-nib",
+            <div className="color-previewI" style={{ backgroundColor: ActiveInkColor() ?? "121212" }} />);
+        return !this._colorBtn ? colorPicker :
+            <div className="btn-group" key="color">
+                {colorPicker}
+                {this._palette.map(color =>
+                    <button className="antimodeMenu-button" key={color}
+                        onPointerDown={action(() => { this.changeColor(color, "color"); this._colorBtn = false; this.editProperties(color, "color"); })}
+                        style={{ backgroundColor: this._colorBtn ? "121212" : "", zIndex: 1001 }}>
+                        {/* <FontAwesomeIcon icon="pen-nib" size="lg" /> */}
+                        <div className="color-previewII" style={{ backgroundColor: color }} />
+                    </button>)}
+            </div>;
+    }
+    @computed get fillPicker() {
+        const fillPicker = this.toggleButton("shape fill color", this._fillBtn, () => this._fillBtn = !this._fillBtn, "fill-drip",
+            <div className="color-previewI" style={{ backgroundColor: ActiveFillColor() ?? "121212" }} />);
+        return !this._fillBtn ? fillPicker :
+            <div className="btn-group" key="fill" >
+                {fillPicker}
+                {this._palette.map(color =>
+                    <button className="antimodeMenu-button" key={color}
+                        onPointerDown={action(() => { this.changeColor(color, "fill"); this._fillBtn = false; this.editProperties(color, "fill"); })}
+                        style={{ backgroundColor: this._fillBtn ? "121212" : "", zIndex: 1001 }}>
+                        <div className="color-previewII" style={{ backgroundColor: color }}></div>
+                    </button>)}
+
+            </div>;
+    }
+
+    @computed get formatPane() {
+        return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
+            onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
+            style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
+            <FontAwesomeIcon icon="chevron-right" size="lg" />
+        </button>;
+    }
+
     render() {
         return this.Document.isAnnotationOverlay ? (null) :
-            <div className="collectionFreeFormViewChrome-cont">
+            <div className="collectionFreeFormMenu-cont">
+                <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
+                    <FontAwesomeIcon icon={"map"} size={"lg"} />
+                </div>
                 <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
                     <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                 </div>
@@ -397,12 +475,17 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionView
                 <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
                     <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                 </div>
+
+                {this.widthPicker}
+                {this.colorPicker}
+                {this.fillPicker}
+                {this.drawButtons}
+                {this.formatPane}
             </div>;
     }
 }
-
 @observer
-export class CollectionStackingViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionStackingViewChrome extends React.Component<CollectionMenuProps> {
     @observable private _currentKey: string = "";
     @observable private suggestions: string[] = [];
 
@@ -502,7 +585,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
 
 @observer
-export class CollectionSchemaViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionSchemaViewChrome extends React.Component<CollectionMenuProps> {
     // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
     @undoBatch
@@ -549,7 +632,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 }
 
 @observer
-export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionTreeViewChrome extends React.Component<CollectionMenuProps> {
 
     get sortAscending() {
         return this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "-sortAscending"];
@@ -585,7 +668,7 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
 
 // Enter scroll speed for 3D Carousel 
 @observer
-export class Collection3DCarouselViewChrome extends React.Component<CollectionViewChromeProps> {
+export class Collection3DCarouselViewChrome extends React.Component<CollectionMenuProps> {
     @computed get scrollSpeed() {
         return this.props.CollectionView.props.Document._autoScrollSpeed;
     }
@@ -624,7 +707,7 @@ export class Collection3DCarouselViewChrome extends React.Component<CollectionVi
  * Chrome for grid view.
  */
 @observer
-export class CollectionGridViewChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionGridViewChrome extends React.Component<CollectionMenuProps> {
 
     private clicked: boolean = false;
     private entered: boolean = false;
@@ -770,7 +853,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                 </span>
 
                 <select className="collectionGridViewChrome-viewPicker"
-                    style={{ marginRight: 5, width: this.props.PanelWidth() < 300 ? 25 : undefined }}
+                    style={{ marginRight: 5 }}
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
                     value={StrCast(this.props.CollectionView.props.Document.gridStartCompaction, StrCast(this.props.CollectionView.props.Document.gridCompaction))}>

@@ -112,7 +112,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
             return returnedUri;
 
         } catch (e) {
-            console.log(e);
+            console.log("ScreenShotBox:" + e);
         }
     }
     @observable _screenCapture = false;

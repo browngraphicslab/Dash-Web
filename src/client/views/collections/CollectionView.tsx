@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, AclSym, DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -47,7 +47,8 @@ import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
-import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import CollectionMenu from './CollectionMenu';
+import { SharingPermissions } from '../../util/SharingManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -106,6 +107,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    private AclMap = new Map<symbol, string>([
+        [AclPrivate, SharingPermissions.None],
+        [AclReadonly, SharingPermissions.View],
+        [AclAddonly, SharingPermissions.Add],
+        [AclEdit, SharingPermissions.Edit]
+    ]);
+
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
@@ -128,36 +136,54 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         if (this.props.filterAddDocument?.(doc) === false) {
             return false;
         }
+
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+
         if (added.length) {
-            if (this.dataDoc[AclSym] === AclReadonly) {
+            if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
                 return false;
-            } else if (this.dataDoc[AclSym] === AclAddonly) {
-                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
-            } else {
-                added.map(doc => {
-                    const context = Cast(doc.context, Doc, null);
-                    if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG) &&
-                        !DocListCast(doc.links).some(d => d.isPushpin)) {
-                        const pushpin = Docs.Create.FontIconDocument({
-                            icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
-                            _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
-                        });
-                        Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
-                        const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
-                        const first = DocListCast(pushpin.links).find(d => d instanceof Doc);
-                        first && (first.hidden = true);
-                        pushpinLink && (Doc.GetProto(pushpinLink).isPushpin = true);
-                        doc.displayTimecode = undefined;
-                    }
-                    doc.context = this.props.Document;
-                });
-                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
+            else {
+                if (this.props.Document[AclSym]) {
+                    // change so it only adds if more restrictive
+                    added.forEach(d => {
+                        // const dataDoc = d[DataSym];
+                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                        }
+                        // dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                    });
+                }
+
+                if (effectiveAcl === AclAddonly) {
+                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+                }
+                else {
+                    added.map(doc => {
+                        const context = Cast(doc.context, Doc, null);
+                        if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
+                            const pushpin = Docs.Create.FontIconDocument({
+                                title: "pushpin", label: "",
+                                icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
+                                _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
+                            });
+                            pushpin.isPushpin = true;
+                            Doc.GetProto(pushpin).annotationOn = doc.annotationOn;
+                            Doc.SetInPlace(doc, "annotationOn", undefined, true);
+                            Doc.AddDocToList(context, Doc.LayoutFieldKey(context) + "-annotations", pushpin);
+                            const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
+                            doc.displayTimecode = undefined;
+                        }
+                        doc.context = this.props.Document;
+                    });
+                    added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+                    targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                    targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
             }
         }
         return true;
@@ -165,13 +191,15 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
-        const targetDataDoc = this.props.Document[DataSym];
-        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-        const result = value.filter(v => !docs.includes(v));
-        if (result.length !== value.length) {
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
-            return true;
+        if (GetEffectiveAcl(this.props.Document) === AclEdit || getPlaygroundMode()) {
+            const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+            const targetDataDoc = this.props.Document[DataSym];
+            const value = DocListCast(targetDataDoc[this.props.fieldKey]);
+            const result = value.filter(v => !docs.includes(v));
+            if (result.length !== value.length) {
+                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+                return true;
+            }
         }
         return false;
     }
@@ -234,16 +262,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
     }
 
-    @action
-    private collapse = (value: boolean) => {
-        this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
-    }
-
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
+        return this.SubViewHelper(type, renderProps);
     }
 
 
@@ -272,7 +292,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
         }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
-        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: subItems, icon: "eye" });
+        !existingVm && ContextMenu.Instance.addItem({ description: category, noexpand: true, subitems: subItems, icon: "eye" });
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -285,18 +305,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return newRendition;
             }, false);
 
-            const existing = cm.findByDescription("Options...");
-            const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
-            layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            const options = cm.findByDescription("Options...");
+            const optionItems = options && "subitems" in options ? options.subitems : [];
+            optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
-                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
             if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
             }
-            layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && cm.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 
             const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -305,16 +325,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
             funcs.map(func => onClicks.push({
                 description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
-                    ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
+                    const alias = Doc.MakeAlias(this.props.Document);
+                    DocUtils.makeCustomViewClicked(alias, undefined, func.key);
+                    this.props.addDocTab(alias, "onRight");
                 }
             }));
             DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
                 onClicks.push({
                     description: `Set child ${childClick.title}`,
                     icon: "edit",
-                    event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+                    event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
 
             if (!Doc.UserDoc().noviceMode) {
                 const more = cm.findByDescription("More...");
@@ -470,7 +492,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
-        return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        return script ? () => script : undefined;
     }
     @computed get filterView() {
         TraceMobx();
@@ -523,7 +546,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         ContentScaling={returnOne}
                         focus={returnFalse}
                         treeViewHideHeaderFields={true}
-                        onCheckedClick={this.scriptField!}
+                        onCheckedClick={this.scriptField}
                         ignoreFields={this.ignoreFields}
                         annotationsKey={""}
                         dontRegisterView={true}
@@ -549,6 +572,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
+        setTimeout(action(() => this.props.isSelected(true) && (CollectionMenu.Instance.SelectedCollection = this)), 0);
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
             `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
