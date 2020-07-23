@@ -130,11 +130,6 @@ export function setGroups(groups: string[]) {
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclEdit;
 
-    if (!target[AclSym] && target instanceof Doc) {
-        fetchProto(target);
-    }
-
-
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
         if (target.__fields?.author === Doc.CurrentUserEmail || target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclEdit;
