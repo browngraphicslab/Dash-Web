@@ -17,7 +17,7 @@ import { RichTextField } from "./RichTextField";
 import { ImageField, VideoField, WebField, AudioField, PdfField } from "./URLField";
 import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
@@ -575,6 +575,7 @@ export namespace Doc {
                     return { fieldId: value[Id], __type: "proxy" };
                 }
             }
+            else if (value instanceof ScriptField) return { script: value.script, __type: "script" };
             else if (value instanceof RichTextField) return { Data: value.Data, Text: value.Text, __type: "RichTextField" };
             else if (value instanceof ImageField) return { url: value.url.href, __type: "image" };
             else if (value instanceof PdfField) return { url: value.url.href, __type: "pdf" };
