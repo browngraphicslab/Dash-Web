@@ -243,8 +243,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     navigateToElement = async (curDoc: Doc, fromDocIndex: number) => {
         this.updateCurrentPresentation();
-        let docToJump = curDoc;
-        let willZoom = false;
+        const docToJump = curDoc;
+        const willZoom = false;
 
         const nextTarget = curDoc;
         const curTarget = this.childDocs[fromDocIndex];
@@ -444,9 +444,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     // render() {
-        // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
-        // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
-        //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
+    // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
+    // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
+    //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
 
     // KEYS
     @observable _selectedArray: Doc[] = [];
@@ -1213,25 +1213,25 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             let left = doc.offsetLeft;
             //Bottom right
             if (this._isDraggingBR) {
-                let newHeight = height += e.movementY;
+                const newHeight = height += e.movementY;
                 doc.style.height = newHeight + 'px';
-                let newWidth = width += e.movementX;
+                const newWidth = width += e.movementX;
                 doc.style.width = newWidth + 'px';
                 // Bottom left
             } else if (this._isDraggingBL) {
-                let newHeight = height += e.movementY;
+                const newHeight = height += e.movementY;
                 doc.style.height = newHeight + 'px';
-                let newWidth = width -= e.movementX;
+                const newWidth = width -= e.movementX;
                 doc.style.width = newWidth + 'px';
-                let newLeft = left += e.movementX;
+                const newLeft = left += e.movementX;
                 doc.style.left = newLeft + 'px';
                 // Top right
             } else if (this._isDraggingTR) {
-                let newWidth = width += e.movementX;
+                const newWidth = width += e.movementX;
                 doc.style.width = newWidth + 'px';
-                let newHeight = height -= e.movementY;
+                const newHeight = height -= e.movementY;
                 doc.style.height = newHeight + 'px';
-                let newTop = top += e.movementY;
+                const newTop = top += e.movementY;
                 doc.style.top = newTop + 'px';
                 // Top left
             } else if (this._isDraggingTL) {
@@ -1244,9 +1244,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 const newLeft = left += e.movementX;
                 doc.style.left = newLeft + 'px';
             } else if (this._isDragging) {
-                let newTop = top += e.movementY;
+                const newTop = top += e.movementY;
                 doc.style.top = newTop + 'px';
-                let newLeft = left += e.movementX;
+                const newLeft = left += e.movementX;
                 doc.style.left = newLeft + 'px';
             }
             this.updateList(targetDoc, targetDoc["width-indexed"], width);
