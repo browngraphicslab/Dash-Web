@@ -67,11 +67,14 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
+
+    const effectiveAcl = GetEffectiveAcl(target);
+
     const writeMode = DocServer.getFieldWriteMode(prop as string);
     const fromServer = target[UpdatingFromServer];
     const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
-    const writeToDoc = sameAuthor || GetEffectiveAcl(target) === AclEdit || (writeMode !== DocServer.WriteMode.LiveReadonly);
-    const writeToServer = (sameAuthor || GetEffectiveAcl(target) === AclEdit || writeMode === DocServer.WriteMode.Default) && !playgroundMode;
+    const writeToDoc = sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || (writeMode !== DocServer.WriteMode.LiveReadonly);
+    const writeToServer = (sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || writeMode === DocServer.WriteMode.Default) && !playgroundMode;
 
     if (writeToDoc) {
         if (value === undefined) {

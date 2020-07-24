@@ -144,7 +144,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
 
         if (added.length) {
-            if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
+            if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
                 return false;
             }
             else {
@@ -191,7 +191,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        if (GetEffectiveAcl(this.props.Document) === AclEdit || getPlaygroundMode()) {
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || getPlaygroundMode()) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);

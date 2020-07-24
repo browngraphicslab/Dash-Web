@@ -150,7 +150,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
             if (added.length) {
-                if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
+                if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
                     return false;
                 }
                 else {
