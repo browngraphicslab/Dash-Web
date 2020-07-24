@@ -5,7 +5,7 @@
     font-family: "Noto Sans";
     cursor: auto;
 
-    //overflow-y: scroll;
+    overflow-y: scroll;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -76,6 +76,7 @@
 
         &:hover {
             background-color: rgb(158, 158, 158);
+            cursor: pointer;
         }
     }
 
@@ -87,6 +88,7 @@
 
         &:hover {
             color: rgb(131, 131, 131);
+            cursor: pointer;
         }
     }
 
@@ -124,6 +126,10 @@
                     border: none;
                     background-color: inherit;
                     width: 75px;
+
+                    &:hover {
+                        cursor: pointer;
+                    }
                 }
             }
 

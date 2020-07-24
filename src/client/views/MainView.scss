@@ -156,45 +156,39 @@
 .mainView-menuPanel {
 
     max-width: 95px;
-    background-color: #323232;
-    padding: 20px;
-    padding-right: 50px;
-
+    background-color: black;
+    padding: 15px;
+    /* padding-right: 50px; */
     overflow-y: scroll;
-    overflow-x: clip;
+    overflow-x: hidden;
 
     .mainView-menuPanel-button {
-        width: 45px;
-        height: 45px;
-        padding: 10px;
-        pointer-events: all;
+        width: 60px;
+        padding: 7.5px;
         touch-action: none;
-        border-radius: inherit;
         background: black;
-        border-radius: 100%;
         transform-origin: top left;
-        margin-bottom: 23px;
+        margin-bottom: 5px;
         margin-top: 5px;
-
         margin-right: 25px;
+        border-radius: 8px;
 
         .mainView-menuPanel-button-label {
-            background: rgb(168, 168, 168);
-            color: black;
-            margin-left: -13px;
+            color: white;
+            margin-left: -6px;
             border-radius: 8px;
-            width: 65px;
+            width: 55px;
             position: relative;
             text-align: center;
             font-size: 9.5px;
-            margin-top: 4px;
+            margin-top: 1px;
             letter-spacing: normal;
             padding: 3px;
-            //margin-bottom: 23px;
+            background-color: inherit;
         }
 
         .mainView-menuPanel-button-icon {
-            width: 35px;
+            width: auto;
             height: 35px;
             padding: 5px;
         }
@@ -203,50 +197,55 @@
             width: 95% !important;
             height: 95%;
         }
-    }
 
-    .mainView-menuPanel-bottomButton {
-        width: 50px;
-        height: 50px;
-        padding: 10px;
-        pointer-events: all;
-        touch-action: none;
-        border-radius: inherit;
-        background: #323232;
-        background-color: #323232;
-        border-radius: 100%;
-        transform-origin: top left;
-        margin-bottom: 20px;
-        margin-top: 5px;
-
-        margin-right: 25px;
-
-        .mainView-menuPanel-bottomButton-label {
-            background: #323232;
-            color: white;
-            margin-left: -10px;
-            border-radius: 8px;
-            width: 65px;
-            position: absolute;
-            text-align: center;
-            font-size: 9.5px;
-            margin-top: 2px;
-            letter-spacing: normal;
-            padding: 3px;
-            //margin-bottom: 23px;
-        }
-
-        .mainView-menuPanel-bottomButton-icon {
-            width: 50px;
-            height: 50px;
-            color: white;
-        }
-
-        svg {
-            width: 95% !important;
-            height: 95%;
+        &:hover {
+            background: rgb(61, 61, 61);
+            cursor: pointer;
         }
     }
+
+    // .mainView-menuPanel-bottomButton {
+    //     width: 45px;
+    //     height: 45px;
+    //     padding: 10px;
+    //     pointer-events: all;
+    //     touch-action: none;
+    //     //border-radius: inherit;
+    //     background: black;
+    //     background-color: black;
+    //     //border-radius: 100%;
+    //     transform-origin: top left;
+    //     margin-bottom: 20px;
+    //     margin-top: 5px;
+
+    //     margin-right: 25px;
+
+    //     .mainView-menuPanel-bottomButton-label {
+    //         background: black;
+    //         color: white;
+    //         margin-left: -10px;
+    //         border-radius: 8px;
+    //         width: 65px;
+    //         position: absolute;
+    //         text-align: center;
+    //         font-size: 9.5px;
+    //         margin-top: 2px;
+    //         letter-spacing: normal;
+    //         padding: 3px;
+    //         //margin-bottom: 23px;
+    //     }
+
+    //     .mainView-menuPanel-bottomButton-icon {
+    //         width: 50px;
+    //         height: 50px;
+    //         color: white;
+    //     }
+
+    //     svg {
+    //         width: 95% !important;
+    //         height: 95%;
+    //     }
+    // }
 }
 
 .mainView-searchPanel {
