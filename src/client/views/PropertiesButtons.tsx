@@ -278,7 +278,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed
     get copyButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Create a copy"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Create an Alias"}</div></>}>
             <div className={"documentButtonBar-linkButton-empty"}
                 onPointerDown={this.onCopy} >
                 {<FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="sm" />}

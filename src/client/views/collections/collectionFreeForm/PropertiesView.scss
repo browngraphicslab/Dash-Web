@@ -79,6 +79,17 @@
         }
     }
 
+    .expansion-button-icon {
+        width: 11px;
+        height: 11px;
+        color: black;
+        margin-left: 27px;
+
+        &:hover {
+            color: rgb(131, 131, 131);
+        }
+    }
+
     .propertiesView-sharingTable {
 
         border: 1px solid black;
@@ -102,6 +113,8 @@
             }
 
             .propertiesView-sharingTable-item-permission {
+
+                display: flex;
 
                 .permissions-select {
                     z-index: 1;

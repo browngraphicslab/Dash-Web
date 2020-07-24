@@ -182,7 +182,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         switch (this.props.destinationDoc.type) {
             case DocumentType.IMG: destinationIcon = "image"; break;
             case DocumentType.COMPARISON: destinationIcon = "columns"; break;
-            case DocumentType.RTF: destinationIcon = "font"; break;
+            case DocumentType.RTF: destinationIcon = "sticky-note"; break;
             case DocumentType.COL: destinationIcon = "folder"; break;
             case DocumentType.WEB: destinationIcon = "globe-asia"; break;
             case DocumentType.SCREENSHOT: destinationIcon = "photo-video"; break;

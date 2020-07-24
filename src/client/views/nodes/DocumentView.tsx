@@ -727,6 +727,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
+    onCopy = () => {
+        const copy = Doc.MakeCopy(this.props.Document, true);
+        copy.x = NumCast(this.props.Document.x) + NumCast(this.props.Document._width);
+        copy.y = NumCast(this.props.Document.y) + 30;
+        this.props.addDocument?.(copy);
+    }
+
+    @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (!(e instanceof Touch)) {
@@ -787,6 +795,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
+        moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "users" });
+        moreItems.push({ description: "Create an Alias", event: () => this.onCopy(), icon: "copy" });
         moreItems.push({
             description: "Download document", icon: "download", event: async () => {
                 Doc.Zip(this.props.Document);
@@ -809,7 +819,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         }
         GetEffectiveAcl(this.props.Document) === AclEdit && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        //moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
+
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
 

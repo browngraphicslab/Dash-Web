@@ -17,6 +17,7 @@ import { PropertiesButtons } from "../../PropertiesButtons";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
+import SharingManager from "../../../util/SharingManager";
 
 
 interface PropertiesViewProps {
@@ -174,9 +175,21 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get notifyIcon() {
-        return <Tooltip title={<><div className="dash-tooltip">{"Notify user or group of permissions change"}</div></>}>
+        return <Tooltip title={<><div className="dash-tooltip">{"Notify group of permissions change"}</div></>}>
             <div className="notify-button">
                 <FontAwesomeIcon className="notify-button-icon" icon="bell" color="white" size="sm" />
+            </div>
+        </Tooltip>;
+    }
+
+    @computed get expansionIcon() {
+        return <Tooltip title={<><div className="dash-tooltip">{"Show more permissions"}</div></>}>
+            <div className="expansion-button" onPointerDown={() => {
+                if (this.selectedDocumentView) {
+                    SharingManager.Instance.open(this.selectedDocumentView);
+                }
+            }}>
+                <FontAwesomeIcon className="expansion-button-icon" icon="ellipsis-h" color="black" size="sm" />
             </div>
         </Tooltip>;
     }
@@ -187,6 +200,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             {notify ? this.notifyIcon : null}
             <div className="propertiesView-sharingTable-item-permission">
                 {editable ? this.permissionsSelect : permission}
+                {permission === "Owner" ? this.expansionIcon : null}
             </div>
         </div>;
     }
@@ -197,30 +211,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             {this.sharingItem("Public", false, true)}
             {this.sharingItem("Group 1", true, true)}
             {this.sharingItem("Group 2", true, true)}
-            {/* <div className="propertiesView-sharingTable-item">
-                <div className="propertiesView-sharingTable-item-name"> Me: </div>
-                <div className="propertiesView-sharingTable-item-permission"> Owner </div>
-            </div>
-            <div className="propertiesView-sharingTable-item">
-                <div className="propertiesView-sharingTable-item-name"> Public: </div>
-                <div className="propertiesView-sharingTable-item-permission">
-                    {this.permissionsSelect}
-                </div>
-            </div>
-            <div className="propertiesView-sharingTable-item">
-                <div className="propertiesView-sharingTable-item-name"> Group 1: </div>
-                <div> </div>
-                <div className="propertiesView-sharingTable-item-permission">
-                    {this.permissionsSelect}
-                </div>
-            </div>
-            <div className="propertiesView-sharingTable-item">
-                <div className="propertiesView-sharingTable-item-name"> Another group: </div>
-                <div> </div>
-                <div className="propertiesView-sharingTable-item-permission">
-                    {this.permissionsSelect}
-                </div>
-            </div> */}
         </div>;
     }
 
@@ -241,7 +231,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 {this.selectedDoc.title}
             </div>
             <div className="propertiesView-settings">
-                <div className="propertiesView-settings-title"> Settings</div>
+                <div className="propertiesView-settings-title"> Document Actions </div>
                 <div className="propertiesView-settings-content">
                     <PropertiesButtons />
                 </div>
