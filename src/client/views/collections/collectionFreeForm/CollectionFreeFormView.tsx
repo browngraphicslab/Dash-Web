@@ -1388,6 +1388,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     centeringShiftY={this.centeringShiftY}
                     presPaths={BoolCast(this.Document.presPathView)}
                     progressivize={BoolCast(this.Document.editProgressivize)}
+                    zoomProgressivize={BoolCast(this.Document.zoomProgressivize)}
                     transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                     viewDefDivClick={this.props.viewDefDivClick}
                     zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1473,10 +1474,22 @@ interface CollectionFreeFormViewPannableContentsProps {
     transition?: string;
     presPaths?: boolean;
     progressivize?: boolean;
+    zoomProgressivize?: boolean;
 }
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
+    @computed get zoomProgressivize() {
+        if (this.props.zoomProgressivize) {
+            console.log("should render");
+            return (
+                <>
+                    {PresBox.Instance.zoomProgressivizeContainer}
+                </>
+            );
+        }
+    }
+
     @computed get progressivize() {
         if (this.props.progressivize) {
             console.log("should render");
@@ -1536,6 +1549,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             {this.props.children()}
             {this.presPaths}
             {this.progressivize}
+            {this.zoomProgressivize}
         </div>;
     }
 }

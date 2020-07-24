@@ -186,6 +186,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
+                    dragDivName={"collectionFreeFormDocumentView-container"}
                     LibraryPath={emptyPath}
                     fitToBox={true}
                     backgroundColor={this.props.backgroundColor}
@@ -247,7 +248,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         console.log("normal click");
                     }
                 }}
-                onPointerDown={e => e.stopPropagation()}
+                onPointerDown={e => {
+                    this.props.dropAction;
+                    e.stopPropagation();
+                }}
             >
                 {treecontainer ? (null) : <>
                     <div className="presElementBox-number">
@@ -258,8 +262,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time">{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration of visibility"}</div></>}><div className="presElementBox-time">{this.duration}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><button
-                        title="Close"
+                    <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
                         className="presElementBox-closeIcon"
                         onPointerDown={e => e.stopPropagation()}
                         onClick={e => {
@@ -267,10 +270,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                             e.stopPropagation();
                         }}>
                         <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
-                    </button></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Expand" : "Minimize"}</div></>}><button title="Expand Inline" className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
+                    </div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                         <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
-                    </button></Tooltip>
+                    </div></Tooltip>
                 </>}
                 <div className="presElementBox-highlight" style={{ display: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "block" : "none" }} />
                 <div className="presElementBox-buttons" style={{ display: this.rootDoc.presExpandInlineButton ? "grid" : "none" }}>

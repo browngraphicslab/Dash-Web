@@ -10,7 +10,7 @@ declare module 'fit-curve';
 declare module 'reveal';
 declare module 'react-reveal';
 declare module 'react-reveal/makeCarousel';
-
+declare module 'react-resizable-rotatable-draggable';
 
 declare module '@react-pdf/renderer' {
     import * as React from 'react';

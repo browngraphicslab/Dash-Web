@@ -113,6 +113,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
     }
 
+    public static setupZoom(doc: Doc, zoomProgressivize: boolean = false) {
+        let width = new List<number>();
+        let height = new List<number>();
+        let top = new List<number>();
+        let left = new List<number>();
+        width.push(NumCast(doc.width));
+        height.push(NumCast(doc.height));
+        top.push(NumCast(doc.height) / -2);
+        left.push(NumCast(doc.width) / -2);
+        doc["width-indexed"] = width;
+        doc["height-indexed"] = height;
+        doc["top-indexed"] = top;
+        doc["left-indexed"] = left;
+    }
+
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
         docs.forEach((doc, i) => {
             if (!doc.appearFrame) doc.appearFrame = i;
