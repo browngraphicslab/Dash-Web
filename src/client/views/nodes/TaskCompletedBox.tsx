@@ -13,7 +13,7 @@ export class TaskCompletionBox extends React.Component<{}> {
     @observable public static taskCompleted: boolean = false;
     @observable public static popupX: number = 500;
     @observable public static popupY: number = 150;
-    @observable public static textDisplayed: string = "Link Created";
+    @observable public static textDisplayed: string;
 
     @action
     public static toggleTaskCompleted = () => {

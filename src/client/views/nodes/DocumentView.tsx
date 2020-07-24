@@ -629,6 +629,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const makeLink = action((linkDoc: Doc) => {
             LinkManager.currentLink = linkDoc;
 
+            TaskCompletionBox.textDisplayed = "Link Created";
             TaskCompletionBox.popupX = de.x;
             TaskCompletionBox.popupY = de.y - 33;
             TaskCompletionBox.taskCompleted = true;

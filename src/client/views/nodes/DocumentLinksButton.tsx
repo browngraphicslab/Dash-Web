@@ -99,6 +99,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
                         runInAction(() => {
                             if (linkDoc) {
+                                TaskCompletionBox.textDisplayed = "Link Created";
                                 TaskCompletionBox.popupX = e.screenX;
                                 TaskCompletionBox.popupY = e.screenY - 133;
                                 TaskCompletionBox.taskCompleted = true;
@@ -132,6 +133,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
                     runInAction(() => {
                         if (linkDoc) {
+                            TaskCompletionBox.textDisplayed = "Link Created";
                             TaskCompletionBox.popupX = e.screenX;
                             TaskCompletionBox.popupY = e.screenY - 133;
                             TaskCompletionBox.taskCompleted = true;
