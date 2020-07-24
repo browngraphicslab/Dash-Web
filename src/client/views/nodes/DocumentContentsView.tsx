@@ -200,7 +200,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 jsx={layoutFrame}
                 showWarnings={true}
 
-                onError={(test: any) => { console.log(test); }}
+                onError={(test: any) => { console.log("DocumentContentsView:" + test); }}
             />;
     }
 }

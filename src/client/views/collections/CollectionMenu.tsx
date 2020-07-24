@@ -462,7 +462,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return this.Document.isAnnotationOverlay ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                <div key="back" title="mini map" className="backKeyframe" onClick={this.miniMap}>
+                <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
                     <FontAwesomeIcon icon={"map"} size={"lg"} />
                 </div>
                 <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>

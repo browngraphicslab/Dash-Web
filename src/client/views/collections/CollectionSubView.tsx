@@ -340,7 +340,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
                 //     const albumId = matches[3];
                 //     const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
-                //     console.log(mediaItems);
                 //     return;
                 // }
             }
@@ -381,7 +380,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     file?.type && files.push(file);
 
                     file?.type === "application/json" && Utils.readUploadedFileAsText(file).then(result => {
-                        console.log(result);
                         const json = JSON.parse(result as string);
                         this.addDocument(Docs.Create.TreeDocument(
                             json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {

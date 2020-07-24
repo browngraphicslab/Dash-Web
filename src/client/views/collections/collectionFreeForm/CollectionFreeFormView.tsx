@@ -497,10 +497,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 const start = this.getTransform().transformPoint(Math.min(...ge.points.map(p => p.X)), Math.min(...ge.points.map(p => p.Y)));
                 this._inkToTextStartX = start[0];
                 this._inkToTextStartY = start[1];
-                console.log("start");
                 break;
             case GestureUtils.Gestures.EndBracket:
-                console.log("end");
                 if (this._inkToTextStartX && this._inkToTextStartY) {
                     const end = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
                     const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "rtf" && s.color);

@@ -434,8 +434,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
             CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
                 // const wordResults = results.filter((r: any) => r.category === "inkWord");
-                // console.log(wordResults);
-                // console.log(results);
                 // for (const word of wordResults) {
                 //     const indices: number[] = word.strokeIds;
                 //     indices.forEach(i => {
@@ -476,7 +474,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 //     });
                 // }
                 const lines = results.filter((r: any) => r.category === "line");
-                console.log(lines);
                 const text = lines.map((l: any) => l.recognizedText).join("\r\n");
                 this.props.addDocument(Docs.Create.TextDocument(text, { _width: this.Bounds.width, _height: this.Bounds.height, x: this.Bounds.left + this.Bounds.width, y: this.Bounds.top, title: text }));
             });

@@ -68,8 +68,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 //action(() => Doc.BrushDoc(this.props.View.Document));
                 DocumentLinksButton.StartLink = this.props.View;
             } else if (!this.props.InMenu) {
-                console.log("editing");
-                this.props.View ? console.log("view") : null;
                 DocumentLinksButton.EditLink = this.props.View;
                 DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
             }

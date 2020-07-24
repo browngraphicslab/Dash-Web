@@ -89,7 +89,6 @@ export class RadialMenu extends React.Component {
 
     @action
     componentDidMount = () => {
-        console.log(this._pageX);
         document.addEventListener("pointerdown", this.onPointerDown);
         document.addEventListener("pointerup", this.onPointerUp);
         this.previewcircle();
