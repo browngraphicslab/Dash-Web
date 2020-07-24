@@ -47,7 +47,8 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { PresBox } from "../../nodes/PresBox";
-
+import { SearchUtil } from "../../../util/SearchUtil";
+import { LinkManager } from "../../../util/LinkManager";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -496,10 +497,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 const start = this.getTransform().transformPoint(Math.min(...ge.points.map(p => p.X)), Math.min(...ge.points.map(p => p.Y)));
                 this._inkToTextStartX = start[0];
                 this._inkToTextStartY = start[1];
-                console.log("start");
                 break;
             case GestureUtils.Gestures.EndBracket:
-                console.log("end");
                 if (this._inkToTextStartX && this._inkToTextStartY) {
                     const end = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
                     const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "rtf" && s.color);
@@ -1240,55 +1239,69 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         const appearance = ContextMenu.Instance.findByDescription("Appearance...");
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
-        appearanceItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
-        appearanceItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
-        appearanceItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
+        appearanceItems.push({ description: "Reset View", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
+        appearanceItems.push({ description: `${this.fitToContent ? "Make Zoomable" : "Scale to Window"}`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
+        appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
+
+        const viewctrls = ContextMenu.Instance.findByDescription("View Controls...");
+        const viewCtrlItems = viewctrls && "subitems" in viewctrls ? viewctrls.subitems : [];
+        viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
+        viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+        !viewctrls && ContextMenu.Instance.addItem({ description: "View Controls...", subitems: viewCtrlItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
-        !this.props.isAnnotationOverlay &&
+        !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
             optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
         this.props.ContainingCollectionView &&
             optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
-        optionItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " snap lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
-        optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
+        appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
             optionItems.push({ description: `${this.Document._freeformLOD ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._freeformLOD = !this.Document._freeformLOD, icon: "table" });
-            optionItems.push({
-                description: "Import document", icon: "upload", event: ({ x, y }) => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = ".zip";
-                    input.onchange = async _e => {
-                        const upload = Utils.prepend("/uploadDoc");
-                        const formData = new FormData();
-                        const file = input.files && input.files[0];
-                        if (file) {
-                            formData.append('file', file);
-                            formData.append('remap', "true");
-                            const response = await fetch(upload, { method: "POST", body: formData });
-                            const json = await response.json();
-                            if (json !== "error") {
-                                const doc = await DocServer.GetRefField(json);
-                                if (doc instanceof Doc) {
-                                    const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
-                                    doc.x = xx, doc.y = yy;
-                                    this.props.addDocument?.(doc);
-                                }
-                            }
-                        }
-                    };
-                    input.click();
-                }
-            });
+
         }
         !options && ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
-
+        const mores = ContextMenu.Instance.findByDescription("More...");
+        const moreItems = mores && "subitems" in mores ? mores.subitems : [];
+        moreItems.push({ description: "Import document", icon: "upload", event: ({ x, y }) => this.importDocument(x, y) });
+        !mores && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "eye" });
     }
+
+    importDocument = (x: number, y: number) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".zip";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file) {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc) {
+                        const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
+                        doc.x = xx, doc.y = yy;
+                        this.props.addDocument?.(doc);
+                        setTimeout(() => {
+                            SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                            })
+                        }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+                    }
+                }
+            }
+        };
+        input.click();
+    }
+
+
     @observable showTimeline = false;
 
     intersectRect(r1: { left: number, top: number, width: number, height: number },

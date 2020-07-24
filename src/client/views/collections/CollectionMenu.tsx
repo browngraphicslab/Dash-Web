@@ -316,6 +316,11 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
+    @undoBatch
+    @action
+    miniMap = (): void => {
+        this.Document.hideMinimap = !this.Document.hideMinimap;
+    }
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
     private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
@@ -457,6 +462,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return this.Document.isAnnotationOverlay ? (null) :
             <div className="collectionFreeFormMenu-cont">
+                <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
+                    <FontAwesomeIcon icon={"map"} size={"lg"} />
+                </div>
                 <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
                     <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                 </div>

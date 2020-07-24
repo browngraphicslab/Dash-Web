@@ -22,7 +22,6 @@ export namespace SelectionManager {
                 }
 
                 manager.SelectedDocuments.set(docView, true);
-                // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
             } else if (!ctrlPressed && Array.from(manager.SelectedDocuments.entries()).length > 1) {
                 Array.from(manager.SelectedDocuments.keys()).map(dv => dv !== docView && dv.props.whenActiveChanged(false));

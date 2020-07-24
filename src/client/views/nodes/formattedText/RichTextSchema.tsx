@@ -170,7 +170,7 @@ export class DashDocView {
                             }
                         }
                     } catch (e) {
-                        console.log(e);
+                        console.log("RichTextSchema: " + e);
                     }
                 }
             };

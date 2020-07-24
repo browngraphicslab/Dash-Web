@@ -167,7 +167,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         const context = Cast(doc.context, Doc, null);
                         if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
-                                title: "pushpin",
+                                title: "pushpin", label: "",
                                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
                                 _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
                             });
@@ -305,18 +305,18 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return newRendition;
             }, false);
 
-            const existing = cm.findByDescription("Options...");
-            const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
-            layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            const options = cm.findByDescription("Options...");
+            const optionItems = options && "subitems" in options ? options.subitems : [];
+            optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
-                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
             if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
             }
-            !Doc.UserDoc().noviceMode && layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && cm.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 
             const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];

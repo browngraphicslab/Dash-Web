@@ -21,7 +21,6 @@
 //     private choice: string = ""; // Tensorflow or Word2Vec
 
 //     constructor() {
-//         console.log("creating recommender...");
 //         Recommender.Instance = this;
 //     }
 
@@ -70,7 +69,6 @@
 //         if (this._model) {
 //             if (this.choice === "WV") {
 //                 let similarity = this._model.similarity('father', 'mother');
-//                 console.log(similarity);
 //             }
 //             else if (this.choice === "TF") {
 //                 const model = this._model as use.UniversalSentenceEncoder;
@@ -119,7 +117,6 @@
 //     }
 
 //     // public async trainModel() {
-//     //     console.log("phrasing...");
 //     //     w2v.word2vec("./node_modules/word2vec/examples/eng_news-typical_2016_1M-sentences.txt", './node_modules/word2vec/examples/my_phrases.txt', {
 //     //         cbow: 1,
 //     //         size: 200,
@@ -131,7 +128,6 @@
 //     //         iter: 200,
 //     //         minCount: 2
 //     //     });
-//     //     console.log("phrased!!!");
 //     // }
 
 // }

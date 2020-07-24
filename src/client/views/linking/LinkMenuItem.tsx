@@ -17,6 +17,7 @@ import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import { Tooltip } from '@material-ui/core';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { undoBatch } from '../../util/UndoManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
@@ -80,10 +81,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @action toggleShowMore(e: React.PointerEvent) { e.stopPropagation(); this._showMore = !this._showMore; }
 
     onEdit = (e: React.PointerEvent): void => {
-
-        console.log("Edit");
         LinkManager.currentLink = this.props.linkDoc;
-        console.log(this.props.linkDoc);
         setupMoveUpEvents(this, e, this.editMoved, emptyFunction, () => this.props.showEditor(this.props.linkDoc));
     }
 
@@ -118,7 +116,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         document.addEventListener("pointerup", this.onLinkButtonUp);
 
         if (this._buttonRef && !!!this._buttonRef.current?.contains(e.target as any)) {
-            console.log("outside click");
             LinkDocPreview.LinkInfo = undefined;
         }
     }
@@ -152,7 +149,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @action.bound
     async followDefault() {
-        console.log("FOLLOWWW");
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
 
@@ -163,10 +159,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
     }
 
+    @undoBatch
     @action
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
-        //this.props.showLinks();
         LinkDocPreview.LinkInfo = undefined;
         DocumentLinksButton.EditLink = undefined;
     }

@@ -51,7 +51,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
             // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
             // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
-            // stored on each pres element.  
+            // stored on each pres element.
             (this.presElement as Doc).lookupField = ScriptField.MakeFunction("lookupPresBoxField(container, field, data)",
                 { field: "string", data: Doc.name, container: Doc.name });
         }
@@ -443,6 +443,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
+    // render() {
+        // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
+        // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
+        //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
 
     // KEYS
     @observable _selectedArray: Doc[] = [];
@@ -495,7 +499,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         e.stopPropagation;
         // switch(e.keyCode) {
         //     case 27: console.log("escape");
-        //     case 65 && (e.metaKey || e.altKey): 
+        //     case 65 && (e.metaKey || e.altKey):
         // }
         // Escape key
         if (e.keyCode === 27) {
@@ -656,7 +660,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }}
             fill="none"
             // markerStart="url(#square)"
-            // markerEnd="url(#arrow)" 
+            // markerEnd="url(#arrow)"
             marker-start="url(#markerSquare)"
             marker-mid="url(#markerSquare)"
             marker-end="url(#markerArrow)"
@@ -1413,7 +1417,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     render() {
-        this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields 
+        this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         return <div onPointerOver={this.onPointerOver} onPointerLeave={this.onPointerLeave} className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>

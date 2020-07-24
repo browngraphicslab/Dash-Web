@@ -46,7 +46,6 @@ export class LinkMenu extends React.Component<Props> {
 
         if (this._linkMenuRef && !this._linkMenuRef.current?.contains(e.target as any)) {
             if (this._editorRef && !this._editorRef.current?.contains(e.target as any)) {
-                console.log("outside click");
                 DocumentLinksButton.EditLink = undefined;
             }
         }

@@ -527,10 +527,6 @@ export class Keyframe extends React.Component<IProps> {
      */
     //154, 206, 223
     render() {
-        trace();
-        console.log(this.props.RegionData.position);
-        console.log(this.regiondata.position);
-        console.log(this.pixelPosition);
         return (
             <div className="bar" ref={this._bar} style={{
                 transform: `translate(${this.pixelPosition}px)`,

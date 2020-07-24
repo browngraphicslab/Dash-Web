@@ -35,7 +35,6 @@ export namespace Plugins {
 }
 
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
-    //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
         target[prop] = value;
         return true;
@@ -129,11 +128,6 @@ export function setGroups(groups: string[]) {
 
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclEdit;
-
-    if (!target[AclSym] && target instanceof Doc) {
-        fetchProto(target);
-    }
-
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 

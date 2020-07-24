@@ -22,6 +22,7 @@ import { LinkManager } from "../../../util/LinkManager";
 import { LinkDocPreview } from "../LinkDocPreview";
 import { DocumentLinksButton } from "../DocumentLinksButton";
 import { Tooltip } from "@material-ui/core";
+import { undoBatch } from "../../../util/UndoManager";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -143,6 +144,7 @@ export class FormattedTextBoxComment {
         }
     }
 
+    @undoBatch
     @action
     deleteLink = () => {
         FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;

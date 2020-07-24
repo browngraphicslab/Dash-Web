@@ -91,13 +91,11 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     onPointerDown = (e: React.PointerEvent) => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        console.log("CAROUSEL down");
         document.addEventListener("pointerup", this.onpointerup);
     }
     private _lastTap: number = 0;
     private _doubleTap = false;
     onpointerup = (e: PointerEvent) => {
-        console.log("CAROUSEL up");
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
         this._lastTap = Date.now();
     }

@@ -189,8 +189,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
-        if (!(e as any).marqueeHit) {
-            (e as any).marqueeHit = true;
+        if (!(e.nativeEvent as any).marqueeHit) {
+            (e.nativeEvent as any).marqueeHit = true;
             // allow marquee if right click OR alt+left click OR space bar + left click
             if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
                 // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
@@ -291,8 +291,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
             if (Doc.GetSelectedTool() === InkTool.None) {
-                if (!(e as any).marqueeHit) {
-                    (e as any).marqueeHit = true;
+                if (!(e.nativeEvent as any).marqueeHit) {
+                    (e.nativeEvent as any).marqueeHit = true;
                     !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
                 }
             }
@@ -434,8 +434,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
             CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
                 // const wordResults = results.filter((r: any) => r.category === "inkWord");
-                // console.log(wordResults);
-                // console.log(results);
                 // for (const word of wordResults) {
                 //     const indices: number[] = word.strokeIds;
                 //     indices.forEach(i => {
@@ -476,7 +474,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 //     });
                 // }
                 const lines = results.filter((r: any) => r.category === "line");
-                console.log(lines);
                 const text = lines.map((l: any) => l.recognizedText).join("\r\n");
                 this.props.addDocument(Docs.Create.TextDocument(text, { _width: this.Bounds.width, _height: this.Bounds.height, x: this.Bounds.left + this.Bounds.width, y: this.Bounds.top, title: text }));
             });

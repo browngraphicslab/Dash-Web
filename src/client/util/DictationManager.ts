@@ -121,7 +121,7 @@ export namespace DictationManager {
 
         const listenImpl = (options?: Partial<ListeningOptions>) => {
             if (!recognizer) {
-                console.log(unsupported);
+                console.log("DictationManager:" + unsupported);
                 return unsupported;
             }
             if (isListening) {

@@ -15,6 +15,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { LinkManager } from '../../util/LinkManager';
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { ContextMenu } from '../ContextMenu';
+import { undoBatch } from '../../util/UndoManager';
 
 interface Props {
     linkDoc?: Doc;
@@ -30,14 +31,6 @@ export class LinkDocPreview extends React.Component<Props> {
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
     _editRef = React.createRef<HTMLDivElement>();
-
-    @action
-    deleteLink = (): void => {
-        this.props.linkDoc ? LinkManager.Instance.deleteLink(this.props.linkDoc) : null;
-        //this.props.showLinks();
-        LinkDocPreview.LinkInfo = undefined;
-        DocumentLinksButton.EditLink = undefined;
-    }
 
     @action
     onContextMenu = (e: React.MouseEvent) => {

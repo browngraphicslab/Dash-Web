@@ -2,8 +2,6 @@ import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
-import { Scripting } from "./Scripting";
-import { undoBatch } from "./UndoManager";
 
 /* 
  * link doc: 
@@ -25,12 +23,12 @@ export class LinkManager {
 
     private static _instance: LinkManager;
 
-
     public static currentLink: Opt<Doc>;
 
     public static get Instance(): LinkManager {
         return this._instance || (this._instance = new this());
     }
+
     private constructor() {
     }
 
@@ -53,7 +51,6 @@ export class LinkManager {
         return false;
     }
 
-    @undoBatch
     public deleteLink(linkDoc: Doc): boolean {
         if (LinkManager.Instance.LinkManagerDoc && linkDoc instanceof Doc) {
             Doc.RemoveDocFromList(LinkManager.Instance.LinkManagerDoc, "data", linkDoc);
@@ -211,8 +208,3 @@ export class LinkManager {
         if (Doc.AreProtosEqual(anchor, linkDoc)) return linkDoc;
     }
 }
-
-Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
-    "returns all the links to the document or its annotations", "(doc: any)");
-Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
-    "returns all the links directly to the document", "(doc: any)");

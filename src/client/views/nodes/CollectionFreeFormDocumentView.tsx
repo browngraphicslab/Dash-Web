@@ -17,7 +17,7 @@ import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
 import { PresBox } from "./PresBox";
-
+import { InkingStroke } from "../InkingStroke";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -40,7 +40,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return min + rnd * (max - min);
     }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
-    get maskCentering() { return this.props.Document.isInkMask ? 2500 : 0; }
+    get maskCentering() { return this.props.Document.isInkMask ? InkingStroke.MaskDim / 2 : 0; }
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X - this.maskCentering}px, ${this.Y - this.maskCentering}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
@@ -225,8 +225,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.props.dataTransition ? this.props.dataTransition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.dataTransition),
-                width: this.props.Document.isInkMask ? 5000 : this.width,
-                height: this.props.Document.isInkMask ? 5000 : this.height,
+                width: this.props.Document.isInkMask ? InkingStroke.MaskDim : this.width,
+                height: this.props.Document.isInkMask ? InkingStroke.MaskDim : this.height,
                 zIndex: this.ZInd,
                 mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
