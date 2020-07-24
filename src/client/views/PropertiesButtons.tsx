@@ -5,7 +5,7 @@ import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast } from "../../fields/Types";
+import { Cast, NumCast, BoolCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
@@ -74,8 +74,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             return SelectionManager.SelectedDocuments()[0];
         } else { return undefined; }
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.props.Document; }
-    @computed get dataDoc() { return this.selectedDocumentView?.props.DataDoc; }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     public startPullOutcome = action((success: boolean) => {
         if (!this._pullAnimating) {
@@ -113,8 +113,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         this.pullColor = "white";
         this._pullColorAnimating = false;
     });
-
-    //get view0() { return this.props.views()?.[0]; }
 
     @computed
     get considerGoogleDocsPush() {
@@ -228,58 +226,116 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     }
 
-    // @computed
-    // get contextButton() {
-    //     return <ParentDocSelector Document={this.Document} addDocTab={(doc, where) => {
-    //         where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
-    //                 this.props.doc.props.addDocTab(doc, "onRight");
-    //         return true;
-    //     }} />;
-    // }
-
     @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
-        //setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-
+        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
+    }
+    onAliasButtonMoved = () => {
+        if (this._dragRef.current) {
+            const dragDocView = this.selectedDocumentView!;
+            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
+                hideSource: false
+            });
+            return true;
+        }
+        return false;
     }
 
-    // onAliasButtonMoved = () => {
-    //     if (this._dragRef.current) {
-    //         const dragDocView = this.props.doc!;
-    //         if (dragDocView.props){
-    //             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
-    //             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-    //             dragData.dropAction = "alias";
-    //             DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
-    //             offsetX: dragData.offset[0],
-    //             offsetY: dragData.offset[1],
-    //             hideSource: false
-    //         });
-    //         return true;
-    //         }
+    @computed
+    get templateButton() {
+        const docView = this.selectedDocumentView;
+        const templates: Map<Template, boolean> = new Map();
+        const views = [this.selectedDocumentView];
+        Array.from(Object.values(Templates.TemplateList)).map(template =>
+            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        return !docView ? (null) :
+            <Tooltip title={<><div className="dash-tooltip">Tap: Customize layout.  Drag: Create alias</div></>}>
+                <div className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                        content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                        <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+                            {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
+                        </div>
+                    </Flyout>
+                </div></Tooltip>;
+    }
 
-    //     }
-    //     return false;
-    // }
+    onCopy = () => {
+        if (this.selectedDoc && this.selectedDocumentView) {
+            const copy = Doc.MakeCopy(this.selectedDoc, true);
+            copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            copy.y = NumCast(this.selectedDoc.y) + 30;
+            this.selectedDocumentView.props.addDocument?.(copy);
+        }
+    }
 
-    // @computed
-    // get templateButton() {
-    //     //const view0 = this.view0;
-    //     const templates: Map<Template, boolean> = new Map();
-    //     //const views = this.props.views();
-    //     Array.from(Object.values(Templates.TemplateList)).map(template =>
-    //         templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
-    //     return !this.props.doc ? (null) :
-    //         <Tooltip title={<><div className="dash-tooltip">Tap: Customize layout.  Drag: Create alias</div></>}>
-    //             <div className="propertiesButtons-linkFlyout" ref={this._dragRef}>
-    //                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-    //                     content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-    //                     <div className={"propertiesButtons-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
-    //                         {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
-    //                     </div>
-    //                 </Flyout>
-    //             </div></Tooltip>;
-    // }
+    @computed
+    get copyButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Create a copy"}</div></>}>
+            <div className={"documentButtonBar-linkButton-empty"}
+                onPointerDown={this.onCopy} >
+                {<FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
+    @action
+    onLock = () => {
+        this.selectedDocumentView?.toggleLockPosition();
+    }
+
+    @computed
+    get lockButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{this.selectedDoc?.lockedPosition ?
+                "Unlock Position" : "Lock Position"}</div></>}>
+            <div className={"documentButtonBar-linkButton-empty"}
+                onPointerDown={this.onLock} >
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    icon={BoolCast(this.selectedDoc?.lockedPosition) ? "unlock" : "lock"} size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
+    @computed
+    get downloadButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{"Download Document"}</div></>}>
+            <div className={"documentButtonBar-linkButton-empty"}
+                onPointerDown={async () => {
+                    if (this.selectedDocumentView?.props.Document) {
+                        Doc.Zip(this.selectedDocumentView?.props.Document);
+                    }
+                }}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    icon="download" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
+    @computed
+    get deleteButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{"Delete Document"}</div></>}>
+            <div className={"documentButtonBar-linkButton-empty"}
+                onPointerDown={() => {
+                    this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
+                }}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    icon="trash-alt" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
 
     render() {
         if (!this.selectedDoc) return (null);
@@ -287,24 +343,36 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isText = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
-        return <div className="propertiesButtons">
-            {/* <div className="propertiesButtons-button">
+        return <div><div className="propertiesButtons">
+            <div className="propertiesButtons-button">
                 {this.templateButton}
-            </div> */}
+            </div>
             <div className="propertiesButtons-button">
                 {this.metadataButton}
             </div>
-            {/* <div className="propertiesButtons-button">
-                {this.contextButton}
-            </div> */}
             <div className="propertiesButtons-button">
                 {this.pinButton}
             </div>
-            <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
-                {this.considerGoogleDocsPush}
+            <div className="propertiesButtons-button">
+                {this.copyButton}
             </div>
-            <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
-                {this.considerGoogleDocsPull}
+            <div className="propertiesButtons-button">
+                {this.lockButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.downloadButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.deleteButton}
+            </div>
+        </div>
+            <div className="propertiesButtons">
+                <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
+                    {this.considerGoogleDocsPush}
+                </div>
+                <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
+                    {this.considerGoogleDocsPull}
+                </div>
             </div>
         </div>;
     }

@@ -281,7 +281,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             {DocumentLinksButton.StartLink ? <div className="documentButtonBar-button">
                 <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
             </div> : null}
-            <div className="documentButtonBar-button">
+            {/* <div className="documentButtonBar-button">
                 {this.templateButton}
             </div>
             <div className="documentButtonBar-button">
@@ -289,16 +289,16 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div>
             <div className="documentButtonBar-button">
                 {this.contextButton}
-            </div>
+            </div> */}
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
-            <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
+            {/* <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPull ? "none" : "" }}>
                 {this.considerGoogleDocsPull}
-            </div>
+            </div> */}
         </div>;
     }
 }
