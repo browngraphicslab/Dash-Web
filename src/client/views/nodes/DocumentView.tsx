@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { TraceMobx, GetEffectiveAcl } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, SharingPermissions } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -25,7 +25,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { Scripting } from '../../util/Scripting';
 import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
-import SharingManager, { SharingPermissions } from '../../util/SharingManager';
+import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
@@ -41,7 +41,7 @@ import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
-import { LinkCreatedBox } from './LinkCreatedBox';
+import { TaskCompletionBox } from './TaskCompletedBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { LinkManager } from '../../util/LinkManager';
 
@@ -629,15 +629,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const makeLink = action((linkDoc: Doc) => {
             LinkManager.currentLink = linkDoc;
 
-            LinkCreatedBox.popupX = de.x;
-            LinkCreatedBox.popupY = de.y - 33;
-            LinkCreatedBox.linkCreated = true;
+            TaskCompletionBox.popupX = de.x;
+            TaskCompletionBox.popupY = de.y - 33;
+            TaskCompletionBox.taskCompleted = true;
 
             LinkDescriptionPopup.popupX = de.x;
             LinkDescriptionPopup.popupY = de.y;
             LinkDescriptionPopup.descriptionPopup = true;
 
-            setTimeout(action(() => LinkCreatedBox.linkCreated = false), 2500);
+            setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
         });
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
@@ -817,6 +817,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         //!Doc.UserDoc().novice && helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
         !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
+
+        // to be removed for baseline
+        cm.addItem({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
 
         // const existingAcls = cm.findByDescription("Privacy...");
         // const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];

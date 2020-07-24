@@ -19,9 +19,8 @@ import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl } from "./util";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl, SharingPermissions } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
-import { SharingPermissions } from "../client/util/SharingManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 
@@ -103,6 +102,7 @@ export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
+export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
@@ -110,7 +110,8 @@ const AclMap = new Map<string, symbol>([
     [SharingPermissions.None, AclPrivate],
     [SharingPermissions.View, AclReadonly],
     [SharingPermissions.Add, AclAddonly],
-    [SharingPermissions.Edit, AclEdit]
+    [SharingPermissions.Edit, AclEdit],
+    [SharingPermissions.Admin, AclAdmin]
 ]);
 
 export function fetchProto(doc: Doc) {

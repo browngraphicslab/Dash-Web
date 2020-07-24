@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate, AclAdmin } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls, SharingPermissions } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -48,7 +48,6 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
-import { SharingPermissions } from '../../util/SharingManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -111,7 +110,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         [AclPrivate, SharingPermissions.None],
         [AclReadonly, SharingPermissions.View],
         [AclAddonly, SharingPermissions.Add],
-        [AclEdit, SharingPermissions.Edit]
+        [AclEdit, SharingPermissions.Edit],
+        [AclAdmin, SharingPermissions.Admin]
     ]);
 
     get collectionViewType(): CollectionViewType | undefined {
