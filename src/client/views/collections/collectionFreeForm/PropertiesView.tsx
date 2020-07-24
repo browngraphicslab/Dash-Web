@@ -15,6 +15,8 @@ import { Id } from "../../../../fields/FieldSymbols";
 import { Transform } from "../../../util/Transform";
 import { PropertiesButtons } from "../../PropertiesButtons";
 import { SelectionManager } from "../../../util/SelectionManager";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "@material-ui/core";
 
 
 interface PropertiesViewProps {
@@ -154,6 +156,74 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
+    @computed get permissionsSelect() {
+        return <select className="permissions-select" onChange={emptyFunction}>
+            <option key={"Can Edit"} value={"Can Edit"}>
+                Can Edit
+                        </option>
+            <option key={"Can Add"} value={"Can Add"}>
+                Can Add
+                        </option>
+            <option key={"Can View"} value={"Can View"}>
+                Can View
+                        </option>
+            <option key={"Not Shared"} value={"Not Shared"}>
+                Not Shared
+                        </option>
+        </select>;
+    }
+
+    @computed get notifyIcon() {
+        return <Tooltip title={<><div className="dash-tooltip">{"Notify user or group of permissions change"}</div></>}>
+            <div className="notify-button">
+                <FontAwesomeIcon className="notify-button-icon" icon="bell" color="white" size="sm" />
+            </div>
+        </Tooltip>;
+    }
+
+    sharingItem(name: string, notify: boolean, editable: boolean, permission?: string) {
+        return <div className="propertiesView-sharingTable-item">
+            <div className="propertiesView-sharingTable-item-name" style={{ width: notify ? "70px" : "80px" }}> {name} </div>
+            {notify ? this.notifyIcon : null}
+            <div className="propertiesView-sharingTable-item-permission">
+                {editable ? this.permissionsSelect : permission}
+            </div>
+        </div>;
+    }
+
+    @computed get sharingTable() {
+        return <div className="propertiesView-sharingTable">
+            {this.sharingItem("Me", false, false, "Owner")}
+            {this.sharingItem("Public", false, true)}
+            {this.sharingItem("Group 1", true, true)}
+            {this.sharingItem("Group 2", true, true)}
+            {/* <div className="propertiesView-sharingTable-item">
+                <div className="propertiesView-sharingTable-item-name"> Me: </div>
+                <div className="propertiesView-sharingTable-item-permission"> Owner </div>
+            </div>
+            <div className="propertiesView-sharingTable-item">
+                <div className="propertiesView-sharingTable-item-name"> Public: </div>
+                <div className="propertiesView-sharingTable-item-permission">
+                    {this.permissionsSelect}
+                </div>
+            </div>
+            <div className="propertiesView-sharingTable-item">
+                <div className="propertiesView-sharingTable-item-name"> Group 1: </div>
+                <div> </div>
+                <div className="propertiesView-sharingTable-item-permission">
+                    {this.permissionsSelect}
+                </div>
+            </div>
+            <div className="propertiesView-sharingTable-item">
+                <div className="propertiesView-sharingTable-item-name"> Another group: </div>
+                <div> </div>
+                <div className="propertiesView-sharingTable-item-permission">
+                    {this.permissionsSelect}
+                </div>
+            </div> */}
+        </div>;
+    }
+
     render() {
 
         if (!this.selectedDoc) {
@@ -174,6 +244,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <div className="propertiesView-settings-title"> Settings</div>
                 <div className="propertiesView-settings-content">
                     <PropertiesButtons />
+                </div>
+            </div>
+            <div className="propertiesView-sharing">
+                <div className="propertiesView-sharing-title"> Sharing {"&"} Permissions</div>
+                <div className="propertiesView-sharing-content">
+                    {this.sharingTable}
                 </div>
             </div>
             <div className="propertiesView-fields">
