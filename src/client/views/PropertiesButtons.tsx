@@ -23,6 +23,7 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Tooltip } from '@material-ui/core';
 import { SelectionManager } from '../util/SelectionManager';
+import SharingManager from '../util/SharingManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -267,7 +268,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     onCopy = () => {
         if (this.selectedDoc && this.selectedDocumentView) {
-            const copy = Doc.MakeCopy(this.selectedDoc, true);
+            const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
             copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
             copy.y = NumCast(this.selectedDoc.y) + 30;
             this.selectedDocumentView.props.addDocument?.(copy);
@@ -336,6 +337,23 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    @computed
+    get sharingButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{"Share Document"}</div></>}>
+            <div className={"documentButtonBar-linkButton-empty"}
+                onPointerDown={() => {
+                    if (this.selectedDocumentView) {
+                        SharingManager.Instance.open(this.selectedDocumentView);
+                    }
+                }}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    icon="users" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
 
     render() {
         if (!this.selectedDoc) return (null);
@@ -343,7 +361,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isText = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
-        return <div><div className="propertiesButtons">
+        return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
                 {this.templateButton}
             </div>
@@ -367,6 +385,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             </div>
         </div>
             <div className="propertiesButtons">
+                <div className="propertiesButtons-button">
+                    {this.sharingButton}
+                </div>
                 <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                     {this.considerGoogleDocsPush}
                 </div>
