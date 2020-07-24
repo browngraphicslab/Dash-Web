@@ -696,7 +696,7 @@ export class CurrentUserUtils {
         doc.myWorkspaces === undefined;
         if (doc.myWorkspaces === undefined) {
             doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true,
+                title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true,
             }));
         }
         const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
@@ -707,7 +707,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.workspaceStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -718,7 +718,7 @@ export class CurrentUserUtils {
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
+                childDropAction: "alias", targetDropAction: "same", stayInCollection: true, treeViewOpen: true,
             }));
         }
 
@@ -726,7 +726,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.catalogStack = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 
@@ -737,7 +737,7 @@ export class CurrentUserUtils {
         doc.myRecentlyClosed === undefined;
         if (doc.myRecentlyClosed === undefined) {
             doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, stayInCollection: true,
+                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, stayInCollection: true,
             }));
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
@@ -750,7 +750,7 @@ export class CurrentUserUtils {
 
         CurrentUserUtils.closedStack = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
             title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
             lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
         })) as any as Doc;
 

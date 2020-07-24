@@ -64,7 +64,6 @@ export interface TreeViewProps {
     onCheckedClick?: () => ScriptField;
     onChildClick?: () => ScriptField;
     ignoreFields?: string[];
-    alwaysOpen?: boolean;
 }
 
 @observer
@@ -91,7 +90,10 @@ class TreeView extends React.Component<TreeViewProps> {
     get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
     get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.doc.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
-    set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.doc.treeViewOpen = this._overrideTreeViewOpen = c; }
+    set treeViewOpen(c: boolean) {
+        if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
+        else this.doc.treeViewOpen = this._overrideTreeViewOpen = c;
+    }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && BoolCast(this.doc.treeViewOpen)) || this._overrideTreeViewOpen; }
     @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.defaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
