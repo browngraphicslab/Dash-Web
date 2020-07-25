@@ -132,8 +132,8 @@ export class MainView extends React.Component {
         document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to to link an existing annotation to Dash
             const annotationId = e.detail.id;
             const annotationUri = e.detail.uri;
-            console.log(annotationId, annotationUri);
-            // const source = await Hypothesis.getWebDoc(annotationUri);
+            const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
+            console.log("sourceDoc: ", sourceDoc ? sourceDoc.title : "not found");
 
             const source = SelectionManager.SelectedDocuments()[0]; // TO BE FIXED, currently link just starts from whichever doc is selected
             runInAction(() => {

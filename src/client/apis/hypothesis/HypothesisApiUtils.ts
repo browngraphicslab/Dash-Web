@@ -4,6 +4,7 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { action } from "mobx";
 import { Doc } from "../../../fields/Doc";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { WebField } from "../../../fields/URLField";
 
 export namespace Hypothesis {
 
@@ -75,8 +76,7 @@ export namespace Hypothesis {
         const annotation = await fetchAnnotation(annotationId);
         const regex = new RegExp(`(\[[^[]*)\(${linkUrl.replace('/', '\/')}\)`);
         const target = regex.exec(annotation.text); // use regex to extract the link to be deleted, which is written in [title](hyperlink) format
-        target && console.log(target);
-        // target && editAnnotation(annotationId, annotation.text.replace(target[0], ''));
+        target && editAnnotation(annotationId, annotation.text.replace(target[0], ''));
     };
 
     // Finds the most recent placeholder annotation created and returns its ID
@@ -100,18 +100,20 @@ export namespace Hypothesis {
     };
 
     // Return corres
-    export const getWebDocs = async (uri: string) => {
+    export const getSourceWebDoc = async (uri: string) => {
         const results: Doc[] = [];
-        await SearchUtil.Search(uri, true).then(action(async (res: SearchUtil.DocSearchResult) => {
+        await SearchUtil.Search("web", true).then(action(async (res: SearchUtil.DocSearchResult) => {
             const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
-            const filteredDocs = docs.filter(doc => doc.type === DocumentType.WEB && doc.data);
-
-            console.log("docs", docs);
-            console.log("FILTEREDDOCS: ", filteredDocs);
+            const filteredDocs = docs.filter(doc =>
+                doc.type === DocumentType.WEB && doc.data
+            );
             filteredDocs.forEach(doc => {
-                results.push(doc);
+                console.log(Cast(doc.data, WebField)?.url.href);
+                if (uri === Cast(doc.data, WebField)?.url.href) results.push(doc); // TODO check history? imperfect matches?
             });
         }));
-        return results;
+
+        // TODO: open & return new Web doc with given uri if no matching Web docs are found
+        return results.length ? results[0] : undefined;
     };
 }
