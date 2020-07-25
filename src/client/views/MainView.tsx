@@ -61,7 +61,7 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
-import { LinkCreatedBox } from './nodes/LinkCreatedBox';
+import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
@@ -808,7 +808,7 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
-            <LinkCreatedBox />
+            <TaskCompletionBox />
             <ContextMenu />
             <FormatShapePane />
             <RadialMenu />

@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate, AclAdmin } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls, SharingPermissions } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -113,7 +113,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         [AclPrivate, SharingPermissions.None],
         [AclReadonly, SharingPermissions.View],
         [AclAddonly, SharingPermissions.Add],
-        [AclEdit, SharingPermissions.Edit]
+        [AclEdit, SharingPermissions.Edit],
+        [AclAdmin, SharingPermissions.Admin]
     ]);
 
     get collectionViewType(): CollectionViewType | undefined {
@@ -146,7 +147,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
 
         if (added.length) {
-            if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
+            if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
                 return false;
             }
             else {
@@ -193,7 +194,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        if (GetEffectiveAcl(this.props.Document) === AclEdit || getPlaygroundMode()) {
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || getPlaygroundMode()) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
