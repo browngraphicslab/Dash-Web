@@ -1041,7 +1041,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get contents() {
         const pos = this.props.relative ? "relative " : "absolute";
         TraceMobx();
-        return (<div style={{ position: pos, width: "100%", height: "100%" }}>
+        return (<div style={{ width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
                 ContainingCollectionView={this.props.ContainingCollectionView}

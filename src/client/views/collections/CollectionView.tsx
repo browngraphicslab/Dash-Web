@@ -48,7 +48,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
-import { SharingPermissions } from '../../util/SharingManager';
+//import SharingPermissions from '../../util/SharingManager';
 import { DocumentView } from '../nodes/DocumentView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
