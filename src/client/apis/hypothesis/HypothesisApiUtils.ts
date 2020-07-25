@@ -69,14 +69,11 @@ export namespace Hypothesis {
         await editAnnotation(annotationId, newText);
     };
 
-    /**
-     * Edit an annotation with ID @param annotationId to delete a hyperlink to the Dash document with URL @param linkUrl
-     */
     export const deleteLink = async (annotationId: string, linkUrl: string) => {
         const annotation = await fetchAnnotation(annotationId);
-        const regex = new RegExp(`(\[[^[]*)\(${linkUrl.replace('/', '\/')}\)`);
-        const target = regex.exec(annotation.text); // use regex to extract the link to be deleted, which is written in [title](hyperlink) format
-        target && editAnnotation(annotationId, annotation.text.replace(target[0], ''));
+        const regex = new RegExp(`\\[[^\\]]*\\]\\(${linkUrl}\\)`); // finds the link (written in [title](hyperlink) format) to be deleted
+        const out = annotation.text.replace(regex, "");
+        editAnnotation(annotationId, out);
     };
 
     // Finds the most recent placeholder annotation created and returns its ID
