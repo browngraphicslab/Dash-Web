@@ -916,7 +916,6 @@ export namespace Doc {
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
-
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));

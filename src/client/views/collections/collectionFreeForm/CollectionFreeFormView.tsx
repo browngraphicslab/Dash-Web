@@ -944,6 +944,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
             pinToPres: this.props.pinToPres,
             whenActiveChanged: this.props.whenActiveChanged,
             NativeHeight: returnZero,
