@@ -66,6 +66,8 @@ import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import CollectionMenu from './collections/CollectionMenu';
+import { Hypothesis } from '../apis/hypothesis/HypothesisApiUtils';
+import { SelectionManager } from '../util/SelectionManager';
 
 @observer
 export class MainView extends React.Component {
@@ -111,6 +113,33 @@ export class MainView extends React.Component {
                 if (doc instanceof Doc) {
                     DocumentManager.Instance.jumpToDocument(doc, false, undefined);
                 }
+            });
+        });
+        window.addEventListener("message", async (e: any) => { // listen for a new Hypothes.is annotation from an iframe inside Dash
+            // start link from new Hypothes.is annotation
+            // TODO: pass in placeholderId directly from client, move
+            if (e.origin === "http://localhost:1050" && e.data.message === "annotation created") {
+                console.log("DASH received message: annotation created");
+                const response = await Hypothesis.getPlaceholderId("placeholder");
+                const source = SelectionManager.SelectedDocuments()[0];
+                response && runInAction(() => {
+                    DocumentLinksButton.AnnotationId = response.id;
+                    DocumentLinksButton.AnnotationUri = response.uri;
+                    DocumentLinksButton.StartLink = source;
+                });
+            }
+        });
+        document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to to link an existing annotation to Dash
+            const annotationId = e.detail.id;
+            const annotationUri = e.detail.uri;
+            console.log(annotationId, annotationUri);
+            // const source = await Hypothesis.getWebDoc(annotationUri);
+
+            const source = SelectionManager.SelectedDocuments()[0]; // TO BE FIXED, currently link just starts from whichever doc is selected
+            runInAction(() => {
+                DocumentLinksButton.AnnotationId = annotationId;
+                DocumentLinksButton.AnnotationUri = annotationUri;
+                DocumentLinksButton.StartLink = source;
             });
         });
     }

@@ -39,43 +39,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static AnnotationId: string | undefined;
     @observable public static AnnotationUri: string | undefined;
 
-    componentDidMount() {
-        window.addEventListener("message", this.newAnnotation); // listen for a new Hypothes.is annotation from an iframe inside Dash
-        document.addEventListener("linkAnnotationToDash", this.linkAnnotation); // listen for event from Hypothes.is extension to link an existing annotation
-    }
-
-    // start link from new Hypothes.is annotation
-    // TODO: pass in placeholderId directly from client
-    @action
-    newAnnotation = async (e: any) => {
-        if (e.origin === "http://localhost:1050" && e.data.message === "annotation created") {
-            console.log("DASH received message: annotation created");
-            window.removeEventListener("message", this.newAnnotation);
-            const response = await Hypothesis.getPlaceholderId("placeholder");
-            const source = SelectionManager.SelectedDocuments()[0];
-            response && runInAction(() => {
-                DocumentLinksButton.AnnotationId = response.id;
-                DocumentLinksButton.AnnotationUri = response.uri;
-                DocumentLinksButton.StartLink = source;
-            });
-        }
-    }
-
-    @action
-    linkAnnotation = async (e: any) => { // event sent by hypothes.is plugin to tell Dash which annotation we're linking from
-        const annotationId = e.detail.id;
-        const annotationUri = e.detail.uri;
-        console.log(annotationId, annotationUri);
-        // const source = await Hypothesis.getWebDoc(annotationUri);
-
-        const source = SelectionManager.SelectedDocuments()[0]; // TO BE FIXED, currently link just starts from whichever doc is selected
-        runInAction(() => {
-            DocumentLinksButton.AnnotationId = annotationId;
-            DocumentLinksButton.AnnotationUri = annotationUri;
-            DocumentLinksButton.StartLink = source;
-        });
-    }
-
     @action @undoBatch
     onLinkButtonMoved = (e: PointerEvent) => {
         if (this.props.InMenu && this.props.StartLink) {
@@ -179,8 +142,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
             DocumentLinksButton.AnnotationId = undefined;
-            window.removeEventListener("message", this.newAnnotation);
-            window.addEventListener("message", this.newAnnotation);
         } else {
             if (this.props.InMenu && !!!this.props.StartLink) {
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
