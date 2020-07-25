@@ -10,10 +10,29 @@
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
         text-align: center;
-        font-size: 18px;
-        font-weight: bold;
         padding-top: 12px;
         padding-bottom: 12px;
+        display: flex;
+
+        .propertiesView-title-name {
+            font-size: 18px;
+            font-weight: bold;
+            padding-left: 45px;
+        }
+
+        .propertiesView-title-icon {
+            width: 20px;
+            height: 20px;
+            padding-left: 32px;
+            margin-top: -5px;
+
+            &:hover {
+                color: grey;
+                cursor: pointer;
+            }
+
+        }
+
     }
 
     .propertiesView-name {

@@ -621,6 +621,7 @@ export class MainView extends React.Component {
                 height={this._panelHeight}
                 renderDepth={1}
                 ScreenToLocalTransform={Transform.Identity}
+                onDown={this.onDown}
             />
         </div>;
     }

@@ -25,6 +25,7 @@ interface PropertiesViewProps {
     height: number;
     renderDepth: number;
     ScreenToLocalTransform: () => Transform;
+    onDown: (event: any) => void;
 }
 
 @observer
@@ -225,7 +226,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
         return <div className="propertiesView" >
             <div className="propertiesView-title">
-                Properties
+                <div className="propertiesView-title-name">Properties </div>
+                <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
+                    <FontAwesomeIcon icon="times" color="black" size="sm" />
+                </div>
             </div>
             <div className="propertiesView-name">
                 {this.selectedDoc.title}
