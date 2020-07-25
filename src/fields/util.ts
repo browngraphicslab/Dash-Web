@@ -1,11 +1,11 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, fetchProto, DataSym, DocListCast, AclAdmin } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
@@ -77,8 +77,10 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
 
     if (writeToDoc) {
         if (value === undefined) {
+            delete target.__fieldKeys[prop];
             delete target.__fields[prop];
         } else {
+            target.__fieldKeys[prop] = true;
             target.__fields[prop] = value;
         }
         //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
@@ -137,7 +139,7 @@ export enum SharingPermissions {
 }
 
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
-    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclEdit;
+    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
@@ -241,6 +243,8 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
+
+    if (in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
     if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
     if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return undefined;
     if (prop === LayoutSym) {

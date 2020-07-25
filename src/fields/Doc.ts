@@ -104,7 +104,7 @@ export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
 export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
-const CachedUpdates = Symbol("Cached updates");
+export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
     [SharingPermissions.None, AclPrivate],
@@ -115,15 +115,15 @@ const AclMap = new Map<string, symbol>([
 ]);
 
 export function fetchProto(doc: Doc) {
-    // if (doc.author !== Doc.CurrentUserEmail) {
-    untracked(() => {
-        const permissions: { [key: string]: symbol } = {};
+    const permissions: { [key: string]: symbol } = {};
 
-        Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+    Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
 
-        if (Object.keys(permissions).length) doc[AclSym] = permissions;
-    });
-    // }
+    if (Object.keys(permissions).length) doc[AclSym] = permissions;
+
+    if (GetEffectiveAcl(doc) === AclPrivate) {
+        runInAction(() => doc[FieldsSym](true));
+    }
 
     if (doc.proto instanceof Promise) {
         doc.proto.then(fetchProto);
@@ -143,7 +143,7 @@ export class Doc extends RefField {
             has: (target, key) => GetEffectiveAcl(target) !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                if (GetEffectiveAcl(target) !== AclPrivate) Object.assign(obj, target.___fields);
+                if (GetEffectiveAcl(target) !== AclPrivate) Object.assign(obj, target.___fieldKeys);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -151,11 +151,11 @@ export class Doc extends RefField {
                 if (prop.toString() === "__LAYOUT__") {
                     return Reflect.getOwnPropertyDescriptor(target, prop);
                 }
-                if (prop in target.__fields) {
+                if (prop in target.__fieldKeys) {
                     return {
                         configurable: true,//TODO Should configurable be true?
                         enumerable: true,
-                        value: target.__fields[prop]
+                        value: 0//() => target.__fields[prop])
                     };
                 }
                 return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -179,14 +179,22 @@ export class Doc extends RefField {
         this.___fields = value;
         for (const key in value) {
             const field = value[key];
+            field && (this.__fieldKeys[key] = true);
             if (!(field instanceof ObjectField)) continue;
             field[Parent] = this[Self];
             field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
         }
     }
+    private get __fieldKeys() { return this.___fieldKeys; }
+    private set __fieldKeys(value) {
+        this.___fieldKeys = value;
+    }
 
     @observable
     private ___fields: any = {};
+
+    @observable
+    private ___fieldKeys: any = {};
 
     private [UpdatingFromServer]: boolean = false;
 
@@ -196,7 +204,14 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym] = () => this.___fields;
+    public [FieldsSym] = (clear?: boolean) => {
+        if (clear) {
+            this.___fields = {};
+            this.___fieldKeys = {};
+        }
+        return this.___fields;
+    }
+    @observable
     public [AclSym]: { [key: string]: symbol };
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
@@ -237,11 +252,18 @@ export class Doc extends RefField {
                 const fKey = key.substring(7);
                 const fn = async () => {
                     const value = await SerializationHelper.Deserialize(set[key]);
+                    const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
+                    if (fKey.startsWith("ACL")) {
+                        fetchProto(this);
+                    }
                     this[UpdatingFromServer] = false;
+                    if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
+                        DocServer.GetRefField(this[Id], true);
+                    }
                 };
-                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                if (sameAuthor || fKey.startsWith("ACL") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {

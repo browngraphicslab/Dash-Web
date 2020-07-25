@@ -944,7 +944,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
-            ...this.props,
+            pinToPres: this.props.pinToPres,
+            whenActiveChanged: this.props.whenActiveChanged,
             NativeHeight: returnZero,
             NativeWidth: returnZero,
             fitToBox: false,
@@ -1145,7 +1146,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     componentDidMount() {
         super.componentDidMount?.();
-        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
+        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 

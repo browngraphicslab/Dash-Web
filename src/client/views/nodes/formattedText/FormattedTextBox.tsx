@@ -690,7 +690,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         );
         this._disposers.editorState = reaction(
             () => {
-                if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey + "-textTemplate"]) {
+                if (this.dataDoc?.[this.props.fieldKey + "-noTemplate"] || !this.layoutDoc[this.props.fieldKey + "-textTemplate"]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
                 }
                 return Cast(this.layoutDoc[this.props.fieldKey + "-textTemplate"], RichTextField, null)?.Data;
