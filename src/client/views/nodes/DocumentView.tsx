@@ -758,6 +758,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const appearance = cm.findByDescription("Appearance...");
         const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
         templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
+        appearanceItems.push({ description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
         !appearance && cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "compass" });
 
         const options = cm.findByDescription("Options...");
