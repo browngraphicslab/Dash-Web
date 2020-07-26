@@ -446,12 +446,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
-        return (<div className="webBox" style={{ width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%" }}>
+        return (<div className="webBox" style={{ width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())} % ` : "100%" }}>
             <div className={`webBox-container`}
                 style={{
                     transform: `scale(${this.props.ContentScaling()})`,
-                    width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%",
-                    height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%",
+                    width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
                     pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
