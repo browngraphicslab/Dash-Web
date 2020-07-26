@@ -8,7 +8,7 @@ import {
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
     faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
     faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faMap, faDesktop, faTrashRestore, faUsers, faWrench, faCog, faBellSlash, faExpandAlt, faUser
+    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faMap, faDesktop, faTrashRestore, faUsers, faWrench, faCog, faBellSlash, faExpandAlt, faUser, faArchive
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -175,7 +175,7 @@ export class MainView extends React.Component {
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
             faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench, faCog, faMap, faBellSlash, faExpandAlt, faUser);
+            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faDesktop, faTrashRestore, faUsers, faWrench, faCog, faMap, faBellSlash, faExpandAlt, faUser, faArchive);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -492,6 +492,7 @@ export class MainView extends React.Component {
     //             ContainingCollectionView={undefined}
     //             ContainingCollectionDoc={undefined}
     //             relative={true}
+    //             scriptContext={this}
     //         />
     //     </div>;
     // }
@@ -519,10 +520,10 @@ export class MainView extends React.Component {
             <div className="mainView-menuPanel-button"
                 style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}
                 onPointerDown={e => this.selectPanel("deleted")}>
-                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="trash-alt"
+                <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="archive"
                     color={this.panelContent === "deleted" ? "black" : "white"} size="lg" />
                 <div className="mainView-menuPanel-button-label"
-                    style={{ color: this.panelContent === "deleted" ? "black" : "white" }}> Recently Closed </div>
+                    style={{ color: this.panelContent === "deleted" ? "black" : "white" }}> Recently Used </div>
             </div>
 
             <div className="mainView-menuPanel-button"

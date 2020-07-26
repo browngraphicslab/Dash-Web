@@ -24,6 +24,8 @@ import React = require("react");
 import { Tooltip } from '@material-ui/core';
 import { SelectionManager } from '../util/SelectionManager';
 import SharingManager from '../util/SharingManager';
+import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
+import { ImageField } from '../../fields/URLField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -421,6 +423,23 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         // onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
     }
 
+    @computed
+    get googlePhotosButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{"Export to Google Photos"}</div></>}>
+            <div className={"documentButtonBar-linkButton-empty"}
+                onPointerDown={() => {
+                    if (this.selectedDocumentView) {
+                        GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDocumentView.Document }).then(console.log)
+                    }
+                }}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    icon="cloud-upload-alt" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
 
     render() {
         if (!this.selectedDoc) return (null);
@@ -428,6 +447,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isText = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
+        const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
                 {this.templateButton}
@@ -463,6 +483,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 </div>
                 <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
                     {this.considerGoogleDocsPull}
+                </div>
+                <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
+                    {this.googlePhotosButton}
                 </div>
             </div>
         </div>;

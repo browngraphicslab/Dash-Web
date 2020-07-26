@@ -5,7 +5,8 @@
     font-family: "Noto Sans";
     cursor: auto;
 
-    overflow-y: scroll;
+    overflow-x: visible;
+    overflow-y: visible;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -23,7 +24,7 @@
         .propertiesView-title-icon {
             width: 20px;
             height: 20px;
-            padding-left: 32px;
+            padding-left: 38px;
             margin-top: -5px;
 
             &:hover {
