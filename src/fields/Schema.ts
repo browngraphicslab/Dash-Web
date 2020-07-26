@@ -31,7 +31,7 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
     }
     const proto = new Proxy({}, {
         get(target: any, prop, receiver) {
-            const field = receiver.doc[prop];
+            const field = receiver.doc?.[prop];
             if (prop in schema) {
                 const desc = prop === "proto" ? Doc : (schema as any)[prop]; // bcz: proto doesn't appear in schemas ... maybe it should?
                 if (typeof desc === "object" && "defaultVal" in desc && "type" in desc) {//defaultSpec

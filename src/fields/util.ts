@@ -1,15 +1,14 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, fetchProto, DataSym, DocListCast } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
-import { SharingPermissions } from "../client/util/SharingManager";
 
 
 function _readOnlySetter(): never {
@@ -67,16 +66,21 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
+
+    const effectiveAcl = GetEffectiveAcl(target);
+
     const writeMode = DocServer.getFieldWriteMode(prop as string);
     const fromServer = target[UpdatingFromServer];
     const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
-    const writeToDoc = sameAuthor || GetEffectiveAcl(target) === AclEdit || (writeMode !== DocServer.WriteMode.LiveReadonly);
-    const writeToServer = (sameAuthor || GetEffectiveAcl(target) === AclEdit || writeMode === DocServer.WriteMode.Default) && !playgroundMode;
+    const writeToDoc = sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || (writeMode !== DocServer.WriteMode.LiveReadonly);
+    const writeToServer = (sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || writeMode === DocServer.WriteMode.Default) && !playgroundMode;
 
     if (writeToDoc) {
         if (value === undefined) {
+            target.__fieldKeys && (delete target.__fieldKeys[prop]);
             delete target.__fields[prop];
         } else {
+            target.__fieldKeys && (target.__fieldKeys[prop] = true);
             target.__fields[prop] = value;
         }
         //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
@@ -126,12 +130,20 @@ export function setGroups(groups: string[]) {
     currentUserGroups = groups;
 }
 
+export enum SharingPermissions {
+    Admin = "Admin",
+    Edit = "Can Edit",
+    Add = "Can Add",
+    View = "Can View",
+    None = "Not Shared"
+}
+
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
-    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclEdit;
+    if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
-        if (target.__fields?.author === Doc.CurrentUserEmail || target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclEdit;
+        if (target.__fields?.author === Doc.CurrentUserEmail || target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclAdmin;
 
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
@@ -142,7 +154,8 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
             [AclPrivate, 0],
             [AclReadonly, 1],
             [AclAddonly, 2],
-            [AclEdit, 3]
+            [AclEdit, 3],
+            [AclAdmin, 4]
         ]);
 
         for (const [key, value] of Object.entries(target[AclSym])) {
@@ -156,7 +169,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
         }
         return aclPresent ? effectiveAcl : AclEdit;
     }
-    return AclEdit;
+    return AclAdmin;
 }
 
 export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean) {
@@ -165,7 +178,8 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         ["Not Shared", 0],
         ["Can View", 1],
         ["Can Add", 2],
-        ["Can Edit", 3]
+        ["Can Edit", 3],
+        ["Admin", 4]
     ]);
 
     const dataDoc = target[DataSym];
@@ -205,11 +219,11 @@ const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHe
     "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    if (GetEffectiveAcl(target, in_prop) !== AclEdit) {
-        return true;
-    }
+    const effectiveAcl = GetEffectiveAcl(target, in_prop);
+    if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
-    if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
+    if (typeof prop === "string" && prop.startsWith("ACL") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined].includes(value))) return true;
+    // if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
@@ -229,6 +243,8 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
+
+    if (in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
     if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
     if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return undefined;
     if (prop === LayoutSym) {

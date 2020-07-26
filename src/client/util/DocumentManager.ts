@@ -152,18 +152,18 @@ export class DocumentManager {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.props.Document;
-                if (docView) {
-                    docView.props.focus(annotatedDoc, false);
-                }
+                docView?.props.focus(annotatedDoc, false);
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            if (originatingDoc?.isPushpin) docView.props.Document.hidden = !docView.props.Document.hidden;
+            if (originatingDoc?.isPushpin) {
+                docView.props.Document.hidden = !docView.props.Document.hidden;
+            }
             else {
                 docView.props.Document.hidden && (docView.props.Document.hidden = undefined);
                 docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
+                highlight();
             }
-            highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
             const contextDoc = contextDocs?.find(doc => Doc.AreProtosEqual(doc, targetDoc)) ? docContext : undefined;
@@ -218,25 +218,27 @@ export class DocumentManager {
         const backLinkWithoutTargetView = secondDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
         const linkWithoutTargetDoc = traverseBacklink === undefined ? fwdLinkWithoutTargetView || backLinkWithoutTargetView : traverseBacklink ? backLinkWithoutTargetView : fwdLinkWithoutTargetView;
         const linkDocList = linkWithoutTargetDoc ? [linkWithoutTargetDoc] : (traverseBacklink === undefined ? firstDocs.concat(secondDocs) : traverseBacklink ? secondDocs : firstDocs);
-        const linkDoc = linkDocList.length && linkDocList[0];
-        if (linkDoc) {
-            const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
-                (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
-            const targetTimecode = (doc === linkDoc.anchor1 ? Cast(linkDoc.anchor2_timecode, "number") :
-                doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
-                    (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
-            if (target) {
-                const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                containerDoc.currentTimecode = targetTimecode;
-                const targetContext = await target?.context as Doc;
-                const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+        const followLinks = linkDocList.length ? (doc.isPushpin ? linkDocList : [linkDocList[0]]) : [];
+        followLinks.forEach(async linkDoc => {
+            if (linkDoc) {
+                const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
+                    (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
+                const targetTimecode = (doc === linkDoc.anchor1 ? Cast(linkDoc.anchor2_timecode, "number") :
+                    doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number") :
+                        (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? Cast(linkDoc.anchor2_timecode, "number") : Cast(linkDoc.anchor1_timecode, "number")));
+                if (target) {
+                    const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
+                    containerDoc.currentTimecode = targetTimecode;
+                    const targetContext = await target?.context as Doc;
+                    const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+                    DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+                } else {
+                    finished?.();
+                }
             } else {
                 finished?.();
             }
-        } else {
-            finished?.();
-        }
+        });
     }
 }
 Scripting.addGlobal(function DocFocus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });

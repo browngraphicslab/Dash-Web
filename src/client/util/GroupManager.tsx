@@ -16,6 +16,7 @@ import { StrCast, Cast } from "../../fields/Types";
 import GroupMemberView from "./GroupMemberView";
 import { setGroups } from "../../fields/util";
 import { DocServer } from "../DocServer";
+import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 
 library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle);
 
@@ -36,9 +37,11 @@ export default class GroupManager extends React.Component<{}> {
     @observable currentGroup: Opt<Doc>; // the currently selected group.
     @observable private createGroupModalOpen: boolean = false;
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
+    private createGroupButtonRef: React.RefObject<HTMLButtonElement> = React.createRef();
     private currentUserGroups: string[] = [];
     @observable private buttonColour: "#979797" | "black" = "#979797";
     @observable private groupSort: "ascending" | "descending" | "none" = "none";
+
 
 
     constructor(props: Readonly<{}>) {
@@ -48,6 +51,7 @@ export default class GroupManager extends React.Component<{}> {
 
     componentDidMount() {
         this.populateUsers();
+        this.populateGroups();
     }
 
     /**
@@ -74,6 +78,17 @@ export default class GroupManager extends React.Component<{}> {
         return Promise.all(evaluating);
     }
 
+    populateGroups = () => {
+        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
+            groups?.forEach(group => {
+                const members: string[] = JSON.parse(StrCast(group.members));
+                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
+            });
+
+            setGroups(this.currentUserGroups);
+        });
+    }
+
     /**
      * @returns the options to be rendered in the dropdown menu to add users and create a group.
      */
@@ -89,14 +104,7 @@ export default class GroupManager extends React.Component<{}> {
         SelectionManager.DeselectAll();
         this.isOpen = true;
         this.populateUsers();
-        DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
-            groups?.forEach(group => {
-                const members: string[] = JSON.parse(StrCast(group.members));
-                if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
-            });
-
-            setGroups(this.currentUserGroups);
-        });
+        this.populateGroups();
     }
 
     /**
@@ -298,6 +306,14 @@ export default class GroupManager extends React.Component<{}> {
         this.selectedUsers = null;
         this.inputRef.current.value = "";
         this.buttonColour = "#979797";
+
+        const { left, width, top } = this.createGroupButtonRef.current!.getBoundingClientRect();
+        TaskCompletionBox.popupX = left - 2 * width;
+        TaskCompletionBox.popupY = top;
+        TaskCompletionBox.textDisplayed = "Group created!";
+        TaskCompletionBox.taskCompleted = true;
+        setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2000);
+
     }
 
     private get groupCreationModal() {
@@ -340,7 +356,9 @@ export default class GroupManager extends React.Component<{}> {
                         })
                     }}
                 />
-                <button onClick={this.createGroup}
+                <button
+                    ref={this.createGroupButtonRef}
+                    onClick={this.createGroup}
                     style={{ background: this.buttonColour }}
                     disabled={this.buttonColour === "#979797"}
                 >

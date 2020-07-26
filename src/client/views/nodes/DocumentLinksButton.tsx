@@ -10,7 +10,7 @@ import React = require("react");
 import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { LinkCreatedBox } from "./LinkCreatedBox";
+import { TaskCompletionBox } from "./TaskCompletedBox";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { LinkManager } from "../../util/LinkManager";
 import { Tooltip } from "@material-ui/core";
@@ -99,15 +99,16 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
                         runInAction(() => {
                             if (linkDoc) {
-                                LinkCreatedBox.popupX = e.screenX;
-                                LinkCreatedBox.popupY = e.screenY - 133;
-                                LinkCreatedBox.linkCreated = true;
+                                TaskCompletionBox.textDisplayed = "Link Created";
+                                TaskCompletionBox.popupX = e.screenX;
+                                TaskCompletionBox.popupY = e.screenY - 133;
+                                TaskCompletionBox.taskCompleted = true;
 
                                 LinkDescriptionPopup.popupX = e.screenX;
                                 LinkDescriptionPopup.popupY = e.screenY - 100;
                                 LinkDescriptionPopup.descriptionPopup = true;
 
-                                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                                setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
                             }
 
                         });
@@ -132,9 +133,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
                     runInAction(() => {
                         if (linkDoc) {
-                            LinkCreatedBox.popupX = e.screenX;
-                            LinkCreatedBox.popupY = e.screenY - 133;
-                            LinkCreatedBox.linkCreated = true;
+                            TaskCompletionBox.textDisplayed = "Link Created";
+                            TaskCompletionBox.popupX = e.screenX;
+                            TaskCompletionBox.popupY = e.screenY - 133;
+                            TaskCompletionBox.taskCompleted = true;
 
                             if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
                                 LinkDescriptionPopup.popupX = e.screenX;
@@ -142,7 +144,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                                 LinkDescriptionPopup.descriptionPopup = true;
                             }
 
-                            setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                            setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
                         }
                     });
                 }

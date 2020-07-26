@@ -7,8 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl, getPlaygroundMode } from '../../fields/util';
-import { SharingPermissions } from '../util/SharingManager';
+import { GetEffectiveAcl, getPlaygroundMode, SharingPermissions } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -151,7 +150,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
             if (added.length) {
-                if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
+                if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
                     return false;
                 }
                 else {

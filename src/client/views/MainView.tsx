@@ -8,7 +8,7 @@ import {
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTimesCircle,
     faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
     faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faAngleDown, faAngleUp, faSearchPlus, faPlayCircle, faClock, faRocket, faExchangeAlt, faMap
+    faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faAngleDown, faAngleUp, faSearchPlus, faPlayCircle, faClock, faRocket, faExchangeAlt, faMap, faUser
 } from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -61,7 +61,7 @@ import { DocumentManager } from '../util/DocumentManager';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
-import { LinkCreatedBox } from './nodes/LinkCreatedBox';
+import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
@@ -150,7 +150,7 @@ export class MainView extends React.Component {
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
             faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faAngleDown, faAngleUp, faSearchPlus, faPlayCircle, faClock, faRocket, faExchangeAlt, faMap);
+            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faAngleDown, faAngleUp, faSearchPlus, faPlayCircle, faClock, faRocket, faExchangeAlt, faMap, faUser);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -623,7 +623,7 @@ export class MainView extends React.Component {
                 {this.mainContent}
             </GestureOverlay>
             <PreviewCursor />
-            <LinkCreatedBox />
+            <TaskCompletionBox />
             <ContextMenu />
             <FormatShapePane />
             <RadialMenu />
