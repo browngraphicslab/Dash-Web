@@ -48,6 +48,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
+import { ContextMenuProps } from '../ContextMenuItem';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -269,9 +270,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
-        const existingVm = ContextMenu.Instance.findByDescription(category);
-        const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
 
+        const subItems: ContextMenuProps[] = [];
         subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
         if (addExtras && CollectionView._safeMode) {
             ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
@@ -293,13 +293,17 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
         }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
-        !existingVm && ContextMenu.Instance.addItem({ description: category, noexpand: true, subitems: subItems, icon: "eye" });
+
+        const existingVm = ContextMenu.Instance.findByDescription(category);
+        const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+        catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
+        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: catItems, icon: "eye" });
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
         if (cm && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            this.setupViewTypes("Add a Perspective...", vtype => {
+            this.setupViewTypes("UI Controls...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
                 this.props.addDocTab(newRendition, "onRight");

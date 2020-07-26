@@ -20,6 +20,7 @@ export interface SubmenuProps {
     description: string;
     subitems: ContextMenuProps[];
     noexpand?: boolean;
+    addDivider?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
@@ -103,7 +104,8 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                 </div>;
             }
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} style={{ alignItems: where }}
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")}
+                    style={{ alignItems: where, borderTop: this.props.addDivider ? "solid 1px" : undefined }}
                     onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>
                     {this.props.icon ? (
                         <span className="icon-background" onMouseEnter={this.onPointerLeave} style={{ alignItems: "center" }}>
