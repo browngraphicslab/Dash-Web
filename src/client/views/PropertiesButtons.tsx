@@ -354,6 +354,73 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    @computed
+    get onClickButton() {
+        if (this.selectedDoc) {
+            return <Tooltip title={<><div className="dash-tooltip">Choose onClick behavior</div></>}>
+                <div className="propertiesButtons-linkFlyout">
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                        content={this.onClickFlyout}>
+                        <div className={"propertiesButtons-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
+                            {<FontAwesomeIcon className="documentdecorations-icon" icon="mouse-pointer" size="sm" />}
+                        </div>
+                    </Flyout>
+                </div></Tooltip>;
+        } else {
+            return null;
+        }
+    }
+
+    @computed
+    get onClickFlyout() {
+        return <div><form>
+            <div className="radio">
+                <label>
+                    <input type="radio" value="option1" checked={true} />
+                Enter Portal
+            </label>
+            </div>
+            <div className="radio">
+                <label>
+                    <input type="radio" value="option2" />
+                Toggle Detail
+            </label>
+            </div>
+            <div className="radio">
+                <label>
+                    <input type="radio" value="option3" />
+                Do Nothing
+            </label>
+            </div>
+            <div className="radio">
+                <label>
+                    <input type="radio" value="option3" />
+                Follow Link in Place
+            </label>
+            </div>
+            <div className="radio">
+                <label>
+                    <input type="radio" value="option3" />
+                Follow Link on Right
+            </label>
+            </div>
+            <div className="radio">
+                <label>
+                    <input type="radio" value="option3" />
+                Edit onClick Script
+            </label>
+            </div>
+        </form> </div>;
+
+        // onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
+        // onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "window-restore" });
+        // onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+        // onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
+        // onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
+        // onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
+        // onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
+    }
+
 
     render() {
         if (!this.selectedDoc) return (null);
@@ -387,6 +454,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons">
                 <div className="propertiesButtons-button">
                     {this.sharingButton}
+                </div>
+                <div className="propertiesButtons-button">
+                    {this.onClickButton}
                 </div>
                 <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                     {this.considerGoogleDocsPush}
