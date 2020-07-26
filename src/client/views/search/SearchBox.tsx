@@ -383,6 +383,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._results = found;
             this._numTotalResults = found.length;
         }
+        else {
+            this.noresults = "No collection selected :(";
+        }
 
     }
 
@@ -434,7 +437,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (reset) {
             this.layoutDoc._searchString = "";
         }
-        this.noresults = false;
+        this.noresults = "";
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.headercount = 0;
         this.children = 0;
@@ -564,7 +567,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         });
         return this.lockPromise;
     }
-    @observable noresults = false;
+    @observable noresults = "";
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
         const res = await this.getAllResults(this.getFinalQuery(StrCast(this.layoutDoc._searchString)));
@@ -650,8 +653,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._endIndex = 30;
         let headers = new Set<string>();
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
-            console.log("TRU");
-            this.noresults = true;
+            if (this.noresults === "") {
+                this.noresults = "No search results :(";
+            }
             return;
         }
 
@@ -1206,27 +1210,23 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 background: "rgb(241, 239, 235)",
                                 top: 29
                             }}>
-                                <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}><label>
-                                    <input
-                                        type="radio"
-                                    />
-      Current collection
-    </label>
-                                    <label>
-                                        <input
-                                            type="radio"
-                                        />
-      Workspace
-    </label>
-                                    <label>
-                                        <input
-                                            type="radio"
-                                        />
-      Database
-    </label></form>
+                                <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
+                                    <div className="radio" style={{ margin: 0 }}>
+                                        <label style={{ fontSize: 12, marginTop: 6 }} >
+                                            <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                        Current collection
+                                    </label>
+                                    </div>
+                                    <div className="radio" style={{ margin: 0 }}>
+                                        <label style={{ fontSize: 12, marginTop: 6 }} >
+                                            <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                            Database
+                                    </label>
+                                    </div>
+                                </form>
                             </div>
 
-                            {this.noresults === false ? <div style={{ display: this.open === true ? "contents" : "none" }}> <CollectionView {...this.props}
+                            {this.noresults === "" ? <div style={{ display: this.open === true ? "contents" : "none" }}> <CollectionView {...this.props}
                                 Document={this.props.Document}
                                 moveDocument={returnFalse}
                                 removeDocument={returnFalse}
@@ -1236,7 +1236,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 focus={this.selectElement}
                                 ScreenToLocalTransform={Transform.Identity}
                             /></div> : <div style={{ display: "flex", justifyContent: "center" }}><div style={{ height: 200, top: 29, width: 250, position: "absolute", backgroundColor: "white", display: "flex", justifyContent: "center", alignItems: "center", border: "black 1px solid", }}>
-                                <div>No search results :(</div>
+                                <div>{this.noresults}</div>
                             </div></div>}
                         </div> : undefined}
                 </div>
