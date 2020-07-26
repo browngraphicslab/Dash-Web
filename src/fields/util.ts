@@ -77,10 +77,10 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
 
     if (writeToDoc) {
         if (value === undefined) {
-            delete target.__fieldKeys[prop];
+            target.__fieldKeys && (delete target.__fieldKeys[prop]);
             delete target.__fields[prop];
         } else {
-            target.__fieldKeys[prop] = true;
+            target.__fieldKeys && (target.__fieldKeys[prop] = true);
             target.__fields[prop] = value;
         }
         //if (typeof value === "object" && !(value instanceof ObjectField)) debugger;

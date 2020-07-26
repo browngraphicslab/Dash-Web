@@ -224,11 +224,10 @@ export namespace DragManager {
     }
 
     // drag a button template and drop a new button 
-    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
+    export function
+        StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         const finishDrag = (e: DragCompleteEvent) => {
-            const bd = params.length > Object.keys(vars).length ?
-                Docs.Create.ButtonDocument({ toolTip: title, z: 1, _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) }) :
-                Docs.Create.FontIconDocument({ toolTip: title, z: 1, _nativeWidth: 30, _nativeHeight: 30, _width: 30, _height: 30, title, onClick: ScriptField.MakeScript(script) });
+            const bd = Docs.Create.ButtonDocument({ toolTip: title, z: 1, _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) });
             params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc))); // copy all "captured" arguments into document parameterfields
             initialize?.(bd);
             Doc.GetProto(bd)["onClick-paramFieldKeys"] = new List<string>(params);
