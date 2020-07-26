@@ -114,10 +114,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     public static setupZoom(doc: Doc, zoomProgressivize: boolean = false) {
-        let width = new List<number>();
-        let height = new List<number>();
-        let top = new List<number>();
-        let left = new List<number>();
+        const width = new List<number>();
+        const height = new List<number>();
+        const top = new List<number>();
+        const left = new List<number>();
         width.push(NumCast(doc.width));
         height.push(NumCast(doc.height));
         top.push(NumCast(doc.height) / -2);
@@ -176,7 +176,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             NativeWidth={this.NativeWidth}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight} />;
-        if (this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
+        if (PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
             const effectProps = {
                 left: this.layoutDoc.presEffectDirection === 'left',
                 right: this.layoutDoc.presEffectDirection === 'right',

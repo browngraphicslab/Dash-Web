@@ -595,7 +595,7 @@ export namespace Doc {
 
         var zip = new JSZip();
 
-        zip.file("doc.json", docString);
+        zip.file(doc.title + ".json", docString);
 
         // // Generate a directory within the Zip file structure
         // var img = zip.folder("images");
@@ -607,7 +607,7 @@ export namespace Doc {
         zip.generateAsync({ type: "blob" })
             .then((content: any) => {
                 // Force down of the Zip file
-                saveAs(content, "download.zip");
+                saveAs(content, doc.title + ".zip"); // glr: Possibly change the name of the document to match the title?
             });
     }
     //
