@@ -323,7 +323,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @action
     onSelect2 = (key: string): void => {
-        this._searchTerm=this._searchTerm.slice(0,this._key.length) +key;
+        this._searchTerm = this._searchTerm.slice(0, this._key.length) + key;
         this._isOpen = false;
 
     }
@@ -404,16 +404,15 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     }
 
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
-        console.log("HEHEHE")
         if (!this._isOpen) return <></>;
 
-        const keyOptions:string[]=[];
+        const keyOptions: string[] = [];
         console.log(this._searchTerm.slice(this._key.length))
         let temp = this._searchTerm.slice(this._key.length);
-        this.props.docs?.forEach((doc)=>{
+        this.props.docs?.forEach((doc) => {
             let key = StrCast(doc[this._key]);
-            if (keyOptions.includes(key)===false && key.includes(temp)){
-            keyOptions.push(key);
+            if (keyOptions.includes(key) === false && key.includes(temp)) {
+                keyOptions.push(key);
             }
         });
 
@@ -423,7 +422,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 border: "1px solid lightgray",
                 width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
             }}
-                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect2(key);  }}>{key}</div>;
+                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect2(key); }}>{key}</div>;
         });
 
         return options;
@@ -452,7 +451,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this._key === this._searchTerm.slice(0, this._key.length) ?
-                    this.renderFilterOptions():this.renderOptions()}
+                        this.renderFilterOptions() : this.renderOptions()}
                 </div>
             </div >
         );

@@ -5,7 +5,7 @@ import { action, computed, observable, runInAction, IReactionDisposer, reaction 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc } from '../../../fields/Doc';
+import { Doc, DocListCast } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne, returnEmptyString, returnEmptyFilter } from '../../../Utils';
@@ -24,7 +24,7 @@ import { CollectionLinearView } from '../collections/CollectionLinearView';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 
 import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { ScriptField } from '../../../fields/ScriptField';
+import { ScriptField, ComputedField } from '../../../fields/ScriptField';
 import { PrefetchProxy } from '../../../fields/Proxy';
 import { List } from '../../../fields/List';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
@@ -184,14 +184,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc)
 
 
-    @observable newsearchstring: string ="";
+    @observable newsearchstring: string = "";
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         //this.layoutDoc._searchString = e.target.value;
-        this.newsearchstring= e.target.value;
-        if (e.target.value===""){
+        this.newsearchstring = e.target.value;
+        if (e.target.value === "") {
             console.log("CLOSE");
-            runInAction(()=>{this.open=false});
+            runInAction(() => { this.open = false });
         }
         this._openNoResults = false;
         this._results = [];
@@ -206,17 +206,17 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             console.log(this.newsearchstring)
-            this.layoutDoc._searchString=this.newsearchstring;
+            this.layoutDoc._searchString = this.newsearchstring;
             // if (this._icons !== this._allIcons) {
             //     runInAction(() => { this.expandedBucket = false });
             // }
-            if (StrCast(this.layoutDoc._searchString)!==""){
+            if (StrCast(this.layoutDoc._searchString) !== "") {
                 console.log("OPEN");
-                runInAction(()=>{this.open=true});
+                runInAction(() => { this.open = true });
             }
             else {
                 console.log("CLOSE");
-                runInAction(()=>{this.open=false});
+                runInAction(() => { this.open = false });
 
             }
             this.submitSearch();
@@ -335,10 +335,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     getCurCollections(): Doc[] {
         const selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
         const collections: Doc[] = [];
-        console.log(selectedDocs);
         selectedDocs.forEach(async element => {
             const layout: string = StrCast(element.props.Document.layout);
-            console.log(layout);
+
+            console.log(DocListCast(element.dataDoc[Doc.LayoutFieldKey(element.dataDoc)]));
+            console.log(DocListCast(element.dataDoc[Doc.LayoutFieldKey(element.dataDoc)]).length);
+
             //checks if selected view (element) is a collection. if it is, adds to list to search through
             if (layout.indexOf("Collection") > -1) {
                 //makes sure collections aren't added more than once
@@ -355,6 +357,34 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return collections;
     }
 
+
+
+    searchCollection(query: string) {
+
+        const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
+        if (selectedCollection !== undefined) {
+            let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
+            let found: [Doc, string[], string[]][] = [];
+            docs.forEach((d) => {
+                let hlights: string[] = [];
+                const protos = Doc.GetAllPrototypes(d);
+                let proto = protos[protos.length - 2];
+                Object.keys(proto).forEach(key => {
+                    if (StrCast(d[key]).includes(query)) {
+                        console.log(key, d[key]);
+                        hlights.push(key);
+                    }
+                });
+                if (hlights.length > 0) {
+                    found.push([d, hlights, []]);
+                };
+            });
+            console.log(found);
+            this._results = found;
+            this._numTotalResults = found.length;
+        }
+
+    }
 
     applyBasicFieldFilters(query: string) {
         let finalQuery = "";
@@ -399,15 +429,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async (reset?: boolean) => {
-        
+
         this.checkIcons();
         if (reset) {
             this.layoutDoc._searchString = "";
         }
-        this.noresults= false;
+        this.noresults = false;
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
-        this.headercount=0;
-        this.children=0;
+        this.headercount = 0;
+        this.children = 0;
         this.buckets = [];
         this.new_buckets = {};
         const query = StrCast(this.layoutDoc._searchString);
@@ -422,7 +452,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             if (this._timeout) { clearTimeout(this._timeout); this._timeout = undefined };
             this._timeout = setTimeout(() => {
                 console.log("Resubmitting search");
-                this.submitSearch();
+
             }, 60000);
         }
 
@@ -430,7 +460,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
-            await this.getResults(query);
+            this.scale === true ? await this.getResults(query) : this.searchCollection(query);
             runInAction(() => {
                 this._resultsOpen = true;
                 this._searchbarOpen = true;
@@ -440,6 +470,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             });
         }
     }
+
+    @observable scale = false;
+
     @observable _timeout: any = undefined;
 
     @observable firststring: string = "";
@@ -494,6 +527,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const highlight = highlights[doc[Id]];
                             const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
+                            console.log(hlights);
                             doc ? console.log(Cast(doc.context, Doc)) : null;
                             if (this.findCommonElements(hlights)) {
                             }
@@ -602,7 +636,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._curRequest = undefined;
     }
 
-    @observable children: number =0;
+    @observable children: number = 0;
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         if (!this._resultsRef.current) return;
@@ -616,7 +650,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._endIndex = 30;
         let headers = new Set<string>();
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
-            this.noresults=true;
+            console.log("TRU");
+            this.noresults = true;
             return;
         }
 
@@ -660,8 +695,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             highlights.forEach((item) => headers.add(item));
                             this._visibleDocuments[i] = result[0];
                             this._isSearch[i] = "search";
+                            console.log(result[0]);
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                            this.children ++;
+                            this.children++;
                         }
                     }
                     else {
@@ -677,8 +713,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";
                                 console.log("WHYYYY");
+                                console.log(result[0]);
+
                                 Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
-                                this.children ++;
+                                this.children++;
 
                             }
                         }
@@ -691,7 +729,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         let schemaheaders: SchemaHeaderField[] = [];
         this.headerscale = headers.size;
         headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")))
-        this.headercount= schemaheaders.length;
+        this.headercount = schemaheaders.length;
         this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
@@ -699,7 +737,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._isSearch.length = this._results.length;
         }
     }
-    @observable headercount:number=0;
+    @observable headercount: number = 0;
     @observable headerscale: number = 0;
 
     findCommonElements(arr2: string[]) {
@@ -1125,22 +1163,22 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
-        //let length = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
-        let length = this.headercount;
+        let length = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
+        //let length = this.headercount;
         length > 3 ? length = 650 : length = length * 205 + 51;
         let height = this.children;
-        height > 8 ? height = 31+31*8: height = 31*height+ 31; 
+        height > 8 ? height = 31 + 31 * 8 : height = 31 * height + 31;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar">
                     {/* <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span> */}
-                    <div style={{position:"absolute", left:15}}>{Doc.CurrentUserEmail}</div>
-                    <FontAwesomeIcon icon={"search"} size="lg" style={{ position:"relative", left:24, padding:1 }} />
+                    <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
+                    <FontAwesomeIcon icon={"search"} size="lg" style={{ position: "relative", left: 24, padding: 1 }} />
                     <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
-                        style={{ paddingLeft:23, width: this._searchbarOpen ? "200px" : "200px" }} />
+                        style={{ paddingLeft: 23, width: this._searchbarOpen ? "200px" : "200px" }} />
                     {/* <button className="searchBox-barChild searchBox-filter" style={{ transform: "none" }} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button> */}
                 </div>
                 <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults > 0 ? { overflow: "visible" } : { overflow: "hidden" }}>
@@ -1154,51 +1192,53 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         {this.keyButtons}
                     </div>
                 </div>
-                <div style={{ zIndex:2000}}>
-                {this._searchbarOpen === true ? 
-                <div style={{display:"flex", justifyContent:"center",}}>
-                <div style={{width: this.headercount>0?length: 251,
-                height: 25,
-                borderColor: "#9c9396",
-                border: "1px solid",
-                borderRadius:"0.3em",
-                borderBottom:this.open===false?"1px solid":"none",
-                position: "absolute",
-                background: "rgb(241, 239, 235)",
-                top:29}}>                 
-                    <form className="beta" style={{justifyContent:"space-evenly", display:"flex"}}><label>
-      <input
-        type="radio"
-      />
-      Current collection 
+                <div style={{ zIndex: 2000 }}>
+                    {this._searchbarOpen === true ?
+                        <div style={{ display: "flex", justifyContent: "center", }}>
+                            <div style={{
+                                width: this.headercount > 0 ? length : 251,
+                                height: 25,
+                                borderColor: "#9c9396",
+                                border: "1px solid",
+                                borderRadius: "0.3em",
+                                borderBottom: this.open === false ? "1px solid" : "none",
+                                position: "absolute",
+                                background: "rgb(241, 239, 235)",
+                                top: 29
+                            }}>
+                                <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}><label>
+                                    <input
+                                        type="radio"
+                                    />
+      Current collection
     </label>
-    <label>
-      <input
-        type="radio"
-      />
+                                    <label>
+                                        <input
+                                            type="radio"
+                                        />
       Workspace
     </label>
-    <label>
-      <input
-        type="radio"
-      />
+                                    <label>
+                                        <input
+                                            type="radio"
+                                        />
       Database
-    </label></form>           
-                </div>
+    </label></form>
+                            </div>
 
-                {this.noresults===false? <div style={{display:this.open===true? "contents":"none"}}> <CollectionView {...this.props}
-                    Document={this.props.Document}
-                    moveDocument={returnFalse}
-                    removeDocument={returnFalse}
-                    PanelHeight={this.open===true?()=> height:()=>0}
-                    PanelWidth={this.open===true? ()=>length : ()=>0}
-                    PanelPosition={"absolute"}
-                    focus={this.selectElement}
-                    ScreenToLocalTransform={Transform.Identity}
-                     /></div>: <div style={{display:"flex",justifyContent:"center"}}><div style={{height:200, top:29, width:250, position:"absolute", backgroundColor:"white", display:"flex", justifyContent:"center", alignItems    :"center", border: "black 1px solid", }}>
-                     <div>No search results :(</div>
-                     </div></div>}
-                     </div>: undefined}
+                            {this.noresults === false ? <div style={{ display: this.open === true ? "contents" : "none" }}> <CollectionView {...this.props}
+                                Document={this.props.Document}
+                                moveDocument={returnFalse}
+                                removeDocument={returnFalse}
+                                PanelHeight={this.open === true ? () => height : () => 0}
+                                PanelWidth={this.open === true ? () => length : () => 0}
+                                PanelPosition={"absolute"}
+                                focus={this.selectElement}
+                                ScreenToLocalTransform={Transform.Identity}
+                            /></div> : <div style={{ display: "flex", justifyContent: "center" }}><div style={{ height: 200, top: 29, width: 250, position: "absolute", backgroundColor: "white", display: "flex", justifyContent: "center", alignItems: "center", border: "black 1px solid", }}>
+                                <div>No search results :(</div>
+                            </div></div>}
+                        </div> : undefined}
                 </div>
 
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
