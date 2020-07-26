@@ -356,6 +356,14 @@ export class CurrentUserUtils {
             iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
             doc["template-icon-view-rtf"] = new PrefetchProxy(iconRtfView);
         }
+        if (doc["template-icon-view-button"] === undefined) {
+            const iconBtnView = Docs.Create.FontIconDocument({
+                title: "icon_" + DocumentType.BUTTON, _nativeHeight: 30, _nativeWidth: 30,
+                _width: 30, _height: 30, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
+            });
+            iconBtnView.isTemplateDoc = makeTemplate(iconBtnView, true, "icon_" + DocumentType.BUTTON);
+            doc["template-icon-view-button"] = new PrefetchProxy(iconBtnView);
+        }
         if (doc["template-icon-view-img"] === undefined) {
             const iconImageView = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", {
                 title: "data", _width: 50, isTemplateDoc: true, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)")
@@ -369,11 +377,11 @@ export class CurrentUserUtils {
             doc["template-icon-view-col"] = new PrefetchProxy(iconColView);
         }
         if (doc["template-icons"] === undefined) {
-            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-button"] as Doc,
             doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc, doc["template-icon-view-pdf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
-            const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-button"] as Doc,
             doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
             DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
                 await Promise.all(curIcons!);

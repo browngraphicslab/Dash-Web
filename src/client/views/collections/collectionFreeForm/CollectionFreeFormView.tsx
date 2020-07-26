@@ -1247,11 +1247,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
-        const viewctrls = ContextMenu.Instance.findByDescription("View Controls...");
+        const viewctrls = ContextMenu.Instance.findByDescription("UI Controls...");
         const viewCtrlItems = viewctrls && "subitems" in viewctrls ? viewctrls.subitems : [];
         viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
         viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        !viewctrls && ContextMenu.Instance.addItem({ description: "View Controls...", subitems: viewCtrlItems, icon: "eye" });
+        !viewctrls && ContextMenu.Instance.addItem({ description: "UI Controls...", subitems: viewCtrlItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];

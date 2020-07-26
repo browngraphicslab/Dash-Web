@@ -1401,12 +1401,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     onDoubleClick={this.onDoubleClick}
                 >
                     <div className={`formattedTextBox-outer`} ref={this._scrollRef}
-                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.isSelected() ? "none" : undefined }}
+                        style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, pointerEvents: !this.props.active() ? "none" : undefined }}
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
-                                pointerEvents: !this.props.isSelected() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
+                                pointerEvents: !this.props.active() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}
                         />
                     </div>

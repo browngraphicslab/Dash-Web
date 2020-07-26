@@ -439,8 +439,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
-                    else dW = dH * nwidth / nheight;
+                    if (!e.ctrlKey) {
+                        if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
+                        else dW = dH * nwidth / nheight;
+                    }
                 }
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
@@ -464,20 +466,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey) {
                             doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
                         doc._width = actualdW;
                         if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else doc._height = actualdH;
+                        else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey) {
                             doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;
                         if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else doc._width = actualdW;
+                        else if (!fixedAspect || !e.ctrlKey) doc._width = actualdW;
                     }
                 } else {
                     dW && (doc._width = actualdW);
