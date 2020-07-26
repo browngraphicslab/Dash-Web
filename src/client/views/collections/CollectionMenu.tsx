@@ -111,7 +111,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         params: ["target"], title: "save filter",
         script: "self.target._docFilters = copyField(self['target-docFilters']);",
         immediate: undoBatch((source: Doc[]) => this.target._docFilters = undefined),
-        initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField && ObjectField.MakeCopy(this.target._docFilters as any as ObjectField); },
+        initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
     };
 
     _freeform_commands = [this._viewCommand, this._saveFilterCommand, this._fitContentCommand, this._clusterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand];
