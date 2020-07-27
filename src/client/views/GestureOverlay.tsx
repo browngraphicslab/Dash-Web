@@ -668,6 +668,10 @@ export default class GestureOverlay extends Touchable {
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
+        //take off gesture recognition for now
+        if (gesture) {
+            return false;
+        }
         const xs = this._points.map(p => p.X);
         const ys = this._points.map(p => p.Y);
         var right = Math.max(...xs);
@@ -796,19 +800,7 @@ export default class GestureOverlay extends Touchable {
                 break;
             case "line":
                 this._points.push({ X: left, Y: top });
-
-                this._points.push({ X: left, Y: top });
-
-                // this._points.push({ X: right, Y: bottom });
-                // this._points.push({ X: right, Y: bottom });
-                // this._points.push({ X: right, Y: bottom });
-                // this._points.push({ X: right, Y: bottom });
-
-
                 this._points.push({ X: right, Y: bottom });
-                this._points.push({ X: right, Y: bottom });
-
-                // this._points.push({ X: right, Y: bottom - 1 });
                 break;
             case "arrow":
                 const x1 = left;

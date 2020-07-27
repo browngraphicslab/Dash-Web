@@ -16,11 +16,11 @@ import { Document } from "../../../../fields/documentSchemas";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, } from "@fortawesome/free-solid-svg-icons";
+import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, faArrowRight, faArrowsAltH, faMinus, faCircle, faExclamationTriangle, faSquare, faLongArrowAltRight, faPenFancy, faCaretSquareRight, faAngleDoubleRight, } from "@fortawesome/free-solid-svg-icons";
 import { Cast, StrCast, BoolCast } from "../../../../fields/Types";
 import FormatShapePane from "./FormatShapePane";
 
-library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve);
+library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, faLongArrowAltRight, faArrowsAltH, faMinus, faCircle, faSquare, faSquare, faPenFancy, faAngleDoubleRight,);
 
 
 
@@ -30,18 +30,13 @@ export default class InkOptionsMenu extends AntimodeMenu {
 
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
-    // private _buttons = ["circle", "triangle", "rectangle", "arrow", "line"];
-    // private _icons = ["O", "∆", "ロ", "➜", "-"];
-    // private _buttons = ["circle", "triangle", "rectangle", "line", "noRec", "",];
-    // private _icons = ["O", "∆", "ロ", "⎯⎯⎯", "✖︎", " "];
-    //arrowStart and arrowEnd must match and defs must exist in Inking Stroke
-    // private _arrowStart = ["arrowStart", "arrowStart", "dot", "dot", "none"];
-    // private _arrowEnd = ["none", "arrowEnd", "none", "dot", "none"];
-    // private _arrowIcons = ["→", "↔︎", "•", "••", " "];
-    private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
-    private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
-    private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
-    private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
+    private _dotsize = [10, 20, 30, 40];
+    private _draw = ["∿", "⎯", "→", "↔︎", "ロ", "O"];
+    private _head = ["", "", "", "arrow", "", ""];
+    private _end = ["", "", "arrow", "arrow", "", ""];
+    private _shape = ["", "line", "line", "line", "rectangle", "circle"];
+    private _title = ["pen", "line", "line with arrow", "line with double arrows", "square", "circle",];
+    private _faName = ["pen-fancy", "minus", "long-arrow-alt-right", "arrows-alt-h", "square", "circle"];
 
     @observable _shapesNum = this._shape.length;
     @observable _selected = this._shapesNum;
@@ -154,6 +149,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
                 return <button
                     className="antimodeMenu-button"
                     key={icon}
+                    title={this._title[i]}
                     onPointerDown={action(() => {
                         this._double = "";
 
@@ -202,50 +198,19 @@ export default class InkOptionsMenu extends AntimodeMenu {
 
                     })}
                     style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
-                    {this._draw[i]}
+                    <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
+
                 </button>;
             })}</div>;
         return drawButtons;
     }
 
-    // @computed get arrowPicker() {
-    //     var currIcon;
-    //     for (var i = 0; i < this._arrowStart.length; i++) {
-    //         if (this._arrowStart[i] === ActiveArrowStart() && this._arrowEnd[i] === ActiveArrowEnd()) {
-    //             currIcon = this._arrowIcons[i];
-    //             if (this._arrowIcons[i] === " ") {
-    //                 currIcon = "➤";
-    //             }
-    //         }
-    //     }
-    //     var arrowPicker = <button
-    //         className="antimodeMenu-button"
-    //         key="arrow"
-    //         onPointerDown={action(e => this._arrowBtn = !this._arrowBtn)}
-    //         style={{ backgroundColor: this._arrowBtn ? "121212" : "" }}>
-    //         {currIcon}
-    //     </button>;
-    //     if (this._arrowBtn) {
-    //         arrowPicker = <div className="btn2-group" key="arrows">
-    //             {arrowPicker}
-    //             {this._arrowStart.map((arrowStart, i) => {
-    //                 return <button
-    //                     className="antimodeMenu-button"
-    //                     key={arrowStart}
-    //                     onPointerDown={action(() => { SetActiveArrowStart(arrowStart); SetActiveArrowEnd(this._arrowEnd[i]); this.editProperties(arrowStart, "arrowStart"), this.editProperties(this._arrowEnd[i], "arrowEnd"); this._arrowBtn = false; })}
-    //                     style={{ backgroundColor: this._arrowBtn ? "121212" : "" }}>
-    //                     {this._arrowIcons[i]}
-    //                 </button>;
-    //             })}
-    //         </div>;
-    //     }
-    //     return arrowPicker;
-    // }
 
     @computed get widthPicker() {
         var widthPicker = <button
             className="antimodeMenu-button"
             key="width"
+            title="change width"
             onPointerDown={action(e => this._widthBtn = !this._widthBtn)}
             style={{ backgroundColor: this._widthBtn ? "121212" : "" }}>
             <FontAwesomeIcon icon="bars" size="lg" />
@@ -253,13 +218,13 @@ export default class InkOptionsMenu extends AntimodeMenu {
         if (this._widthBtn) {
             widthPicker = <div className="btn2-group" key="width">
                 {widthPicker}
-                {this._width.map(wid => {
+                {this._width.map((wid, i) => {
                     return <button
                         className="antimodeMenu-button"
                         key={wid}
                         onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
-                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001 }}>
-                        {wid}
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001, fontSize: this._dotsize[i], padding: 0, textAlign: "center" }}>
+                        •
                     </button>;
                 })}
             </div>;
@@ -273,7 +238,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
         var colorPicker = <button
             className="antimodeMenu-button"
             key="color"
-            title="colorChanger"
+            title="Change Ink Color"
             onPointerDown={action(e => this._colorBtn = !this._colorBtn)}
             style={{ backgroundColor: this._colorBtn ? "121212" : "" }}>
             <FontAwesomeIcon icon="pen-nib" size="lg" />
@@ -302,7 +267,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
             title="toggle foramatting pane"
             onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
             style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
-            <FontAwesomeIcon icon="chevron-right" size="lg" />
+            <FontAwesomeIcon icon="angle-double-right" size="lg" />
         </button>;
     }
 
@@ -310,7 +275,7 @@ export default class InkOptionsMenu extends AntimodeMenu {
         var fillPicker = <button
             className="antimodeMenu-button"
             key="fill"
-            title="fillChanger"
+            title="Change Fill Color"
             onPointerDown={action(e => this._fillBtn = !this._fillBtn)}
             style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
             <FontAwesomeIcon icon="fill-drip" size="lg" />
@@ -334,48 +299,6 @@ export default class InkOptionsMenu extends AntimodeMenu {
         return fillPicker;
     }
 
-    // @computed get shapePicker() {
-    //     var currIcon;
-    //     if (GestureOverlay.Instance.InkShape === "") {
-    //         currIcon = <FontAwesomeIcon icon="shapes" size="lg" />;
-    //     } else {
-    //         for (var i = 0; i < this._icons.length; i++) {
-    //             if (GestureOverlay.Instance.InkShape === this._buttons[i]) {
-    //                 currIcon = this._icons[i];
-    //             }
-    //         }
-    //     }
-    //     var shapePicker = <button
-    //         className="antimodeMenu-button"
-    //         key="shape"
-    //         onPointerDown={action(e => this._shapeBtn = !this._shapeBtn)}
-    //         style={{ backgroundColor: this._shapeBtn ? "121212" : "" }}>
-    //         {currIcon}
-    //     </button>;
-    //     if (this._shapeBtn) {
-    //         shapePicker = <div className="btn2-group" key="shape">
-    //             {shapePicker}
-    //             {this._buttons.map((btn, i) => {
-    //                 var ttl = btn;
-    //                 if (btn === "") {
-    //                     ttl = "no shape";
-    //                 }
-    //                 if (btn === "noRec") {
-    //                     ttl = "disable shape recognition";
-    //                 }
-    //                 return <button
-    //                     className="antimodeMenu-button"
-    //                     title={`Draw ${btn}`}
-    //                     key={ttl}
-    //                     onPointerDown={action((e) => { GestureOverlay.Instance.InkShape = btn; this._shapeBtn = false; })}
-    //                     style={{ backgroundColor: this._shapeBtn ? "121212" : "", fontSize: "20" }}>
-    //                     {this._icons[i]}
-    //                 </button>;
-    //             })}
-    //         </div>;
-    //     }
-    //     return shapePicker;
-    // }
 
     @computed get bezierButton() {
         return <button
@@ -403,18 +326,15 @@ export default class InkOptionsMenu extends AntimodeMenu {
 
     render() {
         const buttons = [
-            // <button className="antimodeMenu-button" title="Drag" key="drag" onPointerDown={e => this.dragStart(e)}>
-            //     <FontAwesomeIcon icon="arrows-alt" size="lg" />
-            // </button>,
-            // this.shapePicker,
-            // this.bezierButton,
+
+            this.drawButtons,
             this.widthPicker,
             this.colorPicker,
             this.fillPicker,
-            this.drawButtons,
+
+
             this.formatPane,
-            // this.arrowPicker,
-            // this.dashButton,
+
             <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                 <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
             </button>

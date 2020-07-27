@@ -123,6 +123,12 @@ export namespace InteractionUtils {
         } else {
             pts = points;
         }
+        if (isNaN(scalex)) {
+            scalex = 1;
+        }
+        if (isNaN(scaley)) {
+            scaley = 1;
+        }
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},
          ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
@@ -141,7 +147,6 @@ export namespace InteractionUtils {
                     <polygon points={`${2 - arrowDim} ${-Math.max(1, arrowDim / 2)}, ${2 - arrowDim} ${Math.max(1, arrowDim / 2)}, 3 0`} />
                 </marker>}
             </defs>}
-
             <polyline
                 points={strpts}
                 style={{

@@ -105,9 +105,9 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
             "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
 
-        const controlPoints: { X: number, Y: number, I: number }[] = [];
-        const handlePoints: { X: number, Y: number, I: number, dot1: number, dot2: number }[] = [];
-        const handleLine: { X1: number, Y1: number, X2: number, Y2: number, X3: number, Y3: number, dot1: number, dot2: number }[] = [];
+        var controlPoints: { X: number, Y: number, I: number }[] = [];
+        var handlePoints: { X: number, Y: number, I: number, dot1: number, dot2: number }[] = [];
+        var handleLine: { X1: number, Y1: number, X2: number, Y2: number, X3: number, Y3: number, dot1: number, dot2: number }[] = [];
         if (data.length >= 4) {
             for (var i = 0; i <= data.length - 4; i += 4) {
                 controlPoints.push({ X: data[i].X, Y: data[i].Y, I: i });
@@ -124,6 +124,15 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             }
             handleLine.push({ X1: data[data.length - 2].X, Y1: data[data.length - 2].Y, X2: data[data.length - 1].X, Y2: data[data.length - 1].Y, X3: data[data.length - 1].X, Y3: data[data.length - 1].Y, dot1: data.length - 1, dot2: data.length - 1 });
 
+
+        }
+        if (data.length <= 4) {
+            handlePoints = [];
+            handleLine = [];
+            controlPoints = [];
+            for (var i = 0; i < data.length; i++) {
+                controlPoints.push({ X: data[i].X, Y: data[i].Y, I: i });
+            }
 
         }
         const dotsize = String(Math.min(width * scaleX, height * scaleY) / 40);

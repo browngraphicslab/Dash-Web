@@ -23,6 +23,8 @@ import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { Tooltip } from '@material-ui/core';
+import InkOptionsMenu from './collections/collectionFreeForm/InkOptionsMenu';
+import FormatShapePane from './collections/collectionFreeForm/FormatShapePane';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -59,6 +61,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _prevX = 0;
     private _prevY = 0;
     private _centerPoints: { X: number, Y: number }[] = [];
+    private _inkDocs: { x: number, y: number, width: number, height: number }[] = [];
 
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
@@ -309,8 +312,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     const right = Math.max(...xs);
                     const bottom = Math.max(...ys);
 
-                    doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
-                    doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+                    // doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
+                    // doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+                    doc._height = (bottom - top);
+                    doc._width = (right - left);
 
                 }
                 index++;
@@ -329,6 +334,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     _dragHeights = new Map<Doc, number>();
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+
+        this._inkDocs = [];
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height) {
+                this._inkDocs.push({ x: doc.x, y: doc.y, width: doc._width, height: doc._height });
+            }
+
+        }));
+
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
         if (e.button === 0) {
             this._resizeHdlId = e.currentTarget.id;
@@ -501,6 +516,28 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
         SnappingManager.clearSnapLines();
+
+
+        //need to change points for resize, or else rotation/control points will fail.
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView, index) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
+                console.log(doc.x, doc.y, doc._height, doc._width);
+                const ink = Cast(doc.data, InkField)?.inkData;
+                if (ink) {
+                    const newPoints: { X: number, Y: number }[] = [];
+                    for (var i = 0; i < ink.length; i++) {
+                        // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
+                        const newX = (doc.x - this._inkDocs[index].x) + (ink[i].X * doc._width) / this._inkDocs[index].width;
+                        const newY = (doc.y - this._inkDocs[index].y) + (ink[i].Y * doc._height) / this._inkDocs[index].height;
+                        newPoints.push({ X: newX, Y: newY });
+                    }
+                    doc.data = new InkField(newPoints);
+
+                }
+
+            }
+        }));
     }
 
     @computed
@@ -591,6 +628,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
+        var offset = 0;
+        //make offset larger for ink to edit points
+        if (seldoc.rootDoc.type === DocumentType.INK) {
+            offset = 20;
+        }
         return (<div className="documentDecorations" style={{ background: darkScheme }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -603,10 +645,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             </div>
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>
                 <div className="documentDecorations-container" key="container" ref={this.setTextBar} style={{
-                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
-                    left: bounds.x - this._resizeBorderWidth / 2,
-                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth + offset) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight + offset) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2 - offset / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight - offset / 2,
                 }}>
                     {maximizeIcon}
                     {titleArea}
