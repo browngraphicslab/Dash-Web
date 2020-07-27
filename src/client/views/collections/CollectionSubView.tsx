@@ -292,7 +292,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
-                            Doc.GetProto(htmlDoc)["data-text"] = text;
+                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc)["text"] = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
@@ -300,7 +300,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
                                     const y = NumCast(srcWeb._scrollTop) + (rect?.y || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 75, _height: 40, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);

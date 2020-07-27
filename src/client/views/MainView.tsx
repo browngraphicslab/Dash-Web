@@ -1,6 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 
 import {
+    faHireAHelper
+} from '@fortawesome/free-brands-svg-icons';
+import {
     faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
@@ -150,7 +153,7 @@ export class MainView extends React.Component {
             faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
             faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight,
             faHeading, faRulerCombined, faFillDrip, faLink, faUnlink, faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper,
-            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faMap, faUser);
+            faPaintRoller, faBars, faBrush, faShapes, faEllipsisH, faHandPaper, faMap, faUser, faHireAHelper);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }

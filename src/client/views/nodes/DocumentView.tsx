@@ -44,6 +44,7 @@ import { MobileInterface } from '../../../mobile/MobileInterface';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { LinkManager } from '../../util/LinkManager';
+import CollectionMenu from '../collections/CollectionMenu';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,

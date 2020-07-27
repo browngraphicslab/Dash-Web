@@ -30,14 +30,26 @@ import { ObjectField } from "../../../fields/ObjectField";
 export default class CollectionMenu extends AntimodeMenu {
     static Instance: CollectionMenu;
 
-    @observable SelectedCollection: CollectionView | undefined;
+    @observable SelectedCollection: DocumentView | undefined;
+    @observable FieldKey: string;
 
     constructor(props: Readonly<{}>) {
         super(props);
+        this.FieldKey = "";
         CollectionMenu.Instance = this;
         this._canFade = false; // don't let the inking menu fade away
         this.Pinned = Cast(Doc.UserDoc()["menuCollections-pinned"], "boolean", true);
         this.jumpTo(300, 300);
+    }
+
+    componentDidMount() {
+        reaction(() => SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0],
+            (doc) => doc && this.SetSelection(doc))
+    }
+
+    @action
+    SetSelection(view: DocumentView) {
+        this.SelectedCollection = view;
     }
 
     @action
@@ -54,14 +66,18 @@ export default class CollectionMenu extends AntimodeMenu {
         </button>;
 
         return this.getElement(!this.SelectedCollection ? [button] :
-            [<CollectionViewBaseChrome key="chrome" CollectionView={this.SelectedCollection} type={StrCast(this.SelectedCollection.props.Document._viewType) as CollectionViewType} />,
+            [<CollectionViewBaseChrome key="chrome"
+                docView={this.SelectedCollection}
+                fieldKey={Doc.LayoutFieldKey(this.SelectedCollection?.props.Document)}
+                type={StrCast(this.SelectedCollection?.props.Document._viewType, CollectionViewType.Invalid) as CollectionViewType} />,
                 button]);
     }
 }
 
 interface CollectionMenuProps {
-    CollectionView: CollectionView;
     type: CollectionViewType;
+    fieldKey: string;
+    docView: DocumentView;
 }
 
 const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -70,7 +86,8 @@ const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 export class CollectionViewBaseChrome extends React.Component<CollectionMenuProps> {
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
-    get target() { return this.props.CollectionView.props.Document; }
+    get document() { return this.props.docView?.props.Document; }
+    get target() { return this.document; }
     _templateCommand = {
         params: ["target", "source"], title: "item view",
         script: "self.target.childLayoutTemplate = getDocTemplate(self.source?.[0])",
@@ -121,16 +138,16 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _tree_commands = [];
     private get _buttonizableCommands() {
         switch (this.props.type) {
+            default:
+            case CollectionViewType.Freeform: return this._freeform_commands;
             case CollectionViewType.Tree: return this._tree_commands;
             case CollectionViewType.Schema: return this._schema_commands;
             case CollectionViewType.Stacking: return this._stacking_commands;
             case CollectionViewType.Masonry: return this._stacking_commands;
-            case CollectionViewType.Freeform: return this._freeform_commands;
             case CollectionViewType.Time: return this._freeform_commands;
             case CollectionViewType.Carousel: return this._freeform_commands;
             case CollectionViewType.Carousel3D: return this._freeform_commands;
         }
-        return [];
     }
     private _picker: any;
     private _commandRef = React.createRef<HTMLInputElement>();
@@ -165,21 +182,16 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed get subChrome() {
         switch (this.props.type) {
-            case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            default: return null;
+            default:
+            case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
+            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" {...this.props} />);
         }
     }
-
-    private get document() {
-        return this.props.CollectionView.props.Document;
-    }
-
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer?.();
@@ -201,15 +213,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     dragViewDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, (e, down, delta) => {
-            const vtype = this.props.CollectionView.collectionViewType;
+            const vtype = this.props.type;
             const c = {
                 params: ["target"], title: vtype,
-                script: `this.target._viewType = '${StrCast(this.props.CollectionView.props.Document._viewType)}'`,
-                immediate: (source: Doc[]) => this.props.CollectionView.props.Document._viewType = Doc.getDocTemplate(source?.[0]),
+                script: `this.target._viewType = '${StrCast(this.props.type)}'`,
+                immediate: (source: Doc[]) => this.document._viewType = Doc.getDocTemplate(source?.[0]),
                 initialize: emptyFunction,
             };
             DragManager.StartButtonDrag([this._viewRef.current!], c.script, StrCast(c.title),
-                { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY);
+                { target: this.document }, c.params, c.initialize, e.clientX, e.clientY);
             return true;
         }, emptyFunction, emptyFunction);
     }
@@ -217,7 +229,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         setupMoveUpEvents(this, e, (e, down, delta) => {
             this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c =>
                 DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
-                    { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY));
+                    { target: this.document }, c.params, c.initialize, e.clientX, e.clientY));
             return true;
         }, emptyFunction, () => {
             this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate([]));
@@ -251,7 +263,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     className="collectionViewBaseChrome-viewPicker"
                     onPointerDown={stopPropagation}
                     onChange={this.viewChanged}
-                    value={StrCast(this.props.CollectionView.props.Document._viewType)}>
+                    value={StrCast(this.props.type)}>
                     {Object.values(CollectionViewType).map(type => [CollectionViewType.Invalid, CollectionViewType.Docking].includes(type) ? (null) : (
                         <option
                             key={Utils.GenerateGuid()}
@@ -271,7 +283,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.viewModes}
+                        {this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
                         {this.templateChrome}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
@@ -287,15 +299,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 }
 
 @observer
-export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps> {
+export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps & { isOverlay: boolean }> {
     public static Instance: CollectionFreeFormViewChrome;
     constructor(props: any) {
         super(props);
         CollectionFreeFormViewChrome.Instance = this;
     }
-    get Document() { return this.props.CollectionView.props.Document; }
+    get document() { return this.props.docView.props.Document; }
     @computed get dataField() {
-        return this.props.CollectionView.props.Document[Doc.LayoutFieldKey(this.props.CollectionView.props.Document)];
+        return this.document[Doc.LayoutFieldKey(this.document)];
     }
     @computed get childDocs() {
         return DocListCast(this.dataField);
@@ -303,30 +315,30 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @undoBatch
     @action
     nextKeyframe = (): void => {
-        const currentFrame = Cast(this.Document.currentFrame, "number", null);
+        const currentFrame = Cast(this.document.currentFrame, "number", null);
         if (currentFrame === undefined) {
-            this.Document.currentFrame = 0;
+            this.document.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentFrame || 0);
-        this.Document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
-        this.Document.lastFrame = Math.max(NumCast(this.Document.currentFrame), NumCast(this.Document.lastFrame));
+        this.document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
+        this.document.lastFrame = Math.max(NumCast(this.document.currentFrame), NumCast(this.document.lastFrame));
     }
     @undoBatch
     @action
     prevKeyframe = (): void => {
-        const currentFrame = Cast(this.Document.currentFrame, "number", null);
+        const currentFrame = Cast(this.document.currentFrame, "number", null);
         if (currentFrame === undefined) {
-            this.Document.currentFrame = 0;
+            this.document.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
-        this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
+        this.document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
     @undoBatch
     @action
     miniMap = (): void => {
-        this.Document.hideMinimap = !this.Document.hideMinimap;
+        this.document.hideMinimap = !this.document.hideMinimap;
     }
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
@@ -467,28 +479,39 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     render() {
-        return this.Document.isAnnotationOverlay ? (null) :
-            <div className="collectionFreeFormMenu-cont">
+        return <div className="collectionFreeFormMenu-cont">
+            {this.props.docView.props.renderDepth !== 0 ? (null) :
                 <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
                     <FontAwesomeIcon icon={"map"} size={"lg"} />
                 </div>
-                <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
-                    <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                </div>
-                <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.Document.editing ? "#759c75" : "#c56565" }}
-                    onClick={action(() => this.Document.editing = !this.Document.editing)} >
-                    {NumCast(this.Document.currentFrame)}
-                </div>
-                <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
-                    <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                </div>
+            }
+            <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
+                <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+            </div>
+            <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
+                onClick={action(() => this.document.editing = !this.document.editing)} >
+                {NumCast(this.document.currentFrame)}
+            </div>
+            <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
+                <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+            </div>
 
-                {this.widthPicker}
-                {this.colorPicker}
-                {this.fillPicker}
-                {this.drawButtons}
-                {this.formatPane}
-            </div>;
+            {!this.props.isOverlay ? (null) :
+                <button className={"antimodeMenu-button"} key="hypothesis" style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined }} title="Use Hypothesis" onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
+                    <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
+                </button>
+            }
+            {!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating ?
+                <>
+                    {this.widthPicker}
+                    {this.colorPicker}
+                    {this.fillPicker}
+                    {this.drawButtons}
+                    {this.formatPane}
+                </> :
+                (null)
+            }
+        </div>;
     }
 }
 @observer
@@ -496,12 +519,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
     @observable private _currentKey: string = "";
     @observable private suggestions: string[] = [];
 
-    @computed private get descending() { return StrCast(this.props.CollectionView.props.Document._columnsSort) === "descending"; }
-    @computed get pivotField() { return StrCast(this.props.CollectionView.props.Document._pivotField); }
+    get document() { return this.props.docView.props.Document; }
+
+    @computed private get descending() { return StrCast(this.document._columnsSort) === "descending"; }
+    @computed get pivotField() { return StrCast(this.document._pivotField); }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
-        const docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
+        const docs = DocListCast(this.document[this.props.fieldKey]);
         if (docs instanceof Doc) {
             return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
         } else {
@@ -536,14 +561,14 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
 
     @action
     setValue = (value: string) => {
-        this.props.CollectionView.props.Document._pivotField = value;
+        this.document._pivotField = value;
         return true;
     }
 
     @action toggleSort = () => {
-        this.props.CollectionView.props.Document._columnsSort =
-            this.props.CollectionView.props.Document._columnsSort === "descending" ? "ascending" :
-                this.props.CollectionView.props.Document._columnsSort === "ascending" ? undefined : "descending";
+        this.document._columnsSort =
+            this.document._columnsSort === "descending" ? "ascending" :
+                this.document._columnsSort === "ascending" ? undefined : "descending";
     }
     @action resetValue = () => { this._currentKey = this.pivotField; };
 
@@ -593,35 +618,36 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
 
 @observer
 export class CollectionSchemaViewChrome extends React.Component<CollectionMenuProps> {
-    // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+    // private _textwrapAllRows: boolean = Cast(this.document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+    get document() { return this.props.docView.props.Document; }
 
     @undoBatch
     togglePreview = () => {
         const dividerWidth = 4;
         const borderWidth = Number(COLLECTION_BORDER_WIDTH);
-        const panelWidth = this.props.CollectionView.props.PanelWidth();
-        const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        const panelWidth = this.props.docView.props.PanelWidth();
+        const previewWidth = NumCast(this.document.schemaPreviewWidth);
         const tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
-        this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
+        this.document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
     }
 
     @undoBatch
     @action
     toggleTextwrap = async () => {
-        const textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+        const textwrappedRows = Cast(this.document.textwrappedSchemaRows, listSpec("string"), []);
         if (textwrappedRows.length) {
-            this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>([]);
+            this.document.textwrappedSchemaRows = new List<string>([]);
         } else {
-            const docs = DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey]);
+            const docs = DocListCast(this.document[this.props.fieldKey]);
             const allRows = docs instanceof Doc ? [docs[Id]] : docs.map(doc => doc[Id]);
-            this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
+            this.document.textwrappedSchemaRows = new List<string>(allRows);
         }
     }
 
 
     render() {
-        const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
-        const textWrapped = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+        const previewWidth = NumCast(this.document.schemaPreviewWidth);
+        const textWrapped = Cast(this.document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
         return (
             <div className="collectionSchemaViewChrome-cont">
@@ -641,11 +667,12 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionMenuPr
 @observer
 export class CollectionTreeViewChrome extends React.Component<CollectionMenuProps> {
 
+    get document() { return this.props.docView.props.Document; }
     get sortAscending() {
-        return this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "-sortAscending"];
+        return this.document[this.props.fieldKey + "-sortAscending"];
     }
     set sortAscending(value) {
-        this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldKey + "-sortAscending"] = value;
+        this.document[this.props.fieldKey + "-sortAscending"] = value;
     }
     @computed private get ascending() {
         return Cast(this.sortAscending, "boolean", null);
@@ -676,15 +703,16 @@ export class CollectionTreeViewChrome extends React.Component<CollectionMenuProp
 // Enter scroll speed for 3D Carousel 
 @observer
 export class Collection3DCarouselViewChrome extends React.Component<CollectionMenuProps> {
+    get document() { return this.props.docView.props.Document; }
     @computed get scrollSpeed() {
-        return this.props.CollectionView.props.Document._autoScrollSpeed;
+        return this.document._autoScrollSpeed;
     }
 
     @action
     setValue = (value: string) => {
         const numValue = Number(StrCast(value));
         if (numValue > 0) {
-            this.props.CollectionView.props.Document._autoScrollSpeed = numValue;
+            this.document._autoScrollSpeed = numValue;
             return true;
         }
         return false;
@@ -721,13 +749,14 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     private decrementLimitReached: boolean = false;
     @observable private resize = false;
     private resizeListenerDisposer: Opt<Lambda>;
+    get document() { return this.props.docView.props.Document; }
 
     componentDidMount() {
 
-        runInAction(() => this.resize = this.props.CollectionView.props.PanelWidth() < 700);
+        runInAction(() => this.resize = this.props.docView.props.PanelWidth() < 700);
 
         // listener to reduce text on chrome resize (panel resize)
-        this.resizeListenerDisposer = computed(() => this.props.CollectionView.props.PanelWidth()).observe(({ newValue }) => {
+        this.resizeListenerDisposer = computed(() => this.props.docView.props.PanelWidth()).observe(({ newValue }) => {
             runInAction(() => this.resize = newValue < 700);
         });
     }
@@ -736,7 +765,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         this.resizeListenerDisposer?.();
     }
 
-    get numCols() { return NumCast(this.props.CollectionView.props.Document.gridNumCols, 10); }
+    get numCols() { return NumCast(this.document.gridNumCols, 10); }
 
     /**
      * Sets the value of `numCols` on the grid's Document to the value entered.
@@ -745,7 +774,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" || e.key === "Tab") {
             if (e.currentTarget.valueAsNumber > 0) {
-                this.props.CollectionView.props.Document.gridNumCols = e.currentTarget.valueAsNumber;
+                this.document.gridNumCols = e.currentTarget.valueAsNumber;
             }
 
         }
@@ -757,8 +786,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     // @undoBatch
     // onRowHeightEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     //     if (e.key === "Enter" || e.key === "Tab") {
-    //         if (e.currentTarget.valueAsNumber > 0 && this.props.CollectionView.props.Document.rowHeight as number !== e.currentTarget.valueAsNumber) {
-    //             this.props.CollectionView.props.Document.rowHeight = e.currentTarget.valueAsNumber;
+    //         if (e.currentTarget.valueAsNumber > 0 && this.document.rowHeight as number !== e.currentTarget.valueAsNumber) {
+    //             this.document.rowHeight = e.currentTarget.valueAsNumber;
     //         }
     //     }
     // }
@@ -768,7 +797,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      */
     @undoBatch
     toggleFlex = () => {
-        this.props.CollectionView.props.Document.gridFlex = !BoolCast(this.props.CollectionView.props.Document.gridFlex, true);
+        this.document.gridFlex = !BoolCast(this.document.gridFlex, true);
     }
 
     /**
@@ -776,8 +805,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      */
     onIncrementButtonClick = () => {
         this.clicked = true;
-        this.entered && (this.props.CollectionView.props.Document.gridNumCols as number)--;
-        undoBatch(() => this.props.CollectionView.props.Document.gridNumCols = this.numCols + 1)();
+        this.entered && (this.document.gridNumCols as number)--;
+        undoBatch(() => this.document.gridNumCols = this.numCols + 1)();
         this.entered = false;
     }
 
@@ -787,8 +816,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     onDecrementButtonClick = () => {
         this.clicked = true;
         if (!this.decrementLimitReached) {
-            this.entered && (this.props.CollectionView.props.Document.gridNumCols as number)++;
-            undoBatch(() => this.props.CollectionView.props.Document.gridNumCols = this.numCols - 1)();
+            this.entered && (this.document.gridNumCols as number)++;
+            undoBatch(() => this.document.gridNumCols = this.numCols - 1)();
         }
         this.entered = false;
     }
@@ -799,7 +828,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     incrementValue = () => {
         this.entered = true;
         if (!this.clicked && !this.decrementLimitReached) {
-            this.props.CollectionView.props.Document.gridNumCols = this.numCols + 1;
+            this.document.gridNumCols = this.numCols + 1;
         }
         this.decrementLimitReached = false;
         this.clicked = false;
@@ -812,7 +841,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         this.entered = true;
         if (!this.clicked) {
             if (this.numCols !== 1) {
-                this.props.CollectionView.props.Document.gridNumCols = this.numCols - 1;
+                this.document.gridNumCols = this.numCols - 1;
             }
             else {
                 this.decrementLimitReached = true;
@@ -826,7 +855,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      * Toggles the value of preventCollision
      */
     toggleCollisions = () => {
-        this.props.CollectionView.props.Document.gridPreventCollision = !this.props.CollectionView.props.Document.gridPreventCollision;
+        this.document.gridPreventCollision = !this.document.gridPreventCollision;
     }
 
     /**
@@ -834,7 +863,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      */
     changeCompactType = (e: React.ChangeEvent<HTMLSelectElement>) => {
         // need to change startCompaction so that this operation will be undoable.
-        this.props.CollectionView.props.Document.gridStartCompaction = e.target.selectedOptions[0].value;
+        this.document.gridStartCompaction = e.target.selectedOptions[0].value;
     }
 
     render() {
@@ -852,10 +881,10 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="text-height" size="1x" />
                     </span>
-                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
                 </span> */}
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
-                    <input type="checkbox" style={{ marginRight: 5 }} onChange={this.toggleCollisions} checked={!this.props.CollectionView.props.Document.gridPreventCollision} />
+                    <input type="checkbox" style={{ marginRight: 5 }} onChange={this.toggleCollisions} checked={!this.document.gridPreventCollision} />
                     <label className="flexLabel">{this.resize ? "Coll" : "Collisions"}</label>
                 </span>
 
@@ -863,7 +892,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
                     style={{ marginRight: 5 }}
                     onPointerDown={stopPropagation}
                     onChange={this.changeCompactType}
-                    value={StrCast(this.props.CollectionView.props.Document.gridStartCompaction, StrCast(this.props.CollectionView.props.Document.gridCompaction))}>
+                    value={StrCast(this.document.gridStartCompaction, StrCast(this.document.gridCompaction))}>
                     {["vertical", "horizontal", "none"].map(type =>
                         <option className="collectionGridViewChrome-viewOption"
                             onPointerDown={stopPropagation}
@@ -875,11 +904,11 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
 
                 <span className="grid-control" style={{ width: this.resize ? "12%" : "20%" }}>
                     <input style={{ marginRight: 5 }} type="checkbox" onChange={this.toggleFlex}
-                        checked={BoolCast(this.props.CollectionView.props.Document.gridFlex, true)} />
+                        checked={BoolCast(this.document.gridFlex, true)} />
                     <label className="flexLabel">{this.resize ? "Flex" : "Flexible"}</label>
                 </span>
 
-                <button onClick={() => this.props.CollectionView.props.Document.gridResetLayout = true}>
+                <button onClick={() => this.document.gridResetLayout = true}>
                     {!this.resize ? "Reset" :
                         <FontAwesomeIcon icon="redo-alt" size="1x" />}
                 </button>
