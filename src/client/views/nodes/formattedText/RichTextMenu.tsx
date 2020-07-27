@@ -77,7 +77,8 @@ export default class RichTextMenu extends AntimodeMenu {
         super(props);
         RichTextMenu.Instance = this;
         this._canFade = false;
-        this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
+        //this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
+        this.Pinned = true;
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
@@ -918,28 +919,34 @@ export default class RichTextMenu extends AntimodeMenu {
     render() {
         TraceMobx();
         const row1 = <div className="antimodeMenu-row" key="row 1" style={{ display: this.collapsed ? "none" : undefined }}>{[
-            !this.collapsed ? this.getDragger() : (null),
-            !this.Pinned ? (null) : <div key="frag1"> {[
-                this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
-                this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
-                this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
-                this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
-                this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
-                this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
-                <div className="richTextMenu-divider" key="divider" />
-            ]}</div>,
+            //!this.collapsed ? this.getDragger() : (null),
+            // !this.Pinned ? (null) : <div key="frag1"> {[
+            //     this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            //     this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            //     this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            //     this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            //     this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            //     this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+            //     <div className="richTextMenu-divider" key="divider" />
+            // ]}</div>,
+            this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
             this.createColorButton(),
             this.createHighlighterButton(),
-            this.createLinkButton(),
-            this.createBrushButton(),
+            //this.createLinkButton(),
+            //this.createBrushButton(),
             <div className="richTextMenu-divider" key="divider 2" />,
             this.createButton("align-left", "Align Left", this.activeAlignment === "left", this.alignLeft),
             this.createButton("align-center", "Align Center", this.activeAlignment === "center", this.alignCenter),
             this.createButton("align-right", "Align Right", this.activeAlignment === "right", this.alignRight),
             this.createButton("indent", "Inset More", undefined, this.insetParagraph),
             this.createButton("outdent", "Inset Less", undefined, this.outsetParagraph),
-            this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
-            this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
+            //this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
+            //this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="row2">
@@ -950,21 +957,21 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => this.activeFontFamily = val)),
                 <div className="richTextMenu-divider" key="divider 4" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", action((val: string) => this.activeListType = val)),
-                this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
+                //this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
                 <div className="richTextMenu-divider" key="divider 5" />,]}
             </div>
-            <div key="collapser">
-                {/* <div key="collapser">
+            {/* <div key="collapser">
+                {<div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
                         <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />
                     </button>
-                </div> */}
+                </div> }
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
-            </div>
+            </div> */}
         </div>;
 
         return (

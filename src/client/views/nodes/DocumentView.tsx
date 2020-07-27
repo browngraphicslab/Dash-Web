@@ -622,6 +622,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+
+    @undoBatch
+    noOnClick = (): void => {
+        this.Document.ignoreClick = false;
+        this.Document.isLinkButton = false;
+    }
+
+    @undoBatch
+    toggleDetail = (): void => {
+        this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`);
+    }
+
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
@@ -673,6 +685,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeIntoPortal = async () => {
+        console.log("into portal");
         const portalLink = DocListCast(this.Document.links).find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
             const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), title: StrCast(this.props.Document.title) + ".portal" });

@@ -164,9 +164,26 @@
         padding: 8.5px;
 
         .propertiesView-fields-title {
-            font-size: 12.5px;
-            font-weight: bold;
             padding-bottom: 7px;
+            display: flex;
+
+            .propertiesView-fields-title-name {
+                font-size: 12.5px;
+                font-weight: bold;
+            }
+
+            .propertiesView-fields-title-checkbox {
+                float: right;
+                height: 20px;
+                margin-top: -13px;
+                margin-left: 115px;
+
+                .propertiesView-fields-title-checkbox-text {
+                    font-size: 7px;
+                    margin-top: -10px;
+                    margin-left: 6px;
+                }
+            }
         }
 
         .propertiesView-fields-content {

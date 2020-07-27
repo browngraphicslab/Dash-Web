@@ -25,6 +25,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
+import RichTextMenu from "../nodes/formattedText/RichTextMenu";
+import { RichTextField } from "../../../fields/RichTextField";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -300,6 +302,20 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get childDocs() {
         return DocListCast(this.dataField);
     }
+
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    @computed get isText() {
+        if (this.selectedDoc) {
+            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+        }
+        else return false;
+    }
+
     @undoBatch
     @action
     nextKeyframe = (): void => {
@@ -469,25 +485,27 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return this.Document.isAnnotationOverlay ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
+                {!!!this.isText ? <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
                     <FontAwesomeIcon icon={"map"} size={"lg"} />
-                </div>
-                <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
+                </div> : null}
+                {!!!this.isText ? <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
                     <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                </div>
-                <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.Document.editing ? "#759c75" : "#c56565" }}
+                </div> : null}
+                {!!!this.isText ? <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.Document.editing ? "#759c75" : "#c56565" }}
                     onClick={action(() => this.Document.editing = !this.Document.editing)} >
                     {NumCast(this.Document.currentFrame)}
-                </div>
-                <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
+                </div> : null}
+                {!!!this.isText ? <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
                     <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                </div>
+                </div> : null}
 
-                {this.widthPicker}
-                {this.colorPicker}
-                {this.fillPicker}
-                {this.drawButtons}
-                {this.formatPane}
+                {!!!this.isText ? this.widthPicker : null}
+                {!!!this.isText ? this.colorPicker : null}
+                {!!!this.isText ? this.fillPicker : null}
+                {!!!this.isText ? this.drawButtons : null}
+                {!!!this.isText ? this.formatPane : null}
+                {this.isText ? <RichTextMenu key="rich" /> : null}
+
             </div>;
     }
 }

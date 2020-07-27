@@ -26,6 +26,7 @@ import { SelectionManager } from '../util/SelectionManager';
 import SharingManager from '../util/SharingManager';
 import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../fields/URLField';
+import { undoBatch, UndoManager } from '../util/UndoManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -79,6 +80,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
+
+    @observable public onClick = this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing";
 
     public startPullOutcome = action((success: boolean) => {
         if (!this._pullAnimating) {
@@ -373,54 +376,80 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         }
     }
 
+    @action
+    handleOptionChange = (e: any) => {
+        const value = e.target.value;
+        this.onClick = e.target.value;
+        if (value === "nothing") {
+            this.selectedDocumentView?.noOnClick;
+        } else if (value === "enterPortal") {
+            //this.selectedDocumentView?.noOnClick;
+            this.selectedDocumentView?.makeIntoPortal;
+        } else if (value === "toggleDetail") {
+            //this.selectedDocumentView?.noOnClick;
+            this.selectedDocumentView?.toggleDetail;
+        } else if (value === "linkInPlace") {
+            //this.selectedDocumentView?.noOnClick;
+            this.selectedDocumentView?.toggleFollowInPlace;
+        } else if (value === "linkOnRight") {
+            //this.selectedDocumentView?.noOnClick;
+            this.selectedDocumentView?.toggleFollowOnRight;
+        }
+    }
+
+    @undoBatch @action
+    editOnClickScript = () => {
+        if (this.selectedDoc) {
+            DocUtils.makeCustomViewClicked(this.selectedDoc, undefined, "onClick");
+        }
+    }
+
     @computed
     get onClickFlyout() {
         return <div><form>
             <div className="radio">
                 <label>
-                    <input type="radio" value="option1" checked={true} />
-                Enter Portal
-            </label>
+                    <input type="radio" value="nothing"
+                        checked={this.onClick === 'nothing'}
+                        onChange={this.handleOptionChange} />
+                    Select Document
+                </label>
             </div>
             <div className="radio">
                 <label>
-                    <input type="radio" value="option2" />
-                Toggle Detail
-            </label>
+                    <input type="radio" value="enterPortal"
+                        checked={this.onClick === 'enterPortal'}
+                        onChange={this.handleOptionChange} />
+                    Enter Portal
+                </label>
             </div>
             <div className="radio">
                 <label>
-                    <input type="radio" value="option3" />
-                Do Nothing
-            </label>
+                    <input type="radio" value="toggleDetail"
+                        checked={this.onClick === 'toggleDetail'}
+                        onChange={this.handleOptionChange} />
+                    Toggle Detail
+                </label>
             </div>
             <div className="radio">
                 <label>
-                    <input type="radio" value="option3" />
-                Follow Link in Place
-            </label>
+                    <input type="radio" value="linkInPlace"
+                        checked={this.onClick === 'linkInPlace'}
+                        onChange={this.handleOptionChange} />
+                    Follow Link
+                </label>
             </div>
             <div className="radio">
                 <label>
-                    <input type="radio" value="option3" />
-                Follow Link on Right
-            </label>
+                    <input type="radio" value="linkOnRight"
+                        checked={this.onClick === 'linkOnRight'}
+                        onChange={this.handleOptionChange} />
+                    Open Link on Right
+                </label>
             </div>
-            <div className="radio">
-                <label>
-                    <input type="radio" value="option3" />
-                Edit onClick Script
-            </label>
-            </div>
-        </form> </div>;
-
-        // onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        // onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "window-restore" });
-        // onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        // onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
-        // onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
-        // onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
-        // onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
+        </form>
+            <div onPointerDown={this.editOnClickScript} className="onClickFlyout-editScript"> Edit onClick Script</div>
+        </div>;
     }
 
     @computed
@@ -452,9 +481,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.templateButton}
             </div>
-            <div className="propertiesButtons-button">
+            {/* <div className="propertiesButtons-button">
                 {this.metadataButton}
-            </div>
+            </div> */}
             <div className="propertiesButtons-button">
                 {this.pinButton}
             </div>
@@ -470,13 +499,13 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.deleteButton}
             </div>
+            <div className="propertiesButtons-button">
+                {this.onClickButton}
+            </div>
         </div>
             <div className="propertiesButtons">
                 <div className="propertiesButtons-button">
                     {this.sharingButton}
-                </div>
-                <div className="propertiesButtons-button">
-                    {this.onClickButton}
                 </div>
                 <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                     {this.considerGoogleDocsPush}

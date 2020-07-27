@@ -628,7 +628,7 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
+        const n = (RichTextMenu.Instance?.Pinned ? 0 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
 
         const rightFlyout = this.selectedDocumentView ? this._propertiesWidth - 1 : this.propertiesWidth() > 10 ? 151.5 : 0;
@@ -799,7 +799,7 @@ export class MainView extends React.Component {
             {/* {this.search} */}
             <CollectionMenu />
             <FormatShapePane />
-            <RichTextMenu key="rich" />
+            {/* <RichTextMenu key="rich" /> */}
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}

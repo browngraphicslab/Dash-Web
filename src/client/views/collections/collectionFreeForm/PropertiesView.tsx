@@ -16,7 +16,7 @@ import { Transform } from "../../../util/Transform";
 import { PropertiesButtons } from "../../PropertiesButtons";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip } from "@material-ui/core";
+import { Tooltip, Checkbox } from "@material-ui/core";
 import SharingManager from "../../../util/SharingManager";
 
 
@@ -40,6 +40,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
+
+    @observable layoutFields: boolean = false;
 
     @action
     rtfWidth = () => {
@@ -88,9 +90,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get expandedField() {
-        if (this.dataDoc) {
+        if (this.dataDoc && this.selectedDoc) {
             const ids: { [key: string]: string } = {};
-            const doc = this.dataDoc;
+            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
             doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
 
             const rows: JSX.Element[] = [];
@@ -215,6 +217,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
+    @computed get fieldsCheckbox() {
+        return <Checkbox
+            color="primary"
+            onChange={this.toggleCheckbox}
+            checked={this.layoutFields}
+        />;
+    }
+
+    @action
+    toggleCheckbox = () => {
+        this.layoutFields = !this.layoutFields;
+    }
+
     render() {
 
         if (!this.selectedDoc) {
@@ -247,7 +262,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>
             </div>
             <div className="propertiesView-fields">
-                <div className="propertiesView-fields-title"> Fields</div>
+                <div className="propertiesView-fields-title">
+                    <div className="propertiesView-fields-title-name">
+                        Fields
+                    </div>
+                    <div className="propertiesView-fields-title-checkbox">
+                        {this.fieldsCheckbox}
+                        <div className="propertiesView-fields-title-checkbox-text">Layout</div>
+                    </div>
+                </div>
                 <div className="propertiesView-fields-content"> {this.expandedField} </div>
             </div>
             <div className="propertiesView-layout">
