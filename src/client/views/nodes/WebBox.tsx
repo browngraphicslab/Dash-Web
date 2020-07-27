@@ -57,13 +57,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @observable private _pressY: number = 0;
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
     private _selectionReactionDisposer?: IReactionDisposer;
+    private _scrollReactionDisposer?: IReactionDisposer;
+    private _moveReactionDisposer?: IReactionDisposer;
     private _keyInput = React.createRef<HTMLInputElement>();
     private _longPressSecondsHack?: NodeJS.Timeout;
     private _outerRef = React.createRef<HTMLDivElement>();
     private _iframeRef = React.createRef<HTMLIFrameElement>();
     private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
-    private _reactionDisposer?: IReactionDisposer;
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
 
     iframeLoaded = action((e: any) => {
@@ -76,21 +77,23 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc._scrollTop);
             iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc._scrollLeft);
         }
-        this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc._scrollY, x: this.layoutDoc._scrollX }),
-            ({ x, y }) => {
-                if (y !== undefined) {
-                    this._outerRef.current!.scrollTop = y;
-                    this.layoutDoc._scrollY = undefined;
-                }
-                if (x !== undefined) {
-                    this._outerRef.current!.scrollLeft = x;
-                    this.layoutDoc.scrollX = undefined;
-                }
-            },
+        this._scrollReactionDisposer?.();
+        this._scrollReactionDisposer = reaction(() => ({ y: this.layoutDoc._scrollY, x: this.layoutDoc._scrollX }),
+            ({ x, y }) => this.updateScroll(x, y),
             { fireImmediately: true }
         );
     });
+
+    updateScroll = (x: Opt<number>, y: Opt<number>) => {
+        if (y !== undefined) {
+            this._outerRef.current!.scrollTop = y;
+            this.layoutDoc._scrollY = undefined;
+        }
+        if (x !== undefined) {
+            this._outerRef.current!.scrollLeft = x;
+            this.layoutDoc.scrollX = undefined;
+        }
+    }
 
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
     iframedown = (e: PointerEvent) => {
@@ -106,6 +109,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
         runInAction(() => this._url = urlField?.url.toString() || "");
 
+        this._moveReactionDisposer = reaction(() => this.layoutDoc.x || this.layoutDoc.y,
+            () => this.updateScroll(this.layoutDoc._scrollLeft, this.layoutDoc._scrollTop));
 
         this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
             selected => {
@@ -140,8 +145,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     componentWillUnmount() {
+        this._moveReactionDisposer?.();
         this._selectionReactionDisposer?.();
-        this._reactionDisposer?.();
+        this._scrollReactionDisposer?.();
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
         this._iframeRef.current?.contentDocument?.removeEventListener('pointerdown', this.iframedown);
@@ -651,7 +657,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         document.removeEventListener("pointermove", this.onSelectMove);
         document.removeEventListener("pointerup", this.onSelectEnd);
     }
-
     marqueeWidth = () => this._marqueeWidth;
     marqueeHeight = () => this._marqueeHeight;
     marqueeX = () => this._marqueeX;
@@ -659,14 +664,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeing = () => this._marqueeing;
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
-        const noScalin = this.props.ContentScaling() < 1;
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{
-                    position: noScalin ? "absolute" : undefined,
-                    transform: noScalin ? undefined : `scale(${this.props.ContentScaling()})`,
-                    width: noScalin ? undefined : Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
-                    height: noScalin ? undefined : Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    position: undefined,
+                    transform: `scale(${this.props.ContentScaling()})`,
+                    width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
                     pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
@@ -674,7 +678,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
-                        width: 5000,//Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                        width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%",
                         pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none"
                     }}
                     onWheel={e => e.stopPropagation()}
