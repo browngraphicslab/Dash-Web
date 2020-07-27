@@ -242,8 +242,8 @@ export default class FormatShapePane extends AntimodeMenu {
                         }
                         const oldx = doc.x;
                         const oldy = doc.y;
-                        const xs = newPoints.map(p => p.X);
-                        const ys = newPoints.map(p => p.Y);
+                        const xs = ink.map(p => p.X);
+                        const ys = ink.map(p => p.Y);
                         const left = Math.min(...xs);
                         const top = Math.min(...ys);
                         doc.data = new InkField(newPoints);
@@ -255,9 +255,11 @@ export default class FormatShapePane extends AntimodeMenu {
                         const bottom2 = Math.max(...ys2);
                         doc._height = (bottom2 - top2);
                         doc._width = (right2 - left2);
-
+                        //if points move out of bounds
+                        console.log(doc.x);
                         doc.x = oldx - (left - left2);
                         doc.y = oldy - (top - top2);
+                        console.log(doc.x);
                     }
                 }
             }
