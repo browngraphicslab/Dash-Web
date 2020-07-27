@@ -315,7 +315,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     changeColumns = (oldKey: string, newKey: string, addNew: boolean, filter?: string) => {
-        console.log("COL");
         const columns = this.columns;
         if (columns === undefined) {
             this.columns = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
@@ -630,10 +629,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return <div className="collectionSchemaView-container"
             style={{
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
-                width: this.props.PanelWidth() || "100%", height: this.props.PanelPosition === "absolute" ? this.props.PanelHeight() : this.props.PanelHeight()  || "100%", top: this.props.PanelPosition === "absolute" ? 52 : 0, position: this.props.PanelPosition || "relative",
+                width: this.props.PanelWidth() || "100%", height: this.props.PanelPosition === "absolute" ? this.props.PanelHeight() : this.props.PanelHeight() || "100%", top: this.props.PanelPosition === "absolute" ? 52 : 0, position: this.props.PanelPosition || "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
-                style={{ backgroundColor:"white", width: `calc(100% - ${this.previewWidth()}px)` }}
+                style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
                 onKeyPress={this.onKeyPress}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}

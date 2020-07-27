@@ -39,6 +39,7 @@ import { listSpec } from '../../../fields/Schema';
 import * as _ from "lodash";
 import { checkIfStateModificationsAreAllowed } from 'mobx/lib/internal';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
+import { indexOf } from 'lodash';
 
 
 library.add(faTimes);
@@ -187,8 +188,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable newsearchstring: string = "";
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        //this.layoutDoc._searchString = e.target.value;
+        this.layoutDoc._searchString = e.target.value;
+        console.log(e.target.value);
         this.newsearchstring = e.target.value;
+
+        if (this.filter === true) {
+            runInAction(() => { this.open = false });
+            this.submitFilter();
+        }
+
+
         if (e.target.value === "") {
             console.log("CLOSE");
             runInAction(() => { this.open = false });
@@ -205,7 +214,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
-            console.log(this.newsearchstring)
             this.layoutDoc._searchString = this.newsearchstring;
             // if (this._icons !== this._allIcons) {
             //     runInAction(() => { this.expandedBucket = false });
@@ -219,7 +227,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 runInAction(() => { this.open = false });
 
             }
-            this.submitSearch();
+            if (this.filter === false) {
+                this.submitSearch();
+            }
+
         }
     }
 
@@ -431,6 +442,52 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
     @action
+    submitFilter() {
+        let searchString = StrCast(this.layoutDoc._searchString);
+        if (searchString.includes(":") === false) {
+            return
+        }
+        let key = searchString.slice(0, searchString.indexOf(":"));
+        console.log(key);
+        console.log(searchString);
+        let values = searchString.slice(searchString.indexOf(":") + 1, searchString.length);
+        console.log(values);
+
+        const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
+        if (selectedCollection !== undefined) {
+            let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
+            let found: [Doc, string[], string[]][] = [];
+            Doc.setDocFilter(selectedCollection.props.Document, key, values, "match");
+            // docs.forEach((d) => {
+            //     let hlights: string[] = [];
+            //     const protos = Doc.GetAllPrototypes(d);
+            //     let proto = protos[protos.length - 2];
+            //     Object.keys(proto).forEach(key => {
+            //         console.log(key);
+            //         console.log(StrCast(this.layoutDoc._searchString));
+            //         Doc.setDocFilter(selectedCollection.props.Document, key, StrCast(this.layoutDoc._searchString), "match");
+
+            //         // if (StrCast(d[key]).includes(query)) {
+            //         //     console.log(key, d[key]);
+            //         //     hlights.push(key);
+            //         // }
+            //     });
+            //     // if (hlights.length > 0) {
+            //     //     found.push([d, hlights, []]);
+            //     // };
+            // });
+            // console.log(found);
+            // this._results = found;
+            // this._numTotalResults = found.length;
+        }
+        else {
+            this.noresults = "No collection selected :(";
+        }
+
+        //Doc.setDocFilter(this.props.Document, newKey, filter, "match");
+    }
+
+    @action
     submitSearch = async (reset?: boolean) => {
 
         this.checkIcons();
@@ -474,7 +531,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    @observable scale = false;
+    @observable scale = true;
 
     @observable _timeout: any = undefined;
 
@@ -1163,6 +1220,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     addDocument = (doc: Doc) => {
         return null;
     }
+
+    @observable filter = false;
+
     //Make id layour document
     render() {
         this.props.Document._chromeStatus === "disabled";
@@ -1200,7 +1260,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     {this._searchbarOpen === true ?
                         <div style={{ display: "flex", justifyContent: "center", }}>
                             <div style={{
-                                width: this.headercount > 0 ? length : 251,
+                                width: this.headercount > 0 ? length : 253,
                                 height: 25,
                                 borderColor: "#9c9396",
                                 border: "1px solid",
@@ -1211,21 +1271,43 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 top: 29
                             }}>
                                 <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
-                                    <div className="radio" style={{ margin: 0 }}>
-                                        <label style={{ fontSize: 12, marginTop: 6 }} >
-                                            <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                    <div className="checkbox" style={{ margin: 0 }}>
+                                        <label style={{ fontSize: 12, marginTop: 6 }}>
+                                            <input style={{ marginLeft: -16, marginTop: -1 }} checked={this.filter === true} onChange={() => { runInAction(() => { this.filter = !this.filter }) }} type="checkbox"></input>
+                                            Filter
+                                        </label>
+                                    </div>
+                                    {this.filter === true ? <div style={{ display: "contents" }}>
+                                        <div className="radio" style={{ margin: 0 }}>
+                                            <label style={{ fontSize: 12, marginTop: 6 }} >
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
                                         Current collection
                                     </label>
-                                    </div>
-                                    <div className="radio" style={{ margin: 0 }}>
-                                        <label style={{ fontSize: 12, marginTop: 6 }} >
-                                            <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
-                                            Database
+                                        </div>
+                                        <div className="radio" style={{ margin: 0 }}>
+                                            <label style={{ fontSize: 12, marginTop: 6 }} >
+                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                            Workspace
                                     </label>
+                                        </div>
                                     </div>
+                                        : <div style={{ display: "contents" }}>
+                                            <div className="radio" style={{ margin: 0 }}>
+                                                <label style={{ fontSize: 12, marginTop: 6 }} >
+                                                    <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                Current collection
+                            </label>
+                                            </div>
+                                            <div className="radio" style={{ margin: 0 }}>
+                                                <label style={{ fontSize: 12, marginTop: 6 }} >
+                                                    <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                    Database
+                            </label>
+                                            </div>
+                                        </div>
+                                    }
                                 </form>
                             </div>
-
                             {this.noresults === "" ? <div style={{ display: this.open === true ? "contents" : "none" }}> <CollectionView {...this.props}
                                 Document={this.props.Document}
                                 moveDocument={returnFalse}
