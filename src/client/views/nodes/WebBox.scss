@@ -5,6 +5,24 @@
     height:100%;
     position: relative;
     display: flex;
+
+    .pdfViewerDash-dragAnnotationBox {
+        position:absolute;
+        background-color: transparent;
+        opacity: 0.1;
+    }
+    .webBox-annotationLayer {
+        position: absolute;
+        transform-origin: left top;
+        top: 0;
+        width: 100%;
+        pointer-events: none;
+        mix-blend-mode: multiply; // bcz: makes text fuzzy!
+    }
+    .webBox-annotationBox {
+        position: absolute;
+        background-color: rgba(245, 230, 95, 0.616);
+    }
     .webBox-container, .webBox-container-dragging {
         transform-origin: top left;
         width: 100%;
@@ -46,9 +64,6 @@
             top: 0;
             left: 0;
             overflow: auto;
-            .webBox-innerContent { 
-                width:100%;
-            }
         }
         div.webBox-outerContent::-webkit-scrollbar-thumb {
             display:none;

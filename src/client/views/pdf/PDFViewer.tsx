@@ -521,7 +521,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
                 const marquees = this._mainCont.current!.getElementsByClassName("pdfViewerDash-dragAnnotationBox");
-                if (marquees && marquees.length) { // copy the marquee and convert it to a permanent annotation.
+                if (marquees?.length) { // copy the marquee and convert it to a permanent annotation.
                     const style = (marquees[0] as HTMLDivElement).style;
                     const copy = document.createElement("div");
                     copy.style.left = style.left;
@@ -544,7 +544,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
         else {
             const sel = window.getSelection();
-            if (sel && sel.type === "Range") {
+            if (sel?.type === "Range") {
                 const selRange = sel.getRangeAt(0);
                 this.createTextAnnotation(sel, selRange);
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -726,7 +726,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 }
 
-interface PdfViewerMarqueeProps {
+export interface PdfViewerMarqueeProps {
     isMarqueeing: () => boolean;
     width: () => number;
     height: () => number;
@@ -735,7 +735,7 @@ interface PdfViewerMarqueeProps {
 }
 
 @observer
-class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
+export class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
     render() {
         return !this.props.isMarqueeing() ? (null) : <div className="pdfViewerDash-dragAnnotationBox"
             style={{

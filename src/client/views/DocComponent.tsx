@@ -122,7 +122,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
-            docs.map(doc => doc.annotationOn = undefined);
+            docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
             const targetDataDoc = this.dataDoc;
             const value = DocListCast(targetDataDoc[this.annotationKey]);
             const toRemove = value.filter(v => docs.includes(v));
