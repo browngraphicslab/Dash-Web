@@ -23,33 +23,51 @@
             z-index: 999;
         }
 
-        .share-setup {
-            display: flex;
-            margin-bottom: 20px;
-            align-items: center;
-            height: 36;
+        .share-container {
+            .share-setup {
+                display: flex;
+                margin-bottom: 20px;
+                align-items: center;
+                height: 36;
 
-            .user-search {
-                width: 90%;
+                .user-search {
+                    width: 90%;
 
-                input {
-                    height: 30;
+                    input {
+                        height: 30;
+                    }
+                }
+
+                .permissions-select {
+                    z-index: 1;
+                    margin-left: -100;
+                    border: none;
+                    outline: none;
+                    text-align: justify; // for Edge
+                    text-align-last: end;
+                }
+
+                .share-button {
+                    height: 105%;
+                    margin-left: 2%;
+                    background-color: #979797;
                 }
             }
 
-            .permissions-select {
-                z-index: 1;
-                margin-left: -100;
-                border: none;
-                outline: none;
-                text-align: justify; // for Edge
-                text-align-last: end;
-            }
+            .sort-checkboxes {
+                float: left;
+                margin-top: -17px;
+                margin-bottom: 10px;
+                font-size: 10px;
 
-            .share-button {
-                height: 105%;
-                margin-left: 2%;
-                background-color: #979797;
+                input {
+                    height: 10px;
+                }
+
+                label {
+                    font-weight: normal;
+                    font-style: italic;
+                }
             }
         }
 
@@ -92,10 +110,8 @@
                     height: 250px;
                     margin: 0 2;
 
-
                     .none {
                         font-style: italic;
-
                     }
                 }
             }

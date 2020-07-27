@@ -20,6 +20,9 @@ import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 
 library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle);
 
+/**
+ * Interface for options for the react-select component
+ */
 export interface UserOptions {
     label: string;
     value: string;
@@ -30,8 +33,6 @@ export default class GroupManager extends React.Component<{}> {
 
     static Instance: GroupManager;
     @observable isOpen: boolean = false; // whether the GroupManager is to be displayed or not.
-    @observable private dialogueBoxOpacity: number = 1; // opacity of the dialogue box div of the MainViewModal.
-    @observable private overlayOpacity: number = 0.4; // opacity of the overlay div of the MainViewModal.
     @observable private users: string[] = []; // list of users populated from the database.
     @observable private selectedUsers: UserOptions[] | null = null; // list of users selected in the "Select users" dropdown.
     @observable currentGroup: Opt<Doc>; // the currently selected group.

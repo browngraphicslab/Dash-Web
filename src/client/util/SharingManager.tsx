@@ -30,7 +30,10 @@ export interface User {
     userDocumentId: string;
 }
 
-interface GroupOptions {
+/**
+ * Interface for grouped options for the react-select component.
+ */
+interface GroupedOptions {
     label: string;
     options: UserOptions[];
 }
@@ -39,9 +42,13 @@ interface GroupOptions {
 // const PublicKey = "publicLinkPermissions";
 // const DefaultColor = "black";
 
-const groupType = "!groupType/";
+// used to differentiate between individuals and groups when sharing
 const indType = "!indType/";
+const groupType = "!groupType/";
 
+/**
+ * A user who also has a notificationDoc.
+ */
 interface ValidatedUser {
     user: User;
     notificationDoc: Doc;
@@ -52,18 +59,21 @@ const storage = "data";
 @observer
 export default class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
-    @observable private isOpen = false;
-    @observable private users: ValidatedUser[] = [];
-    @observable private targetDoc: Doc | undefined;
-    @observable private targetDocView: DocumentView | undefined;
+    @observable private isOpen = false; // whether the SharingManager modal is open or not
+    @observable private users: ValidatedUser[] = []; // the list of users with notificationDocs
+    @observable private targetDoc: Doc | undefined; // the document being shared
+    @observable private targetDocView: DocumentView | undefined; // the DocumentView of the document being shared
     // @observable private copied = false;
-    @observable private dialogueBoxOpacity = 1;
-    @observable private overlayOpacity = 0.4;
-    @observable private selectedUsers: UserOptions[] | null = null;
-    @observable private permissions: SharingPermissions = SharingPermissions.Edit;
-    @observable private individualSort: "ascending" | "descending" | "none" = "none";
-    @observable private groupSort: "ascending" | "descending" | "none" = "none";
-    private shareDocumentButtonRef: React.RefObject<HTMLButtonElement> = React.createRef();
+    @observable private dialogueBoxOpacity = 1; // for the modal
+    @observable private overlayOpacity = 0.4; // for the modal
+    @observable private selectedUsers: UserOptions[] | null = null; // users (individuals/groups) selected to share with
+    @observable private permissions: SharingPermissions = SharingPermissions.Edit; // the permission with which to share with other users
+    @observable private individualSort: "ascending" | "descending" | "none" = "none"; // sorting options for the list of individuals
+    @observable private groupSort: "ascending" | "descending" | "none" = "none"; // sorting options for the list of groups
+    private shareDocumentButtonRef: React.RefObject<HTMLButtonElement> = React.createRef(); // ref for the share button, used for the position of the popup
+    // if both showUserOptions and showGroupOptions are false then both are displayed
+    @observable private showUserOptions: boolean = false; // whether to show individuals as options when sharing (in the react-select component)
+    @observable private showGroupOptions: boolean = false; // // whether to show groups as options when sharing (in the react-select component)
 
 
 
@@ -85,7 +95,7 @@ export default class SharingManager extends React.Component<{}> {
 
     public close = action(() => {
         this.isOpen = false;
-        this.users = [];
+        this.users = []; // resets the list of users and seleected users (in the react-select component)
         this.selectedUsers = null;
 
         setTimeout(action(() => {
@@ -100,6 +110,9 @@ export default class SharingManager extends React.Component<{}> {
         SharingManager.Instance = this;
     }
 
+    /**
+     * Populates the list of validated users (this.users) by adding registered users which have a rightSidebarCollection.
+     */
     populateUsers = async () => {
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
@@ -120,58 +133,74 @@ export default class SharingManager extends React.Component<{}> {
         return Promise.all(evaluating);
     }
 
+    /**
+     * Sets the permission on the target for the group.
+     * @param group 
+     * @param permission 
+     */
     setInternalGroupSharing = (group: Doc, permission: string) => {
         const members: string[] = JSON.parse(StrCast(group.members));
         const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
         const target = this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
-        // fix this - not needed (here and setinternalsharing and removegroup)
-        // target[ACL] = permission;
-        // Doc.GetProto(target)[ACL] = permission;
 
-        distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
+        distributeAcls(ACL, permission as SharingPermissions, target);
 
+        // if documents have been shared, add the target to that list if it doesn't already exist, otherwise create a new list with the target
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
 
         users.forEach(({ notificationDoc }) => {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
-                if (permission !== SharingPermissions.None) Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
-                else Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+                if (permission !== SharingPermissions.None) Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target); // add the target to the notificationDoc if it hasn't already been added
+                else Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target); // remove the target from the list if it already exists
             });
         });
     }
 
+    /**
+     * Shares the documents shared with a group with a new user who has been added to that group.
+     * @param group 
+     * @param emailId 
+     */
     shareWithAddedMember = (group: Doc, emailId: string) => {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
             DocListCastAsync(group.docsShared).then(docsShared => {
                 docsShared?.forEach(doc => {
-                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
+                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc)); // add the doc if it isn't already in the list
                 });
             });
         }
     }
 
+    /**
+     * Removes the documents shared with a user through a group when the user is removed from the group.
+     * @param group 
+     * @param emailId 
+     */
     removeMember = (group: Doc, emailId: string) => {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
             DocListCastAsync(group.docsShared).then(docsShared => {
                 docsShared?.forEach(doc => {
-                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc));
+                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc)); // remove the doc only if it is in the list
                 });
             });
         }
     }
 
+    /**
+     * Removes a group's permissions from documents that have been shared with it.
+     * @param group 
+     */
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
             DocListCastAsync(group.docsShared).then(resolved => {
                 resolved?.forEach(doc => {
                     const ACL = `ACL-${StrCast(group.groupName)}`;
-                    // doc[ACL] = doc[DataSym][ACL] = "Not Shared";
 
                     distributeAcls(ACL, SharingPermissions.None, doc);
 
@@ -185,7 +214,6 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
-    // @action
     setInternalSharing = (recipient: ValidatedUser, permission: string) => {
         const { user, notificationDoc } = recipient;
         const target = this.targetDoc!;
@@ -323,18 +351,32 @@ export default class SharingManager extends React.Component<{}> {
         const sortedGroups = groupList.sort(this.sortGroups)
             .map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
 
-        const options: GroupOptions[] = GroupManager.Instance ?
-            [
-                {
+        const options: GroupedOptions[] = [];
+
+        if (GroupManager.Instance) {
+            if ((this.showUserOptions && this.showGroupOptions) || (!this.showUserOptions && !this.showGroupOptions)) {
+                options.push({
                     label: 'Individuals',
                     options: sortedUsers
                 },
-                {
+                    {
+                        label: 'Groups',
+                        options: sortedGroups
+                    });
+            }
+            else if (this.showUserOptions) {
+                options.push({
+                    label: 'Individuals',
+                    options: sortedUsers
+                });
+            }
+            else {
+                options.push({
                     label: 'Groups',
                     options: sortedGroups
-                }
-            ]
-            : [];
+                });
+            }
+        }
 
         const users = this.individualSort === "ascending" ? this.users.sort(this.sortUsers) : this.individualSort === "descending" ? this.users.sort(this.sortUsers).reverse() : this.users;
         const groups = this.groupSort === "ascending" ? groupList.sort(this.sortGroups) : this.groupSort === "descending" ? groupList.sort(this.sortGroups).reverse() : groupList;
@@ -403,7 +445,6 @@ export default class SharingManager extends React.Component<{}> {
             );
         });
 
-        const displayUserList = !userListContents?.every(user => user === null);
         const displayGroupList = !groupListContents?.every(group => group === null);
 
         return (
@@ -451,27 +492,33 @@ export default class SharingManager extends React.Component<{}> {
                     </div>
                     {this.targetDoc?.author !== Doc.CurrentUserEmail ? null
                         :
-                        <div className="share-setup">
-                            <Select
-                                className={"user-search"}
-                                placeholder={"Enter user or group name..."}
-                                isMulti
-                                closeMenuOnSelect={false}
-                                options={options}
-                                onChange={this.handleUsersChange}
-                                value={this.selectedUsers}
-                                styles={{
-                                    indicatorSeparator: () => ({
-                                        visibility: "hidden"
-                                    })
-                                }}
-                            />
-                            <select className="permissions-select" onChange={this.handlePermissionsChange}>
-                                {this.sharingOptions}
-                            </select>
-                            <button ref={this.shareDocumentButtonRef} className="share-button" onClick={this.share}>
-                                Share
+                        <div className="share-container">
+                            <div className="share-setup">
+                                <Select
+                                    className={"user-search"}
+                                    placeholder={"Enter user or group name..."}
+                                    isMulti
+                                    closeMenuOnSelect={false}
+                                    options={options}
+                                    onChange={this.handleUsersChange}
+                                    value={this.selectedUsers}
+                                    styles={{
+                                        indicatorSeparator: () => ({
+                                            visibility: "hidden"
+                                        })
+                                    }}
+                                />
+                                <select className="permissions-select" onChange={this.handlePermissionsChange}>
+                                    {this.sharingOptions}
+                                </select>
+                                <button ref={this.shareDocumentButtonRef} className="share-button" onClick={this.share}>
+                                    Share
                             </button>
+                            </div>
+                            <div className="sort-checkboxes">
+                                <input type="checkbox" onChange={action(() => this.showUserOptions = !this.showUserOptions)} /> <label style={{ marginRight: 10 }}>Individuals</label>
+                                <input type="checkbox" onChange={action(() => this.showGroupOptions = !this.showGroupOptions)} /> <label>Groups</label>
+                            </div>
                         </div>
                     }
                     <div className="main-container">
@@ -481,17 +528,8 @@ export default class SharingManager extends React.Component<{}> {
                                 onClick={action(() => this.individualSort = this.individualSort === "ascending" ? "descending" : this.individualSort === "descending" ? "none" : "ascending")}>
                                 Individuals {this.individualSort === "ascending" ? "↑" : this.individualSort === "descending" ? "↓" : ""} {/* → */}
                             </div>
-                            <div className={"users-list"} style={{ display: !displayUserList ? "flex" : "block" }}>{/*200*/}
-                                {
-                                    !displayUserList ?
-                                        <div
-                                            className={"none"}
-                                        >
-                                            There are no users this document has been shared with.
-                                        </div>
-                                        :
-                                        userListContents
-                                }
+                            <div className={"users-list"} style={{ display: "block" }}>{/*200*/}
+                                {userListContents}
                             </div>
                         </div>
                         <div className={"group-container"}>
