@@ -158,6 +158,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (field) {
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Rotate Clockwise 90", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({ description: "Make Background", event: () => this.layoutDoc.isBackground = true, icon: "expand-arrows-alt" });
             if (!Doc.UserDoc().noviceMode) {
                 funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
                 funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
@@ -315,7 +316,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     considerGooglePhotosLink = () => {
         const remoteUrl = this.dataDoc.googlePhotosUrl;
-        return !remoteUrl ? (null) : (<img
+        return !remoteUrl ? (null) : (<img draggable={false}
             style={{ transform: `scale(${this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
             id={"google-photos"}
             src={"/assets/google_photos.png"}
@@ -340,7 +341,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         }
         return (
             <img
-                id={"upload-icon"}
+                id={"upload-icon"} draggable={false}
                 style={{ transform: `scale(${1 / this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
                 src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
@@ -415,7 +416,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
-                    style={{ transform, transformOrigin }}
+                    style={{ transform, transformOrigin }} draggable={false}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
@@ -423,7 +424,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                     <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
-                        style={{ transform, transformOrigin }}
+                        style={{ transform, transformOrigin }} draggable={false}
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} /></div>}

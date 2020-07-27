@@ -2,7 +2,7 @@ import React = require("react");
 import { FontAwesomeIcon, FontAwesomeIconProps } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction, Lambda } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, Field } from "../../../fields/Doc";
 import { BoolCast, Cast, StrCast, NumCast } from "../../../fields/Types";
 import AntimodeMenu from "../AntimodeMenu";
 import "./CollectionMenu.scss";
@@ -24,6 +24,7 @@ import { Document } from "../../../fields/documentSchemas";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { ColorState } from "react-color";
+import { ObjectField } from "../../../fields/ObjectField";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -72,42 +73,48 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
         params: ["target", "source"], title: "item view",
-        script: "this.target.childLayoutTemplate = getDocTemplate(this.source?.[0])",
+        script: "self.target.childLayoutTemplate = getDocTemplate(self.source?.[0])",
         immediate: undoBatch((source: Doc[]) => source.length && (this.target.childLayoutTemplate = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
         params: ["target", "source"], title: "child click view",
-        script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
+        script: "self.target.childClickedOpenTemplateView = getDocTemplate(self.source?.[0])",
         immediate: undoBatch((source: Doc[]) => source.length && (this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]))),
         initialize: emptyFunction,
     };
     _contentCommand = {
         params: ["target", "source"], title: "clear content",
-        script: "getProto(this.target).data = copyField(this.source);",
+        script: "getProto(self.target).data = copyField(self.source);",
         immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
         initialize: emptyFunction,
     };
     _viewCommand = {
         params: ["target"], title: "bookmark view",
-        script: "this.target._panX = this['target-panX']; this.target._panY = this['target-panY']; this.target._viewScale = this['target-viewScale'];",
+        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale'];",
         immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
         initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
     };
     _clusterCommand = {
         params: ["target"], title: "fit content",
-        script: "this.target._fitToBox = !this.target._fitToBox;",
+        script: "self.target._fitToBox = !self.target._fitToBox;",
         immediate: undoBatch((source: Doc[]) => this.target._fitToBox = !this.target._fitToBox),
         initialize: emptyFunction
     };
     _fitContentCommand = {
         params: ["target"], title: "toggle clusters",
-        script: "this.target.useClusters = !this.target.useClusters;",
+        script: "self.target.useClusters = !self.target.useClusters;",
         immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
         initialize: emptyFunction
     };
+    _saveFilterCommand = {
+        params: ["target"], title: "save filter",
+        script: "self.target._docFilters = copyField(self['target-docFilters']);",
+        immediate: undoBatch((source: Doc[]) => this.target._docFilters = undefined),
+        initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
+    };
 
-    _freeform_commands = [this._viewCommand, this._fitContentCommand, this._clusterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand];
+    _freeform_commands = [this._viewCommand, this._saveFilterCommand, this._fitContentCommand, this._clusterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _schema_commands = [this._templateCommand, this._narrativeCommand];
@@ -316,6 +323,11 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
+    @undoBatch
+    @action
+    miniMap = (): void => {
+        this.Document.hideMinimap = !this.Document.hideMinimap;
+    }
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
     private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
@@ -457,6 +469,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     render() {
         return this.Document.isAnnotationOverlay ? (null) :
             <div className="collectionFreeFormMenu-cont">
+                <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
+                    <FontAwesomeIcon icon={"map"} size={"lg"} />
+                </div>
                 <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
                     <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                 </div>

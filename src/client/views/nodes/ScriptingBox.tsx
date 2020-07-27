@@ -109,7 +109,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     resetSuggestionPos(caret: any) {
         if (!this._suggestionRef.current || !this._scriptTextRef.current) return;
-        console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
         const suggestionWidth = this._suggestionRef.current.offsetWidth;
         const scriptWidth = this._scriptTextRef.current.offsetWidth;
         const top = caret.top;

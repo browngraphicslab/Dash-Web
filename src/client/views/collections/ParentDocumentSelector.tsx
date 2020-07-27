@@ -40,15 +40,21 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         this._reaction?.();
     }
     async fetchDocuments() {
-        const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
-        const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
-        const map: Map<Doc, Doc> = new Map;
-        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
-        allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
-        docs.forEach(doc => map.delete(doc));
+        const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document));
+        const containerProtoSets = await Promise.all(aliases.map(async alias =>
+            await Promise.all((await SearchUtil.Search("", true, { fq: `data_l:"${alias[Id]}"` })).docs)));
+        const containerProtos = containerProtoSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>());
+        const containerSets = await Promise.all(Array.from(containerProtos.keys()).map(async container => {
+            return (await SearchUtil.GetAliasesOfDocument(container));
+        }));
+        const containers = containerSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>());
+        const doclayoutSets = await Promise.all(Array.from(containers.keys()).map(async (dp) => {
+            return (await SearchUtil.GetAliasesOfDocument(dp));
+        }));
+        const doclayouts = Array.from(doclayoutSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>()).keys());
         runInAction(() => {
-            this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
-            this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+            this._docs = doclayouts.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
+            this._otherDocs = [];
         });
     }
 

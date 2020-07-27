@@ -1,6 +1,6 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, DataSym, AclEdit, AclAddonly } from "../../../../fields/Doc";
+import { Doc, Opt, DocListCast, DataSym, AclEdit, AclAddonly, AclAdmin } from "../../../../fields/Doc";
 import { GetEffectiveAcl, getPlaygroundMode } from "../../../../fields/util";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
@@ -281,7 +281,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this._downX = x;
             this._downY = y;
             const effectiveAcl = GetEffectiveAcl(this.props.Document);
-            if (effectiveAcl === AclEdit || effectiveAcl === AclAddonly || getPlaygroundMode()) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl) || getPlaygroundMode()) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
             this.clearSelection();
         }
     });
@@ -434,8 +434,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
             CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
                 // const wordResults = results.filter((r: any) => r.category === "inkWord");
-                // console.log(wordResults);
-                // console.log(results);
                 // for (const word of wordResults) {
                 //     const indices: number[] = word.strokeIds;
                 //     indices.forEach(i => {
@@ -476,7 +474,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 //     });
                 // }
                 const lines = results.filter((r: any) => r.category === "line");
-                console.log(lines);
                 const text = lines.map((l: any) => l.recognizedText).join("\r\n");
                 this.props.addDocument(Docs.Create.TextDocument(text, { _width: this.Bounds.width, _height: this.Bounds.height, x: this.Bounds.left + this.Bounds.width, y: this.Bounds.top, title: text }));
             });

@@ -438,8 +438,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
-                    else dW = dH * nwidth / nheight;
+                    if (!e.ctrlKey) {
+                        if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
+                        else dW = dH * nwidth / nheight;
+                    }
                 }
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
@@ -463,20 +465,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey) {
                             doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
                         doc._width = actualdW;
                         if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else doc._height = actualdH;
+                        else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey) {
                             doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;
                         if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else doc._width = actualdW;
+                        else if (!fixedAspect || !e.ctrlKey) doc._width = actualdW;
                     }
                 } else {
                     dW && (doc._width = actualdW);
@@ -549,8 +551,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>) : (
-                <Tooltip title={<><div className="dash-tooltip">Iconify</div></>} placement="top">
-                    <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
+                <Tooltip title={<><div className="dash-tooltip">Delete</div></>} placement="top">
+                    <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                         {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                         <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                     </div></Tooltip>);
@@ -616,7 +618,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"

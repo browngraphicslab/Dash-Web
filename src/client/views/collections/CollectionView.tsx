@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate } from '../../../fields/Doc';
+import { AclAddonly, AclReadonly, DataSym, Doc, DocListCast, Field, Opt, AclEdit, AclSym, AclPrivate, AclAdmin } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { ObjectField } from '../../../fields/ObjectField';
@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls, SharingPermissions } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -48,7 +48,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import CollectionMenu from './CollectionMenu';
-import { SharingPermissions } from '../../util/SharingManager';
+import { ContextMenuProps } from '../ContextMenuItem';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -111,7 +111,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         [AclPrivate, SharingPermissions.None],
         [AclReadonly, SharingPermissions.View],
         [AclAddonly, SharingPermissions.Add],
-        [AclEdit, SharingPermissions.Edit]
+        [AclEdit, SharingPermissions.Edit],
+        [AclAdmin, SharingPermissions.Admin]
     ]);
 
     get collectionViewType(): CollectionViewType | undefined {
@@ -144,7 +145,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
 
         if (added.length) {
-            if (effectiveAcl === AclReadonly && !getPlaygroundMode()) {
+            if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
                 return false;
             }
             else {
@@ -167,7 +168,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         const context = Cast(doc.context, Doc, null);
                         if (context && (context.type === DocumentType.VID || context.type === DocumentType.WEB || context.type === DocumentType.PDF || context.type === DocumentType.IMG)) {
                             const pushpin = Docs.Create.FontIconDocument({
-                                title: "pushpin",
+                                title: "pushpin", label: "",
                                 icon: "map-pin", x: Cast(doc.x, "number", null), y: Cast(doc.y, "number", null), _backgroundColor: "#0000003d", color: "#ACCEF7",
                                 _width: 15, _height: 15, _xPadding: 0, isLinkButton: true, displayTimecode: Cast(doc.displayTimecode, "number", null)
                             });
@@ -191,7 +192,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        if (GetEffectiveAcl(this.props.Document) === AclEdit || getPlaygroundMode()) {
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || getPlaygroundMode()) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
@@ -268,9 +270,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
 
     setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
-        const existingVm = ContextMenu.Instance.findByDescription(category);
-        const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
 
+        const subItems: ContextMenuProps[] = [];
         subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
         if (addExtras && CollectionView._safeMode) {
             ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
@@ -292,31 +293,35 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
         }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
-        !existingVm && ContextMenu.Instance.addItem({ description: category, noexpand: true, subitems: subItems, icon: "eye" });
+
+        const existingVm = ContextMenu.Instance.findByDescription(category);
+        const catItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+        catItems.push({ description: "Add a Perspective...", addDivider: true, noexpand: true, subitems: subItems, icon: "eye" });
+        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: catItems, icon: "eye" });
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
         if (cm && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            this.setupViewTypes("Add a Perspective...", vtype => {
+            this.setupViewTypes("UI Controls...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
                 this.props.addDocTab(newRendition, "onRight");
                 return newRendition;
             }, false);
 
-            const existing = cm.findByDescription("Options...");
-            const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
-            layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            const options = cm.findByDescription("Options...");
+            const optionItems = options && "subitems" in options ? options.subitems : [];
+            optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
-                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
             if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
+                optionItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
             }
-            !Doc.UserDoc().noviceMode && layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode && optionItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && cm.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "hand-point-right" });
 
             const existingOnClick = cm.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];

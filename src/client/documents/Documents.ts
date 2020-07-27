@@ -92,6 +92,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
+    label?: string;
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
@@ -497,7 +498,7 @@ export namespace Docs {
                     Doc.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
-                    console.log(errors);
+                    console.log("Documents:" + errors);
                 } else {
                     alert("A Buxton document import was completely empty (??)");
                 }

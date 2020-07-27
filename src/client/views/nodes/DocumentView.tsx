@@ -3,7 +3,7 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclEdit } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclEdit, AclAdmin } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
@@ -11,7 +11,7 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { TraceMobx, GetEffectiveAcl } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, SharingPermissions } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -25,7 +25,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { Scripting } from '../../util/Scripting';
 import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
-import SharingManager, { SharingPermissions } from '../../util/SharingManager';
+import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
@@ -41,7 +41,7 @@ import { RadialMenu } from './RadialMenu';
 import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
-import { LinkCreatedBox } from './LinkCreatedBox';
+import { TaskCompletionBox } from './TaskCompletedBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { LinkManager } from '../../util/LinkManager';
 
@@ -295,7 +295,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let stopPropagate = true;
             let preventDefault = true;
             !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (!(e.nativeEvent as any).formattedHandled) {
                     if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                         const func = () => this.onDoubleClickHandler.script.run({
@@ -631,15 +631,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const makeLink = action((linkDoc: Doc) => {
             LinkManager.currentLink = linkDoc;
 
-            LinkCreatedBox.popupX = de.x;
-            LinkCreatedBox.popupY = de.y - 33;
-            LinkCreatedBox.linkCreated = true;
+            TaskCompletionBox.textDisplayed = "Link Created";
+            TaskCompletionBox.popupX = de.x;
+            TaskCompletionBox.popupY = de.y - 33;
+            TaskCompletionBox.taskCompleted = true;
 
             LinkDescriptionPopup.popupX = de.x;
             LinkDescriptionPopup.popupY = de.y;
             LinkDescriptionPopup.descriptionPopup = true;
 
-            setTimeout(action(() => LinkCreatedBox.linkCreated = false), 2500);
+            setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
         });
         if (de.complete.annoDragData) {
             /// this whole section for handling PDF annotations looks weird.  Need to rethink this to make it cleaner
@@ -755,11 +756,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.contextMenuItems?.().forEach(item =>
             cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
+        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
+        const appearance = cm.findByDescription("UI Controls...");
+        const appearanceItems: ContextMenuProps[] = appearance && "subitems" in appearance ? appearance.subitems : [];
+        templateDoc && appearanceItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
+        //DocListCast(this.Document.links).length && appearanceItems.splice(0, 0, { description: `${this.layoutDoc.hideLinkButton ? "Show" : "Hide"} Link Button`, event: action(() => this.layoutDoc.hideLinkButton = !this.layoutDoc.hideLinkButton), icon: "eye" });
+        !appearance && cm.addItem({ description: "UI Controls...", subitems: appearanceItems, icon: "compass" });
+
         const options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
-        templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
 
@@ -772,7 +778,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
-        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
+        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "hand-point-right" });
 
         const funcs: ContextMenuProps[] = [];
         if (this.layoutDoc.onDragStart) {
@@ -805,15 +811,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         }
-        GetEffectiveAcl(this.props.Document) === AclEdit && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
 
         const help = cm.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
-        //!Doc.UserDoc().novice && helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
-        !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
+        helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
+        helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
+        helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
         // const existingAcls = cm.findByDescription("Privacy...");
@@ -908,7 +916,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         const documents: Doc[] = [];
         const allDocs = await SearchUtil.GetAllDocs();
-        // allDocs.forEach(doc => console.log(doc.title));
         // clears internal representation of documents as vectors
         ClientRecommender.Instance.reset_docs();
         //ClientRecommender.Instance.arxivrequest("electrons");
@@ -1061,7 +1068,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
-            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) : <DocumentLinksButton View={this} Offset={[-15, 0]} />}
+            {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) :
+                <DocumentLinksButton View={this} Offset={[-15, 0]} />}
         </div>
         );
     }

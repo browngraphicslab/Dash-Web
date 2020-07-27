@@ -20,20 +20,14 @@ import GroupMemberView from "./GroupMemberView";
 import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../fields/List";
-import { distributeAcls } from "../../fields/util";
+import { distributeAcls, SharingPermissions } from "../../fields/util";
+import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 
 library.add(fa.faCopy, fa.faTimes);
 
 export interface User {
     email: string;
     userDocumentId: string;
-}
-
-export enum SharingPermissions {
-    Edit = "Can Edit",
-    Add = "Can Add",
-    View = "Can View",
-    None = "Not Shared"
 }
 
 interface GroupOptions {
@@ -69,6 +63,8 @@ export default class SharingManager extends React.Component<{}> {
     @observable private permissions: SharingPermissions = SharingPermissions.Edit;
     @observable private individualSort: "ascending" | "descending" | "none" = "none";
     @observable private groupSort: "ascending" | "descending" | "none" = "none";
+    private shareDocumentButtonRef: React.RefObject<HTMLButtonElement> = React.createRef();
+
 
 
     // private get linkVisible() {
@@ -90,6 +86,8 @@ export default class SharingManager extends React.Component<{}> {
     public close = action(() => {
         this.isOpen = false;
         this.users = [];
+        this.selectedUsers = null;
+
         setTimeout(action(() => {
             // this.copied = false;
             DictationOverlay.Instance.hasActiveModal = false;
@@ -235,7 +233,7 @@ export default class SharingManager extends React.Component<{}> {
     private get sharingOptions() {
         return Object.values(SharingPermissions).map(permission => {
             return (
-                <option key={permission} value={permission}>
+                <option key={permission} value={permission} selected={permission === SharingPermissions.Edit}>
                     {permission}
                 </option>
             );
@@ -284,15 +282,25 @@ export default class SharingManager extends React.Component<{}> {
 
     @action
     share = () => {
-        this.selectedUsers?.forEach(user => {
-            if (user.value.includes(indType)) {
-                this.setInternalSharing(this.users.find(u => u.user.email === user.label)!, this.permissions);
-            }
-            else {
-                this.setInternalGroupSharing(GroupManager.Instance.getGroup(user.label)!, this.permissions);
-            }
-        });
-        this.selectedUsers = null;
+        if (this.selectedUsers) {
+            this.selectedUsers.forEach(user => {
+                if (user.value.includes(indType)) {
+                    this.setInternalSharing(this.users.find(u => u.user.email === user.label)!, this.permissions);
+                }
+                else {
+                    this.setInternalGroupSharing(GroupManager.Instance.getGroup(user.label)!, this.permissions);
+                }
+            });
+
+            const { left, width, top, height } = this.shareDocumentButtonRef.current!.getBoundingClientRect();
+            TaskCompletionBox.popupX = left - 1.5 * width;
+            TaskCompletionBox.popupY = top - height;
+            TaskCompletionBox.textDisplayed = "Document shared!";
+            TaskCompletionBox.taskCompleted = true;
+            setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2000);
+
+            this.selectedUsers = null;
+        }
     }
 
     sortUsers = (u1: ValidatedUser, u2: ValidatedUser) => {
@@ -456,7 +464,7 @@ export default class SharingManager extends React.Component<{}> {
                             <select className="permissions-select" onChange={this.handlePermissionsChange}>
                                 {this.sharingOptions}
                             </select>
-                            <button className="share-button" onClick={this.share}>
+                            <button ref={this.shareDocumentButtonRef} className="share-button" onClick={this.share}>
                                 Share
                             </button>
                         </div>
