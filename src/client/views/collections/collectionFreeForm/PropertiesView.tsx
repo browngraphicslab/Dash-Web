@@ -113,6 +113,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {contentElement}
                 </div>);
             }
+
+            rows.push(<div className="field" key={"newKeyValue"}>
+                <EditableView
+                    key="editableView"
+                    contents={"add key:value"}
+                    height={13}
+                    fontSize={12}
+                    GetValue={() => ""}
+                    SetValue={(value: string) => {
+                        value.indexOf(":") !== -1 && KeyValueBox.SetField(doc, value.substring(0, value.indexOf(":")), value.substring(value.indexOf(":") + 1, value.length), true);
+                        return true;
+                    }} />
+            </div>);
             return rows;
         }
     }
