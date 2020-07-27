@@ -41,6 +41,7 @@
             margin-top: -5;
             height: 20;
             text-overflow: ellipsis;
+            background: none;
 
             &:hover {
                 text-overflow: visible;
@@ -72,7 +73,7 @@
 
     .editing-contents {
         overflow-y: auto;
-        height: 65%;
+        height: 62%;
         width: 100%;
         color: black;
         margin-top: -15px;

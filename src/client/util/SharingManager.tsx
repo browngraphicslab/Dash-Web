@@ -294,7 +294,7 @@ export default class SharingManager extends React.Component<{}> {
 
             const { left, width, top, height } = this.shareDocumentButtonRef.current!.getBoundingClientRect();
             TaskCompletionBox.popupX = left - 1.5 * width;
-            TaskCompletionBox.popupY = top - height;
+            TaskCompletionBox.popupY = top - 1.5 * height;
             TaskCompletionBox.textDisplayed = "Document shared!";
             TaskCompletionBox.taskCompleted = true;
             setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2000);
@@ -460,6 +460,11 @@ export default class SharingManager extends React.Component<{}> {
                                 options={options}
                                 onChange={this.handleUsersChange}
                                 value={this.selectedUsers}
+                                styles={{
+                                    indicatorSeparator: () => ({
+                                        visibility: "hidden"
+                                    })
+                                }}
                             />
                             <select className="permissions-select" onChange={this.handlePermissionsChange}>
                                 {this.sharingOptions}
