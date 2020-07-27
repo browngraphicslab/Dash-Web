@@ -35,7 +35,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
     getField(key: string) {
         return this.selectedInk?.reduce((p, i) =>
-            (p === undefined || (p && p === i.rootDoc[key])) && i.rootDoc[key] !== "0" ? Field.toString(i.rootDoc[key] as Field) : "", undefined as Opt<string>)
+            (p === undefined || (p && p === i.rootDoc[key])) && i.rootDoc[key] !== "0" ? Field.toString(i.rootDoc[key] as Field) : "", undefined as Opt<string>);
     }
 
     @computed get selectedInk() {

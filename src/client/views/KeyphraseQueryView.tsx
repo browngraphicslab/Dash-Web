@@ -11,7 +11,6 @@ export interface KP_Props {
 export class KeyphraseQueryView extends React.Component<KP_Props>{
     constructor(props: KP_Props) {
         super(props);
-        console.log("FIRST KEY PHRASE: ", props.keyphrases[0]);
     }
 
     render() {

@@ -55,7 +55,7 @@ export class Uploader extends React.Component<ImageUploadProps> {
                                 doc = Docs.Create.VideoDocument(path, { _nativeWidth: 400, _width: 400, title: name });
                                 // Case 2: File is a PDF document
                             } else if (file.type === "application/pdf") {
-                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: 400, _width: 400, _fitWidth: true, title: name });
                                 // Case 3: File is another document type (most likely Image)
                             } else {
                                 doc = Docs.Create.ImageDocument(path, { _nativeWidth: 400, _width: 400, title: name });
@@ -172,6 +172,7 @@ export class Uploader extends React.Component<ImageUploadProps> {
                 interactive={true}
                 dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
                 overlayDisplayedOpacity={this.overlayOpacity}
+                closeOnExternalClick={this.closeUpload}
             />
         );
     }

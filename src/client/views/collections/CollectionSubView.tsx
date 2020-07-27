@@ -91,6 +91,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
+            // sets the dataDoc's data field to an empty list if the data field is undefined - prevents issues with addonly
+            // setTimeout changes it outside of the @computed section
+            setTimeout(() => {
+                if (!this.dataDoc[this.props.annotationsKey || this.props.fieldKey]) this.dataDoc[this.props.annotationsKey || this.props.fieldKey] = new List<Doc>();
+            }, 1000);
             return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
         }
 
@@ -215,6 +220,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const { dataTransfer } = e;
             const html = dataTransfer.getData("text/html");
             const text = dataTransfer.getData("text/plain");
+            const uriList = dataTransfer.getData("text/uri-list");
 
             if (text && text.startsWith("<div")) {
                 return;
@@ -286,7 +292,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
-                            Doc.GetProto(htmlDoc)["data-text"] = text;
+                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc)["text"] = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
@@ -294,7 +300,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
                                     const y = NumCast(srcWeb._scrollTop) + (rect?.y || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 75, _height: 40, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -307,9 +313,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 }
             }
 
-            if (text) {
-                if (text.includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
-                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
+            if (uriList || text) {
+                if ((uriList || text).includes("www.youtube.com/watch") || text.includes("www.youtube.com/embed")) {
+                    const url = (uriList || text).replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     this.addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
@@ -334,9 +340,19 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
                 //     const albumId = matches[3];
                 //     const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
-                //     console.log(mediaItems);
                 //     return;
                 // }
+            }
+            if (uriList) {
+                this.addDocument(Docs.Create.WebDocument(uriList, {
+                    ...options,
+                    title: uriList,
+                    _width: 400,
+                    _height: 315,
+                    _nativeWidth: 600,
+                    _nativeHeight: 472.5
+                }));
+                return;
             }
 
             const { items } = e.dataTransfer;
@@ -364,7 +380,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     file?.type && files.push(file);
 
                     file?.type === "application/json" && Utils.readUploadedFileAsText(file).then(result => {
-                        console.log(result);
                         const json = JSON.parse(result as string);
                         this.addDocument(Docs.Create.TreeDocument(
                             json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
@@ -418,4 +433,5 @@ import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTex
 import { CollectionView } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
+import { setTimeout } from "timers";
 

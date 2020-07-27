@@ -16,6 +16,7 @@ const imageDataUri = require('image-data-uri');
 import { isWebUri } from "valid-url";
 import { launch } from "puppeteer";
 import { Opt } from "../../fields/Doc";
+import { SolrManager } from "./SearchManager";
 
 export enum Directory {
     parsed_files = "parsed_files",
@@ -139,13 +140,9 @@ export default class UploadManager extends ApiManager {
                         doc.id = getId(doc.id);
                     }
                     for (const key in doc.fields) {
-                        if (!doc.fields.hasOwnProperty(key)) {
-                            continue;
-                        }
+                        if (!doc.fields.hasOwnProperty(key)) { continue; }
                         const field = doc.fields[key];
-                        if (field === undefined || field === null) {
-                            continue;
-                        }
+                        if (field === undefined || field === null) { continue; }
 
                         if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                             field.fieldId = getId(field.fieldId);
@@ -208,11 +205,8 @@ export default class UploadManager extends ApiManager {
                                 } catch (e) { console.log(e); }
                                 unlink(path_2, () => { });
                             }
-                            if (id) {
-                                res.send(JSON.stringify(getId(id)));
-                            } else {
-                                res.send(JSON.stringify("error"));
-                            }
+                            SolrManager.update();
+                            res.send(JSON.stringify(id ? getId(id) : "error"));
                         } catch (e) { console.log(e); }
                         resolve();
                     });

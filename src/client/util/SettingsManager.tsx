@@ -11,10 +11,12 @@ import { Networking } from "../Network";
 import { CurrentUserUtils } from "./CurrentUserUtils";
 import { Utils } from "../../Utils";
 import { Doc } from "../../fields/Doc";
+import GroupManager from "./GroupManager";
 import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
+import { togglePlaygroundMode } from "../../fields/util";
 
-library.add(fa.faWindowClose);
+library.add(fa.faTimes);
 
 @observer
 export default class SettingsManager extends React.Component<{}> {
@@ -25,6 +27,7 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private settingsContent = "password";
     @observable private errorText = "";
     @observable private successText = "";
+    @observable private playgroundMode = false;
     private curr_password_ref = React.createRef<HTMLInputElement>();
     private new_password_ref = React.createRef<HTMLInputElement>();
     private new_confirm_ref = React.createRef<HTMLInputElement>();
@@ -87,11 +90,17 @@ export default class SettingsManager extends React.Component<{}> {
     }
     @action
     googleAuthorize = (event: any) => {
-        GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)
+        GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true);
     }
     @action
     hypothesisAuthorize = (event: any) => {
-        HypothesisAuthenticationManager.Instance.fetchAccessToken(true)
+        HypothesisAuthenticationManager.Instance.fetchAccessToken(true);
+    }
+
+    @action
+    togglePlaygroundMode = () => {
+        togglePlaygroundMode();
+        this.playgroundMode = !this.playgroundMode;
     }
 
     private get settingsInterface() {
@@ -100,15 +109,17 @@ export default class SettingsManager extends React.Component<{}> {
                 <div className="settings-heading">
                     <h1>settings</h1>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faWindowClose} size={"lg"} />
+                        <FontAwesomeIcon icon={fa.faTimes} color="black" size={"lg"} />
                     </div>
                 </div>
                 <div className="settings-body">
                     <div className="settings-type">
                         <button onClick={this.onClick} value="password">reset password</button>
                         <button onClick={this.noviceToggle} value="data">{`Set ${Doc.UserDoc().noviceMode ? "developer" : "novice"} mode`}</button>
+                        <button onClick={this.togglePlaygroundMode}>{`${this.playgroundMode ? "Disable" : "Enable"} playground mode`}</button>
                         <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
                         <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
+                        <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
                         <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                             {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                         </button>
@@ -144,8 +155,7 @@ export default class SettingsManager extends React.Component<{}> {
                 contents={this.settingsInterface}
                 isDisplayed={this.isOpen}
                 interactive={true}
-                dialogueBoxDisplayedOpacity={this.dialogueBoxOpacity}
-                overlayDisplayedOpacity={this.overlayOpacity}
+                closeOnExternalClick={this.close}
             />
         );
     }

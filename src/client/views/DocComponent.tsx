@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, DocListCast, AclSym, AclReadonly, AclAddonly } from '../../fields/Doc';
+import { Doc, Opt, DataSym, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym, DocListCastAsync, DocListCast } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
@@ -7,6 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
+import { GetEffectiveAcl, getPlaygroundMode, SharingPermissions } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -91,6 +92,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
 
+        private AclMap = new Map<symbol, string>([
+            [AclPrivate, SharingPermissions.None],
+            [AclReadonly, SharingPermissions.View],
+            [AclAddonly, SharingPermissions.Add],
+            [AclEdit, SharingPermissions.Edit]
+        ]);
+
         lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
 
         styleFromLayoutString = (scale: number) => {
@@ -114,14 +122,16 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
-            docs.map(doc => doc.annotationOn = undefined);
+            docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
             const targetDataDoc = this.dataDoc;
             const value = DocListCast(targetDataDoc[this.annotationKey]);
-            const result = value.filter(v => !docs.includes(v));
-            if (result.length !== value.length) {
-                targetDataDoc[this.annotationKey] = new List<Doc>(result);
+            const toRemove = value.filter(v => docs.includes(v));
+            // can't assign new List<Doc>(result) to this because you can't assign new values in addonly
+            if (toRemove.length !== 0) {
+                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.annotationKey, doc));
                 return true;
             }
+
             return false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.
@@ -137,15 +147,30 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const targetDataDoc = this.props.Document[DataSym];
             const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
+            const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+
             if (added.length) {
-                if (this.dataDoc[AclSym] === AclReadonly) {
+                if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
                     return false;
-                } else if (this.dataDoc[AclSym] === AclAddonly) {
-                    added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
-                } else {
-                    added.map(doc => doc.context = this.props.Document);
-                    targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
-                    targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                }
+                else {
+                    if (this.props.Document[AclSym]) {
+                        added.forEach(d => {
+                            const dataDoc = d[DataSym];
+                            dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                            for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                                dataDoc[key] = d[key] = this.AclMap.get(value);
+                            }
+                        });
+                    }
+                    if (effectiveAcl === AclAddonly) {
+                        added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
+                    }
+                    else {
+                        added.map(doc => doc.context = this.props.Document);
+                        targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                        targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    }
                 }
             }
             return true;

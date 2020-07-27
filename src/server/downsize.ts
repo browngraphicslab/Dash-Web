@@ -7,7 +7,7 @@ const jpgTypes = ["jpg", "JPG", "jpeg", "JPEG"];
 const smallResizer = sharp().resize(100);
 fs.readdir(folder, async (err, files) => {
     if (err) {
-        console.log(err);
+        console.log("readdir:" + err);
         return;
     }
     // files.forEach(file => {

@@ -10,7 +10,7 @@ import React = require("react");
 import { DocUtils } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LinkDocPreview } from "./LinkDocPreview";
-import { LinkCreatedBox } from "./LinkCreatedBox";
+import { TaskCompletionBox } from "./TaskCompletedBox";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { LinkManager } from "../../util/LinkManager";
 import { Tooltip } from "@material-ui/core";
@@ -68,8 +68,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 //action(() => Doc.BrushDoc(this.props.View.Document));
                 DocumentLinksButton.StartLink = this.props.View;
             } else if (!this.props.InMenu) {
-                console.log("editing");
-                this.props.View ? console.log("view") : null;
                 DocumentLinksButton.EditLink = this.props.View;
                 DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
             }
@@ -93,28 +91,24 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (doubleTap && this.props.InMenu && !!!this.props.StartLink) {
                 if (DocumentLinksButton.StartLink === this.props.View) {
                     DocumentLinksButton.StartLink = undefined;
-                    // action((e: React.PointerEvent<HTMLDivElement>) => {
-                    //     Doc.UnBrushDoc(this.props.View.Document);
-                    // });
                 } else {
 
                     if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                         const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                         LinkManager.currentLink = linkDoc;
-                        linkDoc ? linkDoc.hidden = true : null;
-                        linkDoc ? linkDoc.linkDisplay = true : null;
 
                         runInAction(() => {
                             if (linkDoc) {
-                                LinkCreatedBox.popupX = e.screenX;
-                                LinkCreatedBox.popupY = e.screenY - 133;
-                                LinkCreatedBox.linkCreated = true;
+                                TaskCompletionBox.textDisplayed = "Link Created";
+                                TaskCompletionBox.popupX = e.screenX;
+                                TaskCompletionBox.popupY = e.screenY - 133;
+                                TaskCompletionBox.taskCompleted = true;
 
                                 LinkDescriptionPopup.popupX = e.screenX;
                                 LinkDescriptionPopup.popupY = e.screenY - 100;
                                 LinkDescriptionPopup.descriptionPopup = true;
 
-                                setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                                setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
                             }
 
                         });
@@ -128,22 +122,21 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     finishLinkClick = (e: React.MouseEvent) => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
-            // action((e: React.PointerEvent<HTMLDivElement>) => {
-            //     Doc.UnBrushDoc(this.props.View.Document);
-            // });
         } else {
             if (this.props.InMenu && !!!this.props.StartLink) {
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                    // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
+                    runInAction(() => DocumentLinksButton.StartLink!._link = this.props.View._link = linkDoc);
+                    setTimeout(action(() => DocumentLinksButton.StartLink!._link = this.props.View._link = undefined), 0);
                     LinkManager.currentLink = linkDoc;
-                    linkDoc ? linkDoc.hidden = true : null;
-                    linkDoc ? linkDoc.linkDisplay = true : null;
 
                     runInAction(() => {
                         if (linkDoc) {
-                            LinkCreatedBox.popupX = e.screenX;
-                            LinkCreatedBox.popupY = e.screenY - 133;
-                            LinkCreatedBox.linkCreated = true;
+                            TaskCompletionBox.textDisplayed = "Link Created";
+                            TaskCompletionBox.popupX = e.screenX;
+                            TaskCompletionBox.popupY = e.screenY - 133;
+                            TaskCompletionBox.taskCompleted = true;
 
                             if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
                                 LinkDescriptionPopup.popupX = e.screenX;
@@ -151,7 +144,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                                 LinkDescriptionPopup.descriptionPopup = true;
                             }
 
-                            setTimeout(action(() => { LinkCreatedBox.linkCreated = false; }), 2500);
+                            setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
                         }
                     });
                 }
@@ -168,8 +161,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         const links = DocListCast(this.props.View.props.Document.links);
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
-
-        const title = this.props.InMenu ? menuTitle : "Tap to view links";
+        const buttonTitle = "Tap to view links";
+        const title = this.props.InMenu ? menuTitle : buttonTitle;
 
 
         const startLink = <img
@@ -202,14 +195,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             //     Location: [e.clientX, e.clientY + 20]
             // }))} 
             >
-                {/* {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="unlink" size="sm" /> : links.length} */}
 
-                {/* {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
-                    link : links.length} */}
+                {this.props.InMenu ? this.props.StartLink ? <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" /> :
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="hand-paper" size="sm" /> : links.length}
 
-                {this.props.InMenu ? this.props.StartLink ? startLink :
-                    endLink : links.length}
             </div>
             {DocumentLinksButton.StartLink && this.props.InMenu && !!!this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
@@ -217,10 +206,16 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             {DocumentLinksButton.StartLink === this.props.View && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
         </div>;
+
         return (!links.length) && !this.props.AlwaysOn ? (null) :
-            <Tooltip title={title}>
-                {linkButton}
-            </Tooltip>;
+            this.props.InMenu ?
+                <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
+                    {linkButton}
+                </Tooltip> : !!!DocumentLinksButton.EditLink ?
+                    <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
+                        {linkButton}
+                    </Tooltip> :
+                    linkButton;
     }
     render() {
         return this.linkButton;

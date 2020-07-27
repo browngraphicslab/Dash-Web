@@ -205,7 +205,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             return returnedUri;
 
         } catch (e) {
-            console.log(e);
+            console.log("VideoBox :" + e);
         }
     }
     @observable _screenCapture = false;

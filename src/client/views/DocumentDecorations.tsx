@@ -84,6 +84,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
                 documentView.props.treeViewDoc ||
+                !documentView.ContentDiv ||
                 Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
@@ -91,7 +92,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.Document.type === DocumentType.LINK) {
-                const docuBox = documentView.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
+                const docuBox = documentView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();
                     sptX = rect.left;
@@ -153,7 +154,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length) {
-                const next = Array.from(child.children).find(c => typeof (c.className) !== "string" || !c.className.includes("collectionViewChrome"));
+                const next = Array.from(child.children).find(c => typeof (c.className) !== "string");
                 if (typeof (next?.className) === "string" && next?.className.includes("documentView-node")) break;
                 if (next) child = next;
                 else break;
@@ -295,13 +296,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                 doc.rotation = Number(doc.rotation) + Number(angle);
-                const ink = Cast(doc.data, InkField)?.inkData;
-                if (ink) {
-
+                const inks = Cast(doc.data, InkField)?.inkData;
+                if (inks) {
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
-                        const newX = Math.cos(angle) * (ink[i].X - this._centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
-                        const newY = Math.sin(angle) * (ink[i].X - this._centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
+                    for (const ink of inks) {
+                        const newX = Math.cos(angle) * (ink.X - this._centerPoints[index].X) - Math.sin(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].X;
+                        const newY = Math.sin(angle) * (ink.X - this._centerPoints[index].X) + Math.cos(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
                     }
                     doc.data = new InkField(newPoints);
@@ -389,7 +389,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         move[1] = thisPt.thisY - this._snapY;
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
-
+        let dragBottom = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
@@ -427,6 +427,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             case "documentDecorations-bottomResizer":
                 unfreeze();
                 dH = move[1];
+                dragBottom = true;
                 break;
             case "documentDecorations-leftResizer":
                 unfreeze();
@@ -447,13 +448,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let nheight = doc._nativeHeight || 0;
                 const width = (doc._width || 0);
                 let height = (doc._height || (nheight / nwidth * width));
+                height = !height || isNaN(height) ? 20 : height;
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
-                    else dW = dH * nwidth / nheight;
+                    if (!e.ctrlKey && (!dragBottom || !element.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
+                        if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
+                        else dW = dH * nwidth / nheight;
+                    }
                 }
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
@@ -477,20 +481,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey) {
                             doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
                         doc._width = actualdW;
                         if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else doc._height = actualdH;
+                        else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey || (dragBottom && element.layoutDoc._fitWidth)) {
                             doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;
                         if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else doc._width = actualdW;
+                        else if (!fixedAspect || !e.ctrlKey) doc._width = actualdW;
                     }
                 } else {
                     dW && (doc._width = actualdW);
@@ -581,12 +585,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
-            <Tooltip title="Show context menu" placement="top">
+            <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>) : (
-                <Tooltip title="Iconify" placement="top">
-                    <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
+                <Tooltip title={<><div className="dash-tooltip">Delete</div></>} placement="top">
+                    <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                         {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                         <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                     </div></Tooltip>);
@@ -609,7 +613,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 </div>}
             </> :
             <>
-                {minimal ? (null) : <Tooltip title="Show context menu" placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
+                {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
@@ -653,11 +657,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     {maximizeIcon}
                     {titleArea}
                     {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
-                        <Tooltip title={`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`} placement="top">
+                        <Tooltip title={<><div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div></>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title="Open Document in Tab" placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"
@@ -680,7 +684,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                         onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                     {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                        <Tooltip title="tap to select containing document" placement="top">
+                        <Tooltip title={<><div className="dash-tooltip">tap to select containing document</div></>} placement="top">
                             <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
                                 onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
                                 <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />

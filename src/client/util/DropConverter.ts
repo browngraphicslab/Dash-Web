@@ -57,7 +57,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
     data?.draggedDocuments.map((doc, i) => {
         let dbox = doc;
         // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
-        if (doc.type === DocumentType.FONTICON) {
+        if (doc.type === DocumentType.FONTICON || StrCast(Doc.Layout(doc).layout).includes("FontIconBox")) {
             dbox = Doc.MakeAlias(doc);
         } else if (!doc.onDragStart && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;

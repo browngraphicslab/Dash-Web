@@ -22,6 +22,7 @@ import { LinkManager } from "../../../util/LinkManager";
 import { LinkDocPreview } from "../LinkDocPreview";
 import { DocumentLinksButton } from "../DocumentLinksButton";
 import { Tooltip } from "@material-ui/core";
+import { undoBatch } from "../../../util/UndoManager";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -143,6 +144,7 @@ export class FormattedTextBoxComment {
         }
     }
 
+    @undoBatch
     @action
     deleteLink = () => {
         FormattedTextBoxComment.linkDoc ? LinkManager.Instance.deleteLink(FormattedTextBoxComment.linkDoc) : null;
@@ -270,14 +272,14 @@ export class FormattedTextBoxComment {
                                         </div>
                                         <div className="wrapper" style={{ float: "right" }}>
 
-                                            <Tooltip title="Delete Link" placement="top">
+                                            <Tooltip title={<><div className="dash-tooltip">Delete Link</div></>} placement="top">
                                                 <div className="FormattedTextBoxComment-button"
                                                     ref={(r) => this._deleteRef = r}>
                                                     <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="trash" color="white"
                                                         size="sm" /></div>
                                             </Tooltip>
 
-                                            <Tooltip title="Follow Link" placement="top">
+                                            <Tooltip title={<><div className="dash-tooltip">Follow Link</div></>} placement="top">
                                                 <div className="FormattedTextBoxComment-button"
                                                     ref={(r) => this._followRef = r}>
                                                     <FontAwesomeIcon className="FormattedTextBoxComment-fa-icon" icon="arrow-right" color="white"

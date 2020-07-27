@@ -38,15 +38,15 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     panelWidth = () => this.props.PanelWidth() / 3;
     panelHeight = () => this.props.PanelHeight() * 0.6;
+    onChildDoubleClick = () => ScriptCast(this.layoutDoc.onChildDoubleClick);
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
         const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
+            const script = ScriptField.MakeScript("child._showCaption = 'caption'", { child: Doc.name }, { child: childPair.layout });
+            const onChildClick = script && (() => script);
             return <ContentFittingDocumentView {...this.props}
-                onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                onClick={ScriptField.MakeScript(
-                    "child._showCaption = 'caption'",
-                    { child: Doc.name },
-                    { child: childPair.layout })}
+                onDoubleClick={this.onChildDoubleClick}
+                onClick={onChildClick}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.ChildLayoutTemplate}
                 LayoutTemplateString={this.props.ChildLayoutString}
@@ -86,7 +86,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     interval?: number;
     startAutoScroll = (direction: number) => {
         this.interval = window.setInterval(() => {
-            console.log(this.interval, this.scrollSpeed);
             this.changeSlide(direction);
         }, this.scrollSpeed);
     }
@@ -113,13 +112,11 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     onPointerDown = (e: React.PointerEvent) => {
         this._downX = e.clientX;
         this._downY = e.clientY;
-        console.log("CAROUSEL down");
         document.addEventListener("pointerup", this.onpointerup);
     }
     private _lastTap: number = 0;
     private _doubleTap = false;
     onpointerup = (e: PointerEvent) => {
-        console.log("CAROUSEL up");
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
         this._lastTap = Date.now();
     }

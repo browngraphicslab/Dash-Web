@@ -69,11 +69,11 @@ export class PreviewCursor extends React.Component<{}> {
                     const list: Doc[] = [];
 
                     let first: Doc | undefined;
-                    docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
+                    docids.map((did, i) => i && DocServer.GetRefField(did).then(async doc => {
                         count++;
                         if (doc instanceof Doc) {
                             i === 1 && (first = doc);
-                            const alias = clone ? Doc.MakeClone(doc) : doc;
+                            const alias = clone ? (await Doc.MakeClone(doc)).clone : doc;
                             const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
                             const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
                             alias.x = newPoint[0] + deltaX;

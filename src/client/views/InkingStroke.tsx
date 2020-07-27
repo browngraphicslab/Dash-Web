@@ -78,6 +78,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this._controlNum = 0;
     }
 
+    public static MaskDim = 50000;
     render() {
         TraceMobx();
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
@@ -168,16 +169,16 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 height={height}
                 style={{
                     pointerEvents: this.props.Document.isInkMask ? "all" : "none",
-                    transform: this.props.Document.isInkMask ? "translate(2500px, 2500px)" : undefined,
+                    transform: this.props.Document.isInkMask ? `translate(${InkingStroke.MaskDim / 2}px, ${InkingStroke.MaskDim / 2}px)` : undefined,
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
                     overflow: "visible",
                 }}
                 onContextMenu={() => {
                     const cm = ContextMenu.Instance;
                     if (cm) {
-                        cm.addItem({ description: "Analyze Stroke", event: this.analyzeStrokes, icon: "paint-brush" });
+                        !Doc.UserDoc().noviceMode && cm.addItem({ description: "Recognize Writing", event: this.analyzeStrokes, icon: "paint-brush" });
                         cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
-                        cm.addItem({ description: "Format Shape", event: this.formatShape, icon: "paint-brush" });
+                        cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
                     }
                 }}
             ><defs>

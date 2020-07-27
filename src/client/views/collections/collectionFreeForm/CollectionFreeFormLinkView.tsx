@@ -1,13 +1,12 @@
 import { observer } from "mobx-react";
 import { Doc } from "../../../../fields/Doc";
-import { Utils } from '../../../../Utils';
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from '../../../../Utils';
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
-import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
-import { observable, action, reaction, IReactionDisposer } from "mobx";
-import { StrCast, Cast } from "../../../../fields/Types";
+import { observable, action, reaction, IReactionDisposer, trace, computed } from "mobx";
+import { StrCast, Cast, NumCast } from "../../../../fields/Types";
 import { Id } from "../../../../fields/FieldSymbols";
 import { SnappingManager } from "../../../util/SnappingManager";
 
@@ -20,18 +19,27 @@ export interface CollectionFreeFormLinkViewProps {
 @observer
 export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFormLinkViewProps> {
     @observable _opacity: number = 0;
+    @observable _start = 0;
     _anchorDisposer: IReactionDisposer | undefined;
+    _timeout: NodeJS.Timeout | undefined;
+    componentWillUnmount() {
+        this._anchorDisposer?.();
+    }
     @action
+    timeout = () => (Date.now() < this._start++ + 1000) && setTimeout(this.timeout, 25)
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
-                if (SnappingManager.GetIsDragging()) return;
+                this._start = Date.now();
+                this._timeout && clearTimeout(this._timeout);
+                this._timeout = setTimeout(this.timeout, 25);
+                if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv) return;
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
-                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
-                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
-                const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv!);
-                const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv!);
+                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont") : [];
+                const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv);
+                const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv);
                 const a = adiv.getBoundingClientRect();
                 const b = bdiv.getBoundingClientRect();
                 const abounds = adiv.parentElement!.getBoundingClientRect();
@@ -82,17 +90,31 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             })
             , { fireImmediately: true });
     }
-    @action
-    componentWillUnmount() {
-        this._anchorDisposer?.();
+
+
+    pointerDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
+            this.props.LinkDocs[0].linkOffsetX = NumCast(this.props.LinkDocs[0].linkOffsetX) + delta[0];
+            this.props.LinkDocs[0].linkOffsetY = NumCast(this.props.LinkDocs[0].linkOffsetY) + delta[1];
+            return false;
+        }, emptyFunction, () => {
+            // OverlayView.Instance.addElement(
+            //     <LinkEditor sourceDoc={this.props.A.props.Document} linkDoc={this.props.LinkDocs[0]}
+            //         showLinks={action(() => { })}
+            //     />, { x: 300, y: 300 });
+        });
     }
-    render() {
-        if (SnappingManager.GetIsDragging()) return null;
+
+    @computed get renderData() {
+        this._start;
+        if (SnappingManager.GetIsDragging() || !this.props.A.ContentDiv || !this.props.B.ContentDiv || !this.props.LinkDocs.length) {
+            return undefined;
+        }
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
-        const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
-        const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
-        const a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
-        const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
+        const acont = this.props.A.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+        const bcont = this.props.B.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
+        const a = (acont.length ? acont[0] : this.props.A.ContentDiv).getBoundingClientRect();
+        const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv).getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,
             b.left, b.top, b.width, b.height,
             a.left + a.width / 2, a.top + a.height / 2);
@@ -105,18 +127,26 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (b.top + b.height / 2)];
         const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
         const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
-        const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 3;
+        const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 2;
         const pt1norm = [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
         const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        const text = StrCast(this.props.A.props.Document.description);
-        return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
-            <text x={(Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3} y={(pt1[1] + pt2[1]) / 2}>
-                {text}
-            </text>
+        const bActive = this.props.B.isSelected() || Doc.IsBrushed(this.props.B.props.Document);
+
+        const textX = (Math.min(pt1[0], pt2[0]) + Math.max(pt1[0], pt2[0])) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetX);
+        const textY = (pt1[1] + pt2[1]) / 2 + NumCast(this.props.LinkDocs[0].linkOffsetY);
+        return { a, b, pt1norm, pt2norm, aActive, bActive, textX, textY, pt1, pt2 };
+    }
+
+    render() {
+        if (!this.renderData) return (null);
+        const { a, b, pt1norm, pt2norm, aActive, bActive, textX, textY, pt1, pt2 } = this.renderData;
+        return !a.width || !b.width || ((!this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
+            <text className="collectionfreeformlinkview-linkText" x={textX} y={textY} onPointerDown={this.pointerDown} >
+                {StrCast(this.props.LinkDocs[0].description)}
+            </text>
         </>);
     }
 }
