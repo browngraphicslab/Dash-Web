@@ -399,7 +399,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     specificContextMenu = (e: React.MouseEvent): void => {
         const cm = ContextMenu.Instance;
         const funcs: ContextMenuProps[] = [];
-        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
+        funcs.push({ description: (this.layoutDoc.UseCors ? "Don't Use" : "Use") + " Cors", event: () => this.layoutDoc.UseCors = !this.layoutDoc.UseCors, icon: "snowflake" });
         cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
 
     }
@@ -446,58 +446,60 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
-        return (<div className={`webBox-container`}
-            style={{
-                transform: `scale(${this.props.ContentScaling()})`,
-                width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%",
-                height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%",
-                pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
-            }}
-            onContextMenu={this.specificContextMenu}>
-            <base target="_blank" />
-            {this.content}
-            <div className={"webBox-outerContent"} ref={this._outerRef}
-                style={{ pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none" }}
-                onWheel={e => e.stopPropagation()}
-                onScroll={e => {
-                    const iframe = this._iframeRef?.current?.contentDocument;
-                    const outerFrame = this._outerRef.current;
-                    if (iframe && outerFrame) {
-                        if (iframe.children[0].scrollTop !== outerFrame.scrollTop) {
-                            iframe.children[0].scrollTop = outerFrame.scrollTop;
+        return (<div className="webBox" style={{ width: Number.isFinite(this.props.ContentScaling()) ? `${Math.max(100, 100 / this.props.ContentScaling())}% ` : "100%" }}>
+            <div className={`webBox-container`}
+                style={{
+                    transform: `scale(${this.props.ContentScaling()})`,
+                    width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
+                }}
+                onContextMenu={this.specificContextMenu}>
+                <base target="_blank" />
+                {this.content}
+                <div className={"webBox-outerContent"} ref={this._outerRef}
+                    style={{ pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none" }}
+                    onWheel={e => e.stopPropagation()}
+                    onScroll={e => {
+                        const iframe = this._iframeRef?.current?.contentDocument;
+                        const outerFrame = this._outerRef.current;
+                        if (iframe && outerFrame) {
+                            if (iframe.children[0].scrollTop !== outerFrame.scrollTop) {
+                                iframe.children[0].scrollTop = outerFrame.scrollTop;
+                            }
+                            if (iframe.children[0].scrollLeft !== outerFrame.scrollLeft) {
+                                iframe.children[0].scrollLeft = outerFrame.scrollLeft;
+                            }
                         }
-                        if (iframe.children[0].scrollLeft !== outerFrame.scrollLeft) {
-                            iframe.children[0].scrollLeft = outerFrame.scrollLeft;
-                        }
-                    }
-                    //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
-                }}>
-                <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight), width: 4000 }}>
-                    <CollectionFreeFormView {...this.props}
-                        PanelHeight={this.props.PanelHeight}
-                        PanelWidth={this.props.PanelWidth}
-                        annotationsKey={this.annotationKey}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        focus={this.props.focus}
-                        setPreviewCursor={this.setPreviewCursor}
-                        isSelected={this.props.isSelected}
-                        isAnnotationOverlay={true}
-                        select={emptyFunction}
-                        active={this.active}
-                        ContentScaling={returnOne}
-                        whenActiveChanged={this.whenActiveChanged}
-                        removeDocument={this.removeDocument}
-                        moveDocument={this.moveDocument}
-                        addDocument={this.addDocument}
-                        CollectionView={undefined}
-                        ScreenToLocalTransform={this.scrollXf}
-                        renderDepth={this.props.renderDepth + 1}
-                        docFilters={this.props.docFilters}
-                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
-                    </CollectionFreeFormView>
+                        //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
+                    }}>
+                    <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight), width: 4000 }}>
+                        <CollectionFreeFormView {...this.props}
+                            PanelHeight={this.props.PanelHeight}
+                            PanelWidth={this.props.PanelWidth}
+                            annotationsKey={this.annotationKey}
+                            NativeHeight={returnZero}
+                            NativeWidth={returnZero}
+                            focus={this.props.focus}
+                            setPreviewCursor={this.setPreviewCursor}
+                            isSelected={this.props.isSelected}
+                            isAnnotationOverlay={true}
+                            select={emptyFunction}
+                            active={this.active}
+                            ContentScaling={returnOne}
+                            whenActiveChanged={this.whenActiveChanged}
+                            removeDocument={this.removeDocument}
+                            moveDocument={this.moveDocument}
+                            addDocument={this.addDocument}
+                            CollectionView={undefined}
+                            ScreenToLocalTransform={this.scrollXf}
+                            renderDepth={this.props.renderDepth + 1}
+                            docFilters={this.props.docFilters}
+                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                        </CollectionFreeFormView>
+                    </div>
                 </div>
-            </div>
-        </div >);
+            </div >
+        </div>);
     }
 }
