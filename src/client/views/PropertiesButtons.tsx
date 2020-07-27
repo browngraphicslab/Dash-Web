@@ -81,7 +81,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
-    @observable public onClick = this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing";
+    @computed get onClick() { return this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing"; }
 
     public startPullOutcome = action((success: boolean) => {
         if (!this._pullAnimating) {
@@ -379,7 +379,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @action
     handleOptionChange = (e: any) => {
         const value = e.target.value;
-        this.onClick = e.target.value;
+        this.selectedDoc?.onClickBehavior = e.target.value;
         if (value === "nothing") {
             this.selectedDocumentView?.noOnClick;
         } else if (value === "enterPortal") {

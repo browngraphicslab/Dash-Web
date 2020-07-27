@@ -1268,7 +1268,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.doLinkOnDeselect();
 
         // move the richtextmenu offscreen
-        if (!RichTextMenu.Instance.Pinned) RichTextMenu.Instance.delayHide();
+        //if (!RichTextMenu.Instance.Pinned) RichTextMenu.Instance.delayHide();
     }
 
     _lastTimedMark: Mark | undefined = undefined;
