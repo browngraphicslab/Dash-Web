@@ -176,7 +176,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 if (seekTimeInSeconds > -1) {
                     setTimeout(() => this.playFrom(0), -seekTimeInSeconds * 1000);
                 } else {
-                    console.log("dude");
                     this.pause();
                 }
             } else if (seekTimeInSeconds <= this._ele.duration) {
@@ -227,7 +226,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when document selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
-
+        funcs.push({ description: (this.layoutDoc.hideMarkers ? "Don't hide" : "Hide") + " markers", event: () => this.layoutDoc.hideMarkers = !this.layoutDoc.hideMarkers, icon: "expand-arrows-alt" })
+        funcs.push({ description: (this.layoutDoc.hideLabels ? "Don't hide" : "Hide") + " labels", event: () => this.layoutDoc.hideLabels = !this.layoutDoc.hideLabels, icon: "expand-arrows-alt" })
+        funcs.push({ description: (this.layoutDoc.playOnClick ? "Don't play" : "Play") + " onClick", event: () => this.layoutDoc.playOnClick = !this.layoutDoc.playOnClick, icon: "expand-arrows-alt" })
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -433,8 +434,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 console.log(counter);
             }
         }
-        console.log(counter);
-        console.log(this.dataDoc.markerAmount);
 
         if (this.dataDoc.markerAmount < counter) {
             this.dataDoc.markerAmount = counter;
@@ -503,9 +502,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     labelScript = () => AudioBox.LabelScript;
 
     // see if time is encapsulated by comparing time on both sides (for moving onto a new row in the timeline for the markers)
+    check = (e: React.PointerEvent) => {
+        if (e.target as HTMLElement === document.getElementById("timeline")) {
+            return true;
+        }
+    }
 
     render() {
-        trace();
+        //trace();
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
@@ -568,56 +572,56 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 }
                             }}>
                             {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
-
                                 // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
                                 let rect;
                                 (!m.isLabel) ?
-
-                                    rect =
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${this.formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 2) * 100}%`, top: `${this.isOverlap(m, i) * 1 / (this.dataDoc.markerAmount + 2) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
-                                        <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
-                                        <DocumentView {...this.props}
-                                            Document={m}
-                                            pointerEvents={true}
-                                            NativeHeight={returnZero}
-                                            NativeWidth={returnZero}
-                                            rootSelected={returnFalse}
-                                            LayoutTemplate={undefined}
-                                            ContainingCollectionDoc={this.props.Document}
-                                            dontRegisterView={true}
-                                            removeDocument={undefined}
-                                            parentActive={returnTrue}
-                                            onClick={this.rangeScript}
-                                            ignoreAutoHeight={false}
-                                            bringToFront={emptyFunction}
-                                            scriptContext={this} />
-                                        {/* <LabelBox {... this.props} Document={m} /> */}
-                                        {/* <div className="click" onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)) }}></div> */}
-                                        <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
-                                    </div>
+                                    (this.layoutDoc.hideMarkers) ? (null) :
+                                        rect =
+                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${this.formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 2) * 100}%`, top: `${this.isOverlap(m, i) * 1 / (this.dataDoc.markerAmount + 2) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
+                                            <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
+                                            <DocumentView {...this.props}
+                                                Document={m}
+                                                pointerEvents={true}
+                                                NativeHeight={returnZero}
+                                                NativeWidth={returnZero}
+                                                rootSelected={returnFalse}
+                                                LayoutTemplate={undefined}
+                                                ContainingCollectionDoc={this.props.Document}
+                                                dontRegisterView={true}
+                                                removeDocument={undefined}
+                                                parentActive={returnTrue}
+                                                onClick={this.layoutDoc.playOnClick ? this.rangeScript : undefined}
+                                                ignoreAutoHeight={false}
+                                                bringToFront={emptyFunction}
+                                                scriptContext={this} />
+                                            {/* <LabelBox {... this.props} Document={m} /> */}
+                                            {/* <div className="click" onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)) }}></div> */}
+                                            <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
+                                        </div>
                                     :
-                                    rect =
-                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={i} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
-                                        <DocumentView {...this.props}
-                                            Document={m}
-                                            pointerEvents={true}
-                                            NativeHeight={returnZero}
-                                            NativeWidth={returnZero}
-                                            rootSelected={returnFalse}
-                                            LayoutTemplate={undefined}
-                                            ContainingCollectionDoc={this.props.Document}
-                                            dontRegisterView={true}
-                                            removeDocument={undefined}
-                                            parentActive={returnTrue}
-                                            onClick={this.labelScript}
-                                            ignoreAutoHeight={false}
-                                            bringToFront={emptyFunction}
-                                            scriptContext={this} />
-                                    </div>;
+                                    (this.layoutDoc.hideLabels) ? (null) :
+                                        rect =
+                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={i} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                            <DocumentView {...this.props}
+                                                Document={m}
+                                                pointerEvents={true}
+                                                NativeHeight={returnZero}
+                                                NativeWidth={returnZero}
+                                                rootSelected={returnFalse}
+                                                LayoutTemplate={undefined}
+                                                ContainingCollectionDoc={this.props.Document}
+                                                dontRegisterView={true}
+                                                removeDocument={undefined}
+                                                parentActive={returnTrue}
+                                                onClick={this.layoutDoc.playOnClick ? this.labelScript : undefined}
+                                                ignoreAutoHeight={false}
+                                                bringToFront={emptyFunction}
+                                                scriptContext={this} />
+                                        </div>;
                                 return rect;
                             })}
                             {DocListCast(this.dataDoc.links).map((l, i) => {
-                                console.log("hi");
+
                                 let la1 = l.anchor1 as Doc;
                                 let la2 = l.anchor2 as Doc;
                                 let linkTime = NumCast(l.anchor2_timecode);
@@ -625,6 +629,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     la1 = l.anchor2 as Doc;
                                     la2 = l.anchor1 as Doc;
                                     linkTime = NumCast(l.anchor1_timecode);
+                                }
+
+                                if (la1.audioStart) {
+                                    linkTime = NumCast(la1.audioStart);
+                                }
+
+                                if (la2.audioStart) {
+                                    linkTime = NumCast(la2.audioStart);
                                 }
 
 
@@ -648,7 +660,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { const wasPaused = this.audioState === "paused"; this.playFrom(linkTime); this.pause(); e.stopPropagation(); e.preventDefault(); } }} />
                                     </div>;
                             })}
-                            <div className="audiobox-current" id="current" onClick={e => { e.stopPropagation(); e.preventDefault(); console.log("hi"); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
+                            <div className="audiobox-current" id="current" onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
                             {this.audio}
 
                         </div>

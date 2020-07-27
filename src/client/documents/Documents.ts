@@ -562,6 +562,7 @@ export namespace Docs {
 
             viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
+            console.log("audio link!");
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
