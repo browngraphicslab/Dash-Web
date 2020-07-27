@@ -659,12 +659,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     marqueeing = () => this._marqueeing;
     scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc._scrollLeft), NumCast(this.layoutDoc._scrollTop));
     render() {
+        const noScalin = this.props.ContentScaling() < 1;
         return (<div className="webBox" ref={this._mainCont} >
             <div className={`webBox-container`}
                 style={{
-                    transform: `scale(${this.props.ContentScaling()})`,
-                    width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
-                    height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    position: noScalin ? "absolute" : undefined,
+                    transform: noScalin ? undefined : `scale(${this.props.ContentScaling()})`,
+                    width: noScalin ? undefined : Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                    height: noScalin ? undefined : Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
                     pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
                 }}
                 onContextMenu={this.specificContextMenu}>
@@ -672,7 +674,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 {this.content}
                 <div className={"webBox-outerContent"} ref={this._outerRef}
                     style={{
-                        width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
+                        width: 5000,//Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}% ` : "100%",
                         pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none"
                     }}
                     onWheel={e => e.stopPropagation()}
