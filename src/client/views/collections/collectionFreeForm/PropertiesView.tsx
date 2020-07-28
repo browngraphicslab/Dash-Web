@@ -7,7 +7,7 @@ import { DocumentView } from "../../nodes/DocumentView";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { EditableView } from "../../EditableView";
 import { KeyValueBox } from "../../nodes/KeyValueBox";
-import { Cast, StrCast, NumCast } from "../../../../fields/Types";
+import { Cast, NumCast, StrCast } from "../../../../fields/Types";
 import { listSpec } from "../../../../fields/Schema";
 import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
 import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils } from "../../../../Utils";
@@ -94,40 +94,111 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const ids: { [key: string]: string } = {};
             const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
             doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
-
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
                 const contents = doc[key];
-                let contentElement: (JSX.Element | null)[] | JSX.Element = [];
-                contentElement = <EditableView key="editableView"
-                    contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
-                    height={13}
-                    fontSize={10}
-                    GetValue={() => Field.toKeyValueString(doc, key)}
-                    SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
-                />;
-
-                rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
-                    <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
+                if (contents === "UNDEFINED") {
+                    rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "2px" }} key={key}>
+                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                     &nbsp;
-                    {contentElement}
                 </div>);
+                } else {
+                    let contentElement: (JSX.Element | null)[] | JSX.Element = [];
+                    contentElement = <EditableView key="editableView"
+                        contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
+                        height={13}
+                        fontSize={10}
+                        GetValue={() => Field.toKeyValueString(doc, key)}
+                        SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
+                    />;
+                    rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
+                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
+                        &nbsp;
+                        {contentElement}
+                    </div>);
+                }
             }
-
-            rows.push(<div className="field" key={"newKeyValue"}>
+            rows.push(<div className="field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
                 <EditableView
                     key="editableView"
-                    contents={"add key:value"}
+                    contents={"add key:value or #tags"}
                     height={13}
-                    fontSize={12}
+                    fontSize={10}
                     GetValue={() => ""}
-                    SetValue={(value: string) => {
-                        value.indexOf(":") !== -1 && KeyValueBox.SetField(doc, value.substring(0, value.indexOf(":")), value.substring(value.indexOf(":") + 1, value.length), true);
-                        return true;
-                    }} />
+                    SetValue={this.setKeyValue} />
             </div>);
             return rows;
         }
+    }
+
+    @computed get noviceFields() {
+        if (this.dataDoc && this.selectedDoc) {
+            const ids: { [key: string]: string } = {};
+            const doc = this.dataDoc;
+            doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
+            const rows: JSX.Element[] = [];
+            for (const key of Object.keys(ids).slice().sort()) {
+                if (key[0] === key[0].toUpperCase() || key[0] === "#" || key === "author" || key === "creationDate" || key.indexOf("lastModified") !== -1) {
+                    const contents = doc[key];
+                    if (contents === "UNDEFINED") {
+                        rows.push(<div className="uneditable-field" key={key}>
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
+                    &nbsp;
+                </div>);
+                    } else {
+                        const value = Field.toString(contents as Field);
+                        if (key === "author" || key === "creationDate" || key.indexOf("lastModified") !== -1) {
+                            rows.push(<div className="uneditable-field" key={key}>
+                                <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
+                                <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
+                            </div>);
+                        } else {
+                            let contentElement: (JSX.Element | null)[] | JSX.Element = [];
+                            contentElement = <EditableView key="editableView"
+                                contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
+                                height={13}
+                                fontSize={10}
+                                GetValue={() => Field.toKeyValueString(doc, key)}
+                                SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
+                            />;
+
+                            rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
+                                <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
+                            &nbsp;
+                            {contentElement}
+                            </div>);
+                        }
+                    }
+                }
+            }
+            rows.push(<div className="field" key={"newKeyValue"} style={{ marginTop: "3px" }}>
+                <EditableView
+                    key="editableView"
+                    contents={"add key:value or #tags"}
+                    height={13}
+                    fontSize={10}
+                    GetValue={() => ""}
+                    SetValue={this.setKeyValue} />
+            </div>);
+            return rows;
+        }
+    }
+
+
+    setKeyValue = (value: string) => {
+        if (this.selectedDoc && this.dataDoc) {
+            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
+            if (value.indexOf(":") !== -1) {
+                const newVal = value[0].toUpperCase() + value.substring(1, value.length);
+                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                return true;
+            } else if (value[0] === "#") {
+                const newVal = value + ":'UNDEFINED'";
+                KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
+                return true;
+            }
+        }
+        return false;
     }
 
     @computed get layoutPreview() {
@@ -252,6 +323,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div> </div>;
         }
 
+        const novice = Doc.UserDoc().noviceMode;
+
         return <div className="propertiesView" >
             <div className="propertiesView-title">
                 <div className="propertiesView-title-name">Properties </div>
@@ -277,14 +350,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="propertiesView-fields">
                 <div className="propertiesView-fields-title">
                     <div className="propertiesView-fields-title-name">
-                        Fields
+                        Fields {"&"} Tags
                     </div>
-                    <div className="propertiesView-fields-title-checkbox">
+                    {!novice ? <div className="propertiesView-fields-title-checkbox">
                         {this.fieldsCheckbox}
                         <div className="propertiesView-fields-title-checkbox-text">Layout</div>
-                    </div>
+                    </div> : null}
                 </div>
-                <div className="propertiesView-fields-content"> {this.expandedField} </div>
+                <div className="propertiesView-fields-content"> {novice ? this.noviceFields : this.expandedField} </div>
             </div>
             <div className="propertiesView-layout">
                 <div className="propertiesView-layout-title" >Layout</div>
