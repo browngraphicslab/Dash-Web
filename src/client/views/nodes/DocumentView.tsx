@@ -332,8 +332,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const alias = Doc.MakeAlias(this.props.Document);
                 DocUtils.makeCustomViewClicked(alias, undefined, "onClick");
                 this.props.addDocTab(alias, "onRight");
-            } else if (this.props.Document.links && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
-                DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
+            } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
+                this.allLinks.length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
                 if ((this.layoutDoc.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
@@ -683,7 +683,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeIntoPortal = async () => {
-        const portalLink = DocListCast(this.Document.links).find(d => d.anchor1 === this.props.Document);
+        const portalLink = this.allLinks.find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
             const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), title: StrCast(this.props.Document.title) + ".portal" });
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
@@ -1038,6 +1038,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
+    @computed.struct get linkOffset() { return [-15, 0]; }
     @computed get contents() {
         TraceMobx();
         return (<div style={{ position: "absolute", width: "100%", height: "100%" }}>
@@ -1081,7 +1082,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
             {/* {this.allAnchors} */}
             {this.props.forcedBackgroundColor?.(this.Document) === "transparent" || this.layoutDoc.isLinkButton || this.layoutDoc.hideLinkButton || this.props.dontRegisterView ? (null) :
-                <DocumentLinksButton View={this} Offset={[-15, 0]} />}
+                <DocumentLinksButton View={this} links={this.allLinks} Offset={this.linkOffset} />}
         </div>
         );
     }
@@ -1104,13 +1105,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
 
-    @computed get allAnchors() {
+    @computed.struct get directLinks() { return LinkManager.Instance.getAllDirectLinks(this.Document); }
+    @computed.struct get allLinks() { return DocListCast(this.Document.links); }
+    @computed.struct get allAnchors() {
         TraceMobx();
         if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
             this.props.dontRegisterView ? (null) : // view that are not registered
-            DocUtils.FilterDocs(LinkManager.Instance.getAllDirectLinks(this.Document), this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
                 <DocumentView {...this.props} key={i + 1}
                     Document={d}
                     ContainingCollectionView={this.props.ContainingCollectionView}
