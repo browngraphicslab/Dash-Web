@@ -587,6 +587,11 @@ export namespace Doc {
     }
 
     export async function Zip(doc: Doc) {
+        // const a = document.createElement("a");
+        // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+        // a.href = url;
+        // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+        // a.click();
         const { clone, map } = await Doc.MakeClone(doc, true);
         function replacer(key: any, value: any) {
             if (["cloneOf", "context", "cursors"].includes(key)) return undefined;

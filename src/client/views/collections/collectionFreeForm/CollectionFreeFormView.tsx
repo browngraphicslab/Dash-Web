@@ -57,7 +57,6 @@ export const panZoomSchema = createSchema({
     currentTimecode: "number",
     displayTimecode: "number",
     currentFrame: "number",
-    arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
     fitToBox: "boolean",
@@ -1005,10 +1004,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this.props.addDocTab(doc, where);
     });
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
-        const result = this.Document.arrangeScript?.script.run(params, console.log);
-        if (result?.success) {
-            return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
-        }
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, opacity } = this.Document.currentFrame === undefined ? params.pair.layout :
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentFrame || 0);

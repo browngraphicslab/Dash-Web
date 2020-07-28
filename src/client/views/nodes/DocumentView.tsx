@@ -1,31 +1,31 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclPrivate, AclEdit, AclAdmin } from "../../../fields/Doc";
+import { AclAdmin, AclEdit, AclPrivate, DataSym, Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { TraceMobx, GetEffectiveAcl, SharingPermissions } from '../../../fields/util';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
+import { GetEffectiveAcl, SharingPermissions, TraceMobx } from '../../../fields/util';
+import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
+import { emptyFunction, emptyPath, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ClientRecommender } from '../../ClientRecommender';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from "../../util/DocumentManager";
-import { SnappingManager } from '../../util/SnappingManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { InteractionUtils } from '../../util/InteractionUtils';
+import { LinkManager } from '../../util/LinkManager';
 import { Scripting } from '../../util/Scripting';
 import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
+import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
@@ -35,20 +35,13 @@ import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { DocumentContentsView } from "./DocumentContentsView";
+import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
-import { RadialMenu } from './RadialMenu';
-import React = require("react");
-import { DocumentLinksButton } from './DocumentLinksButton';
-import { MobileInterface } from '../../../mobile/MobileInterface';
-import { TaskCompletionBox } from './TaskCompletedBox';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
-import { LinkManager } from '../../util/LinkManager';
-import CollectionMenu from '../collections/CollectionMenu';
-
-library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
-    fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
-    fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard, fa.faQuestion);
+import { RadialMenu } from './RadialMenu';
+import { TaskCompletionBox } from './TaskCompletedBox';
+import React = require("react");
 
 export type DocFocusFunc = () => boolean;
 
@@ -105,24 +98,25 @@ export interface DocumentViewProps {
 
 @observer
 export class DocumentView extends DocComponent<DocumentViewProps, Document>(Document) {
+    @observable _animateScalingTo = 0;
     private _downX: number = 0;
     private _downY: number = 0;
+    private _firstX: number = -1;
+    private _firstY: number = -1;
     private _lastTap: number = 0;
     private _doubleTap = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _showKPQuery: boolean = false;
     private _queries: string = "";
-    private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _titleRef = React.createRef<EditableView>();
+    private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
+    private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
-    private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
-
-    public get title() { return this.props.Document.title; }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
+    private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
@@ -135,9 +129,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     NativeHeight = () => this.nativeHeight;
     onClickFunc = () => this.onClickHandler;
     onDoubleClickFunc = () => this.onDoubleClickHandler;
-
-    private _firstX: number = -1;
-    private _firstY: number = -1;
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();
@@ -152,11 +143,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this._firstX = pt.pageX;
             this._firstY = pt.pageY;
         }
-
     }
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
 
         if (this._firstX === -1 || this._firstY === -1) {
@@ -200,7 +189,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this), this.props.Document));
         this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
-        this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
+        this._mainCont.current && (this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
         // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
         if (!this.props.dontRegisterView) {
@@ -212,13 +201,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     componentDidUpdate() {
         this._dropDisposer?.();
         this._gestureEventDisposer?.();
-        this.multiTouchDisposer?.();
-        this.holdDisposer?.();
+        this._multiTouchDisposer?.();
+        this._holdDisposer?.();
         if (this._mainCont.current) {
             this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this), this.props.Document);
             this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this));
-            this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this));
-            this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
+            this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this));
+            this._holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
         }
     }
 
@@ -226,8 +215,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     componentWillUnmount() {
         this._dropDisposer?.();
         this._gestureEventDisposer?.();
-        this.multiTouchDisposer?.();
-        this.holdDisposer?.();
+        this._multiTouchDisposer?.();
+        this._holdDisposer?.();
         Doc.UnBrushDoc(this.props.Document);
         if (!this.props.dontRegisterView) {
             const index = DocumentManager.Instance.DocumentViews.indexOf(this);
@@ -242,7 +231,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.offset = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.removeDocument = this.props.removeDocument;
-            dragData.moveDocument = this.props.moveDocument;//  this.layoutDoc.onDragStart ? undefined : this.props.moveDocument;
+            dragData.moveDocument = this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
             dragData.treeViewDoc = this.props.treeViewDoc;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.layoutDoc.onDragStart });
@@ -254,7 +243,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const de = new DragManager.DocumentDragData([topDoc]);
         de.dragDivName = topDocView.props.dragDivName;
         de.moveDocument = topDocView.props.moveDocument;
-        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
         setTimeout(() => {
             const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
             if (newDocView) {
@@ -263,6 +251,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DragManager.StartDocumentDrag([contentDiv], de, x, y, { offsetX: x - xf.left, offsetY: y - xf.top, hideSource: true });
             }
         }, 0);
+        UndoManager.RunInBatch(action(() => topDoc.z = topDoc.z ? 0 : 1), "float");
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
@@ -301,41 +290,39 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         const func = () => this.onDoubleClickHandler.script.run({
                             this: this.layoutDoc,
                             self: this.rootDoc,
-                            thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
+                            thisContainer: this.props.ContainingCollectionDoc,
+                            shiftKey: e.shiftKey
                         }, console.log);
                         func();
                     } else {
                         UndoManager.RunInBatch(() => {
+                            let fullScreenDoc = this.props.Document;
                             if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
-                                const fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                                fullScreenAlias.layoutKey = "layout_fullScreen";
-                                this.props.addDocTab(fullScreenAlias, "inTab");
-                            } else {
-                                this.props.addDocTab(this.props.Document, "inTab");
+                                fullScreenDoc = Doc.MakeAlias(this.props.Document);
+                                fullScreenDoc.layoutKey = "layout_fullScreen";
                             }
+                            this.props.addDocTab(fullScreenDoc, "inTab");
                         }, "double tap");
                         SelectionManager.DeselectAll();
                         Doc.UnBrushDoc(this.props.Document);
                     }
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                //SelectionManager.DeselectAll();
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
-                    thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
+                    thisContainer: this.props.ContainingCollectionDoc,
+                    shiftKey: e.shiftKey
                 }, console.log);
                 if (this.props.Document !== Doc.UserDoc()["dockedBtn-undo"] && this.props.Document !== Doc.UserDoc()["dockedBtn-redo"]) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
-                const alias = Doc.MakeAlias(this.props.Document);
-                DocUtils.makeCustomViewClicked(alias, undefined, "onClick");
-                this.props.addDocTab(alias, "onRight");
+                this.props.addDocTab(DocUtils.makeCustomViewClicked(Doc.MakeAlias(this.props.Document), undefined, "onClick"), "onRight");
             } else if (this.allLinks && this.Document.isLinkButton && !e.shiftKey && !e.ctrlKey) {
                 this.allLinks.length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
-                if ((this.layoutDoc.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
+                if ((this.layoutDoc.onDragStart || this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTemplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
                     SelectionManager.SelectDoc(this, e.ctrlKey || e.shiftKey);
@@ -407,7 +394,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
-
         }
     }
 
@@ -445,12 +431,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const oldPoint2 = this.prevPoints.get(pt2.identifier);
         const pinching = InteractionUtils.Pinning(pt1, pt2, oldPoint1!, oldPoint2!);
         if (pinching !== 0 && oldPoint1 && oldPoint2) {
-            // let dX = (Math.min(pt1.clientX, pt2.clientX) - Math.min(oldPoint1.clientX, oldPoint2.clientX));
-            // let dY = (Math.min(pt1.clientY, pt2.clientY) - Math.min(oldPoint1.clientY, oldPoint2.clientY));
-            // let dX = Math.sign(Math.abs(pt1.clientX - oldPoint1.clientX) - Math.abs(pt2.clientX - oldPoint2.clientX));
-            // let dY = Math.sign(Math.abs(pt1.clientY - oldPoint1.clientY) - Math.abs(pt2.clientY - oldPoint2.clientY));
-            // let dW = -dX;
-            // let dH = -dY;
             const dW = (Math.abs(pt1.clientX - pt2.clientX) - Math.abs(oldPoint1.clientX - oldPoint2.clientX));
             const dH = (Math.abs(pt1.clientY - pt2.clientY) - Math.abs(oldPoint1.clientY - oldPoint2.clientY));
             const dX = -1 * Math.sign(dW);
@@ -533,7 +513,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerMove = (e: PointerEvent): void => {
-
         if ((e as any).formattedHandled) { e.stopPropagation(); return; }
         if ((InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) return;
         if (e.cancelBubble && this.active) {
@@ -554,17 +533,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onPointerUp = (e: PointerEvent): void => {
         this.cleanUpInteractions();
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
 
         if (this.onPointerUpHandler?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
             this.onPointerUpHandler.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            return;
+        } else {
+            this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
+            this._lastTap = Date.now();
         }
-
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-        this._lastTap = Date.now();
     }
 
     onGesture = (e: Event, ge: GestureUtils.GestureEvent) => {
@@ -586,54 +563,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @undoBatch
-    togglePushpin = () => {
-        this.Document.ignoreClick = false;
-        if (this.Document.isLinkButton || this.Document.isPushpin || this.onClickHandler || this.Document.ignoreClick) {
-            this.Document.isPushpin = this.Document.isLinkButton = false;
-            this.Document.onClick = this.layoutDoc.onClick = undefined;
-        } else {
-            this.Document.isPushpin = this.Document.isLinkButton = true;
-            this.Document.followLinkZoom = false;
-            this.Document.followLinkLocation = undefined;
-        }
-    }
-
-    @undoBatch
-    toggleLinkButtonBehavior = (): void => {
-        this.Document.ignoreClick = false;
-        if (this.Document.isLinkButton || this.onClickHandler || this.Document.ignoreClick) {
-            this.Document.isLinkButton = false;
-            this.Document.onClick = this.layoutDoc.onClick = undefined;
-        } else {
-            this.Document.isLinkButton = true;
-            this.Document.followLinkZoom = false;
-            this.Document.followLinkLocation = undefined;
-        }
-    }
-
-    @undoBatch
-    toggleFollowInPlace = (): void => {
+    @undoBatch @action
+    toggleFollowLink = (location: Opt<string>, zoom: boolean, setPushpin: boolean): void => {
         this.Document.ignoreClick = false;
         this.Document.isLinkButton = !this.Document.isLinkButton;
-        if (this.Document.isLinkButton) {
-            this.Document.followLinkZoom = true;
-            this.Document.followLinkLocation = "inPlace";
+        setPushpin && (this.Document.isPushpin = this.Document.isLinkButton);
+        if (this.Document.isLinkButton && !this.onClickHandler) {
+            this.Document.followLinkZoom = zoom;
+            this.Document.followLinkLocation = location;
+        } else {
+            this.Document.onClick = this.layoutDoc.onClick = undefined;
         }
     }
 
-    @undoBatch
-    toggleFollowOnRight = (): void => {
-        this.Document.ignoreClick = false;
-        this.Document.isLinkButton = !this.Document.isLinkButton;
-        if (this.Document.isLinkButton) {
-            this.Document.followLinkZoom = false;
-            this.Document.followLinkLocation = "onRight";
-        }
-    }
-
-    @undoBatch
-    @action
+    @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (this.props.Document === Doc.UserDoc().activeWorkspace) {
             alert("linking to document tabs not yet supported.  Drop link on document content.");
@@ -663,11 +606,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
-            if (de.complete.linkDragData.linkSourceDocument !== this.props.Document) {
-                const linkDoc = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
-                    { doc: this.props.Document }, `link`);
-                de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
-                    (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
+            const linkSource = de.complete.linkDragData.linkSourceDocument;
+            if (linkSource !== this.props.Document) {
+                const linkDoc = DocUtils.MakeLink({ doc: linkSource }, { doc: this.props.Document }, `link`);
+                linkSource !== this.props.Document && (de.complete.linkDragData.linkDocument = linkDoc); // TODODO this is where in text links get passed
                 linkDoc && makeLink(linkDoc);
             }
 
@@ -678,6 +620,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     toggleNativeDimensions = () => {
         Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.PanelWidth(), this.props.PanelHeight());
+    }
+
+    @undoBatch
+    @action
+    toggleLockPosition = (): void => {
+        this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
 
     @undoBatch
@@ -694,49 +642,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    toggleBackground = (temporary: boolean): void => {
-        this.Document._overflow = temporary ? "visible" : "hidden";
-        this.Document.isBackground = !temporary ? !this.Document.isBackground : (this.Document.isBackground ? undefined : true);
+    toggleBackground = () => {
+        this.Document.isBackground = (this.Document.isBackground ? undefined : true);
+        this.Document._overflow = this.Document.isBackground ? "visible" : undefined;
         if (this.Document.isBackground) {
             this.props.bringToFront(this.props.Document, true);
             this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeWidth"] = this.Document[WidthSym]();
             this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeHeight"] = this.Document[HeightSym]();
         }
-    }
-
-    @undoBatch
-    @action
-    toggleLockPosition = (): void => {
-        this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
-    }
-
-    @undoBatch
-    @action
-    setAcl = (acl: SharingPermissions) => {
-        this.dataDoc.ACL = this.props.Document.ACL = acl;
-        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
-            const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
-        });
-    }
-
-    @undoBatch
-    @action
-    testAcl = (acl: SharingPermissions) => {
-        this.dataDoc.author = this.props.Document.author = "ADMIN";
-        this.dataDoc.ACL = this.props.Document.ACL = acl;
-        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) {
-                d.author = "ADMIN";
-                d.ACL = acl;
-            }
-            const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) {
-                data.author = "ADMIN";
-                data.ACL = acl;
-            }
-        });
     }
 
     @action
@@ -785,10 +698,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
-        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: this.togglePushpin, icon: "snowflake" });
+        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "concierge-bell" });
+        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "concierge-bell" });
+        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "snowflake" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "hand-point-right" });
 
@@ -802,16 +715,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({
-            description: "Download document", icon: "download", event: async () => {
-                Doc.Zip(this.props.Document);
-                // const a = document.createElement("a");
-                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-                // a.href = url;
-                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-                // a.click();
-            }
-        });
+        moreItems.push({ description: "Download document", icon: "download", event: async () => Doc.Zip(this.props.Document) });
         if (!Doc.UserDoc().noviceMode) {
             moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
             moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -836,179 +740,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
-        // const existingAcls = cm.findByDescription("Privacy...");
-        // const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
-        // aclItems.push({ description: "Make Add Only", event: () => this.setAcl(SharingPermissions.Add), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Read Only", event: () => this.setAcl(SharingPermissions.View), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Private", event: () => this.setAcl(SharingPermissions.None), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Editable", event: () => this.setAcl(SharingPermissions.Edit), icon: "concierge-bell" });
-        // aclItems.push({ description: "Test Private", event: () => this.testAcl(SharingPermissions.None), icon: "concierge-bell" });
-        // aclItems.push({ description: "Test Readonly", event: () => this.testAcl(SharingPermissions.View), icon: "concierge-bell" });
-        // !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
-
-        // cm.addItem({ description: `${getPlaygroundMode() ? "Disable" : "Enable"} playground mode`, event: togglePlaygroundMode, icon: "concierge-bell" });
-
-        // const recommender_subitems: ContextMenuProps[] = [];
-
-        // recommender_subitems.push({
-        //     description: "Internal recommendations",
-        //     event: () => this.recommender(),
-        //     icon: "brain"
-        // });
-
-        // const ext_recommender_subitems: ContextMenuProps[] = [];
-
-        // ext_recommender_subitems.push({
-        //     description: "arXiv",
-        //     event: () => this.externalRecommendation("arxiv"),
-        //     icon: "brain"
-        // });
-        // ext_recommender_subitems.push({
-        //     description: "Bing",
-        //     event: () => this.externalRecommendation("bing"),
-        //     icon: "brain"
-        // });
-
-        // recommender_subitems.push({
-        //     description: "External recommendations",
-        //     subitems: ext_recommender_subitems,
-        //     icon: "brain"
-        // });
-
-
-        //moreItems.push({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
-        //moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
-        //moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
-
-        // runInAction(() => {
-        //     const setWriteMode = (mode: DocServer.WriteMode) => {
-        //         DocServer.AclsMode = mode;
-        //         const mode1 = mode;
-        //         const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-        //         DocServer.setFieldWriteMode("x", mode1);
-        //         DocServer.setFieldWriteMode("y", mode1);
-        //         DocServer.setFieldWriteMode("_width", mode1);
-        //         DocServer.setFieldWriteMode("_height", mode1);
-
-        //         DocServer.setFieldWriteMode("_panX", mode2);
-        //         DocServer.setFieldWriteMode("_panY", mode2);
-        //         DocServer.setFieldWriteMode("scale", mode2);
-        //         DocServer.setFieldWriteMode("_viewType", mode2);
-        //     };
-        //     const aclsMenu: ContextMenuProps[] = [];
-        //     aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
-        //     aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
-        //     aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
-        //     aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
-        //     cm.addItem({ description: "Collaboration ...", subitems: aclsMenu, icon: "share" });
-        // });
         runInAction(() => {
             if (!this.topMost && !(e instanceof Touch)) {
-                // DocumentViews should stop propagation of this event
-                e.stopPropagation();
+                e.stopPropagation(); // DocumentViews should stop propagation of this event
             }
             cm.displayMenu(e.pageX - 15, e.pageY - 15);
             !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
         });
-        const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
-        const item = ({
-            description: `path: ${path}`, event: () => {
-                if (this.props.LibraryPath !== emptyPath) {
-                    this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);
-                    Doc.linkFollowHighlight(this.props.Document);
-                } else {
-                    Doc.AddDocToList(Doc.GetProto(Doc.UserDoc().myCatalog as Doc), "data", this.props.Document[DataSym]);
-                }
-            }, icon: "check"
-        });
-        //cm.addItem(item);
-    }
-
-    recommender = async () => {
-        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
-        const documents: Doc[] = [];
-        const allDocs = await SearchUtil.GetAllDocs();
-        // clears internal representation of documents as vectors
-        ClientRecommender.Instance.reset_docs();
-        //ClientRecommender.Instance.arxivrequest("electrons");
-        await Promise.all(allDocs.map((doc: Doc) => {
-            let isMainDoc: boolean = false;
-            const dataDoc = Doc.GetProto(doc);
-            if (doc.type === DocumentType.RTF) {
-                if (dataDoc === Doc.GetProto(this.props.Document)) {
-                    isMainDoc = true;
-                }
-                if (!documents.includes(dataDoc)) {
-                    documents.push(dataDoc);
-                    const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc);
-                }
-            }
-            if (doc.type === DocumentType.IMG) {
-                if (dataDoc === Doc.GetProto(this.props.Document)) {
-                    isMainDoc = true;
-                }
-                if (!documents.includes(dataDoc)) {
-                    documents.push(dataDoc);
-                    const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc, true);
-                }
-            }
-        }));
-        const doclist = ClientRecommender.Instance.computeSimilarities("cosine");
-        const recDocs: { preview: Doc, score: number }[] = [];
-        // tslint:disable-next-line: prefer-for-of
-        for (let i = 0; i < doclist.length; i++) {
-            recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
-        }
-
-        const data = recDocs.map(unit => {
-            unit.preview.score = unit.score;
-            return unit.preview;
-        });
-
-        console.log(recDocs.map(doc => doc.score));
-
-        const title = `Showing ${data.length} recommendations for "${StrCast(this.props.Document.title)}"`;
-        const recommendations = Docs.Create.RecommendationsDocument(data, { title });
-        recommendations.documentIconHeight = 150;
-        recommendations.sourceDoc = this.props.Document;
-        recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
-        this.props.addDocTab(recommendations, "onRight");
-
-        // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
-    }
-
-    @action
-    externalRecommendation = async (api: string) => {
-        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
-        ClientRecommender.Instance.reset_docs();
-        const doc = Doc.GetDataDoc(this.props.Document);
-        const extdoc = doc.data_ext as Doc;
-        const recs_and_kps = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false, api);
-        let recs: any;
-        let kps: any;
-        if (recs_and_kps) {
-            recs = recs_and_kps.recs;
-            kps = recs_and_kps.keyterms;
-        }
-        else {
-            console.log("recommender system failed :(");
-            return;
-        }
-        console.log("ibm keyterms: ", kps.toString());
-        const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
-        const bodies: Doc[] = [];
-        const titles = recs.title_vals;
-        const urls = recs.url_vals;
-        for (let i = 0; i < 5; i++) {
-            const body = Docs.Create.FreeformDocument([], { title: titles[i] });
-            body.href = urls[i];
-            bodies.push(body);
-        }
-        this.props.addDocTab(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), "onRight");
-        this._showKPQuery = true;
-        this._queries = kps.toString();
     }
 
     // does Document set a layout prop
@@ -1088,14 +826,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     // used to decide whether a link anchor view should be created or not.
-    // if it's a tempoarl link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
+    // if it's a temporal link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
         const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
-
 
     @observable _link: Opt<Doc>;  // see DocumentButtonBar for explanation of how this works
     makeLink = () => this._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
@@ -1186,7 +923,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DocUtils.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
         }
     }
-    @observable _animateScalingTo = 0;
+
     switchViews = action((custom: boolean, view: string) => {
         this._animateScalingTo = 0.1;  // shrink doc
         setTimeout(action(() => {
@@ -1200,7 +937,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.Document.isBackground !== undefined || this.isSelected(false)) &&
             ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
             this.props.renderDepth > 0 && !this.props.treeViewDoc ?
-            <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
+            <div className="documentView-lock" onClick={this.toggleBackground}>
                 <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
             </div>
             : (null);
@@ -1224,7 +961,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear && this.props.Document.type !== DocumentType.INK;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
+        const topmost = this.topMost ? "-topmost" : "";
+        return <div className={`documentView-node${topmost}`}
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
@@ -1266,7 +1004,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.innards}
             {this.renderLock()}
         </div>;
-        { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }
 }
 

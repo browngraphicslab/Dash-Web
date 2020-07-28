@@ -434,27 +434,3 @@ function normalizeResults(
         payload: gname.payload
     })));
 }
-
-export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {
-    return () => {
-        const addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
-            let overlayDisposer: () => void = emptyFunction; // filled in below after we have a reference to the scriptingBox
-            const scriptField = Cast(doc[key], ScriptField);
-            const scriptingBox = <ScriptBox initialText={scriptField && scriptField.script.originalScript}
-                // tslint:disable-next-line: no-unnecessary-callback-wrapper
-                onCancel={() => overlayDisposer()}  // don't get rid of the function wrapper-- we don't want to use the current value of overlayDiposer, but the one set below
-                onSave={(text, onError) => {
-                    const script = CompileScript(text, { params, requiredType, typecheck: false });
-                    if (!script.compiled) {
-                        onError(script.errors.map(error => error.messageText).join("\n"));
-                    } else {
-                        doc[key] = new ScriptField(script);
-                        overlayDisposer();
-                    }
-                }} />;
-            overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
-        };
-        addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
-        addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
-    };
-}

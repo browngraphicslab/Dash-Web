@@ -63,7 +63,7 @@ export default class GestureOverlay extends Touchable {
     private _hands: Map<number, React.Touch[]> = new Map<number, React.Touch[]>();
     private _holdTimer: NodeJS.Timeout | undefined;
 
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     constructor(props: Readonly<{}>) {
         super(props);

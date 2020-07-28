@@ -55,17 +55,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
     class CollectionSubView extends DocComponent<X & SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
-                this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
+                this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -74,7 +74,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         componentWillUnmount() {
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
         }
 
         @computed get dataDoc() {

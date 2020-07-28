@@ -1053,6 +1053,7 @@ export namespace DocUtils {
             }
         });
         batch.end();
+        return doc;
     }
     export function findTemplate(templateName: string, type: string, signature: string) {
         let docLayoutTemplate: Opt<Doc>;

@@ -24,7 +24,7 @@ const ComparisonDocument = makeInterface(comparisonSchema, documentSchema);
 @observer
 export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
-    protected multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
+    protected _multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     private _disposers: (DragManager.DragDropDisposer | undefined)[] = [undefined, undefined];
 
     @observable _animating = "";
