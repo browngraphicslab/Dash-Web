@@ -142,9 +142,16 @@ export function computePivotLayout(
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, PivotColumn>();
 
+    let nonNumbers = 0;
     const pivotFieldKey = toLabel(pivotDoc._pivotField);
     childPairs.map(pair => {
-        const lval = Cast(pair.layout[pivotFieldKey], listSpec("string"), null);
+        const lval = pivotFieldKey === "#" ? Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(k => k.startsWith("#")).map(k => k.substring(1)) :
+            Cast(pair.layout[pivotFieldKey], listSpec("string"), null);
+
+        const num = toNumber(pair.layout[pivotFieldKey]);
+        if (num === undefined || Number.isNaN(num)) {
+            nonNumbers++;
+        }
         const val = Field.toString(pair.layout[pivotFieldKey] as Field);
         if (lval) {
             lval.forEach((val, i) => {
@@ -166,13 +173,6 @@ export function computePivotLayout(
                 pair,
                 replica: ""
             });
-        }
-    });
-    let nonNumbers = 0;
-    childPairs.map(pair => {
-        const num = toNumber(pair.layout[pivotFieldKey]);
-        if (num === undefined || Number.isNaN(num)) {
-            nonNumbers++;
         }
     });
     const pivotNumbers = nonNumbers / childPairs.length < .1;
