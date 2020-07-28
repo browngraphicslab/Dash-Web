@@ -937,16 +937,16 @@ export default class RichTextMenu extends AntimodeMenu {
             this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
             this.createColorButton(),
             this.createHighlighterButton(),
-            //this.createLinkButton(),
-            //this.createBrushButton(),
+            this.createLinkButton(),
+            this.createBrushButton(),
             <div className="richTextMenu-divider" key="divider 2" />,
             this.createButton("align-left", "Align Left", this.activeAlignment === "left", this.alignLeft),
             this.createButton("align-center", "Align Center", this.activeAlignment === "center", this.alignCenter),
             this.createButton("align-right", "Align Right", this.activeAlignment === "right", this.alignRight),
             this.createButton("indent", "Inset More", undefined, this.insetParagraph),
             this.createButton("outdent", "Inset Less", undefined, this.outsetParagraph),
-            //this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
-            //this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
+            this.createButton("hand-point-left", "Hanging Indent", undefined, this.hangingIndentParagraph),
+            this.createButton("hand-point-right", "Indent", undefined, this.indentParagraph),
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="row2">
@@ -957,7 +957,7 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => this.activeFontFamily = val)),
                 <div className="richTextMenu-divider" key="divider 4" />,
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", action((val: string) => this.activeListType = val)),
-                //this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
+                this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
                 <div className="richTextMenu-divider" key="divider 5" />,]}

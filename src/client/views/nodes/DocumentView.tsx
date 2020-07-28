@@ -847,7 +847,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
         !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
-        helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 

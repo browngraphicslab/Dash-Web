@@ -20,13 +20,13 @@ $linkGap : 3px;
 
 .propertiesButtons-linkButton-empty,
 .propertiesButtons-linkButton-nonempty {
-    height: 20px;
-    width: 20px;
+    height: 25px;
+    width: 25px;
     border-radius: 5px;
     opacity: 0.9;
     pointer-events: auto;
-    background-color: $dark-color;
-    color: $light-color;
+    background-color: #121721;
+    color: #fcfbf7;
     text-transform: uppercase;
     letter-spacing: 2px;
     font-size: 75%;
@@ -35,6 +35,7 @@ $linkGap : 3px;
     display: flex;
     justify-content: center;
     align-items: center;
+    margin-right: 5px;
 
     &:hover {
         background: $main-accent;
@@ -67,17 +68,19 @@ $linkGap : 3px;
     padding-right: 5px;
     width: 25px;
     border-radius: 5px;
+    margin-right: 8px;
 }
 
 .propertiesButtons-linker {
-    height: 20px;
-    width: 20px;
+    height: 25px;
+    width: 25px;
     text-align: center;
     border-radius: 5px;
     pointer-events: auto;
     color: $dark-color;
     border: $dark-color 1px solid;
     transition: 0.2s ease all;
+    margin-right: 5px;
 }
 
 .propertiesButtons-linker:hover {

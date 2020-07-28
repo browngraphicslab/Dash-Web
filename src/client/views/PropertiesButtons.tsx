@@ -260,11 +260,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
         return !docView ? (null) :
-            <Tooltip title={<><div className="dash-tooltip">Tap: Customize layout.  Drag: Create alias</div></>}>
-                <div className="propertiesButtons-linkFlyout" ref={this._dragRef}>
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                        content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                        <div className={"propertiesButtons-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+            <Tooltip title={<><div className="dash-tooltip">Customize layout</div></>}>
+                <div className="propertiesButtons-linkFlyout">
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} //onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                        content={<TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                        <div className={"propertiesButtons-linkButton-empty"} >
                             {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
                         </div>
                     </Flyout>
@@ -283,9 +283,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed
     get copyButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Create an Alias"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Tap or Drag to create an alias"}</div></>}>
             <div className={"propertiesButtons-linkButton-empty"}
-                onPointerDown={this.onCopy} >
+                ref={this._dragRef}
+                onPointerDown={this.onAliasButtonDown}
+                onClick={this.onCopy}>
                 {<FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="sm" />}
             </div>
         </Tooltip>;
@@ -496,14 +498,14 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.downloadButton}
             </div>
-            <div className="propertiesButtons-button">
-                {this.deleteButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.onClickButton}
-            </div>
         </div>
             <div className="propertiesButtons">
+                <div className="propertiesButtons-button">
+                    {this.deleteButton}
+                </div>
+                <div className="propertiesButtons-button">
+                    {this.onClickButton}
+                </div>
                 <div className="propertiesButtons-button">
                     {this.sharingButton}
                 </div>

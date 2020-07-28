@@ -268,13 +268,26 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         </div>;
     }
 
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    @computed get isText() {
+        if (this.selectedDoc) {
+            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+        }
+        else return false;
+    }
+
     render() {
         return (
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.viewModes}
-                        {this.templateChrome}
+                        {!(this.isText && this.props.type === CollectionViewType.Freeform) ? this.viewModes : null}
+                        {!(this.isText && this.props.type === CollectionViewType.Freeform) ? this.templateChrome : null}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
