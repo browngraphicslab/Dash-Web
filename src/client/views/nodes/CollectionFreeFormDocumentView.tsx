@@ -76,22 +76,30 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
         return ({
+            h: Cast(doc["h-indexed"], listSpec("number"), [NumCast(doc._height)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
+            w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
             opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
 
-    public static setValues(time: number, d: Doc, x?: number, y?: number, opacity?: number) {
+    public static setValues(time: number, d: Doc, x?: number, y?: number, h?: number, w?: number, opacity?: number) {
         const timecode = Math.round(time);
+        const hindexed = Cast(d["h-indexed"], listSpec("number"), []).slice();
+        const windexed = Cast(d["w-indexed"], listSpec("number"), []).slice();
         const xindexed = Cast(d["x-indexed"], listSpec("number"), []).slice();
         const yindexed = Cast(d["y-indexed"], listSpec("number"), []).slice();
         const oindexed = Cast(d["opacity-indexed"], listSpec("number"), []).slice();
         xindexed[timecode] = x as any as number;
         yindexed[timecode] = y as any as number;
+        hindexed[timecode] = h as any as number;
+        windexed[timecode] = w as any as number;
         oindexed[timecode] = opacity as any as number;
         d["x-indexed"] = new List<number>(xindexed);
         d["y-indexed"] = new List<number>(yindexed);
+        d["h-indexed"] = new List<number>(hindexed);
+        d["w-indexed"] = new List<number>(windexed);
         d["opacity-indexed"] = new List<number>(oindexed);
     }
     public static updateKeyframe(docs: Doc[], time: number) {
@@ -99,7 +107,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         docs.forEach(doc => {
             const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
             const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
+            const hindexed = Cast(doc['h-indexed'], listSpec("number"), null);
+            const windexed = Cast(doc['w-indexed'], listSpec("number"), null);
             const opacityindexed = Cast(doc['opacity-indexed'], listSpec("number"), null);
+            hindexed?.length <= timecode + 1 && hindexed.push(undefined as any as number);
+            windexed?.length <= timecode + 1 && windexed.push(undefined as any as number);
             xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
             yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
@@ -118,14 +130,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const height = new List<number>();
         const top = new List<number>();
         const left = new List<number>();
+        // width.push(100);
+        // height.push(100);
+        // top.push(0);
+        // left.push(0);
         width.push(NumCast(doc.width));
         height.push(NumCast(doc.height));
         top.push(NumCast(doc.height) / -2);
         left.push(NumCast(doc.width) / -2);
-        doc["width-indexed"] = width;
-        doc["height-indexed"] = height;
-        doc["top-indexed"] = top;
-        doc["left-indexed"] = left;
+        doc["viewfinder-width-indexed"] = width;
+        doc["viewfinder-height-indexed"] = height;
+        doc["viewfinder-top-indexed"] = top;
+        doc["viewfinder-left-indexed"] = left;
+    }
+
+    public static setupScroll(doc: Doc, scrollProgressivize: boolean = false) {
+        const scrollList = new List<number>();
+        scrollList.push(NumCast(doc._scrollTop));
+        doc["scroll-indexed"] = scrollList;
     }
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
@@ -134,6 +156,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
+            const wlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
+            const hlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
             let oarray: List<number>;
             console.log(doc.title + "AF: " + doc.appearFrame);
@@ -143,15 +167,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             oarray.fill(1, NumCast(doc.appearFrame), timecode);
             // oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
             // oarray.fill(1, NumCast(doc.appearFrame), timecode);
-            console.log(oarray);
+            // console.log(oarray);
+            wlist[curTimecode] = NumCast(doc._width);
+            hlist[curTimecode] = NumCast(doc._height);
             xlist[curTimecode] = NumCast(doc.x);
             ylist[curTimecode] = NumCast(doc.y);
             doc.xArray = xlist;
             doc.yArray = ylist;
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
+            doc["w-indexed"] = wlist;
+            doc["h-indexed"] = hlist;
             doc["opacity-indexed"] = oarray;
             doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
+            doc._height = ComputedField.MakeInterpolated("h", "activeFrame");
+            doc._width = ComputedField.MakeInterpolated("w", "activeFrame");
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");

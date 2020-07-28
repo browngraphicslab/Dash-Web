@@ -260,11 +260,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presElementBox-name">
                         {`${this.targetDoc?.title}`}
                     </div>
-                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time">{this.transition}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Duration of visibility"}</div></>}><div className="presElementBox-time">{this.duration}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Duration of visibility"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
                         className="presElementBox-closeIcon"
-                        onPointerDown={e => e.stopPropagation()}
+                        // onPointerDown={e => e.stopPropagation()}
                         onClick={e => {
                             this.props.removeDocument?.(this.rootDoc);
                             e.stopPropagation();

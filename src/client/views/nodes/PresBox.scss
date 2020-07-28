@@ -441,6 +441,7 @@
     padding-top: 5px;
     padding-bottom: 5px;
     border: solid 1px black;
+    // overflow: auto; 
 
     ::-webkit-scrollbar {
         -webkit-appearance: none;
@@ -450,35 +451,125 @@
 
     ::-webkit-scrollbar-thumb {
         border-radius: 2px;
-        background-color: rgb(101, 164, 220);
     }
 }
 
 .dropdown-play-button {
-    font-size: 10;
-    margin-left: 10;
-    margin-right: 10;
+    font-size: 12;
+    padding-left: 5px;
+    padding-right: 5px;
     padding-top: 5px;
     padding-bottom: 5px;
     text-align: left;
     justify-content: left;
-    border-bottom: solid 1px lightgrey;
+}
+
+.dropdown-play-button:hover {
+    background-color: lightgrey;
+}
+
+.presBox-button-left {
+    position: relative;
+    align-self: flex-start;
+    justify-self: flex-start;
+    width: 80%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.presBox-button-right {
+    position: relative;
+    text-align: center;
+    border-left: solid 1px darkgrey;
+    width: 20%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+}
+
+.presBox-button-right.active {
+    background-color: #223063;
+    border: #aedcf6 solid 1px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.8);
 }
 
 .dropdown-play {
-    top: 32px;
+    right: 0px;
+    top: calc(100% + 2px);
     display: none;
     border-radius: 5px;
     width: max-content;
     min-height: 20px;
     height: max-content;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.8);
     z-index: 200;
-    background-color: #323232;
+    background-color: white;
+    color: black;
     position: absolute;
+    overflow: hidden;
 }
 
 .dropdown-play.active {
     display: block;
+}
+
+.layout-container {
+    overflow-x: scroll;
+    display: flex;
+    width: 100%;
+    /* max-width: 200px; */
+    min-width: 100px;
+    height: 100%;
+    // border: solid 1px;
+    /* display: block; */
+    align-self: center;
+
+    .layout:hover {
+        border: solid 2px #5c9edd;
+    }
+
+    .layout {
+        position: relative;
+        top: 10%;
+        height: 80%;
+        margin-right: 10;
+        min-width: 90px;
+        width: 90px;
+        border: solid black 1px;
+        display: grid;
+        grid-template-rows: 20px 30px;
+        align-items: center;
+        text-align: center;
+
+        .header {
+            font-size: 10;
+            font-weight: 600;
+            width: 70%;
+            height: max-content;
+            align-self: center;
+            justify-self: center;
+            border: solid 0.8px black;
+        }
+
+        .subheader {
+            font-size: 8;
+            font-weight: 400;
+            width: 70%;
+            height: 90%;
+            align-self: center;
+            justify-self: center;
+            border: solid 0.4px black;
+        }
+    }
 }
 
 .presBox-buttons {
@@ -498,14 +589,18 @@
         border-radius: 5px;
         min-width: 15px;
         max-width: 100px;
+        left: 8px;
     }
 
     .presBox-presentPanel {
         display: flex;
         justify-self: end;
         width: 100%;
-
+        max-width: 300px;
+        min-width: 150px;
     }
+
+    
 
     select {
         background: #323232;
@@ -532,6 +627,10 @@
         display: flex;
     }
 
+    .presBox-button.active:hover {
+        background-color: #233163;
+    }
+
     .presBox-button.edit {
         display: flex;
         max-width: 25px;
@@ -542,7 +641,7 @@
         min-width: 100px;
         width: 100px;
         position: absolute;
-        right: 0px;
+        right: 8px;
 
         .present-icon {
             margin-right: 7px;
@@ -557,6 +656,7 @@
         height: 25;
         position: relative;
         display: inline-block;
+        left: 8px;
     }
 }
 

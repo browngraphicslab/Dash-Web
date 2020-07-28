@@ -127,6 +127,10 @@ export class DocumentManager {
         CollectionDockingView.AddRightSplit(doc);
         finished?.();
     }
+    // static openInPlace = (doc: Doc, finished?: () => void) => {
+    //     CollectionDockingView.AddTab(doc);
+    //     finished?.();
+    // }
     public jumpToDocument = async (
         targetDoc: Doc,        // document to display
         willZoom: boolean,     // whether to zoom doc to take up most of screen

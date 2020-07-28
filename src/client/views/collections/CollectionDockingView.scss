@@ -18,6 +18,68 @@
         }
     }
 }
+
+.miniPres:hover {
+    opacity: 1;
+}
+
+.miniPres {
+    position: absolute;
+    overflow: hidden;
+    right: 10;
+    top: 10;
+    opacity: 0.1;
+    transition: all 0.4s;
+    /* border: solid 1px; */
+    color: white;
+    /* box-shadow: black 0.4vw 0.4vw 0.8vw; */
+    
+    .miniPresOverlay {
+        display: grid;
+        grid-template-columns: auto auto auto auto auto auto auto auto;
+        grid-template-rows: 100%;
+        height: 100%;
+        justify-items: center;
+        align-items: center;
+
+        .miniPres-button-text {
+            display: flex;
+            height: 30;
+            font-weight: 400;
+            min-width: 100%;
+            border-radius: 5px;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-divider {
+            width: 1px;
+            height: 80%;
+            border-right: solid 2px #5a5a5a;
+        }
+
+        .miniPres-button {
+            display: flex;
+            height: 30;
+            min-width: 30;
+            border-radius: 100%;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-button:hover {
+            background-color: #5a5a5a;
+        }
+
+        .miniPres-button-text:hover {
+            background-color: #5a5a5a;
+        }
+    }
+}
+
+
 .lm_title {
     margin-top: 3px;
     border-radius: 5px;
