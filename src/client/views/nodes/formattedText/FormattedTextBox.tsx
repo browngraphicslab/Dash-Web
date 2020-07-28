@@ -1295,6 +1295,30 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         e.stopPropagation();
         if (e.key === "Tab" || e.key === "Enter") {
+            // console.log(this._recording);
+            // if (this._editorView) {
+            //     const state = this._editorView.state;
+            //     const now = Date.now();
+            //     let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
+            //     if (!this._break && state.selection.to !== state.selection.from) {
+            //         for (let i = state.selection.from; i <= state.selection.to; i++) {
+            //             const pos = state.doc.resolve(i);
+            //             const um = Array.from(pos.marks()).find(m => m.type === schema.marks.user_mark);
+            //             if (um) {
+            //                 mark = um;
+            //                 break;
+            //             }
+            //         }
+            //     }
+            //     const recordingStart = DateCast(this.props.Document.recordingStart).date.getTime();
+            //     this._break = false;
+            //     let value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000;
+            //     //let value = "[0:02]";
+            //     const from = state.selection.from;
+            //     const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
+
+            //     this._editorView.dispatch(inserted.setSelection(TextSelection.create(inserted.doc, from, from + value.length + 1)));
+            // }
             e.preventDefault();
         }
         if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {

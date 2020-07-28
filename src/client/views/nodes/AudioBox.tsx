@@ -72,6 +72,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _left: boolean = false;
     _amount: number = 1;
     _markers: Array<any> = [];
+    _first: boolean = false;
 
     private _isPointerDown = false;
     private _currMarker: any;
@@ -128,6 +129,22 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
+                // if (sel) {
+                //     DocListCast(sel.links).map((l, i) => {
+                //         let la1 = l.anchor1 as Doc;
+                //         let la2 = l.anchor2 as Doc;
+                //         let linkTime = NumCast(l.anchor2_timecode);
+                //         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                //             la1 = l.anchor2 as Doc;
+                //             la2 = l.anchor1 as Doc;
+                //             linkTime = NumCast(l.anchor1_timecode);
+                //         }
+                //         console.log(linkTime);
+                //         if (linkTime) {
+                //             this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(linkTime);
+                //         }
+                //     });
+                // }
                 this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
                 this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
             });
@@ -186,7 +203,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 if (endTime !== this.dataDoc.duration) {
                     play = setTimeout(() => this.pause(), (this._duration) * 1000);
                 }
-            } else {
+            } else { // this is getting called because time is greater than duration
                 this.pause();
             }
         }
@@ -226,9 +243,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when document selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
-        funcs.push({ description: (this.layoutDoc.hideMarkers ? "Don't hide" : "Hide") + " markers", event: () => this.layoutDoc.hideMarkers = !this.layoutDoc.hideMarkers, icon: "expand-arrows-alt" })
-        funcs.push({ description: (this.layoutDoc.hideLabels ? "Don't hide" : "Hide") + " labels", event: () => this.layoutDoc.hideLabels = !this.layoutDoc.hideLabels, icon: "expand-arrows-alt" })
-        funcs.push({ description: (this.layoutDoc.playOnClick ? "Don't play" : "Play") + " onClick", event: () => this.layoutDoc.playOnClick = !this.layoutDoc.playOnClick, icon: "expand-arrows-alt" })
+        funcs.push({ description: (this.layoutDoc.hideMarkers ? "Don't hide" : "Hide") + " markers", event: () => this.layoutDoc.hideMarkers = !this.layoutDoc.hideMarkers, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.hideLabels ? "Don't hide" : "Hide") + " labels", event: () => this.layoutDoc.hideLabels = !this.layoutDoc.hideLabels, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.playOnClick ? "Don't play" : "Play") + " onClick", event: () => this.layoutDoc.playOnClick = !this.layoutDoc.playOnClick, icon: "expand-arrows-alt" });
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -421,12 +438,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return false;
     }
 
+    // Probably need a better way to format
     isOverlap = (m: any, i: number) => {
         console.log("called");
         let counter = 0;
 
-        if (i == 0) {
+        if (this._first) {
             this._markers = [];
+            this._first = false;
         }
         for (let i = 0; i < this._markers.length; i++) {
             if ((m.audioEnd > this._markers[i].audioStart && m.audioStart < this._markers[i].audioEnd)) {
@@ -508,9 +527,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
+    reset = () => {
+        this._first = true;
+    }
+
     render() {
         //trace();
         const interactive = this.active() ? "-interactive" : "";
+        this.reset();
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
                 <div className="audiobox-buttons">
