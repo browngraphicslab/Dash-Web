@@ -26,6 +26,8 @@ import { DocumentView } from "../nodes/DocumentView";
 import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
+import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faSleigh, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, faArrowRight, faArrowsAltH, faMinus, faCircle, faExclamationTriangle, faSquare, faLongArrowAltRight, faPenFancy, faCaretSquareRight, faAngleDoubleRight, } from "@fortawesome/free-solid-svg-icons";
+library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faArrowsAlt, faHighlighter, faLink, faPaintRoller, faBars, faFillDrip, faBrush, faPenNib, faShapes, faArrowLeft, faEllipsisH, faBezierCurve, faLongArrowAltRight, faArrowsAltH, faMinus, faCircle, faSquare, faSquare, faPenFancy, faAngleDoubleRight,);
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {

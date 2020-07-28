@@ -526,7 +526,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView, index) => {
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
-                console.log(doc.x, doc.y, doc._height, doc._width);
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
                     const newPoints: { X: number, Y: number }[] = [];
