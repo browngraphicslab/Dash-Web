@@ -46,9 +46,10 @@ export interface FieldViewProps {
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     ignoreAutoHeight?: boolean;
-    PanelWidth: () => number|string;
-    PanelHeight: () => number|string;
+    PanelWidth: () => number | string;
+    PanelHeight: () => number | string;
     PanelPosition: string;
+    overflow?: boolean;
     NativeHeight: () => number;
     NativeWidth: () => number;
     setVideoBox?: (player: VideoBox) => void;

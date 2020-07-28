@@ -628,6 +628,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
         return <div className="collectionSchemaView-container"
             style={{
+                overflow: this.props.overflow === true ? "auto" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: this.props.PanelWidth() || "100%", height: this.props.PanelPosition === "absolute" ? this.props.PanelHeight() : this.props.PanelHeight() || "100%", top: this.props.PanelPosition === "absolute" ? 52 : 0, position: this.props.PanelPosition || "relative",
             }}  >

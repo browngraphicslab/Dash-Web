@@ -452,39 +452,22 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         console.log(searchString);
         let values = searchString.slice(searchString.indexOf(":") + 1, searchString.length);
         console.log(values);
-
-        const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
-        if (selectedCollection !== undefined) {
-            let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
-            let found: [Doc, string[], string[]][] = [];
-            Doc.setDocFilter(selectedCollection.props.Document, key, values, "match");
-            // docs.forEach((d) => {
-            //     let hlights: string[] = [];
-            //     const protos = Doc.GetAllPrototypes(d);
-            //     let proto = protos[protos.length - 2];
-            //     Object.keys(proto).forEach(key => {
-            //         console.log(key);
-            //         console.log(StrCast(this.layoutDoc._searchString));
-            //         Doc.setDocFilter(selectedCollection.props.Document, key, StrCast(this.layoutDoc._searchString), "match");
-
-            //         // if (StrCast(d[key]).includes(query)) {
-            //         //     console.log(key, d[key]);
-            //         //     hlights.push(key);
-            //         // }
-            //     });
-            //     // if (hlights.length > 0) {
-            //     //     found.push([d, hlights, []]);
-            //     // };
-            // });
-            // console.log(found);
-            // this._results = found;
-            // this._numTotalResults = found.length;
+        let doc = undefined;
+        if (this.scale === false) {
+            doc = SelectionManager.SelectedDocuments()[0].props.Document;
+        }
+        console.log(this.scale);
+        if (this.scale === true) {
+            doc = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
+            doc = DocListCast(doc.data)[0];
+        }
+        if (doc !== undefined) {
+            console.log(StrCast(doc.title));
+            Doc.setDocFilter(doc, key, values, "match");
         }
         else {
             this.noresults = "No collection selected :(";
         }
-
-        //Doc.setDocFilter(this.props.Document, newKey, filter, "match");
     }
 
     @action
@@ -512,7 +495,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             if (this._timeout) { clearTimeout(this._timeout); this._timeout = undefined };
             this._timeout = setTimeout(() => {
                 console.log("Resubmitting search");
-
             }, 60000);
         }
 
@@ -708,7 +690,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        let headers = new Set<string>();
+        let headers = new Set<string>(["title", "author", "creationDate"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             if (this.noresults === "") {
                 this.noresults = "No search results :(";
@@ -986,125 +968,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
     moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
-    @computed get docButtons() {
-        const nodeBtns = this.props.Document.nodeButtons;
-        let width = () => NumCast(this.props.Document._width);
-        // if (StrCast(this.props.Document.title)==="sidebar search stack"){
-        width = MainView.Instance.flyoutWidthFunc;
-
-        // }   
-        if (nodeBtns instanceof Doc) {
-            return <div id="hi" style={{ height: "100px", }}>
-                <DocumentView
-                    docFilters={returnEmptyFilter}
-                    Document={nodeBtns}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    addDocTab={returnFalse}
-                    rootSelected={returnTrue}
-                    pinToPres={emptyFunction}
-                    onClick={undefined}
-                    removeDocument={undefined}
-                    ScreenToLocalTransform={this.getTransform}
-                    ContentScaling={returnOne}
-                    PanelWidth={width}
-                    PanelHeight={() => 100}
-                    renderDepth={0}
-                    backgroundColor={returnEmptyString}
-                    focus={emptyFunction}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    NativeHeight={() => 100}
-                    NativeWidth={width}
-                />
-            </div>;
-        }
-        return (null);
-    }
-
-    @computed get keyButtons() {
-        const nodeBtns = this.props.Document.keyButtons;
-        let width = () => NumCast(this.props.Document._width);
-        // if (StrCast(this.props.Document.title)==="sidebar search stack"){
-        width = MainView.Instance.flyoutWidthFunc;
-        // }
-        if (nodeBtns instanceof Doc) {
-            return <div id="hi" style={{ height: "35px", }}>
-                <DocumentView
-                    docFilters={returnEmptyFilter}
-                    Document={nodeBtns}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    addDocTab={returnFalse}
-                    rootSelected={returnTrue}
-                    pinToPres={emptyFunction}
-                    onClick={undefined}
-                    removeDocument={undefined}
-                    ScreenToLocalTransform={this.getTransform}
-                    ContentScaling={returnOne}
-                    PanelWidth={width}
-                    PanelHeight={() => 100}
-                    renderDepth={0}
-                    backgroundColor={returnEmptyString}
-                    focus={emptyFunction}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    NativeHeight={() => 100}
-                    NativeWidth={width}
-                />
-            </div>;
-        }
-        return (null);
-    }
-
-    @computed get defaultButtons() {
-        const defBtns = this.props.Document.defaultButtons;
-        let width = () => NumCast(this.props.Document._width);
-        // if (StrCast(this.props.Document.title)==="sidebar search stack"){
-        width = MainView.Instance.flyoutWidthFunc;
-        // }
-        if (defBtns instanceof Doc) {
-            return <div id="hi" style={{ height: "35px", }}>
-                <DocumentView
-                    docFilters={returnEmptyFilter}
-
-                    Document={defBtns}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={undefined}
-                    addDocTab={returnFalse}
-                    rootSelected={returnTrue}
-                    pinToPres={emptyFunction}
-                    onClick={undefined}
-                    removeDocument={undefined}
-                    ScreenToLocalTransform={this.getTransform}
-                    ContentScaling={returnOne}
-                    PanelWidth={width}
-                    PanelHeight={() => 100}
-                    renderDepth={0}
-                    backgroundColor={returnEmptyString}
-                    focus={emptyFunction}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    NativeHeight={() => 100}
-                    NativeWidth={width}
-                />
-            </div>;
-        }
-        return (null);
-    }
-
     @action.bound
     updateIcon = async (icon: string) => {
         if (this._icons.includes(icon)) {
@@ -1223,15 +1086,17 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @observable filter = false;
 
+
     //Make id layour document
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
-        let length = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
-        //let length = this.headercount;
-        length > 3 ? length = 650 : length = length * 205 + 51;
-        let height = this.children;
-        height > 8 ? height = 31 + 31 * 8 : height = 31 * height + 31;
+        let cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
+        let length = 0;
+        cols > 5 ? length = 1076 : length = cols * 205 + 51;
+        let height = 0;
+        let rows = this.children;
+        rows > 8 ? height = 31 + 31 * 8 : height = 31 * rows + 31;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar">
@@ -1239,28 +1104,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span> */}
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
-                    <FontAwesomeIcon icon={"search"} size="lg" style={{ position: "relative", left: 24, padding: 1 }} />
+                    <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg" style={{ position: "relative", left: 24, padding: 1 }} />
                     <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ paddingLeft: 23, width: this._searchbarOpen ? "200px" : "200px" }} />
-                    {/* <button className="searchBox-barChild searchBox-filter" style={{ transform: "none" }} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button> */}
-                </div>
-                <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults > 0 ? { overflow: "visible" } : { overflow: "hidden" }}>
-                    <div id={`filterhead2${this.props.Document[Id]}`} className="filter-header"  >
-                        {this.defaultButtons}
-                    </div>
-                    <div id={`node${this.props.Document[Id]}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        {this.docButtons}
-                    </div>
-                    <div className="filter-key" id={`key${this.props.Document[Id]}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        {this.keyButtons}
-                    </div>
                 </div>
                 <div style={{ zIndex: 2000 }}>
                     {this._searchbarOpen === true ?
                         <div style={{ display: "flex", justifyContent: "center", }}>
                             <div style={{
-                                width: this.headercount > 0 ? length : 253,
+                                width: cols > 0 ? length : 253,
                                 height: 25,
                                 borderColor: "#9c9396",
                                 border: "1px solid",
@@ -1315,9 +1168,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 PanelHeight={this.open === true ? () => height : () => 0}
                                 PanelWidth={this.open === true ? () => length : () => 0}
                                 PanelPosition={"absolute"}
+                                overflow={cols > 5 || rows > 8 ? true : false}
                                 focus={this.selectElement}
                                 ScreenToLocalTransform={Transform.Identity}
-                            /></div> : <div style={{ display: "flex", justifyContent: "center" }}><div style={{ height: 200, top: 29, width: 250, position: "absolute", backgroundColor: "white", display: "flex", justifyContent: "center", alignItems: "center", border: "black 1px solid", }}>
+                            /></div> : <div style={{ display: "flex", justifyContent: "center" }}><div style={{ height: 200, top: 54, width: 250, position: "absolute", backgroundColor: "rgb(241, 239, 235)", display: "flex", justifyContent: "center", alignItems: "center", border: "black 1px solid", }}>
                                 <div>{this.noresults}</div>
                             </div></div>}
                         </div> : undefined}
