@@ -25,6 +25,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
+import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -342,11 +343,17 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
-    private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
-    private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
-    private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
-    private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
-
+    // private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
+    // private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
+    // private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
+    // private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
+    private _dotsize = [10, 20, 30, 40];
+    private _draw = ["∿", "⎯", "→", "↔︎", "ロ", "O"];
+    private _head = ["", "", "", "arrow", "", ""];
+    private _end = ["", "", "arrow", "arrow", "", ""];
+    private _shape = ["", "line", "line", "line", "rectangle", "circle"];
+    private _title = ["pen", "line", "line with arrow", "line with double arrows", "square", "circle",];
+    private _faName = ["pen-fancy", "minus", "long-arrow-alt-right", "arrows-alt-h", "square", "circle"];
     @observable _shapesNum = this._shape.length;
     @observable _selected = this._shapesNum;
 
@@ -409,9 +416,11 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         });
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
-                <button className="antimodeMenu-button" key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
+                <button className="antimodeMenu-button" title={this._title[i]} key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
                     style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
-                    {this._draw[i]}
+                    {/* {this._draw[i]} */}
+                    <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
+
                 </button>)}
         </div>;
     }
@@ -430,11 +439,11 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return !this._widthBtn ? widthPicker :
             <div className="btn2-group" key="width">
                 {widthPicker}
-                {this._width.map(wid =>
-                    <button className="antimodeMenu-button" key={wid}
+                {this._width.map((wid, i) =>
+                    <button className="antimodeMenu-button" key={wid} title="change width"
                         onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
-                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001 }}>
-                        {wid}
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001, fontSize: this._dotsize[i], padding: 0, textAlign: "center" }}>
+                        •
                     </button>)}
             </div>;
     }
@@ -474,7 +483,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
             onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
             style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
-            <FontAwesomeIcon icon="chevron-right" size="lg" />
+            <FontAwesomeIcon icon="angle-double-right" size="lg" />
         </button>;
     }
 
@@ -503,10 +512,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             }
             {!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating ?
                 <>
+                    {this.drawButtons}
                     {this.widthPicker}
                     {this.colorPicker}
                     {this.fillPicker}
-                    {this.drawButtons}
                     {this.formatPane}
                 </> :
                 (null)
