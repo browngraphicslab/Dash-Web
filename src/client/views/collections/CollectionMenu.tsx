@@ -479,7 +479,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     render() {
-        return <div className="collectionFreeFormMenu-cont">
+        return !this.props.docView.layoutDoc ? (null) : <div className="collectionFreeFormMenu-cont">
             {this.props.docView.props.renderDepth !== 0 ? (null) :
                 <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
                     <FontAwesomeIcon icon={"map"} size={"lg"} />
