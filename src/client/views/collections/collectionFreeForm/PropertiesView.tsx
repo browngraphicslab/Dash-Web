@@ -1,7 +1,7 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import "./PropertiesView.scss";
-import { observable, action, computed } from "mobx";
+import { observable, action, computed, runInAction } from "mobx";
 import { Doc, Field, DocListCast, WidthSym, HeightSym } from "../../../../fields/Doc";
 import { DocumentView } from "../../nodes/DocumentView";
 import { ComputedField } from "../../../../fields/ScriptField";
@@ -42,6 +42,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @observable layoutFields: boolean = false;
+
+    @observable openActions: boolean = true;
+    @observable openSharing: boolean = true;
+    @observable openFields: boolean = true;
+    @observable openLayout: boolean = true;
 
     @action
     rtfWidth = () => {
@@ -314,6 +319,25 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         this.layoutFields = !this.layoutFields;
     }
 
+    @computed get editableTitle() {
+        return <EditableView
+            key="editableView"
+            contents={StrCast(this.selectedDoc?.title)}
+            height={25}
+            fontSize={14}
+            GetValue={() => StrCast(this.selectedDoc?.title)}
+            SetValue={this.setTitle} />;
+    }
+
+    setTitle = (value: string) => {
+        if (this.dataDoc) {
+            this.selectedDoc && (this.selectedDoc.title = value);
+            KeyValueBox.SetField(this.dataDoc, "title", value, true);
+            return true;
+        }
+        return false;
+    }
+
     render() {
 
         if (!this.selectedDoc) {
@@ -333,35 +357,60 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>
             </div>
             <div className="propertiesView-name">
-                {this.selectedDoc.title}
+                {this.editableTitle}
             </div>
             <div className="propertiesView-settings">
-                <div className="propertiesView-settings-title"> Document Actions </div>
-                <div className="propertiesView-settings-content">
-                    <PropertiesButtons />
+                <div className="propertiesView-settings-title">
+                    <div className="propertiesView-settings-title-icon"
+                        onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}>
+                        <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="black" />
+                    </div>
+                    Document Actions
                 </div>
+                {this.openActions ? <div className="propertiesView-settings-content">
+                    <PropertiesButtons />
+                </div> : null}
             </div>
             <div className="propertiesView-sharing">
-                <div className="propertiesView-sharing-title"> Sharing {"&"} Permissions</div>
-                <div className="propertiesView-sharing-content">
-                    {this.sharingTable}
+                <div className="propertiesView-sharing-title">
+                    <div className="propertiesView-sharing-title-icon"
+                        onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}>
+                        <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="black" />
+                    </div>
+                    Sharing {"&"} Permissions
                 </div>
+                {this.openSharing ? <div className="propertiesView-sharing-content">
+                    {this.sharingTable}
+                </div> : null}
             </div>
             <div className="propertiesView-fields">
                 <div className="propertiesView-fields-title">
                     <div className="propertiesView-fields-title-name">
+                        <div className="propertiesView-fields-title-icon"
+                            onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}>
+                            <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="black" />
+                        </div>
                         Fields {"&"} Tags
                     </div>
-                    {!novice ? <div className="propertiesView-fields-title-checkbox">
+                    {!novice && this.openFields ? <div className="propertiesView-fields-title-checkbox">
                         {this.fieldsCheckbox}
                         <div className="propertiesView-fields-title-checkbox-text">Layout</div>
                     </div> : null}
                 </div>
-                <div className="propertiesView-fields-content"> {novice ? this.noviceFields : this.expandedField} </div>
+                {this.openFields ?
+                    <div className="propertiesView-fields-content">
+                        {novice ? this.noviceFields : this.expandedField}
+                    </div> : null}
             </div>
             <div className="propertiesView-layout">
-                <div className="propertiesView-layout-title" >Layout</div>
-                <div className="propertiesView-layout-content">{this.layoutPreview}</div>
+                <div className="propertiesView-layout-title" >
+                    <div className="propertiesView-layout-title-icon"
+                        onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
+                        <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="black" />
+                    </div>
+                    Layout
+                </div>
+                {this.openLayout ? <div className="propertiesView-layout-content">{this.layoutPreview}</div> : null}
             </div>
         </div>;
     }
