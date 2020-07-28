@@ -101,9 +101,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         initialize: emptyFunction,
     };
     _contentCommand = {
-        params: ["target", "source"], title: "clear content",
+        params: ["target", "source"], title: "set content",
         script: "getProto(self.target).data = copyField(self.source);",
         immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
+        initialize: emptyFunction,
+    };
+    _onClickCommand = {
+        params: ["target", "proxy"], title: "copy onClick",
+        script: `{ if (self.proxy?.[0]) {
+             getProto(self.proxy[0]).onClick = copyField(self.target.onClick); 
+             getProto(self.proxy[0]).target = self.target.target;
+             getProto(self.proxy[0]).source = copyField(self.target.source); 
+            }}`,
+        immediate: undoBatch((source: Doc[]) => { }),
         initialize: emptyFunction,
     };
     _viewCommand = {
@@ -135,10 +145,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _schema_commands = [this._templateCommand, this._narrativeCommand];
+    _doc_commands = [this._onClickCommand];
     _tree_commands = [];
     private get _buttonizableCommands() {
         switch (this.props.type) {
-            default:
+            default: return this._doc_commands;
             case CollectionViewType.Freeform: return this._freeform_commands;
             case CollectionViewType.Tree: return this._tree_commands;
             case CollectionViewType.Schema: return this._schema_commands;
