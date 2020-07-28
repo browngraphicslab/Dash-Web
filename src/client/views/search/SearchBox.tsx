@@ -199,6 +199,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
         if (e.target.value === "") {
+            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
             console.log("CLOSE");
             runInAction(() => { this.open = false });
         }
@@ -218,7 +219,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             // if (this._icons !== this._allIcons) {
             //     runInAction(() => { this.expandedBucket = false });
             // }
-            if (StrCast(this.layoutDoc._searchString) !== "") {
+            if (StrCast(this.layoutDoc._searchString) !== "" && this.filter === false) {
                 console.log("OPEN");
                 runInAction(() => { this.open = true });
             }
@@ -348,10 +349,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const collections: Doc[] = [];
         selectedDocs.forEach(async element => {
             const layout: string = StrCast(element.props.Document.layout);
-
-            console.log(DocListCast(element.dataDoc[Doc.LayoutFieldKey(element.dataDoc)]));
-            console.log(DocListCast(element.dataDoc[Doc.LayoutFieldKey(element.dataDoc)]).length);
-
             //checks if selected view (element) is a collection. if it is, adds to list to search through
             if (layout.indexOf("Collection") > -1) {
                 //makes sure collections aren't added more than once
@@ -472,7 +469,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async (reset?: boolean) => {
-
         this.checkIcons();
         if (reset) {
             this.layoutDoc._searchString = "";
@@ -682,6 +678,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         if (!this._resultsRef.current) return;
+        this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
 
         const scrollY = e ? e.currentTarget.scrollTop : this._resultsRef.current ? this._resultsRef.current.scrollTop : 0;
         const itemHght = 53;
@@ -767,8 +764,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
         }
-
-        this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
         let schemaheaders: SchemaHeaderField[] = [];
         this.headerscale = headers.size;
         headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")))
@@ -1126,20 +1121,28 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                                     <div className="checkbox" style={{ margin: 0 }}>
                                         <label style={{ fontSize: 12, marginTop: 6 }}>
-                                            <input style={{ marginLeft: -16, marginTop: -1 }} checked={this.filter === true} onChange={() => { runInAction(() => { this.filter = !this.filter }) }} type="checkbox"></input>
+                                            <input style={{ marginLeft: -16, marginTop: -1 }} checked={this.filter === true} onChange={() => {
+                                                runInAction(() => {
+                                                    this.filter = !this.filter; this.filter === true ? this.open = false : undefined; this.filter === true ? this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]) : undefined;
+                                                })
+                                            }} type="checkbox"></input>
                                             Filter
                                         </label>
                                     </div>
                                     {this.filter === true ? <div style={{ display: "contents" }}>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => {
+                                                    runInAction(() => {
+                                                        this.scale = !this.scale; this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                    })
+                                                }} />
                                         Current collection
                                     </label>
                                         </div>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
+                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale; this.dataDoc[this.fieldKey] = new List<Doc>([]); }) }} />
                                             Workspace
                                     </label>
                                         </div>
