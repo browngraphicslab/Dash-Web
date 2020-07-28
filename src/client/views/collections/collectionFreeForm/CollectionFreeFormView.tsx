@@ -892,7 +892,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this.props.focus(doc);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
-                const offset = annotOn && (contextHgt / 2 * 96 / 72);
+                const offset = annotOn && (contextHgt / 2);
                 this.props.Document._scrollY = NumCast(doc.y) - offset;
             }
 

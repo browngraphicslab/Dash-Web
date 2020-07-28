@@ -586,6 +586,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    @undoBatch
+    togglePushpin = () => {
+        this.Document.ignoreClick = false;
+        if (this.Document.isLinkButton || this.Document.isPushpin || this.onClickHandler || this.Document.ignoreClick) {
+            this.Document.isPushpin = this.Document.isLinkButton = false;
+            this.Document.onClick = this.layoutDoc.onClick = undefined;
+        } else {
+            this.Document.isPushpin = this.Document.isLinkButton = true;
+            this.Document.followLinkZoom = false;
+            this.Document.followLinkLocation = undefined;
+        }
+    }
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
@@ -776,6 +788,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link on Right", event: this.toggleFollowOnRight, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
+        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: this.togglePushpin, icon: "snowflake" });
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "hand-point-right" });
 
