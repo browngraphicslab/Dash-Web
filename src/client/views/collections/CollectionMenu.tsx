@@ -208,10 +208,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         this.document._facetWidth = 0;
     }
 
-
     @computed get subChrome() {
         switch (this.props.type) {
             default:
+            case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);
@@ -312,8 +312,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
-                        {this.templateChrome}
+                        {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.viewModes}
+                        {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.templateChrome}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
@@ -324,6 +324,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 </div>
             </div>
         );
+    }
+}
+
+@observer
+export class CollectionDockingChrome extends React.Component<CollectionMenuProps> {
+    render() {
+        return (null);
     }
 }
 
