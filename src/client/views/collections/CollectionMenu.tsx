@@ -25,6 +25,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
+import { ScriptField } from "../../../fields/ScriptField";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -116,6 +117,22 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         immediate: undoBatch((source: Doc[]) => { }),
         initialize: emptyFunction,
     };
+    _openLinkInCommand = {
+        params: ["target", "container"], title: "link follow target",
+        script: `{ if (self.container?.length) {
+            getProto(self.target).linkContainer = self.container[0];
+            getProto(self.target).isLinkButton = true;
+            getProto(self.target).onClick = makeScript("getProto(self.linkContainer).data = new List([self.links[0]?.anchor2])");
+            }}`,
+        immediate: undoBatch((container: Doc[]) => {
+            if (container.length) {
+                Doc.GetProto(this.target).linkContainer = container[0];
+                Doc.GetProto(this.target).isLinkButton = true;
+                Doc.GetProto(this.target).onClick = ScriptField.MakeScript("getProto(self.linkContainer).data = new List([self.links[0]?.anchor2])");
+            }
+        }),
+        initialize: emptyFunction,
+    };
     _viewCommand = {
         params: ["target"], title: "bookmark view",
         script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale'];",
@@ -145,7 +162,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _schema_commands = [this._templateCommand, this._narrativeCommand];
-    _doc_commands = [this._onClickCommand];
+    _doc_commands = [this._openLinkInCommand, this._onClickCommand];
     _tree_commands = [];
     private get _buttonizableCommands() {
         switch (this.props.type) {
