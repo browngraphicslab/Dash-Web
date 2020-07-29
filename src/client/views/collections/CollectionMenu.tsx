@@ -541,7 +541,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>
 
             {!this.props.isOverlay ? (null) :
-                <button className={"antimodeMenu-button"} key="hypothesis" style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined }} title="Use Hypothesis" onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
+                <button className={"antimodeMenu-button"} key="hypothesis"
+                    style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                    title="Use Hypothesis"
+                    onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
                     <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
                 </button>
             }
