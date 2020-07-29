@@ -54,27 +54,30 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
     }
     render() {
         const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
-        return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
-            onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
-            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+        // return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
+        //     onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
+        //     style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
 
-            <SketchPicker onChange={ColorBox.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
-                color={StrCast(ActiveInkPen()?.backgroundColor,
-                    StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
-            <div style={{ display: "grid", gridTemplateColumns: "20% 80%", paddingTop: "10px" }}>
-                <div> {ActiveInkWidth() ?? 2}</div>
-                <input type="range" defaultValue={ActiveInkWidth() ?? 2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    SetActiveInkWidth(e.target.value);
-                    SelectionManager.SelectedDocuments().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeWidth = Number(e.target.value));
-                }} />
-                <div> {ActiveInkBezierApprox() ?? 2}</div>
-                <input type="range" defaultValue={ActiveInkBezierApprox() ?? 2} min={0} max={300} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    SetActiveBezierApprox(e.target.value);
-                    SelectionManager.SelectedDocuments().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeBezier = e.target.value);
-                }} />
-                <br />
-                <br />
-            </div>
-        </div>;
+        //     <SketchPicker onChange={ColorBox.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
+        //         color={StrCast(ActiveInkPen()?.backgroundColor,
+        //             StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
+
+        //     <div style={{ display: "grid", gridTemplateColumns: "20% 80%", paddingTop: "10px" }}>
+        //         <div> {ActiveInkWidth() ?? 2}</div>
+        //         <input type="range" defaultValue={ActiveInkWidth() ?? 2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        //             SetActiveInkWidth(e.target.value);
+        //             SelectionManager.SelectedDocuments().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeWidth = Number(e.target.value));
+        //         }} />
+        //         <div> {ActiveInkBezierApprox() ?? 2}</div>
+        //         <input type="range" defaultValue={ActiveInkBezierApprox() ?? 2} min={0} max={300} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        //             SetActiveBezierApprox(e.target.value);
+        //             SelectionManager.SelectedDocuments().filter(i => StrCast(i.rootDoc.type) === DocumentType.INK).map(i => i.rootDoc.strokeBezier = e.target.value);
+        //         }} />
+        //         <br />
+        //         <br />
+        //     </div>
+        // </div>
+        //     ;
+        return <></>;
     }
 }
