@@ -69,9 +69,23 @@ export namespace Hypothesis {
     };
 
     export const scrollToAnnotation = (annotationId: string) => {
-        document.dispatchEvent(new CustomEvent("scrollToAnnotation", {
-            detail: annotationId,
-            bubbles: true
-        }));
+        var success = false;
+        const onSuccess = () => {
+            console.log("scroll success!!");
+            document.removeEventListener('scrollSuccess', onSuccess);
+            clearTimeout(interval);
+            success = true;
+        };
+
+        const interval = setInterval(() => { // keep trying to scroll every 200ms until annotations have loaded and scrolling is successful
+            console.log("send scroll");
+            document.dispatchEvent(new CustomEvent('scrollToAnnotation', {
+                detail: annotationId,
+                bubbles: true
+            }));
+        }, 200);
+
+        document.addEventListener('scrollSuccess', onSuccess); // listen for success message from client
+        setTimeout(() => !success && clearTimeout(interval), 10000); // give up if no success after 10s
     };
 }
