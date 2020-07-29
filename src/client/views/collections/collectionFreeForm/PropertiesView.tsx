@@ -360,55 +360,55 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 {this.editableTitle}
             </div>
             <div className="propertiesView-settings">
-                <div className="propertiesView-settings-title">
+                <div className="propertiesView-settings-title" style={{ backgroundColor: this.openActions ? "black" : "" }}>
+                    Document Actions
                     <div className="propertiesView-settings-title-icon"
                         onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}>
-                        <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="black" />
+                        <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    Document Actions
                 </div>
                 {this.openActions ? <div className="propertiesView-settings-content">
                     <PropertiesButtons />
                 </div> : null}
             </div>
             <div className="propertiesView-sharing">
-                <div className="propertiesView-sharing-title">
+                <div className="propertiesView-sharing-title" style={{ backgroundColor: this.openSharing ? "black" : "" }}>
+                    Sharing {"&"} Permissions
                     <div className="propertiesView-sharing-title-icon"
                         onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}>
-                        <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="black" />
+                        <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    Sharing {"&"} Permissions
                 </div>
                 {this.openSharing ? <div className="propertiesView-sharing-content">
                     {this.sharingTable}
                 </div> : null}
             </div>
             <div className="propertiesView-fields">
-                <div className="propertiesView-fields-title">
+                <div className="propertiesView-fields-title" style={{ backgroundColor: this.openFields ? "black" : "" }}>
                     <div className="propertiesView-fields-title-name">
+                        Fields {"&"} Tags
                         <div className="propertiesView-fields-title-icon"
                             onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}>
-                            <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="black" />
+                            <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
                         </div>
-                        Fields {"&"} Tags
                     </div>
-                    {!novice && this.openFields ? <div className="propertiesView-fields-title-checkbox">
-                        {this.fieldsCheckbox}
-                        <div className="propertiesView-fields-title-checkbox-text">Layout</div>
-                    </div> : null}
                 </div>
+                {!novice && this.openFields ? <div className="propertiesView-fields-title-checkbox">
+                    {this.fieldsCheckbox}
+                    <div className="propertiesView-fields-title-checkbox-text">Layout</div>
+                </div> : null}
                 {this.openFields ?
                     <div className="propertiesView-fields-content">
                         {novice ? this.noviceFields : this.expandedField}
                     </div> : null}
             </div>
             <div className="propertiesView-layout">
-                <div className="propertiesView-layout-title" >
+                <div className="propertiesView-layout-title" style={{ backgroundColor: this.openLayout ? "black" : "" }}>
+                    Layout
                     <div className="propertiesView-layout-title-icon"
                         onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
-                        <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="black" />
+                        <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    Layout
                 </div>
                 {this.openLayout ? <div className="propertiesView-layout-content">{this.layoutPreview}</div> : null}
             </div>

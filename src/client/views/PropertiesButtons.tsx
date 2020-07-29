@@ -206,7 +206,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="propertiesButtons-linker"
-                style={{ backgroundColor: isPinned ? "white" : "#121721", color: isPinned ? "black" : "white" }}
+                style={{ backgroundColor: isPinned ? "white" : "rgb(37, 43, 51)", color: isPinned ? "black" : "white" }}
                 onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
