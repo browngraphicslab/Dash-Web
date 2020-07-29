@@ -355,7 +355,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         console.log("end!");
         this._hold = false;
         //this._markers.push(Docs.Create.LabelDocument({ isLabel: false, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }))
-        let newMarker = Docs.Create.LabelDocument({ title: "", isLabel: false, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document });
+        let newMarker = Docs.Create.LabelDocument({ title: "", isLabel: false, useLinkSmallAnchor: true, hideLinkButton: true, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document });
 
         if (this.dataDoc[this.annotationKey]) {
             this.dataDoc[this.annotationKey].push(newMarker); // onClick: ScriptField.MakeScript(`playFrom(${NumCast(this._start)}, ${NumCast(marker)})`)
@@ -586,7 +586,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 }
                                 if (e.button === 0 && e.altKey) {
 
-                                    this.newMarker(Docs.Create.LabelDocument({ title: "", isLabel: true, audioStart: this._ele!.currentTime, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }));
+                                    this.newMarker(Docs.Create.LabelDocument({ title: "", useLinkSmallAnchor: true, hideLinkButton: true, isLabel: true, audioStart: this._ele!.currentTime, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }));
                                 }
 
                                 if (e.button === 0 && e.shiftKey) {
@@ -611,7 +611,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                                 rootSelected={returnFalse}
                                                 LayoutTemplate={undefined}
                                                 ContainingCollectionDoc={this.props.Document}
-                                                dontRegisterView={true}
                                                 removeDocument={undefined}
                                                 parentActive={returnTrue}
                                                 onClick={this.layoutDoc.playOnClick ? this.rangeScript : undefined}
@@ -634,7 +633,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                                 rootSelected={returnFalse}
                                                 LayoutTemplate={undefined}
                                                 ContainingCollectionDoc={this.props.Document}
-                                                dontRegisterView={true}
                                                 removeDocument={undefined}
                                                 parentActive={returnTrue}
                                                 onClick={this.layoutDoc.playOnClick ? this.labelScript : undefined}
@@ -655,14 +653,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     linkTime = NumCast(l.anchor1_timecode);
                                 }
 
-                                if (la1.audioStart) {
-                                    linkTime = NumCast(la1.audioStart);
-                                }
-
                                 if (la2.audioStart) {
                                     linkTime = NumCast(la2.audioStart);
                                 }
-
 
                                 return !linkTime ? (null) :
                                     <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }} onClick={e => e.stopPropagation()}>
@@ -672,15 +665,17 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             NativeHeight={returnZero}
                                             NativeWidth={returnZero}
                                             rootSelected={returnFalse}
-                                            LayoutTemplate={undefined}
-                                            LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
                                             ContainingCollectionDoc={this.props.Document}
-                                            dontRegisterView={true}
                                             parentActive={returnTrue}
                                             bringToFront={emptyFunction}
-                                            backgroundColor={returnTransparent} />
-                                        {/* </div> */}
-                                        <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
+                                            backgroundColor={returnTransparent}
+                                            ContentScaling={returnOne}
+                                            forcedBackgroundColor={returnTransparent}
+                                            pointerEvents={false}
+                                            LayoutTemplate={undefined}
+                                            LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
+                                        />
+                                        <div key={i} className={`audiobox-marker`} onPointerEnter={() => Doc.linkFollowHighlight(la1)}
                                             onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { const wasPaused = this.audioState === "paused"; this.playFrom(linkTime); this.pause(); e.stopPropagation(); e.preventDefault(); } }} />
                                     </div>;
                             })}
