@@ -21,10 +21,8 @@ import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
-import { InkData, InkField, InkTool } from "../../fields/InkField";
+import { InkField } from "../../fields/InkField";
 import { Tooltip } from '@material-ui/core';
-import InkOptionsMenu from './collections/collectionFreeForm/InkOptionsMenu';
-import FormatShapePane from './collections/collectionFreeForm/FormatShapePane';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);

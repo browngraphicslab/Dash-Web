@@ -22,7 +22,6 @@ import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import InkOptionsMenu from "./collections/collectionFreeForm/InkOptionsMenu";
 import * as fitCurve from 'fit-curve';
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 

@@ -171,17 +171,6 @@ export namespace InteractionUtils {
         </svg>);
     }
 
-    // export function makeArrow() {
-    //     return (
-    //         InkOptionsMenu.Instance.getColors().map(color => {
-    //             const id1 = "arrowStartTest" + color;
-    //             <marker id={id1} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
-    //                 <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
-    //             </marker>;
-    //         })
-    //     );
-    // }
-
     export function makePolygon(shape: string, points: { X: number, Y: number }[]) {
         if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y + 1 === points[0].Y) {
             //pointer is up (first and last points are the same)
