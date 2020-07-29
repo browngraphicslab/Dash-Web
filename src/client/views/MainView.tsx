@@ -115,27 +115,14 @@ export class MainView extends React.Component {
                 }
             });
         });
-        window.addEventListener("message", async (e: any) => { // listen for a new Hypothes.is annotation from an iframe inside Dash
-            // start link from new Hypothes.is annotation
-            // TODO: pass in placeholderId directly from client, move
-            if (e.origin === "http://localhost:1050" && e.data.message === "annotation created") {
-                console.log("DASH received message: annotation created");
-                const response = await Hypothesis.getPlaceholderId("placeholder");
-                const source = SelectionManager.SelectedDocuments()[0];
-                response && runInAction(() => {
-                    DocumentLinksButton.AnnotationId = response.id;
-                    DocumentLinksButton.AnnotationUri = response.uri;
-                    DocumentLinksButton.StartLink = source;
-                });
-            }
-        });
-        document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to to link an existing annotation to Dash
+        document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to link an annotation to Dash
             const annotationId = e.detail.id;
             const annotationUri = e.detail.uri;
             const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
             console.log("sourceDoc: ", sourceDoc ? sourceDoc.title : "not found");
 
-            const source = SelectionManager.SelectedDocuments()[0]; // TO BE FIXED, currently link just starts from whichever doc is selected
+            // TO BE FIXED, currently cannot start links from new webpages that don't exist in Dash
+            const source = sourceDoc || SelectionManager.SelectedDocuments()[0];
             runInAction(() => {
                 DocumentLinksButton.AnnotationId = annotationId;
                 DocumentLinksButton.AnnotationUri = annotationUri;

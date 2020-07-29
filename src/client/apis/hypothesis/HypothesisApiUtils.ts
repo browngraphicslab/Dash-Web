@@ -5,6 +5,7 @@ import { action } from "mobx";
 import { Doc } from "../../../fields/Doc";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { WebField } from "../../../fields/URLField";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export namespace Hypothesis {
 
@@ -49,9 +50,9 @@ export namespace Hypothesis {
     };
 
     export const editAnnotation = async (annotationId: string, newText: string) => {
-        console.log("DASH dispatching editRequest");
+        console.log("DASH dispatching editAnnotation");
         const credentials = await getCredentials();
-        document.dispatchEvent(new CustomEvent<{ newText: string, id: string, apiKey: string }>("editRequest", {
+        document.dispatchEvent(new CustomEvent<{ newText: string, id: string, apiKey: string }>("editAnnotation", {
             detail: { newText: newText, id: annotationId, apiKey: credentials.apiKey },
             bubbles: true
         }));
@@ -74,14 +75,6 @@ export namespace Hypothesis {
         const regex = new RegExp(`\\[[^\\]]*\\]\\(${linkUrl}\\)`); // finds the link (written in [title](hyperlink) format) to be deleted
         const out = annotation.text.replace(regex, "");
         editAnnotation(annotationId, out);
-    };
-
-    // Finds the most recent placeholder annotation created and returns its ID
-    export const getPlaceholderId = async (searchKeyWord: string) => {
-        const getResponse = await Hypothesis.searchAnnotation(searchKeyWord);
-        const id = getResponse.rows.length > 0 ? getResponse.rows[0].id : undefined;
-        const uri = getResponse.rows.length > 0 ? getResponse.rows[0].uri : undefined;
-        return id ? { id, uri } : undefined;
     };
 
     // Construct an URL which will scroll the web page to a specific annotation's position
@@ -111,6 +104,13 @@ export namespace Hypothesis {
         }));
 
         // TODO: open & return new Web doc with given uri if no matching Web docs are found
-        return results.length ? results[0] : undefined;
+        return results.length ? DocumentManager.Instance.getFirstDocumentView(results[0]) : undefined;
+    };
+
+    export const scrollToAnnotation = (annotationId: string) => {
+        document.dispatchEvent(new CustomEvent("scrollToAnnotation", {
+            detail: annotationId,
+            bubbles: true
+        }));
     };
 }
