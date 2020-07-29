@@ -211,7 +211,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get subChrome() {
         switch (this.props.type) {
             default:
-            case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);
@@ -219,6 +218,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
         }
     }
     private dropDisposer?: DragManager.DragDropDisposer;
