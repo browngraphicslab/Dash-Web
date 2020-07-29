@@ -154,15 +154,15 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     return false;
                 }
                 else {
-                    if (this.props.Document[AclSym]) {
-                        added.forEach(d => {
-                            const dataDoc = d[DataSym];
-                            dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
-                            for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                                dataDoc[key] = d[key] = this.AclMap.get(value);
-                            }
-                        });
-                    }
+                    // if (this.props.Document[AclSym]) {
+                    //     added.forEach(d => {
+                    //         const dataDoc = d[DataSym];
+                    //         dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
+                    //         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                    //             dataDoc[key] = d[key] = this.AclMap.get(value);
+                    //         }
+                    //     });
+                    // }
                     if (effectiveAcl === AclAddonly) {
                         added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
                     }

@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls, SharingPermissions } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, SharingPermissions } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -149,16 +149,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return false;
             }
             else {
-                if (this.props.Document[AclSym]) {
-                    // change so it only adds if more restrictive
-                    added.forEach(d => {
-                        // const dataDoc = d[DataSym];
-                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
-                        }
-                        // dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
-                    });
-                }
+                // if (this.props.Document[AclSym]) {
+                //     // change so it only adds if more restrictive
+                //     added.forEach(d => {
+                //         // const dataDoc = d[DataSym];
+                //         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                //             // key.substring(4).replace("_", ".") !== Doc.CurrentUserEmail && distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                //             distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                //         }
+                //     });
+                // }
 
                 if (effectiveAcl === AclAddonly) {
                     added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
@@ -192,14 +192,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const effectiveAcl = GetEffectiveAcl(this.props.Document);
-        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || getPlaygroundMode()) {
+        const collectionEffectiveAcl = GetEffectiveAcl(this.props.Document);
+        const docEffectiveAcl = GetEffectiveAcl(doc);
+        // you can remove the document if you either have Admin/Edit access to the collection or to the specific document
+        if (collectionEffectiveAcl === AclEdit || collectionEffectiveAcl === AclAdmin || docEffectiveAcl === AclAdmin || docEffectiveAcl === AclEdit || getPlaygroundMode()) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-            const result = value.filter(v => !docs.includes(v));
-            if (result.length !== value.length) {
-                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+            const toRemove = value.filter(v => docs.includes(v));
+            if (toRemove.length !== 0) {
+                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc));
                 return true;
             }
         }

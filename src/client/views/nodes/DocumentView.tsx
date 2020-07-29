@@ -697,35 +697,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
 
-    @undoBatch
-    @action
-    setAcl = (acl: SharingPermissions) => {
-        this.dataDoc.ACL = this.props.Document.ACL = acl;
-        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
-            const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
-        });
-    }
-
-    @undoBatch
-    @action
-    testAcl = (acl: SharingPermissions) => {
-        this.dataDoc.author = this.props.Document.author = "ADMIN";
-        this.dataDoc.ACL = this.props.Document.ACL = acl;
-        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail) {
-                d.author = "ADMIN";
-                d.ACL = acl;
-            }
-            const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail) {
-                data.author = "ADMIN";
-                data.ACL = acl;
-            }
-        });
-    }
-
     @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
@@ -791,11 +762,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         moreItems.push({
             description: "Download document", icon: "download", event: async () => {
                 Doc.Zip(this.props.Document);
-                // const a = document.createElement("a");
-                // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
-                // a.href = url;
-                // a.download = `DocExport-${this.props.Document[Id]}.zip`;
-                // a.click();
             }
         });
         if (!Doc.UserDoc().noviceMode) {
@@ -822,72 +788,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
-        // const existingAcls = cm.findByDescription("Privacy...");
-        // const aclItems: ContextMenuProps[] = existingAcls && "subitems" in existingAcls ? existingAcls.subitems : [];
-        // aclItems.push({ description: "Make Add Only", event: () => this.setAcl(SharingPermissions.Add), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Read Only", event: () => this.setAcl(SharingPermissions.View), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Private", event: () => this.setAcl(SharingPermissions.None), icon: "concierge-bell" });
-        // aclItems.push({ description: "Make Editable", event: () => this.setAcl(SharingPermissions.Edit), icon: "concierge-bell" });
-        // aclItems.push({ description: "Test Private", event: () => this.testAcl(SharingPermissions.None), icon: "concierge-bell" });
-        // aclItems.push({ description: "Test Readonly", event: () => this.testAcl(SharingPermissions.View), icon: "concierge-bell" });
-        // !existingAcls && cm.addItem({ description: "Privacy...", subitems: aclItems, icon: "question" });
-
-        // cm.addItem({ description: `${getPlaygroundMode() ? "Disable" : "Enable"} playground mode`, event: togglePlaygroundMode, icon: "concierge-bell" });
-
-        // const recommender_subitems: ContextMenuProps[] = [];
-
-        // recommender_subitems.push({
-        //     description: "Internal recommendations",
-        //     event: () => this.recommender(),
-        //     icon: "brain"
-        // });
-
-        // const ext_recommender_subitems: ContextMenuProps[] = [];
-
-        // ext_recommender_subitems.push({
-        //     description: "arXiv",
-        //     event: () => this.externalRecommendation("arxiv"),
-        //     icon: "brain"
-        // });
-        // ext_recommender_subitems.push({
-        //     description: "Bing",
-        //     event: () => this.externalRecommendation("bing"),
-        //     icon: "brain"
-        // });
-
-        // recommender_subitems.push({
-        //     description: "External recommendations",
-        //     subitems: ext_recommender_subitems,
-        //     icon: "brain"
-        // });
-
-
-        //moreItems.push({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
-        //moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
-        //moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
-
-        // runInAction(() => {
-        //     const setWriteMode = (mode: DocServer.WriteMode) => {
-        //         DocServer.AclsMode = mode;
-        //         const mode1 = mode;
-        //         const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-        //         DocServer.setFieldWriteMode("x", mode1);
-        //         DocServer.setFieldWriteMode("y", mode1);
-        //         DocServer.setFieldWriteMode("_width", mode1);
-        //         DocServer.setFieldWriteMode("_height", mode1);
-
-        //         DocServer.setFieldWriteMode("_panX", mode2);
-        //         DocServer.setFieldWriteMode("_panY", mode2);
-        //         DocServer.setFieldWriteMode("scale", mode2);
-        //         DocServer.setFieldWriteMode("_viewType", mode2);
-        //     };
-        //     const aclsMenu: ContextMenuProps[] = [];
-        //     aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
-        //     aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
-        //     aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
-        //     aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
-        //     cm.addItem({ description: "Collaboration ...", subitems: aclsMenu, icon: "share" });
-        // });
         runInAction(() => {
             if (!this.topMost && !(e instanceof Touch)) {
                 // DocumentViews should stop propagation of this event

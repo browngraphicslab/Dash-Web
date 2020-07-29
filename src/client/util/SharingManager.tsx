@@ -1,7 +1,7 @@
 import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocListCastAsync } from "../../fields/Doc";
+import { Doc, Opt, DocListCastAsync, AclAdmin, DataSym } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../fields/Types";
 import * as RequestPromise from "request-promise";
@@ -82,6 +82,7 @@ export default class SharingManager extends React.Component<{}> {
     // }
 
     public open = (target: DocumentView) => {
+        runInAction(() => this.users = []);
         SelectionManager.DeselectAll();
         this.populateUsers().then(action(() => {
             this.targetDocView = target;
@@ -145,7 +146,7 @@ export default class SharingManager extends React.Component<{}> {
         const target = this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
 
-        distributeAcls(ACL, permission as SharingPermissions, target);
+        target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
 
         // if documents have been shared, add the target to that list if it doesn't already exist, otherwise create a new list with the target
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
@@ -220,7 +221,7 @@ export default class SharingManager extends React.Component<{}> {
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
 
-        distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
+        target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
 
         if (permission !== SharingPermissions.None) {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {
@@ -385,7 +386,7 @@ export default class SharingManager extends React.Component<{}> {
             const userKey = user.email.replace('.', '_');
             const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`], SharingPermissions.None);
 
-            return permissions === SharingPermissions.None || user.email === this.targetDoc?.author ? null : (
+            return user.email === this.targetDoc?.author ? null : (
                 <div
                     key={userKey}
                     className={"container"}
@@ -490,36 +491,34 @@ export default class SharingManager extends React.Component<{}> {
                     <div className={"close-button"} onClick={this.close}>
                         <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
-                    {this.targetDoc?.author !== Doc.CurrentUserEmail ? null
-                        :
-                        <div className="share-container">
-                            <div className="share-setup">
-                                <Select
-                                    className={"user-search"}
-                                    placeholder={"Enter user or group name..."}
-                                    isMulti
-                                    closeMenuOnSelect={false}
-                                    options={options}
-                                    onChange={this.handleUsersChange}
-                                    value={this.selectedUsers}
-                                    styles={{
-                                        indicatorSeparator: () => ({
-                                            visibility: "hidden"
-                                        })
-                                    }}
-                                />
-                                <select className="permissions-select" onChange={this.handlePermissionsChange}>
-                                    {this.sharingOptions}
-                                </select>
-                                <button ref={this.shareDocumentButtonRef} className="share-button" onClick={this.share}>
-                                    Share
+                    {<div className="share-container">
+                        <div className="share-setup">
+                            <Select
+                                className={"user-search"}
+                                placeholder={"Enter user or group name..."}
+                                isMulti
+                                closeMenuOnSelect={false}
+                                options={options}
+                                onChange={this.handleUsersChange}
+                                value={this.selectedUsers}
+                                styles={{
+                                    indicatorSeparator: () => ({
+                                        visibility: "hidden"
+                                    })
+                                }}
+                            />
+                            <select className="permissions-select" onChange={this.handlePermissionsChange}>
+                                {this.sharingOptions}
+                            </select>
+                            <button ref={this.shareDocumentButtonRef} className="share-button" onClick={this.share}>
+                                Share
                             </button>
-                            </div>
-                            <div className="sort-checkboxes">
-                                <input type="checkbox" onChange={action(() => this.showUserOptions = !this.showUserOptions)} /> <label style={{ marginRight: 10 }}>Individuals</label>
-                                <input type="checkbox" onChange={action(() => this.showGroupOptions = !this.showGroupOptions)} /> <label>Groups</label>
-                            </div>
                         </div>
+                        <div className="sort-checkboxes">
+                            <input type="checkbox" onChange={action(() => this.showUserOptions = !this.showUserOptions)} /> <label style={{ marginRight: 10 }}>Individuals</label>
+                            <input type="checkbox" onChange={action(() => this.showGroupOptions = !this.showGroupOptions)} /> <label>Groups</label>
+                        </div>
+                    </div>
                     }
                     <div className="main-container">
                         <div className={"individual-container"}>
