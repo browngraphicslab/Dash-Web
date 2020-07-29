@@ -223,7 +223,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
-            (tx.storedMarks && !this._editorView.state.storedMarks) && (this._editorView.state.storedMarks = tx.storedMarks);
 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 1000)));
@@ -741,7 +740,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this._disposers.search = reaction(() => this.rootDoc.searchMatch,
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
-            { fireImmediately: true });
+            { fireImmediately: this.rootDoc.searchMatch ? true : false });
 
         this._disposers.record = reaction(() => this._recording,
             () => {
@@ -994,7 +993,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            !Doc.UserDoc().noviceMode && applyDevTools.applyDevTools(this._editorView);
+            // !Doc.UserDoc().noviceMode && applyDevTools.applyDevTools(this._editorView);
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 const { state: { tr }, dispatch } = this._editorView;
@@ -1011,10 +1010,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBox.SelectOnLoadChar = "";
 
         }
-        (selectOnLoad /* || !rtfField?.Text*/) && this._editorView!.focus();
+        selectOnLoad && this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
-        if (!this._editorView!.state.storedMarks || !this._editorView!.state.storedMarks.some(mark => mark.type === schema.marks.user_mark)) {
-            this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) })];
+        if (!this._editorView!.state.storedMarks?.some(mark => mark.type === schema.marks.user_mark)) {
+            this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ?? []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(Date.now() / 1000) })];
         }
     }
     getFont(font: string) {

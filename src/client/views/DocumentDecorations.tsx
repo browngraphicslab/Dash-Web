@@ -89,7 +89,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
-            if (documentView.props.Document.type === DocumentType.LINK) {
+            if (StrCast(Doc.Layout(documentView.props.Document).layout).includes("LinkAnchorBox")) {
                 const docuBox = documentView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();
@@ -375,7 +375,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         move[1] = thisPt.thisY - this._snapY;
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
-
+        let dragBottom = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
@@ -413,6 +413,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             case "documentDecorations-bottomResizer":
                 unfreeze();
                 dH = move[1];
+                dragBottom = true;
                 break;
             case "documentDecorations-leftResizer":
                 unfreeze();
@@ -439,7 +440,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (!e.ctrlKey) {
+                    if (!e.ctrlKey && (!dragBottom || !element.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
                         if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                         else dW = dH * nwidth / nheight;
                     }
@@ -474,7 +475,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect || e.ctrlKey) {
+                        if (!fixedAspect || e.ctrlKey || (dragBottom && element.layoutDoc._fitWidth)) {
                             doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;
