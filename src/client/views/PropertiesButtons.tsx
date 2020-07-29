@@ -392,10 +392,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             this.selectedDocumentView?.toggleDetail();
         } else if (value === "linkInPlace") {
             this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleFollowInPlace();
+            this.selectedDocumentView?.toggleFollowLink("inPlace", true, false);
         } else if (value === "linkOnRight") {
             this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleFollowOnRight();
+            this.selectedDocumentView?.toggleFollowLink("onRight", false, false);
         }
     }
 

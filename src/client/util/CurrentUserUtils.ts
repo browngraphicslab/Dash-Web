@@ -48,6 +48,8 @@ export class CurrentUserUtils {
     @observable public static closedStack: any | undefined;
     @observable public static searchStack: any | undefined;
 
+    @observable public static panelContent: string = "none";
+
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
         if (doc["template-button-query"] === undefined) {
@@ -503,17 +505,16 @@ export class CurrentUserUtils {
     }
 
     static menuBtnDescriptions(): {
-        title: string, icon: string, click: string, backgroundColor?: string,
+        title: string, icon: string, click: string,
     }[] {
         return [
-            { title: "Workspace", icon: "desktop", click: 'MainView.selectPanel("workspace")' },
-            { title: "Catalog", icon: "file", click: 'MainView.selectPanel("catalog")' },
-            { title: "Recently Deleted", icon: "trash-alt", click: 'MainView.selectPanel("deleted")' },
-            { title: "Import", icon: "upload", click: 'this.selectPanel("upload")' },
+            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu("workspace")' },
+            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu("catalog")' },
+            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu("deleted")' },
+            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu("upload")' },
             { title: "Sharing", icon: "users", click: 'GroupManager.Instance.open()' },
-            { title: "Tools", icon: "wrench", click: 'MainView.selectPanel("tools")' },
-            { title: "Search", icon: "search", click: 'MainView.selectPanel("search")' },
-            { title: "Help", icon: "question-circle", click: 'MainView.selectPanel("help")' },
+            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu("tools")' },
+            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu("help")' },
             { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
         ];
     }
@@ -521,16 +522,17 @@ export class CurrentUserUtils {
     static setupMenuButtons(doc: Doc) {
         if (doc.menuStackBtns === undefined) {
             const buttons = CurrentUserUtils.menuBtnDescriptions();
-            const menuBtns = buttons.map(({ title, icon, click, backgroundColor }) => Docs.Create.FontIconDocument({
-                _width: 40, _height: 40,
+            const menuBtns = buttons.map(({ title, icon, click }) => Docs.Create.MenuIconDocument({
                 icon,
                 title,
-                onClick: click ? ScriptField.MakeScript(click) : undefined,
-                backgroundColor,
+                stayInCollection: true,
+                _width: 60,
+                _height: 70,
+                onClick: ScriptField.MakeScript(click),
             }));
 
             doc.menuStackBtns = new PrefetchProxy(Docs.Create.MasonryDocument(menuBtns, {
-                _xMargin: 0, _autoHeight: true, _width: 80, _columnWidth: 50, lockedPosition: true, _chromeStatus: "disabled",
+                _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled",
             }));
         }
         return doc.menuStackBtns as Doc;
@@ -542,7 +544,7 @@ export class CurrentUserUtils {
             const menuBtns = CurrentUserUtils.setupMenuButtons(doc);
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument([menuBtns], {
                 _yMargin: 0, _autoHeight: true, _xMargin: 0,
-                _width: 80, lockedPosition: true, _chromeStatus: "disabled",
+                _width: 60, lockedPosition: true, _chromeStatus: "disabled",
             })) as any as Doc;
         }
         return doc.menuStack;

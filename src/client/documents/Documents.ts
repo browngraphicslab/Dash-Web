@@ -31,6 +31,7 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
+import { MenuIconBox } from "../views/nodes/MenuIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
@@ -300,6 +301,9 @@ export namespace Docs {
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: defaultDataKey },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
+            }],
+            [DocumentType.MENUICON, {
+                layout: { view: MenuIconBox, dataField: defaultDataKey },
             }],
             [DocumentType.RECOMMENDATION, {
                 layout: { view: RecommendationsBox, dataField: defaultDataKey },
@@ -789,6 +793,10 @@ export namespace Docs {
 
         export function FontIconDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
+        }
+
+        export function MenuIconDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.MENUICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {

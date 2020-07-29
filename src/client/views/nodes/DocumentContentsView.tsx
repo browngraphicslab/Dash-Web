@@ -18,6 +18,7 @@ import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
+import { MenuIconBox } from "./MenuIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { ImageBox } from "./ImageBox";
@@ -190,7 +191,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 blacklistedAttrs={[]}
                 renderInWrapper={false}
                 components={{
-                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, MenuIconBox, LabelBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,

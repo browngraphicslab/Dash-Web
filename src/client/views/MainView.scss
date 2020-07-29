@@ -155,8 +155,9 @@
 
 .mainView-menuPanel {
 
-    max-width: 60px;
+    width: 60px;
     background-color: black;
+    height: 100%;
     //overflow-y: scroll;
     //overflow-x: hidden;
 
@@ -165,22 +166,23 @@
         padding: 7px;
         padding-left: 7px;
         width: 100%;
+
         .mainView-menuPanel-button-wrap {
-        width: 45px;
-        /* padding: 5px; */
-        touch-action: none;
-        background: black;
-        transform-origin: top left;
-        /* margin-bottom: 5px; */
-        margin-top: 5px;
-        margin-right: 25px;
-        border-radius: 8px;
-    
+            width: 45px;
+            /* padding: 5px; */
+            touch-action: none;
+            background: black;
+            transform-origin: top left;
+            /* margin-bottom: 5px; */
+            margin-top: 5px;
+            margin-right: 25px;
+            border-radius: 8px;
+
             &:hover {
                 background: rgb(61, 61, 61);
                 cursor: pointer;
             }
-        }  
+        }
     }
 
     .mainView-menuPanel-button-label {
