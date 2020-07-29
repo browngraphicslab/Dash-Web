@@ -6,7 +6,7 @@ import { Opt } from "../../fields/Doc";
 import { Networking } from "../Network";
 import "./HypothesisAuthenticationManager.scss";
 import { Scripting } from "../util/Scripting";
-import { Hypothesis } from "./hypothesis/HypothesisApiUtils";
+import { Hypothesis } from "./hypothesis/HypothesisUtils";
 
 const prompt = "Paste authorization code here...";
 

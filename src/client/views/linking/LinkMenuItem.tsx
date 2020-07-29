@@ -15,7 +15,7 @@ import { setupMoveUpEvents, emptyFunction, Utils } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
-import { Hypothesis } from '../../apis/hypothesis/HypothesisApiUtils';
+import { Hypothesis } from '../../apis/hypothesis/HypothesisUtils';
 import { Id } from '../../../fields/FieldSymbols';
 import { Tooltip } from '@material-ui/core';
 import { DocumentType } from '../../documents/DocumentTypes';

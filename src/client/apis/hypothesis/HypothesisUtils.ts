@@ -8,34 +8,6 @@ import { WebField } from "../../../fields/URLField";
 import { DocumentManager } from "../../util/DocumentManager";
 
 export namespace Hypothesis {
-
-    const getCredentials = async () => HypothesisAuthenticationManager.Instance.fetchAccessToken();
-
-    export const fetchAnnotation = async (annotationId: string) => {
-        const response = await fetch(`https://api.hypothes.is/api/annotations/${annotationId}`);
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('DASH: Error in fetchAnnotation GET request');
-        }
-    };
-
-    /**
-     * Searches for annotations authored by the current user that contain @param searchKeyWord 
-     */
-    export const searchAnnotation = async (searchKeyWord: string) => {
-        const credentials = await getCredentials();
-        const base = 'https://api.hypothes.is/api/search';
-        const request = base + `?user=acct:${credentials.username}@hypothes.is&text=${searchKeyWord}`;
-        console.log("DASH Querying " + request);
-        const response = await fetch(request);
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('DASH: Error in searchAnnotation GET request');
-        }
-    };
-
     export const fetchUser = async (apiKey: string) => {
         const response = await fetch('https://api.hypothes.is/api/profile', {
             headers: {
@@ -49,32 +21,21 @@ export namespace Hypothesis {
         }
     };
 
-    export const editAnnotation = async (annotationId: string, newText: string) => {
-        console.log("DASH dispatching editAnnotation");
-        const credentials = await getCredentials();
-        document.dispatchEvent(new CustomEvent<{ newText: string, id: string, apiKey: string }>("editAnnotation", {
-            detail: { newText: newText, id: annotationId, apiKey: credentials.apiKey },
+    // Send Hypothes.is client request to edit an annotation to add a Dash hyperlink
+    export const makeLink = async (title: string, url: string, annotationId: string) => {
+        const newHyperlink = `[${title}\n](${url})`;
+        document.dispatchEvent(new CustomEvent<{ newHyperlink: string, id: string }>("addLink", {
+            detail: { newHyperlink: newHyperlink, id: annotationId },
             bubbles: true
         }));
     };
 
-    /**
-     * Edit an annotation with ID @param annotationId to add a hyperlink to a Dash document, which needs to be 
-     * written in the format [@param title](@param url)
-     */
-    export const makeLink = async (title: string, url: string, annotationId: string) => {
-        const oldAnnotation = await fetchAnnotation(annotationId);
-        const oldText = StrCast(oldAnnotation.text);
-        const newHyperlink = `[${title}\n](${url})`;
-        const newText = oldText === "placeholder" ? newHyperlink : oldText + '\n\n' + newHyperlink; // if this is not the first link in the annotation, add link on new line
-        await editAnnotation(annotationId, newText);
-    };
-
+    // Send Hypothes.is client request to edit an annotation to find and remove a dash hyperlink
     export const deleteLink = async (annotationId: string, linkUrl: string) => {
-        const annotation = await fetchAnnotation(annotationId);
-        const regex = new RegExp(`\\[[^\\]]*\\]\\(${linkUrl}\\)`); // finds the link (written in [title](hyperlink) format) to be deleted
-        const out = annotation.text.replace(regex, "");
-        editAnnotation(annotationId, out);
+        document.dispatchEvent(new CustomEvent<{ targetUrl: string, id: string }>("deleteLink", {
+            detail: { targetUrl: linkUrl, id: annotationId },
+            bubbles: true
+        }));
     };
 
     // Construct an URL which will scroll the web page to a specific annotation's position

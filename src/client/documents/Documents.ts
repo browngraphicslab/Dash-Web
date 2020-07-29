@@ -50,7 +50,6 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
 import { Upload } from "../../server/SharedMediaTypes";
-import { Hypothesis } from "../apis/hypothesis/HypothesisApiUtils";
 const path = require('path');
 
 export interface DocumentOptions {

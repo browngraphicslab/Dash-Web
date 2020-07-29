@@ -42,7 +42,6 @@ import React = require("react");
 import { DocumentLinksButton } from './DocumentLinksButton';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { LinkCreatedBox } from './LinkCreatedBox';
-import { Hypothesis } from '../../apis/hypothesis/HypothesisApiUtils';
 import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { LinkManager } from '../../util/LinkManager';
 

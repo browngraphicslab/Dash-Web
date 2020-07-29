@@ -17,7 +17,7 @@ import { StrCast } from "../../../fields/Types";
 
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { LinkManager } from "../../util/LinkManager";
-import { Hypothesis } from "../../apis/hypothesis/HypothesisApiUtils";
+import { Hypothesis } from "../../apis/hypothesis/HypothesisUtils";
 import { Id } from "../../../fields/FieldSymbols";
 import { Tooltip } from "@material-ui/core";
 const higflyout = require("@hig/flyout");

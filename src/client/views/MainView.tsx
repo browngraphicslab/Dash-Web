@@ -66,7 +66,7 @@ import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import CollectionMenu from './collections/CollectionMenu';
-import { Hypothesis } from '../apis/hypothesis/HypothesisApiUtils';
+import { Hypothesis } from '../apis/hypothesis/HypothesisUtils';
 import { SelectionManager } from '../util/SelectionManager';
 
 @observer
