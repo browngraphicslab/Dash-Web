@@ -27,12 +27,10 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
-import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
 import { CollectionCarousel3DView } from './CollectionCarousel3DView';
 import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionDockingView } from "./CollectionDockingView";
-import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import { CollectionLinearView } from './CollectionLinearView';
@@ -105,7 +103,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     private AclMap = new Map<symbol, string>([
         [AclPrivate, SharingPermissions.None],
@@ -291,9 +289,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
         subItems.push({ description: "Grid", event: () => func(CollectionViewType.Grid), icon: "th-list" });
-        if (addExtras && this.props.Document._viewType === CollectionViewType.Freeform) {
-            subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
-        }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
 
         const existingVm = ContextMenu.Instance.findByDescription(category);
@@ -579,7 +574,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
-        setTimeout(action(() => this.props.isSelected(true) && (CollectionMenu.Instance.SelectedCollection = this)), 0);
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
             `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}

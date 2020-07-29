@@ -26,7 +26,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
@@ -59,7 +59,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
@@ -114,7 +114,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             return style;
         }
 
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
         _annotationKey: string = "annotations";
         public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }

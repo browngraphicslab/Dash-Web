@@ -346,7 +346,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
         if (scrollToAnnotation) {
-            const offset = this.visibleHeight() / 2 * 96 / 72;
+            const offset = this.visibleHeight() / 2;
             this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
             Doc.linkFollowHighlight(scrollToAnnotation);
         }
@@ -705,7 +705,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
+    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling();
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();

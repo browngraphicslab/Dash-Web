@@ -926,9 +926,6 @@ export namespace DocUtils {
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
-        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
-        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
-
         return linkDoc;
     }
 
@@ -1056,6 +1053,7 @@ export namespace DocUtils {
             }
         });
         batch.end();
+        return doc;
     }
     export function findTemplate(templateName: string, type: string, signature: string) {
         let docLayoutTemplate: Opt<Doc>;

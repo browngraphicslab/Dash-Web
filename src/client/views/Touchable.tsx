@@ -12,7 +12,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     private holdEndDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
 
-    protected abstract multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected abstract _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _touchDrag: boolean = false;
     protected prevPoints: Map<number, React.Touch> = new Map<number, React.Touch>();
 

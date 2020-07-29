@@ -1,19 +1,19 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../fields/Doc";
-import { emptyFunction, setupMoveUpEvents, returnFalse } from "../../../Utils";
+import { Doc } from "../../../fields/Doc";
+import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
+import { DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
-import { UndoManager, undoBatch } from "../../util/UndoManager";
+import { LinkManager } from "../../util/LinkManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import './DocumentLinksButton.scss';
 import { DocumentView } from "./DocumentView";
-import React = require("react");
-import { DocUtils } from "../../documents/Documents";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { LinkDocPreview } from "./LinkDocPreview";
-import { TaskCompletionBox } from "./TaskCompletedBox";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
-import { LinkManager } from "../../util/LinkManager";
-import { Tooltip } from "@material-ui/core";
+import { TaskCompletionBox } from "./TaskCompletedBox";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -24,6 +24,7 @@ interface DocumentLinksButtonProps {
     AlwaysOn?: boolean;
     InMenu?: boolean;
     StartLink?: boolean;
+    links: Doc[];
 }
 @observer
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
@@ -158,7 +159,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @computed
     get linkButton() {
-        const links = DocListCast(this.props.View.props.Document.links);
+        TraceMobx();
+        const links = this.props.links;
 
         const menuTitle = this.props.StartLink ? "Drag or tap to start link" : "Tap to complete link";
         const buttonTitle = "Tap to view links";
