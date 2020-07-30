@@ -240,20 +240,28 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    public static FloatDoc(topDocView: DocumentView, x: number, y: number) {
+    @undoBatch @action
+    public static FloatDoc(topDocView: DocumentView, x?: number, y?: number) {
         const topDoc = topDocView.props.Document;
-        const de = new DragManager.DocumentDragData([topDoc]);
-        de.dragDivName = topDocView.props.dragDivName;
-        de.moveDocument = topDocView.props.moveDocument;
-        setTimeout(() => {
-            const newDocView = DocumentManager.Instance.getDocumentView(topDoc);
-            if (newDocView) {
-                const contentDiv = newDocView.ContentDiv!;
-                const xf = contentDiv.getBoundingClientRect();
-                DragManager.StartDocumentDrag([contentDiv], de, x, y, { offsetX: x - xf.left, offsetY: y - xf.top, hideSource: true });
+        const container = topDocView.props.ContainingCollectionView;
+        if (container) {
+            SelectionManager.DeselectAll();
+            if (topDoc.z && (x === undefined && y === undefined)) {
+                const spt = container.screenToLocalTransform().inverse().transformPoint(NumCast(topDoc.x), NumCast(topDoc.y));
+                topDoc.z = 0;
+                topDoc.x = spt[0];
+                topDoc.y = spt[1];
+                topDocView.props.removeDocument?.(topDoc);
+                topDocView.props.addDocTab(topDoc, "inParent");
+            } else {
+                const spt = topDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                const fpt = container.screenToLocalTransform().transformPoint(x !== undefined ? x : spt[0], y !== undefined ? y : spt[1]);
+                topDoc.z = 1;
+                topDoc.x = fpt[0];
+                topDoc.y = fpt[1];
             }
-        }, 0);
-        UndoManager.RunInBatch(action(() => topDoc.z = topDoc.z ? 0 : 1), "float");
+            setTimeout(() => SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(topDoc, container)!, false), 0);
+        }
     }
 
     onKeyDown = (e: React.KeyboardEvent) => {
@@ -879,6 +887,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this.props.LayoutTemplateString?.includes("LinkAnchorBox")) return null;
         return (this.props.treeViewDoc && this.props.LayoutTemplateString) || // render nothing for: tree view anchor dots
             this.layoutDoc.presBox ||  // presentationbox nodes
+            this.rootDoc.type === DocumentType.LINK ||
             this.props.dontRegisterView ? (null) : // view that are not registered
             DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
                 <DocumentView {...this.props} key={i + 1}

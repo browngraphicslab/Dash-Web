@@ -46,7 +46,6 @@ import { SliderBox } from "../views/nodes/SliderBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
-import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
@@ -811,10 +810,6 @@ export namespace Docs {
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.IMPORT), new List<Doc>(), options);
-        }
-
-        export function RecommendationsDocument(data: Doc[], options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
         export type DocConfig = {

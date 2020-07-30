@@ -103,8 +103,8 @@ class TreeView extends React.Component<TreeViewProps> {
     childDocList(field: string) {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCast(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
-            (layout ? Cast(layout[field], listSpec(Doc)) : undefined) || // else if there's a layout doc, display it's fields
-            Cast(this.doc[field], listSpec(Doc))) as Doc[]; // otherwise use the document's data field
+            (layout ? DocListCast(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
+            DocListCast(this.doc[field])) as Doc[]; // otherwise use the document's data field
     }
     @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
