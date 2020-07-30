@@ -120,7 +120,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     }
 
     @action @undoBatch
-    finishLinkClick = (e: React.MouseEvent) => {
+    finishLinkClick = (screenX: number, screenY: number) => {
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
         } else {
@@ -135,13 +135,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     runInAction(() => {
                         if (linkDoc) {
                             TaskCompletionBox.textDisplayed = "Link Created";
-                            TaskCompletionBox.popupX = e.screenX;
-                            TaskCompletionBox.popupY = e.screenY - 133;
+                            TaskCompletionBox.popupX = screenX;
+                            TaskCompletionBox.popupY = screenY - 133;
                             TaskCompletionBox.taskCompleted = true;
 
                             if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
-                                LinkDescriptionPopup.popupX = e.screenX;
-                                LinkDescriptionPopup.popupY = e.screenY - 100;
+                                LinkDescriptionPopup.popupX = screenX;
+                                LinkDescriptionPopup.popupY = screenY - 100;
                                 LinkDescriptionPopup.descriptionPopup = true;
                             }
 
@@ -207,7 +207,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             </div>
             {DocumentLinksButton.StartLink && this.props.InMenu && !!!this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
-                onPointerDown={this.completeLink} onClick={e => this.finishLinkClick(e)} /> : (null)}
+                onPointerDown={this.completeLink} onClick={e => this.finishLinkClick(e.screenX, e.screenY)} /> : (null)}
             {DocumentLinksButton.StartLink === this.props.View && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
         </div>;

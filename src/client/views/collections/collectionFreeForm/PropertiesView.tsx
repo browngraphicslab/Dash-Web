@@ -18,6 +18,8 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip, Checkbox } from "@material-ui/core";
 import SharingManager from "../../../util/SharingManager";
+import { DocumentType } from "../../../documents/DocumentTypes";
+import FormatShapePane from "./FormatShapePane";
 import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
 
 
@@ -48,6 +50,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openSharing: boolean = true;
     @observable openFields: boolean = true;
     @observable openLayout: boolean = true;
+    @observable openAppearance: boolean = true;
+    @observable openTransform: boolean = true;
+
+    @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
     @action
     rtfWidth = () => {
@@ -397,6 +403,40 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {this.sharingTable}
                 </div> : null}
             </div>
+
+
+
+
+            {this.isInk ? <div className="propertiesView-appearance">
+                <div className="propertiesView-appearance-title" style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
+                    Appearance
+                    <div className="propertiesView-appearance-title-icon"
+                        onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}>
+                        <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
+                    </div>
+                </div>
+                {this.openAppearance ? <div className="propertiesView-appearance-content">
+                    <FormatShapePane />
+                </div> : null}
+            </div> : null}
+
+            {this.isInk ? <div className="propertiesView-transform">
+                <div className="propertiesView-transform-title" style={{ backgroundColor: this.openTransform ? "black" : "" }}>
+                    Transform
+                    <div className="propertiesView-transform-title-icon"
+                        onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}>
+                        <FontAwesomeIcon icon={this.openTransform ? "caret-down" : "caret-right"} size="lg" color="white" />
+                    </div>
+                </div>
+                {this.openTransform ? <div className="propertiesView-transform-content">
+                    transform
+                </div> : null}
+            </div> : null}
+
+
+
+
+
             <div className="propertiesView-fields">
                 <div className="propertiesView-fields-title" style={{ backgroundColor: this.openFields ? "black" : "" }}>
                     <div className="propertiesView-fields-title-name">

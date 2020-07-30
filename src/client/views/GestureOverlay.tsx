@@ -22,6 +22,7 @@ import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
+import * as fitCurve from 'fit-curve';
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 @observer
@@ -630,6 +631,22 @@ export default class GestureOverlay extends Touchable {
 
                 // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
+                    const newPoints = this._points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+                    newPoints.pop();
+                    const controlPoints: { X: number, Y: number }[] = [];
+
+                    const bezierCurves = fitCurve(newPoints, 10);
+                    for (const curve of bezierCurves) {
+
+                        controlPoints.push({ X: curve[0][0], Y: curve[0][1] });
+                        controlPoints.push({ X: curve[1][0], Y: curve[1][1] });
+                        controlPoints.push({ X: curve[2][0], Y: curve[2][1] });
+                        controlPoints.push({ X: curve[3][0], Y: curve[3][1] });
+
+
+                    }
+                    this._points = controlPoints;
+
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 }
                 this._points = [];
@@ -649,6 +666,10 @@ export default class GestureOverlay extends Touchable {
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
+        //take off gesture recognition for now
+        if (gesture) {
+            return false;
+        }
         const xs = this._points.map(p => p.X);
         const ys = this._points.map(p => p.Y);
         var right = Math.max(...xs);
@@ -684,18 +705,53 @@ export default class GestureOverlay extends Touchable {
             //must be (points[0].X,points[0]-1)
             case "rectangle":
                 this._points.push({ X: left, Y: top });
-                this._points.push({ X: right, Y: top });
-                this._points.push({ X: right, Y: bottom });
-                this._points.push({ X: left, Y: bottom });
                 this._points.push({ X: left, Y: top });
-                this._points.push({ X: left, Y: top - 1 });
+
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+
+                // this._points.push({ X: left, Y: top - 1 });
                 break;
             case "triangle":
+                // this._points.push({ X: left, Y: bottom });
+                // this._points.push({ X: right, Y: bottom });
+                // this._points.push({ X: (right + left) / 2, Y: top });
+                // this._points.push({ X: left, Y: bottom });
+                // this._points.push({ X: left, Y: bottom - 1 });
                 this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+
                 this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
                 this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+
                 this._points.push({ X: left, Y: bottom });
-                this._points.push({ X: left, Y: bottom - 1 });
+                this._points.push({ X: left, Y: bottom });
+
+
                 break;
             case "circle":
                 const centerX = (right + left) / 2;
@@ -712,11 +768,37 @@ export default class GestureOverlay extends Touchable {
                 }
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+                // this._points.push({ X: centerX, Y: top });
+                // this._points.push({ X: centerX + radius / 2, Y: top });
+
+                // this._points.push({ X: right, Y: top + radius / 2 });
+                // this._points.push({ X: right, Y: top + radius });
+                // this._points.push({ X: right, Y: top + radius });
+                // this._points.push({ X: right, Y: bottom - radius / 2 });
+
+                // this._points.push({ X: right - radius / 2, Y: bottom });
+                // this._points.push({ X: right - radius, Y: bottom });
+                // this._points.push({ X: right - radius, Y: bottom });
+                // this._points.push({ X: left + radius / 2, Y: bottom });
+
+                // this._points.push({ X: left, Y: bottom - radius / 2 });
+                // this._points.push({ X: left, Y: bottom - radius });
+                // this._points.push({ X: left, Y: bottom - radius });
+                // this._points.push({ X: left, Y: top + radius / 2 });
+
+                // this._points.push({ X: left + radius / 2, Y: top });
+                // this._points.push({ X: left + radius, Y: top });
+
+
+
+
+
+
+
                 break;
             case "line":
                 this._points.push({ X: left, Y: top });
                 this._points.push({ X: right, Y: bottom });
-                // this._points.push({ X: right, Y: bottom - 1 });
                 break;
             case "arrow":
                 const x1 = left;
