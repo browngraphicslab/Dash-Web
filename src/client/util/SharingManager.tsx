@@ -8,7 +8,6 @@ import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
 import "./SharingManager.scss";
 import { observer } from "mobx-react";
-import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { DocumentView } from "../views/nodes/DocumentView";
 import { SelectionManager } from "./SelectionManager";
@@ -22,8 +21,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../fields/List";
 import { distributeAcls, SharingPermissions } from "../../fields/util";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
-
-library.add(fa.faCopy, fa.faTimes);
 
 export interface User {
     email: string;
@@ -447,7 +444,7 @@ export default class SharingManager extends React.Component<{}> {
                 <div className="sharing-contents">
                     <p className={"share-title"}><b>Share </b>{this.focusOn(StrCast(this.targetDoc?.title, "this document"))}</p>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                        <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
                     {this.targetDoc?.author !== Doc.CurrentUserEmail ? null
                         :

@@ -32,7 +32,7 @@ const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
 
     private dropDisposer?: DragManager.DragDropDisposer;
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
     private _overlayDisposer?: () => void;
     private _caretPos = 0;

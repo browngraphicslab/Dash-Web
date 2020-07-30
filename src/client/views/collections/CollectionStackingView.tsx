@@ -208,7 +208,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             NativeHeight={returnZero}
             NativeWidth={returnZero}
             fitToBox={false}
-            dontRegisterView={this.props.dontRegisterView}
+            dontRegisterView={BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}

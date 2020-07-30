@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -9,6 +9,7 @@ import { Parent, OnUpdate, Update, Id, SelfProxy, Self, HandleUpdate } from "./F
 import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
+import { returnZero } from "../Utils";
 
 
 function _readOnlySetter(): never {
@@ -246,7 +247,7 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
 
     if (in_prop === FieldsSym || in_prop === Id || in_prop === HandleUpdate || in_prop === CachedUpdates) return target.__fields[prop] || target[prop];
     if (in_prop === AclSym) return _overrideAcl ? undefined : target[AclSym];
-    if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return undefined;
+    if (GetEffectiveAcl(target) === AclPrivate && !_overrideAcl) return prop === HeightSym || prop === WidthSym ? returnZero : undefined;
     if (prop === LayoutSym) {
         return target.__LAYOUT__;
     }
