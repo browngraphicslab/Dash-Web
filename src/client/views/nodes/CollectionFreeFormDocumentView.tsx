@@ -11,13 +11,15 @@ import { Document } from "../../../fields/documentSchemas";
 import { TraceMobx } from "../../../fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { List } from "../../../fields/List";
-import { numberRange } from "../../../Utils";
+import { numberRange, smoothScroll } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
 import { PresBox } from "./PresBox";
 import { InkingStroke } from "../InkingStroke";
+import { PDFViewer } from "../pdf/PDFViewer";
+import { PDFBox } from "./PDFBox";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -76,32 +78,54 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
         return ({
-            h: Cast(doc["h-indexed"], listSpec("number"), [NumCast(doc._height)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
-            w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
+            h: Cast(doc["h-indexed"], listSpec("number"), [NumCast(doc._height)]).reduce((p, h, i) => (i <= timecode && h !== undefined) || p === undefined ? h : p, undefined as any as number),
+            w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, w, i) => (i <= timecode && w !== undefined) || p === undefined ? w : p, undefined as any as number),
             x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
+            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollTop, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
             opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
 
-    public static setValues(time: number, d: Doc, x?: number, y?: number, h?: number, w?: number, opacity?: number) {
+    public static setValues(time: number, d: Doc, x?: number, y?: number, h?: number, w?: number, scroll?: number, opacity?: number) {
         const timecode = Math.round(time);
         const hindexed = Cast(d["h-indexed"], listSpec("number"), []).slice();
         const windexed = Cast(d["w-indexed"], listSpec("number"), []).slice();
         const xindexed = Cast(d["x-indexed"], listSpec("number"), []).slice();
         const yindexed = Cast(d["y-indexed"], listSpec("number"), []).slice();
         const oindexed = Cast(d["opacity-indexed"], listSpec("number"), []).slice();
+        const scrollIndexed = Cast(d["scroll-indexed"], listSpec("number"), []).slice();
         xindexed[timecode] = x as any as number;
         yindexed[timecode] = y as any as number;
         hindexed[timecode] = h as any as number;
         windexed[timecode] = w as any as number;
         oindexed[timecode] = opacity as any as number;
+        scrollIndexed[timecode] = scroll as any as number;
         d["x-indexed"] = new List<number>(xindexed);
         d["y-indexed"] = new List<number>(yindexed);
         d["h-indexed"] = new List<number>(hindexed);
         d["w-indexed"] = new List<number>(windexed);
         d["opacity-indexed"] = new List<number>(oindexed);
+        d["scroll-indexed"] = new List<number>(scrollIndexed);
     }
+
+    public static updateScrollframe(doc: Doc, time: number) {
+        let _pdfViewer: PDFViewer | undefined;
+        const timecode = Math.round(time);
+        const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
+        scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
+        setTimeout(() => doc.dataTransition = "inherit", 1010);
+    }
+
+    public static setupScroll(doc: Doc, timecode: number, scrollProgressivize: boolean = false) {
+        const scrollList = new List<number>();
+        scrollList[timecode] = NumCast(doc._scrollTop);
+        doc["scroll-indexed"] = scrollList;
+        doc.activeFrame = ComputedField.MakeFunction("self.currentFrame");
+        doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
+    }
+
+
     public static updateKeyframe(docs: Doc[], time: number) {
         const timecode = Math.round(time);
         docs.forEach(doc => {
@@ -130,10 +154,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const height = new List<number>();
         const top = new List<number>();
         const left = new List<number>();
-        // width.push(100);
-        // height.push(100);
-        // top.push(0);
-        // left.push(0);
         width.push(NumCast(doc.width));
         height.push(NumCast(doc.height));
         top.push(NumCast(doc.height) / -2);
@@ -142,12 +162,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         doc["viewfinder-height-indexed"] = height;
         doc["viewfinder-top-indexed"] = top;
         doc["viewfinder-left-indexed"] = left;
-    }
-
-    public static setupScroll(doc: Doc, scrollProgressivize: boolean = false) {
-        const scrollList = new List<number>();
-        scrollList.push(NumCast(doc._scrollTop));
-        doc["scroll-indexed"] = scrollList;
     }
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {

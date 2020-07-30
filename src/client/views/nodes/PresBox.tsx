@@ -78,7 +78,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         document.removeEventListener("keydown", this.keyEvents, true);
     }
 
-    updateCurrentPresentation = () => Doc.UserDoc().activePresentation = this.rootDoc;
+    updateCurrentPresentation = () => {
+        Doc.UserDoc().activePresentation = this.rootDoc;
+        if (this.itemIndex >= 0) {
+            const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
+            const srcContext = Cast(presTargetDoc.context, Doc, null);
+            if (srcContext) this.rootDoc.presCollection = srcContext;
+            else this.rootDoc.presCollection = presTargetDoc;
+        }
+    }
 
     @undoBatch
     @action
@@ -149,9 +157,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             //If so making sure to zoom out, which goes back to state before zooming action
             let prevSelected = this.itemIndex;
             let didZoom = docAtCurrent.zoomButton;
-            for (; !didZoom && prevSelected > 0 && this.childDocs[prevSelected].groupButton; prevSelected--) {
-                didZoom = this.childDocs[prevSelected].zoomButton;
-            }
+            // for (; !didZoom && prevSelected > 0 && this.childDocs[prevSelected].groupButton; prevSelected--) {
+            //     didZoom = this.childDocs[prevSelected].zoomButton;
+            // }
             prevSelected = Math.max(0, prevSelected - 1);
 
             this.gotoDocument(prevSelected, this.itemIndex);
@@ -234,13 +242,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const aliasOfNext = await DocCastAsync(nextTarget.aliasOf);
         const nextContext = aliasOfNext && await DocCastAsync(aliasOfNext.context);
         if (curContext && nextContext) {
+            const collectionDocView = DocumentManager.Instance.getDocumentView(Cast(this.rootDoc.presCollection, Doc, null));
             // Case: Documents are not in the same collection
             if (curContext !== nextContext) {
                 // Current document is contained in the next collection (zoom out)
                 if (curContext.context === nextContext) {
+                    if (collectionDocView) collectionDocView.props.addDocTab(curContext, "replace"); console.log("hiii");
                     console.log("current in next");
                     // Next document is contained in the current collection (zoom in)
                 } else if (nextContext.context === curContext) {
+                    if (collectionDocView) collectionDocView.props.addDocTab(nextContext, "replace"); console.log("hiii2");
                     console.log("next in current");
                 }
                 // No change in parent collection
@@ -395,10 +406,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         });
     }
 
-    updateMinimize = async () => {
-        const docToJump = this.childDocs[0];
-        const aliasOf = await DocCastAsync(docToJump.aliasOf);
-        const srcContext = aliasOf && await DocCastAsync(aliasOf.context);
+    updateMinimize = () => {
+        const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
         if (srcContext) {
             if (srcContext.miniPres) {
                 document.removeEventListener("keydown", this.keyEvents, true);
@@ -535,7 +544,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Esc click
     @action
     keyEvents = (e: KeyboardEvent) => {
-        e.stopPropagation;
+        e.stopPropagation();
+        e.preventDefault();
         // switch(e.keyCode) {
         //     case 27: console.log("escape");
         //     case 65 && (e.metaKey || e.altKey):
@@ -635,9 +645,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     @action
     viewPaths = async () => {
-        const docToJump = this.childDocs[0];
-        const aliasOf = await DocCastAsync(docToJump.aliasOf);
-        const srcContext = aliasOf && await DocCastAsync(aliasOf.context);
+        const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
+        // const docToJump = this.childDocs[0];
+        // const aliasOf = await DocCastAsync(docToJump.aliasOf);
+        // const srcContext = aliasOf && await DocCastAsync(aliasOf.context);
         if (this.pathBoolean) {
             console.log("true");
             if (srcContext) {
@@ -668,10 +679,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const order: JSX.Element[] = [];
         this.childDocs.forEach((doc, index) => {
             const targetDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            order.push(
-                <div className="pathOrder" style={{ top: NumCast(targetDoc.y), left: NumCast(targetDoc.x) }}>
-                    <div className="pathOrder-frame">{index + 1}</div>
-                </div>);
+            const srcContext = Cast(targetDoc.context, Doc, null);
+            if (this.rootDoc.presCollection === srcContext) {
+                order.push(
+                    <div className="pathOrder" style={{ top: NumCast(targetDoc.y), left: NumCast(targetDoc.x) }}>
+                        <div className="pathOrder-frame">{index + 1}</div>
+                    </div>);
+            } else {
+                order.push(
+                    <div className="pathOrder" style={{ top: 0, left: 0 }}>
+                        <div className="pathOrder-frame">{index + 1}</div>
+                    </div>);
+            }
         });
         return order;
     }
@@ -682,24 +701,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         console.log(this.childDocs.length - 1);
         this.childDocs.forEach((doc, index) => {
             const targetDoc = Cast(doc.presentationTargetDoc, Doc, null);
-            if (targetDoc) {
+            const srcContext = Cast(targetDoc.context, Doc, null);
+            if (targetDoc && this.rootDoc.presCollection === srcContext) {
                 const n1x = NumCast(targetDoc.x) + (NumCast(targetDoc._width) / 2);
                 const n1y = NumCast(targetDoc.y) + (NumCast(targetDoc._height) / 2);
-                // const n2x = NumCast(nextTargetDoc.x) + (NumCast(targetDoc._width) / 2);
-                // const n2y = NumCast(nextTargetDoc.y) + (NumCast(targetDoc._height) / 2);
                 if (index = 0) pathPoints = n1x + "," + n1y;
                 else pathPoints = pathPoints + " " + n1x + "," + n1y;
-                // const pathPoints = n1x + "," + n1y + " " + n2x + "," + n2y;
-                // else pathPoints = pathPoints + " " + n1x + "," + n1y;
-                // paths.push(<polyline
-                //     points={pathPoints}
-                //     style={{
-                //         opacity: 1,
-                //         stroke: "#69a6db",
-                //         strokeWidth: 5,
-                //     }}
-                //     markerStart="url(#square)"
-                //     markerEnd="url(#arrow)" />);
+            } else {
+                if (index = 0) pathPoints = 0 + "," + 0;
+                else pathPoints = pathPoints + " " + 0 + "," + 0;
             }
         });
         console.log(pathPoints);
@@ -988,12 +998,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const currentFrame = Cast(tagDoc.currentFrame, "number", null);
         if (currentFrame === undefined) {
             tagDoc.currentFrame = 0;
+            CollectionFreeFormDocumentView.setupScroll(tagDoc, 0);
             CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
         }
         let lastFrame: number = 0;
         childDocs.forEach((doc) => {
             if (NumCast(doc.appearFrame) > lastFrame) lastFrame = NumCast(doc.appearFrame);
         });
+        CollectionFreeFormDocumentView.updateScrollframe(tagDoc, currentFrame);
         CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
         tagDoc.currentFrame = Math.max(0, (currentFrame || 0) + 1);
         tagDoc.lastFrame = Math.max(NumCast(tagDoc.currentFrame), lastFrame);
@@ -1066,14 +1078,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "collection" || targetDoc.type === "image" ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
-                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Edit</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "rtf" ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
-                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.textProgressivize ? "#aedef8" : "" }} onClick={this.textProgressivize}>Edit</div>
+                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "pdf" ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" onClick={this.progressivizeText}>Scroll progressivize</div>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll progressivize</div>
                                 <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
                             </div>
                         </div>
@@ -1081,6 +1094,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </div>
             );
         }
+    }
+
+    //Toggle whether the user edits or not
+    @action
+    editSnapZoomProgressivize = (e: React.MouseEvent) => {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        if (!targetDoc.editSnapZoomProgressivize) {
+            targetDoc.editSnapZoomProgressivize = true;
+        } else {
+            targetDoc.editSnapZoomProgressivize = false;
+        }
+
     }
 
     //Toggle whether the user edits or not
@@ -1115,7 +1141,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         activeItem.scrollProgressivize = !activeItem.scrollProgressivize;
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         targetDoc.scrollProgressivize = !targetDoc.zoomProgressivize;
-        CollectionFreeFormDocumentView.setupScroll(targetDoc, true);
+        CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc.currentFrame), true);
         if (targetDoc.editScrollProgressivize) {
             targetDoc.editScrollProgressivize = false;
             targetDoc.currentFrame = 0;
@@ -1141,14 +1167,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     //Progressivize Text nodes
     @action
-    textProgressivize = (e: React.MouseEvent) => {
+    editTextProgressivize = (e: React.MouseEvent) => {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         targetDoc.currentFrame = targetDoc.lastFrame;
-        if (targetDoc?.editProgressivize) {
-            targetDoc.editProgressivize = false;
+        if (targetDoc?.editTextProgressivize) {
+            targetDoc.editTextProgressivize = false;
         } else {
-            targetDoc.editProgressivize = true;
+            targetDoc.editTextProgressivize = true;
         }
     }
 
@@ -1340,7 +1366,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         e.preventDefault();
         const doc = document.getElementById('resizable');
         if (doc && tagDocView) {
-            console.log(tagDocView.props.ScreenToLocalTransform().Scale);
+            console.log(tagDocView.props.ContentScaling());
+            const transform = (tagDocView.props.ScreenToLocalTransform().scale(tagDocView.props.ContentScaling())).inverse();
+            console.log(transform);
+            const scale = tagDocView.childScaling();
+            console.log(scale);
             let height = doc.offsetHeight;
             let width = doc.offsetWidth;
             let top = doc.offsetTop;
@@ -1377,17 +1407,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // }
             //Bottom right
             if (this._isDraggingBR) {
-                const newHeight = height += (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newHeight = height += (e.movementY * tagDocView.props.ContentScaling());
                 doc.style.height = newHeight + 'px';
-                const newWidth = width += (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newWidth = width += (e.movementX * tagDocView.props.ContentScaling());
                 doc.style.width = newWidth + 'px';
                 // Bottom left
             } else if (this._isDraggingBL) {
-                const newHeight = height += (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newHeight = height += (e.movementY * scale);
                 doc.style.height = newHeight + 'px';
-                const newWidth = width -= (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newWidth = width -= (e.movementX * scale);
                 doc.style.width = newWidth + 'px';
-                const newLeft = left += (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newLeft = left += (e.movementX * scale);
                 doc.style.left = newLeft + 'px';
                 // Top right
             } else if (this._isDraggingTR) {
@@ -1444,7 +1474,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             x[NumCast(doc.currentFrame)] = val;
             list = x;
         }
-
     }
 
     // scale: NumCast(targetDoc._viewScale),

@@ -9,8 +9,8 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { createSchema, makeInterface } from "../../../fields/Schema";
-import { ScriptField } from "../../../fields/ScriptField";
+import { createSchema, makeInterface, listSpec } from "../../../fields/Schema";
+import { ScriptField, ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
@@ -341,6 +341,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     gotoPage = (p: number) => {
         this._pdfViewer?.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+    }
+
+    @action
+    scrollToFrame = (duration: number, top: number) => {
+        this._mainCont.current && smoothScroll(duration, this._mainCont.current, top);
     }
 
     @action
