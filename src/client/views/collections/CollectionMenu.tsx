@@ -27,6 +27,8 @@ import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
 import RichTextMenu from "../nodes/formattedText/RichTextMenu";
 import { RichTextField } from "../../../fields/RichTextField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -118,6 +120,22 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         immediate: undoBatch((source: Doc[]) => { }),
         initialize: emptyFunction,
     };
+    _openLinkInCommand = {
+        params: ["target", "container"], title: "link follow target",
+        script: `{ if (self.container?.length) {
+            getProto(self.target).linkContainer = self.container[0];
+            getProto(self.target).isLinkButton = true;
+            getProto(self.target).onClick = makeScript("getProto(self.linkContainer).data = new List([self.links[0]?.anchor2])");
+            }}`,
+        immediate: undoBatch((container: Doc[]) => {
+            if (container.length) {
+                Doc.GetProto(this.target).linkContainer = container[0];
+                Doc.GetProto(this.target).isLinkButton = true;
+                Doc.GetProto(this.target).onClick = ScriptField.MakeScript("getProto(self.linkContainer).data = new List([self.links[0]?.anchor2])");
+            }
+        }),
+        initialize: emptyFunction,
+    };
     _viewCommand = {
         params: ["target"], title: "bookmark view",
         script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale'];",
@@ -147,7 +165,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _schema_commands = [this._templateCommand, this._narrativeCommand];
-    _doc_commands = [this._onClickCommand];
+    _doc_commands = [this._openLinkInCommand, this._onClickCommand];
     _tree_commands = [];
     private get _buttonizableCommands() {
         switch (this.props.type) {
@@ -192,7 +210,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         this.document._facetWidth = 0;
     }
 
-
     @computed get subChrome() {
         switch (this.props.type) {
             default:
@@ -203,6 +220,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
         }
     }
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -309,9 +327,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {!(this.isText && this.props.type === CollectionViewType.Freeform) &&
-                            !(this.props.type === CollectionViewType.Invalid) ? this.viewModes : null}
-                        {!(this.isText && this.props.type === CollectionViewType.Freeform) ? this.templateChrome : null}
+                        {this.props.type === CollectionViewType.Invalid ||
+                            this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.viewModes}
+                        {this.props.type === CollectionViewType.Invalid ||
+                            this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.templateChrome}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
@@ -322,6 +341,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 </div>
             </div>
         );
+    }
+}
+
+@observer
+export class CollectionDockingChrome extends React.Component<CollectionMenuProps> {
+    render() {
+        return (null);
     }
 }
 
@@ -383,11 +409,17 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
-    private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
-    private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
-    private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
-    private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
-
+    // private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
+    // private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
+    // private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
+    // private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
+    private _dotsize = [10, 20, 30, 40];
+    private _draw = ["∿", "⎯", "→", "↔︎", "ロ", "O"];
+    private _head = ["", "", "", "arrow", "", ""];
+    private _end = ["", "", "arrow", "arrow", "", ""];
+    private _shape = ["", "line", "line", "line", "rectangle", "circle"];
+    private _title = ["pen", "line", "line with arrow", "line with double arrows", "square", "circle",];
+    private _faName = ["pen-fancy", "minus", "long-arrow-alt-right", "arrows-alt-h", "square", "circle"];
     @observable _shapesNum = this._shape.length;
     @observable _selected = this._shapesNum;
 
@@ -450,9 +482,11 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         });
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
-                <button className="antimodeMenu-button" key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
+                <button className="antimodeMenu-button" title={this._title[i]} key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
                     style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
-                    {this._draw[i]}
+                    {/* {this._draw[i]} */}
+                    <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
+
                 </button>)}
         </div>;
     }
@@ -471,11 +505,11 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return !this._widthBtn ? widthPicker :
             <div className="btn2-group" key="width">
                 {widthPicker}
-                {this._width.map(wid =>
-                    <button className="antimodeMenu-button" key={wid}
+                {this._width.map((wid, i) =>
+                    <button className="antimodeMenu-button" key={wid} title="change width"
                         onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
-                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001 }}>
-                        {wid}
+                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001, fontSize: this._dotsize[i], padding: 0, textAlign: "center" }}>
+                        •
                     </button>)}
             </div>;
     }
@@ -515,7 +549,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
             onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
             style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
-            <FontAwesomeIcon icon="chevron-right" size="lg" />
+            <FontAwesomeIcon icon="angle-double-right" size="lg" />
         </button>;
     }
 
@@ -538,16 +572,22 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div> : null}
 
             {!this.props.isOverlay || this.isText ? (null) :
-                <button className={"antimodeMenu-button"} key="hypothesis" style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined }} title="Use Hypothesis" onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
+                <button className={"antimodeMenu-button"} key="hypothesis"
+                    style={{
+                        backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
+                        borderRight: "1px solid gray"
+                    }}
+                    title="Use Hypothesis"
+                    onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
                     <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
                 </button>
             }
             {(!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating) && !this.isText ?
                 <>
+                    {this.drawButtons}
                     {this.widthPicker}
                     {this.colorPicker}
                     {this.fillPicker}
-                    {this.drawButtons}
                     {this.formatPane}
                 </> :
                 (null)

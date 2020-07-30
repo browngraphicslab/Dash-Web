@@ -99,6 +99,15 @@ export namespace InteractionUtils {
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
         }
+        else if (points.length >= 5 && points[3].X === points[4].X) {
+            for (var i = 0; i < points.length - 3; i += 4) {
+                const array = [[points[i].X, points[i].Y], [points[i + 1].X, points[i + 1].Y], [points[i + 2].X, points[i + 2].Y], [points[i + 3].X, points[i + 3].Y]];
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, array);
+                    pts.push({ X: point[0], Y: point[1] });
+                }
+            }
+        }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
             const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
@@ -118,6 +127,12 @@ export namespace InteractionUtils {
                 pts.pop();
             }
         }
+        if (isNaN(scalex)) {
+            scalex = 1;
+        }
+        if (isNaN(scaley)) {
+            scaley = 1;
+        }
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},
          ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
@@ -136,7 +151,6 @@ export namespace InteractionUtils {
                     <polygon points={`${2 - arrowDim} ${-Math.max(1, arrowDim / 2)}, ${2 - arrowDim} ${Math.max(1, arrowDim / 2)}, 3 0`} />
                 </marker>}
             </defs>}
-
             <polyline
                 points={strpts}
                 style={{
@@ -156,17 +170,6 @@ export namespace InteractionUtils {
 
         </svg>);
     }
-
-    // export function makeArrow() {
-    //     return (
-    //         InkOptionsMenu.Instance.getColors().map(color => {
-    //             const id1 = "arrowStartTest" + color;
-    //             <marker id={id1} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
-    //                 <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
-    //             </marker>;
-    //         })
-    //     );
-    // }
 
     export function makePolygon(shape: string, points: { X: number, Y: number }[]) {
         if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y + 1 === points[0].Y) {
@@ -217,10 +220,28 @@ export namespace InteractionUtils {
                 points.push({ X: left, Y: top });
                 return points;
             case "triangle":
+                // points.push({ X: left, Y: bottom });
+                // points.push({ X: right, Y: bottom });
+                // points.push({ X: (right + left) / 2, Y: top });
+                // points.push({ X: left, Y: bottom });
+
                 points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: bottom });
+
                 points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+
                 points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+
                 points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: bottom });
+
+
                 return points;
             case "circle":
                 const centerX = (right + left) / 2;
@@ -256,6 +277,7 @@ export namespace InteractionUtils {
             //     points.push({ X: x2, Y: y2 });
             //     return points;
             case "line":
+
                 points.push({ X: left, Y: top });
                 points.push({ X: right, Y: bottom });
                 return points;
