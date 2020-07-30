@@ -338,7 +338,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
     colorButton(value: string, setter: () => {}) {
         return <>
-            <button className="antimodeMenu-button" key="fill" onPointerDown={undoBatch(action(e => setter()))} style={{ position: "relative", marginTop: -5 }}>
+            <button className="antimodeMenu-button" key="color" onPointerDown={undoBatch(action(e => setter()))} style={{ position: "relative", marginTop: -5 }}>
                 <div className="color-previewII" style={{ backgroundColor: value ?? "121212" }} />
                 {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -23, position: "fixed" }}>☒</p> : ""}
             </button>
@@ -347,14 +347,14 @@ export default class FormatShapePane extends AntimodeMenu {
 
     controlPointsButton() {
         return <>
-            <button className="antimodeMenu-button" title="Edit points" key="fill" onPointerDown={action(() => this._controlBtn = this._controlBtn ? false : true)} style={{ position: "relative", marginTop: 10, backgroundColor: this._controlBtn ? "black" : "" }}>
+            <button className="antimodeMenu-button" title="Edit points" key="bezier" onPointerDown={action(() => this._controlBtn = this._controlBtn ? false : true)} style={{ position: "relative", marginTop: 10, backgroundColor: this._controlBtn ? "black" : "" }}>
                 <FontAwesomeIcon icon="bezier-curve" size="lg" />
             </button>
-            <button className="antimodeMenu-button" title="Lock ratio" key="fill" onPointerDown={action(() => this._lock = this._lock ? false : true)} style={{ position: "relative", marginTop: 10, backgroundColor: this._lock ? "black" : "" }}>
+            <button className="antimodeMenu-button" title="Lock ratio" key="ratio" onPointerDown={action(() => this._lock = this._lock ? false : true)} style={{ position: "relative", marginTop: 10, backgroundColor: this._lock ? "black" : "" }}>
                 <FontAwesomeIcon icon="lock" size="lg" />
 
             </button>
-            <button className="antimodeMenu-button" key="fill" title="Rotate 90˚" onPointerDown={action(() => this.rotate(Math.PI / 2))} style={{ position: "relative", marginTop: 10, fontSize: 15 }}>
+            <button className="antimodeMenu-button" key="rotate" title="Rotate 90˚" onPointerDown={action(() => this.rotate(Math.PI / 2))} style={{ position: "relative", marginTop: 10, fontSize: 15 }}>
                 ⟲
             </button>
             <br /> <br />
@@ -363,7 +363,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
     lockRatioButton() {
         return <>
-            <button className="antimodeMenu-button" key="fill" onPointerDown={action(() => this._lock = this._lock ? false : true)} style={{ position: "absolute", right: 80, backgroundColor: this._lock ? "black" : "" }}>
+            <button className="antimodeMenu-button" key="lock" onPointerDown={action(() => this._lock = this._lock ? false : true)} style={{ position: "absolute", right: 80, backgroundColor: this._lock ? "black" : "" }}>
                 {/* <FontAwesomeIcon icon="bezier-curve" size="lg" /> */}
                 <FontAwesomeIcon icon="lock" size="lg" />
 
@@ -374,7 +374,7 @@ export default class FormatShapePane extends AntimodeMenu {
 
     rotate90Button() {
         return <>
-            <button className="antimodeMenu-button" key="fill" onPointerDown={action(() => this.rotate(Math.PI / 2))} style={{ position: "absolute", right: 80, }}>
+            <button className="antimodeMenu-button" key="rot" onPointerDown={action(() => this.rotate(Math.PI / 2))} style={{ position: "absolute", right: 80, }}>
                 {/* <FontAwesomeIcon icon="bezier-curve" size="lg" /> */}
                 ⟲
 
