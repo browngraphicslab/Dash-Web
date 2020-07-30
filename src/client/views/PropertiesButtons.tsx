@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast, BoolCast } from "../../fields/Types";
-import { emptyFunction, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { Docs, DocUtils } from '../documents/Documents';
@@ -27,6 +27,8 @@ import SharingManager from '../util/SharingManager';
 import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../fields/URLField';
 import { undoBatch, UndoManager } from '../util/UndoManager';
+import { DocumentType } from '../documents/DocumentTypes';
+import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -471,6 +473,22 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    // @computed
+    // get importButton() {
+    //     const targetDoc = this.selectedDoc;
+    //     return !targetDoc ? (null) : <Tooltip
+    //         title={<><div className="dash-tooltip">{"Import a Document"}</div></>}>
+    //         <div className={"propertiesButtons-linkButton-empty"}
+    //             onPointerDown={() => {
+    //                 if (this.selectedDocumentView) {
+    //                     CollectionFreeFormView.importDocument(100, 100);
+    //                 }
+    //             }}>
+    //             {<FontAwesomeIcon className="documentdecorations-icon"
+    //                 icon="upload" size="sm" />}
+    //         </div>
+    //     </Tooltip>;
+    // }
 
     render() {
         if (!this.selectedDoc) return (null);
@@ -479,6 +497,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
+        const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
+
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
                 {this.templateButton}
@@ -518,6 +538,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
                     {this.googlePhotosButton}
                 </div>
+                {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
+                    {this.importButton}
+                </div> */}
             </div>
         </div>;
     }

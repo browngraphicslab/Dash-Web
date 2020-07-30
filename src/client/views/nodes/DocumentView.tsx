@@ -712,21 +712,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+        //optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
 
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "window-restore" });
+        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "concierge-bell" });
-        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "concierge-bell" });
-        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "snowflake" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
-        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "hand-point-right" });
+        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
+        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
+        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
+        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
+        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
+        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
 
         const funcs: ContextMenuProps[] = [];
         if (this.layoutDoc.onDragStart) {
@@ -739,6 +739,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
         moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "users" });
+        moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         moreItems.push({ description: "Create an Alias", event: () => this.onCopy(), icon: "copy" });
         moreItems.push({ description: "Download document", icon: "download", event: async () => Doc.Zip(this.props.Document) });
         if (!Doc.UserDoc().noviceMode) {

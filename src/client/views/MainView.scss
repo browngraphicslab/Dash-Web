@@ -314,6 +314,15 @@
     display: flex;
     flex-direction: column;
     z-index: 2;
+
+    .mainView-libraryFlyout-close {
+        right: 6;
+        top: 5;
+        position: absolute;
+        margin-right: 6px;
+        z-index: 10;
+        margin-bottom: 10;
+    }
 }
 
 .mainView-expandFlyoutButton {

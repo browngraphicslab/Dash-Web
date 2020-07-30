@@ -196,6 +196,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
             case DocumentType.VID: destinationIcon = "video"; break;
             case DocumentType.INK: destinationIcon = "pen-nib"; break;
+            case DocumentType.PDF: destinationIcon = "file"; break;
             default: destinationIcon = "question"; break;
         }
 

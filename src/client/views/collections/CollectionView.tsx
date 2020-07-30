@@ -308,7 +308,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
             const options = cm.findByDescription("Options...");
             const optionItems = options && "subitems" in options ? options.subitems : [];
-            optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode ? optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" }) : null;
             if (this.props.Document.childLayout instanceof Doc) {
                 optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
