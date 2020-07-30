@@ -1,7 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faHireAHelper } from '@fortawesome/free-brands-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,58 +11,54 @@ import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../fields/Types';
+import { ScriptField } from '../../fields/ScriptField';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter, setupMoveUpEvents } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
-import { HistoryUtil } from '../util/History';
-import RichTextMenu from './nodes/formattedText/RichTextMenu';
-import { Scripting } from '../util/Scripting';
-import SettingsManager from '../util/SettingsManager';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { DocumentManager } from '../util/DocumentManager';
 import GroupManager from '../util/GroupManager';
+import { HistoryUtil } from '../util/History';
+import { Scripting } from '../util/Scripting';
+import { SelectionManager } from '../util/SelectionManager';
+import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
+import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
+import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
+import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
 import { CollectionLinearView } from './collections/CollectionLinearView';
+import CollectionMenu from './collections/CollectionMenu';
 import { CollectionView, CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
 import GestureOverlay from './GestureOverlay';
+import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import KeyManager from './GlobalKeyHandler';
+import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { MainViewNotifs } from './MainViewNotifs';
 import { AudioBox } from './nodes/AudioBox';
+import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
+import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
+import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { RadialMenu } from './nodes/RadialMenu';
+import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { ScriptField, ComputedField } from '../../fields/ScriptField';
-import { TimelineMenu } from './animationtimeline/TimelineMenu';
-import { SnappingManager } from '../util/SnappingManager';
-import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
-import { DocumentManager } from '../util/DocumentManager';
-import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { LinkMenu } from './linking/LinkMenu';
-import { LinkDocPreview } from './nodes/LinkDocPreview';
-import { TaskCompletionBox } from './nodes/TaskCompletedBox';
-import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
-import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
-import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
-import CollectionMenu from './collections/CollectionMenu';
-import { Tooltip, AccordionActions } from '@material-ui/core';
-import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
-import { SelectionManager } from '../util/SelectionManager';
-import { PrefetchProxy } from '../../fields/Proxy';
-import { DragManager } from '../util/DragManager';
-import { discovery_v1, dialogflow_v2beta1 } from 'googleapis';
-import { undo } from 'prosemirror-history';
 import { undoBatch } from '../util/UndoManager';
 
 @observer
@@ -313,9 +308,11 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    defaultBackgroundColors = (doc: Doc) => {
+    defaultBackgroundColors = (doc: Opt<Doc>) => {
+        if (this.panelContent === doc?.title) return "lightgrey";
         if (this.darkScheme) {
             switch (doc?.type) {
+                case DocumentType.MENUICON: return "white";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -325,6 +322,7 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc?.type) {
+                case DocumentType.MENUICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
@@ -383,7 +381,6 @@ export class MainView extends React.Component {
     onPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
             this.panelContent = "none";
-            CurrentUserUtils.panelContent = "none";
             this._canClick = true;
             this._flyoutSizeOnDown = e.clientX;
             document.removeEventListener("pointermove", this.onPointerMove);
@@ -430,9 +427,7 @@ export class MainView extends React.Component {
 
     @computed get closePosition() { return 55 + this.flyoutWidth }
     @computed get flyout() {
-        if (!(this.sidebarContent instanceof Doc)) {
-            return (null);
-        }
+        if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
                 {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
@@ -471,147 +466,125 @@ export class MainView extends React.Component {
             {this.docButtons}</div>;
     }
 
-    // @computed get menuPanel() {
-
-    //     return <div className="mainView-menuPanel">
-    //         <DocumentView
-    //             Document={Doc.UserDoc().menuStack as Doc}
-    //             DataDoc={undefined}
-    //             LibraryPath={emptyPath}
-    //             addDocument={undefined}
-    //             addDocTab={this.addDocTabFunc}
-    //             pinToPres={emptyFunction}
-    //             NativeHeight={returnZero}
-    //             NativeWidth={returnZero}
-    //             rootSelected={returnTrue}
-    //             removeDocument={returnFalse}
-    //             onClick={undefined}
-    //             ScreenToLocalTransform={this.mainContainerXf}
-    //             ContentScaling={returnOne}
-    //             PanelWidth={() => 80}
-    //             PanelHeight={this.getContentsHeight}
-    //             renderDepth={0}
-    //             focus={emptyFunction}
-    //             backgroundColor={this.defaultBackgroundColors}
-    //             parentActive={returnTrue}
-    //             whenActiveChanged={emptyFunction}
-    //             bringToFront={emptyFunction}
-    //             docFilters={returnEmptyFilter}
-    //             ContainingCollectionView={undefined}
-    //             ContainingCollectionDoc={undefined}
-    //             relative={true}
-    //             scriptContext={this}
-    //         />
-    //     </div>;
-    // }
-
     @computed get menuPanel() {
+
         return <div className="mainView-menuPanel">
-            <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "workspace" ? "lightgrey" : "" }}>
-                <div className="mainView-menuPanel-button-wrap"
-                    style={{ backgroundColor: this.panelContent === "workspace" ? "lightgrey" : "" }}
-                    onPointerDown={e => this.selectPanel("workspace")}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop"
-                        color={this.panelContent === "workspace" ? "black" : "white"} size="lg" />
-                    <div className="mainView-menuPanel-button-label"
-                        style={{ color: this.panelContent === "workspace" ? "black" : "white" }}> Workspace </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "catalog" ? "lightgrey" : "" }}>
-                <div className="mainView-menuPanel-button-wrap"
-                    style={{ backgroundColor: this.panelContent === "catalog" ? "lightgrey" : "" }}
-                    onPointerDown={e => this.selectPanel("catalog")}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file"
-                        color={this.panelContent === "catalog" ? "black" : "white"} size="lg" />
-                    <div className="mainView-menuPanel-button-label"
-                        style={{ color: this.panelContent === "catalog" ? "black" : "white" }}> Catalog </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}>
-                <div className="mainView-menuPanel-button-wrap"
-                    style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}
-                    onPointerDown={e => this.selectPanel("deleted")}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="archive"
-                        color={this.panelContent === "deleted" ? "black" : "white"} size="lg" />
-                    <div className="mainView-menuPanel-button-label"
-                        style={{ color: this.panelContent === "deleted" ? "black" : "white" }}> Recently Used </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button">
-                <div className="mainView-menuPanel-button-wrap"
-                    onPointerDown={e => this.selectPanel("upload")}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Import </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button">
-                <div className="mainView-menuPanel-button-wrap"
-                    //onPointerDown={e => this.selectPanel("sharing")}
-                    onClick={() => GroupManager.Instance.open()}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Sharing </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button" style={{ marginBottom: "110px", backgroundColor: this.panelContent === "tools" ? "lightgrey" : "", }}>
-                <div className="mainView-menuPanel-button-wrap"
-                    onPointerDown={e => this.selectPanel("tools")}
-                    style={{
-                        backgroundColor: this.panelContent === "tools" ? "lightgrey" : "",
-                    }}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench"
-                        color={this.panelContent === "tools" ? "black" : "white"} size="lg" />
-                    <div className="mainView-menuPanel-button-label"
-                        style={{ color: this.panelContent === "tools" ? "black" : "white" }}> Tools </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button">
-                <div className="mainView-menuPanel-button-wrap"
-                    // style={{backgroundColor: this.panelContent= "help" ? "lightgrey" : "black"}}
-                    onPointerDown={e => this.selectPanel("help")} >
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="question-circle" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Help </div>
-                </div>
-            </div>
-
-            <div className="mainView-menuPanel-button">
-                <div className="mainView-menuPanel-button-wrap"
-                    // onPointerDown={e => this.selectPanel("settings")}
-                    onClick={() => SettingsManager.Instance.open()}>
-                    <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="cog" color="white" size="lg" />
-                    <div className="mainView-menuPanel-button-label"> Settings </div>
-                </div>
-            </div>
+            <DocumentView
+                Document={Doc.UserDoc().menuStack as Doc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={this.addDocTabFunc}
+                pinToPres={emptyFunction}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                rootSelected={returnTrue}
+                removeDocument={returnFalse}
+                onClick={undefined}
+                ScreenToLocalTransform={this.mainContainerXf}
+                ContentScaling={returnOne}
+                PanelWidth={() => 80}
+                PanelHeight={this.getContentsHeight}
+                renderDepth={0}
+                focus={emptyFunction}
+                backgroundColor={this.defaultBackgroundColors}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                relative={true}
+                scriptContext={this}
+            />
         </div>;
     }
 
-    @action @undoBatch
-    selectPanel = (str: string) => {
-        if (this.panelContent === str && this.flyoutWidth !== 0) {
-            this.closeFlyout();
-        } else {
-            this.panelContent = str;
-            MainView.expandFlyout();
-            if (str === "tools") {
-                CurrentUserUtils.toolsBtn;
-                this.sidebarContent.proto = CurrentUserUtils.toolsStack;
-            } else if (str === "workspace") {
-                this.sidebarContent.proto = CurrentUserUtils.workspaceStack;
-            } else if (str === "catalog") {
-                this.sidebarContent.proto = CurrentUserUtils.catalogStack;
-            } else if (str === "deleted") {
-                this.sidebarContent.proto = CurrentUserUtils.closedStack;
-            } else if (str === "search") {
-                this.sidebarContent.proto = CurrentUserUtils.searchStack;
-            }
-        }
-        return true;
-    }
+    // @computed get menuPanel() {
+    //     return <div className="mainView-menuPanel">
+    //         <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "workspace" ? "lightgrey" : "" }}>
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 style={{ backgroundColor: this.panelContent === "workspace" ? "lightgrey" : "" }}
+    //                 onPointerDown={e => this.selectPanel("workspace")}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop"
+    //                     color={this.panelContent === "workspace" ? "black" : "white"} size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"
+    //                     style={{ color: this.panelContent === "workspace" ? "black" : "white" }}> Workspace </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "catalog" ? "lightgrey" : "" }}>
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 style={{ backgroundColor: this.panelContent === "catalog" ? "lightgrey" : "" }}
+    //                 onPointerDown={e => this.selectPanel("catalog")}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file"
+    //                     color={this.panelContent === "catalog" ? "black" : "white"} size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"
+    //                     style={{ color: this.panelContent === "catalog" ? "black" : "white" }}> Catalog </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}>
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}
+    //                 onPointerDown={e => this.selectPanel("deleted")}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="archive"
+    //                     color={this.panelContent === "deleted" ? "black" : "white"} size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"
+    //                     style={{ color: this.panelContent === "deleted" ? "black" : "white" }}> Recently Used </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button">
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 onPointerDown={e => this.selectPanel("upload")}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"> Import </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button">
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 //onPointerDown={e => this.selectPanel("sharing")}
+    //                 onClick={() => GroupManager.Instance.open()}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"> Sharing </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button" style={{ marginBottom: "110px", backgroundColor: this.panelContent === "tools" ? "lightgrey" : "", }}>
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 onPointerDown={e => this.selectPanel("tools")}
+    //                 style={{
+    //                     backgroundColor: this.panelContent === "tools" ? "lightgrey" : "",
+    //                 }}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench"
+    //                     color={this.panelContent === "tools" ? "black" : "white"} size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"
+    //                     style={{ color: this.panelContent === "tools" ? "black" : "white" }}> Tools </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button">
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 // style={{backgroundColor: this.panelContent= "help" ? "lightgrey" : "black"}}
+    //                 onPointerDown={e => this.selectPanel("help")} >
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="question-circle" color="white" size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"> Help </div>
+    //             </div>
+    //         </div>
+
+    //         <div className="mainView-menuPanel-button">
+    //             <div className="mainView-menuPanel-button-wrap"
+    //                 // onPointerDown={e => this.selectPanel("settings")}
+    //                 onClick={() => SettingsManager.Instance.open()}>
+    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="cog" color="white" size="lg" />
+    //                 <div className="mainView-menuPanel-button-label"> Settings </div>
+    //             </div>
+    //         </div>
+    //     </div>;
+    // }
+
 
     @action @undoBatch
     closeFlyout = () => {
@@ -619,26 +592,23 @@ export class MainView extends React.Component {
         this.flyoutWidth = 0;
     }
 
+    get groupManager() { return GroupManager.Instance; }
+
     @action @undoBatch
     selectMenu = (str: string) => {
-        if (CurrentUserUtils.panelContent === str && this.flyoutWidth !== 0) {
-            CurrentUserUtils.panelContent = "none";
+        if (this.panelContent === str && this.flyoutWidth !== 0) {
+            this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
-            CurrentUserUtils.panelContent = str;
-            MainView.expandFlyout();
-            if (str === "tools") {
-                CurrentUserUtils.toolsBtn;
-                this.sidebarContent.proto = CurrentUserUtils.toolsStack;
-            } else if (str === "workspace") {
-                this.sidebarContent.proto = CurrentUserUtils.workspaceStack;
-            } else if (str === "catalog") {
-                this.sidebarContent.proto = CurrentUserUtils.catalogStack;
-            } else if (str === "deleted") {
-                this.sidebarContent.proto = CurrentUserUtils.closedStack;
-            } else if (str === "search") {
-                this.sidebarContent.proto = CurrentUserUtils.searchStack;
+            this.panelContent = str;
+            switch (this.panelContent) {
+                case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
+                case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
+                case "Catalog": this.sidebarContent.proto = CurrentUserUtils.catalogStack; break;
+                case "deleted": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
+                case "Search": this.sidebarContent.proto = CurrentUserUtils.searchStack; break;
             }
+            MainView.expandFlyout();
         }
         return true;
     }
@@ -673,7 +643,7 @@ export class MainView extends React.Component {
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
 
         const rightFlyout = this.selectedDocumentView ? this._propertiesWidth - 1 : this.propertiesWidth() > 10 ? 151.5 : 0;
-        return !this.userDoc || !(this.sidebarContent instanceof Doc) ? (null) : (
+        return !this.userDoc ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 //change to times 2 for both pinned
@@ -685,7 +655,7 @@ export class MainView extends React.Component {
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                         {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                             onPointerDown={this.onPointerDown}
-                            style={{ backgroundColor: this.defaultBackgroundColors(this.sidebarContent) }}>
+                            style={{ backgroundColor: this.defaultBackgroundColors(undefined) }}>
                             <span title="library View Dragger" style={{
                                 width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                                 //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",

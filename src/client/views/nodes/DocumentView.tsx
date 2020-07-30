@@ -844,6 +844,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
                 select={this.select}
+                scriptContext={this.props.scriptContext}
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
