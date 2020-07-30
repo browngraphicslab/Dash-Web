@@ -59,6 +59,7 @@ import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { undoBatch } from '../util/UndoManager';
 
 @observer
 export class MainView extends React.Component {
@@ -424,10 +425,16 @@ export class MainView extends React.Component {
     //sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
+    @computed get closePosition() { return 55 + this.flyoutWidth }
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
+                {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
+                    onPointerDown={this.closeFlyout}>
+                    <FontAwesomeIcon icon="times" color="black" size="sm" />
+                </div> : null}
+
                 <DocumentView
                     Document={this.sidebarContent}
                     DataDoc={undefined}
@@ -578,7 +585,16 @@ export class MainView extends React.Component {
     //     </div>;
     // }
 
-    @action
+
+    @action @undoBatch
+    closeFlyout = () => {
+        this.panelContent = "none";
+        this.flyoutWidth = 0;
+    }
+
+    get groupManager() { return GroupManager.Instance; }
+
+    @action @undoBatch
     selectMenu = (str: string) => {
         if (this.panelContent === str && this.flyoutWidth !== 0) {
             this.panelContent = "none";
@@ -597,7 +613,7 @@ export class MainView extends React.Component {
         return true;
     }
 
-    @action
+    @action @undoBatch
     onDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._propertiesWidth = this._panelWidth - Math.max(Transform.Identity().transformPoint(e.clientX, 0)[0], 0);

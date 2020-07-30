@@ -510,7 +510,7 @@ export class CurrentUserUtils {
             { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu("Catalog")' },
             { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu("deleted")' },
             { title: "Import", icon: "upload", click: 'scriptContext.selectMenu("Import")' },
-            { title: "Sharing", icon: "users", click: 'GroupManager.Instance.open()' },
+            { title: "Sharing", icon: "users", click: 'scriptContext.groupManager.open()' },
             { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu("Tools")' },
             { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu("Help")' },
             { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
