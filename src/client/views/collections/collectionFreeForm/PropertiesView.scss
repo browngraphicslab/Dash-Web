@@ -190,7 +190,7 @@
         padding-left: 2px;
         padding-right: 2px;
         margin-top: 2px;
-        margin-right: 3px;
+        margin-left: 3px;
 
         .notify-button-icon {
             width: 6px;
@@ -230,18 +230,25 @@
 
             display: flex;
             padding: 3px;
-
+            align-items: center;
             border-bottom: 0.5px solid grey;
+
+            &:hover .propertiesView-sharingTable-item-name {
+                overflow-x: unset;
+                white-space: unset;
+                overflow-wrap: break-word;
+            }
 
             .propertiesView-sharingTable-item-name {
                 font-weight: bold;
                 width: 80px;
                 overflow-x: hidden;
                 display: inline-block;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .propertiesView-sharingTable-item-permission {
-
                 display: flex;
 
                 .permissions-select {
@@ -249,6 +256,8 @@
                     border: none;
                     background-color: inherit;
                     width: 75px;
+                    text-align: justify; // for Edge
+                    text-align-last: end;
 
                     &:hover {
                         cursor: pointer;

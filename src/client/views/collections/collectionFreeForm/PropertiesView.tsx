@@ -269,7 +269,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get notifyIcon() {
-        return <Tooltip title={<><div className="dash-tooltip">{"Notify group of permissions change"}</div></>}>
+        return <Tooltip title={<><div className="dash-tooltip">Notify with message</div></>}>
             <div className="notify-button">
                 <FontAwesomeIcon className="notify-button-icon" icon="bell" color="white" size="sm" />
             </div>
@@ -288,10 +288,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </Tooltip>;
     }
 
-    sharingItem(name: string, notify: boolean, effectiveAcl: symbol, permission?: string) {
+    sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
         return <div className="propertiesView-sharingTable-item">
-            <div className="propertiesView-sharingTable-item-name" style={{ width: notify ? "70px" : "80px" }}> {name} </div>
-            {notify ? this.notifyIcon : null}
+            <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "70px" : "80px" }}> {name} </div>
+            {name !== "Me" ? this.notifyIcon : null}
             <div className="propertiesView-sharingTable-item-permission">
                 {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name) : permission}
                 {permission === "Owner" ? this.expansionIcon : null}
@@ -314,12 +314,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.selectedDoc![AclSym]) {
             for (const [key, value] of Object.entries(this.selectedDoc![AclSym])) {
                 const name = key.substring(4).replace("_", ".");
-                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author) tableEntries.push(this.sharingItem(name, false, effectiveAcl, AclMap.get(value)!));
+                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author) tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
             }
         }
 
-        tableEntries.unshift(this.sharingItem("Me", false, effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
-        if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), false, effectiveAcl, "Owner"));
+        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
+        if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), effectiveAcl, "Owner"));
 
         return <div className="propertiesView-sharingTable">
             {tableEntries}
