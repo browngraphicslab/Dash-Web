@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt, Field } from "../../../fields/Doc";
+import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -130,7 +130,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+            const searchDocs = DocListCast(this.props.Document._searchDocs);
+            if (searchDocs !== undefined && searchDocs.length > 0) {
+                childDocs = searchDocs;
+            }
 
             const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
                 for (const facetKey of Object.keys(filterFacets)) {

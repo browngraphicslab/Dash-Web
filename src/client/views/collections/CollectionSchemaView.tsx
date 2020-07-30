@@ -6,7 +6,7 @@ import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { Resize } from "react-table";
 import "react-table/react-table.css";
-import { Doc } from "../../../fields/Doc";
+import { Doc, DocCastAsync } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
@@ -333,9 +333,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         console.log(newKey);
                         console.log(filter);
                         Doc.setDocFilter(this.props.Document, newKey, filter, "match");
+                        if (this.props.Document.selectedDoc !== undefined) {
+                            let doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
+                            Doc.setDocFilter(doc, newKey, filter, "match");
+                        }
                     }
                     else {
                         this.props.Document._docFilters = undefined;
+                        if (this.props.Document.selectedDoc !== undefined) {
+                            let doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
+                            doc._docFilters = undefined;
+                        }
                     }
                 }
             }

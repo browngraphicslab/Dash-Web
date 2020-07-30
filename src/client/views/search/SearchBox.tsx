@@ -153,9 +153,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable setupButtons = false;
     componentDidMount = () => {
         if (this.setupButtons == false) {
-            this.setupDocTypeButtons();
-            this.setupKeyButtons();
-            this.setupDefaultButtons();
+
             runInAction(() => this.setupButtons == true);
         }
         if (this.inputRef.current) {
@@ -192,14 +190,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         console.log(e.target.value);
         this.newsearchstring = e.target.value;
 
-        if (this.filter === true) {
-            runInAction(() => { this.open = false });
-            this.submitFilter();
-        }
-
 
         if (e.target.value === "") {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
+            if (this.currentSelectedCollection !== undefined) {
+                this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
+                this.currentSelectedCollection = undefined;
+                this.props.Document.selectedDoc = undefined;
+
+            }
             console.log("CLOSE");
             runInAction(() => { this.open = false });
         }
@@ -219,7 +218,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             // if (this._icons !== this._allIcons) {
             //     runInAction(() => { this.expandedBucket = false });
             // }
-            if (StrCast(this.layoutDoc._searchString) !== "" && this.filter === false) {
+            if (StrCast(this.layoutDoc._searchString) !== "") {
                 console.log("OPEN");
                 runInAction(() => { this.open = true });
             }
@@ -228,9 +227,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 runInAction(() => { this.open = false });
 
             }
-            if (this.filter === false) {
-                this.submitSearch();
-            }
+            this.submitSearch();
+
 
         }
     }
@@ -366,13 +364,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
 
+    currentSelectedCollection: DocumentView | undefined = undefined;
+    docsforfilter: Doc[] = [];
 
     searchCollection(query: string) {
 
         const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
+
         if (selectedCollection !== undefined) {
+            this.currentSelectedCollection = selectedCollection;
+            if (this.filter === true) {
+                this.props.Document.selectedDoc = selectedCollection.props.Document;
+            }
             let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
             let found: [Doc, string[], string[]][] = [];
+            let docsforFilter: Doc[] = []
             docs.forEach((d) => {
                 let hlights: string[] = [];
                 const protos = Doc.GetAllPrototypes(d);
@@ -385,10 +391,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 });
                 if (hlights.length > 0) {
                     found.push([d, hlights, []]);
+                    docsforFilter.push(d);
                 };
             });
             console.log(found);
             this._results = found;
+            this.docsforfilter = docsforFilter;
+            if (this.filter === true) {
+                selectedCollection.props.Document._searchDocs = new List<Doc>(docsforFilter);
+            }
             this._numTotalResults = found.length;
         }
         else {
@@ -437,42 +448,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
-
-    @action
-    submitFilter() {
-        let searchString = StrCast(this.layoutDoc._searchString);
-        if (searchString.includes(":") === false) {
-            return
-        }
-        let key = searchString.slice(0, searchString.indexOf(":"));
-        console.log(key);
-        console.log(searchString);
-        let values = searchString.slice(searchString.indexOf(":") + 1, searchString.length);
-        console.log(values);
-        let doc = undefined;
-        if (this.scale === false) {
-            doc = SelectionManager.SelectedDocuments()[0].props.Document;
-        }
-        console.log(this.scale);
-        if (this.scale === true) {
-            doc = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
-            doc = DocListCast(doc.data)[0];
-        }
-        if (doc !== undefined) {
-            console.log(StrCast(doc.title));
-            Doc.setDocFilter(doc, key, values, "match");
-        }
-        else {
-            this.noresults = "No collection selected :(";
-        }
-    }
-
     @action
     submitSearch = async (reset?: boolean) => {
         this.checkIcons();
         if (reset) {
             this.layoutDoc._searchString = "";
         }
+        this.props.Document._docFilters = undefined;
         this.noresults = "";
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.headercount = 0;
@@ -995,74 +977,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    setupDocTypeButtons() {
-        let doc = this.props.Document;
-        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-            ...opts,
-            dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100,
-            _height: 100
-        })) as any as Doc;
-        doc.Audio = ficon({ onClick: ScriptField.MakeScript(`updateIcon("audio")`), title: "music button", icon: "music" });
-        doc.Collection = ficon({ onClick: ScriptField.MakeScript(`updateIcon("collection")`), title: "col button", icon: "object-group" });
-        doc.Image = ficon({ onClick: ScriptField.MakeScript(`updateIcon("image")`), title: "image button", icon: "image" });
-        doc.Link = ficon({ onClick: ScriptField.MakeScript(`updateIcon("link")`), title: "link button", icon: "link" });
-        doc.Pdf = ficon({ onClick: ScriptField.MakeScript(`updateIcon("pdf")`), title: "pdf button", icon: "file-pdf" });
-        doc.Rtf = ficon({ onClick: ScriptField.MakeScript(`updateIcon("rtf")`), title: "text button", icon: "sticky-note" });
-        doc.Video = ficon({ onClick: ScriptField.MakeScript(`updateIcon("video")`), title: "vid button", icon: "video" });
-        doc.Web = ficon({ onClick: ScriptField.MakeScript(`updateIcon("web")`), title: "web button", icon: "globe-asia" });
-
-        let buttons = [doc.None as Doc, doc.Audio as Doc, doc.Collection as Doc,
-        doc.Image as Doc, doc.Link as Doc, doc.Pdf as Doc, doc.Rtf as Doc, doc.Video as Doc, doc.Web as Doc];
-
-        const dragCreators = Docs.Create.MasonryDocument(buttons, {
-            _width: 500, backgroundColor: "#121721", _autoHeight: true, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
-            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), _yMargin: 5
-        });
-        doc.nodeButtons = dragCreators;
-        this.checkIcons()
-    }
-
-
-    setupKeyButtons() {
-        let doc = this.props.Document;
-        const button = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.ButtonDocument({
-            ...opts,
-            _width: 35, _height: 30,
-            borderRounding: "16px", border: "1px solid grey", color: "white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
-            _fontSize: 7,
-        })) as any as Doc;
-        doc.title = button({ backgroundColor: "grey", title: "Title", onClick: ScriptField.MakeScript("updateTitleStatus(self)") });
-        doc.deleted = button({ title: "Deleted", onClick: ScriptField.MakeScript("updateDeletedStatus(self)") });
-        doc.author = button({ backgroundColor: "grey", title: "Author", onClick: ScriptField.MakeScript("updateAuthorStatus(self)") });
-        let buttons = [doc.title as Doc, doc.deleted as Doc, doc.author as Doc];
-
-        const dragCreators = Docs.Create.MasonryDocument(buttons, {
-            _width: 500, backgroundColor: "#121721", _autoHeight: true, _columnWidth: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _yMargin: 5
-            //dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), 
-        });
-        doc.keyButtons = dragCreators;
-    }
-
-    setupDefaultButtons() {
-        let doc = this.props.Document;
-        const button = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.ButtonDocument({
-            ...opts,
-            _width: 35, _height: 30,
-            borderRounding: "16px", border: "1px solid grey", color: "white",
-            //hovercolor: "rgb(170, 170, 163)", 
-            letterSpacing: "2px",
-            _fontSize: 7,
-        })) as any as Doc;
-        doc.keywords = button({ title: "Keywords", onClick: ScriptField.MakeScript("handleWordQueryChange(self)") });
-        doc.keys = button({ title: "Keys", onClick: ScriptField.MakeScript(`handleKeyChange(self)`) });
-        doc.nodes = button({ title: "Nodes", onClick: ScriptField.MakeScript("handleNodeChange(self)") });
-        let buttons = [doc.keywords as Doc, doc.keys as Doc, doc.nodes as Doc];
-        const dragCreators = Docs.Create.MasonryDocument(buttons, {
-            _width: 500, backgroundColor: "#121721", _autoHeight: true, _columnWidth: 60, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _yMargin: 5
-            //dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), 
-        });
-        doc.defaultButtons = dragCreators;
-    }
     @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
 
     getTransform = () => {
@@ -1121,20 +1035,39 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                                     <div className="checkbox" style={{ margin: 0 }}>
                                         <label style={{ fontSize: 12, marginTop: 6 }}>
-                                            <input style={{ marginLeft: -16, marginTop: -1 }} checked={this.filter === true} onChange={() => {
+                                            <input style={{ marginLeft: -16, marginTop: -1, color: this.scale == false ? "black" : "grey" }} checked={this.filter === true} onChange={() => {
                                                 runInAction(() => {
-                                                    this.filter = !this.filter; this.filter === true ? this.open = false : undefined; this.filter === true ? this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]) : undefined;
+                                                    if (this.scale === false) {
+                                                        this.filter = !this.filter;
+                                                        if (this.filter === true && this.currentSelectedCollection !== undefined) {
+                                                            this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
+                                                            this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
+                                                            this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
+                                                        }
+                                                        else if (this.filter === false && this.currentSelectedCollection !== undefined) {
+                                                            this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
+                                                            this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                                            this.props.Document.selectedDoc = undefined;
+                                                        }
+                                                    }
                                                 })
                                             }} type="checkbox"></input>
                                             Filter
                                         </label>
                                     </div>
-                                    {this.filter === true ? <div style={{ display: "contents" }}>
+                                    <div style={{ display: "contents" }}>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
                                                 <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => {
                                                     runInAction(() => {
-                                                        this.scale = !this.scale; this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                        this.scale = !this.scale;
+                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                        if (this.currentSelectedCollection !== undefined) {
+                                                            this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
+                                                            this.currentSelectedCollection = undefined;
+                                                        }
+                                                        this.submitSearch();
                                                     })
                                                 }} />
                                         Current collection
@@ -1142,26 +1075,23 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                         </div>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale; this.dataDoc[this.fieldKey] = new List<Doc>([]); }) }} />
+                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => {
+                                                    runInAction(() => {
+                                                        this.scale = !this.scale;
+                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                        this.filter = false;
+                                                        if (this.currentSelectedCollection !== undefined) {
+                                                            this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
+                                                            this.currentSelectedCollection = undefined;
+                                                        }
+                                                        this.submitSearch();
+                                                    })
+                                                }} />
                                             Workspace
                                     </label>
                                         </div>
                                     </div>
-                                        : <div style={{ display: "contents" }}>
-                                            <div className="radio" style={{ margin: 0 }}>
-                                                <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                    <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
-                                Current collection
-                            </label>
-                                            </div>
-                                            <div className="radio" style={{ margin: 0 }}>
-                                                <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                    <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => { runInAction(() => { this.scale = !this.scale }) }} />
-                                    Database
-                            </label>
-                                            </div>
-                                        </div>
-                                    }
                                 </form>
                             </div>
                             {this.noresults === "" ? <div style={{ display: this.open === true ? "contents" : "none" }}> <CollectionView {...this.props}
@@ -1186,7 +1116,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this._resultsRef}>
                 </div>
-            </div>
+            </div >
         );
     }
 }
