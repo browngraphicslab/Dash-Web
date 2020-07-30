@@ -60,6 +60,7 @@ export interface FieldViewProps {
     color?: string;
     xMargin?: number;
     yMargin?: number;
+    scriptContext?: any;
 }
 
 @observer

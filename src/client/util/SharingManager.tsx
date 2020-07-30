@@ -62,14 +62,12 @@ export default class SharingManager extends React.Component<{}> {
     @observable private groupSort: "ascending" | "descending" | "none" = "none";
     private shareDocumentButtonRef: React.RefObject<HTMLButtonElement> = React.createRef();
 
-
-
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
     // }
 
     public open = (target: DocumentView) => {
-        SelectionManager.DeselectAll();
+        // SelectionManager.DeselectAll();
         this.populateUsers().then(action(() => {
             this.targetDocView = target;
             this.targetDoc = target.props.Document;
@@ -82,7 +80,7 @@ export default class SharingManager extends React.Component<{}> {
 
     public close = action(() => {
         this.isOpen = false;
-        this.users = [];
+        // this.users = [];
         this.selectedUsers = null;
 
         setTimeout(action(() => {
@@ -97,7 +95,12 @@ export default class SharingManager extends React.Component<{}> {
         SharingManager.Instance = this;
     }
 
+    componentDidMount() {
+        this.populateUsers();
+    }
+
     populateUsers = async () => {
+        runInAction(() => this.users = []);
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
@@ -117,17 +120,17 @@ export default class SharingManager extends React.Component<{}> {
         return Promise.all(evaluating);
     }
 
-    setInternalGroupSharing = (group: Doc, permission: string) => {
+    setInternalGroupSharing = (group: Doc, permission: string, targetDoc?: Doc) => {
         const members: string[] = JSON.parse(StrCast(group.members));
         const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-        const target = this.targetDoc!;
+        const target = targetDoc || this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
         // fix this - not needed (here and setinternalsharing and removegroup)
         // target[ACL] = permission;
         // Doc.GetProto(target)[ACL] = permission;
 
-        distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
+        distributeAcls(ACL, permission as SharingPermissions, target);
 
         group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
 
@@ -182,14 +185,20 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
+    shareFromPropertiesSidebar = (shareWith: string, permission: SharingPermissions, target: Doc) => {
+        const user = this.users.find(({ user: { email } }) => email === (shareWith === "Me" ? Doc.CurrentUserEmail : shareWith));
+        if (user) this.setInternalSharing(user, permission, target);
+        else this.setInternalGroupSharing(GroupManager.Instance.getGroup(shareWith)!, permission, target);
+    }
+
     // @action
-    setInternalSharing = (recipient: ValidatedUser, permission: string) => {
+    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
         const { user, notificationDoc } = recipient;
-        const target = this.targetDoc!;
+        const target = targetDoc || this.targetDoc!;
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
 
-        distributeAcls(ACL, permission as SharingPermissions, this.targetDoc!);
+        distributeAcls(ACL, permission as SharingPermissions, target);
 
         if (permission !== SharingPermissions.None) {
             DocListCastAsync(notificationDoc[storage]).then(resolved => {

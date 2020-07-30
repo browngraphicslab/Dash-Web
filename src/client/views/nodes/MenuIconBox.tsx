@@ -2,15 +2,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { createSchema, makeInterface } from '../../../fields/Schema';
+import { StrCast } from '../../../fields/Types';
 import { DocComponent } from '../DocComponent';
-import './MenuIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
-import { StrCast, Cast, NumCast } from '../../../fields/Types';
-import { Utils } from "../../../Utils";
-import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
-import { Doc } from '../../../fields/Doc';
-import { ScriptField } from '../../../fields/ScriptField';
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import './MenuIconBox.scss';
 const MenuIconSchema = createSchema({
     icon: "string"
 });
@@ -24,15 +19,12 @@ export class MenuIconBox extends DocComponent<FieldViewProps, MenuIconDocument>(
 
     render() {
 
-        const menuBTN = <div className="menuButton" style={{ backgroundColor: CurrentUserUtils.panelContent === this.dataDoc.title ? "lightgrey" : "" }}>
+        const color = this.props.backgroundColor?.(this.props.Document) === "lightgrey" ? "black" : "white";
+        const menuBTN = <div className="menuButton" style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document) }}>
             <div className="menuButton-wrap"
-                style={{ backgroundColor: CurrentUserUtils.panelContent === this.dataDoc.title ? "lightgrey" : "" }}
-            //onPointerDown={this.dataDoc.click}
-            >
-                <FontAwesomeIcon className="menuButton-icon" icon={StrCast(this.dataDoc.icon, "user") as any}
-                    color={CurrentUserUtils.panelContent === this.dataDoc.title ? "black" : "white"} size="lg" />
-                <div className="menuButton-label"
-                    style={{ color: CurrentUserUtils.panelContent === this.dataDoc.title ? "black" : "white" }}> {this.dataDoc.title} </div>
+                style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document) }} >
+                <FontAwesomeIcon className="menuButton-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={color} size="lg" />
+                <div className="menuButton-label" style={{ color: color }}> {this.dataDoc.title} </div>
             </div>
         </div>;
 

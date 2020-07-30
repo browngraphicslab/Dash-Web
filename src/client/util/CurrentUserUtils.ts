@@ -48,8 +48,6 @@ export class CurrentUserUtils {
     @observable public static closedStack: any | undefined;
     @observable public static searchStack: any | undefined;
 
-    @observable public static panelContent: string = "none";
-
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
         if (doc["template-button-query"] === undefined) {
@@ -508,46 +506,39 @@ export class CurrentUserUtils {
         title: string, icon: string, click: string,
     }[] {
         return [
-            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu("workspace")' },
-            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu("catalog")' },
+            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu("Workspace")' },
+            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu("Catalog")' },
             { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu("deleted")' },
-            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu("upload")' },
-            { title: "Sharing", icon: "users", click: 'GroupManager.Instance.open()' },
-            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu("tools")' },
-            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu("help")' },
+            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu("Import")' },
+            { title: "Sharing", icon: "users", click: 'scriptContext.groupManager.open()' },
+            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu("Tools")' },
+            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu("Help")' },
             { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
         ];
     }
 
-    static setupMenuButtons(doc: Doc) {
-        if (doc.menuStackBtns === undefined) {
+    static setupMenuPanel(doc: Doc) {
+        if (doc.menuStack === undefined) {
             const buttons = CurrentUserUtils.menuBtnDescriptions();
             const menuBtns = buttons.map(({ title, icon, click }) => Docs.Create.MenuIconDocument({
                 icon,
                 title,
+                _backgroundColor: "black",
                 stayInCollection: true,
                 _width: 60,
-                _height: 70,
-                onClick: ScriptField.MakeScript(click),
+                _height: 60,
+                onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
             }));
 
-            doc.menuStackBtns = new PrefetchProxy(Docs.Create.MasonryDocument(menuBtns, {
-                _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled",
+            doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
+                title: "menuItemPanel",
+                _backgroundColor: "black",
+                _gridGap: 0,
+                _yMargin: 0,
+                _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled",
             }));
         }
-        return doc.menuStackBtns as Doc;
-    }
-
-    static setupMenuPanel(doc: Doc) {
-        doc.menuStack = undefined;
-        if (doc.menuStack === undefined) {
-            const menuBtns = CurrentUserUtils.setupMenuButtons(doc);
-            doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument([menuBtns], {
-                _yMargin: 0, _autoHeight: true, _xMargin: 0,
-                _width: 60, lockedPosition: true, _chromeStatus: "disabled",
-            })) as any as Doc;
-        }
-        return doc.menuStack;
+        return doc.menuStack as Doc;
     }
 
 
@@ -696,9 +687,9 @@ export class CurrentUserUtils {
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
             }));
         }
-        (doc["tabs-button-tools"] as Doc).sourcePanel; // prefetch sourcePanel
+        (doc["tabs-button-tools"] as any as Doc).sourcePanel; // prefetch sourcePanel
 
-        return doc["tabs-button-tools"] as Doc;
+        return doc["tabs-button-tools"] as any as Doc;
     }
 
     static setupWorkspaces(doc: Doc) {
@@ -808,7 +799,7 @@ export class CurrentUserUtils {
             }));
             CurrentUserUtils.searchStack = new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc;
         }
-        return doc["tabs-button-search"] as Doc;
+        return doc["tabs-button-search"] as any as Doc;
     }
 
     static setupSidebarContainer(doc: Doc) {

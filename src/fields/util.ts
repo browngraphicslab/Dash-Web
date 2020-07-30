@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym } from "./Doc";
+import { Doc, FieldResult, UpdatingFromServer, LayoutSym, AclPrivate, AclEdit, AclReadonly, AclAddonly, AclSym, CachedUpdates, DataSym, DocListCast, AclAdmin, FieldsSym, HeightSym, WidthSym, fetchProto } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -183,12 +183,18 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         ["Admin", 4]
     ]);
 
+    let changed = false;
+
     const dataDoc = target[DataSym];
 
-    if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) target[key] = acl;
+    if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) {
+        target[key] = acl;
+        changed = true;
+    }
 
     if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
         dataDoc[key] = acl;
+        changed = true;
 
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
             if (d.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
@@ -214,6 +220,8 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
             }
         });
     }
+
+    changed && fetchProto(target);
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
