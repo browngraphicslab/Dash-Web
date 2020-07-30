@@ -395,12 +395,12 @@ export default class FormatShapePane extends AntimodeMenu {
     @computed get widInput() { return this.inputBox("wid", this.shapeWid, (val: string) => this.shapeWid = val); }
     @computed get rotInput() { return this.inputBoxDuo("rot", this.shapeRot, (val: string) => { this.rotate(Number(val) - Number(this.shapeRot)); this.shapeRot = val; return true; }, "∠:", "rot", this.shapeRot, (val: string) => this.shapeRot = val, ""); }
 
-    @computed get XpsInput() { return this.inputBoxDuo("Xps", this.shapeXps, (val: string) => this.shapeXps = val, "X:", "Yps", this.shapeYps, (val: string) => this.shapeYps = val, "Y:"); }
     @computed get YpsInput() { return this.inputBox("Yps", this.shapeYps, (val: string) => this.shapeYps = val); }
 
     @computed get controlPoints() { return this.controlPointsButton(); }
     @computed get lockRatio() { return this.lockRatioButton(); }
     @computed get rotate90() { return this.rotate90Button(); }
+    @computed get XpsInput() { return this.inputBoxDuo("Xps", this.shapeXps, (val: string) => this.shapeXps = val, "X:", "Yps", this.shapeYps, (val: string) => this.shapeYps = val, "Y:"); }
 
 
     @computed get propertyGroupItems() {
