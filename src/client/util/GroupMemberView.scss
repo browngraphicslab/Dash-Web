@@ -43,7 +43,7 @@
             text-overflow: ellipsis;
 
             &:hover {
-                text-overflow: visible;
+                text-overflow: unset;
                 overflow-x: auto;
             }
         }
