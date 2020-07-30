@@ -27,6 +27,7 @@ import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { DocUtils } from "../../documents/Documents";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -540,7 +541,14 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
             </div>
 
-            {!this.props.isOverlay ? (null) :
+            {<button className={"antimodeMenu-button"} key="float"
+                style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                title="Toggle Overlay Layer"
+                onClick={() => DocumentView.FloatDoc(this.props.docView)}>
+                <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
+            </button>}
+            
+            {!this.props.isOverlay || this.document.type !== DocumentType.WEB ? (null) :
                 <button className={"antimodeMenu-button"} key="hypothesis"
                     style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
                     title="Use Hypothesis"
