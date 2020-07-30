@@ -40,7 +40,7 @@ export const marks: { [index: string]: MarkSpec } = {
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, href: node.attrs.allLinks[0].href, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
                 node.attrs.allLinks.length === 1 ?
-                    ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}`, href: node.attrs.allLinks[0].href }, 0] :
+                    ["a", { ...node.attrs, class: linkids, targetids, style: `text-decoration: ${linkids === " " ? "underline" : undefined}`, title: `${node.attrs.title}`, href: node.attrs.allLinks[0].href }, 0] :
                     ["div", { class: "prosemirror-anchor" },
                         ["span", { class: "prosemirror-linkBtn" },
                             ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],

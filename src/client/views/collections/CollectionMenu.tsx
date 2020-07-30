@@ -208,7 +208,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         this.document._facetWidth = 0;
     }
 
-
     @computed get subChrome() {
         switch (this.props.type) {
             default:
@@ -219,6 +218,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" {...this.props} />);
+            case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
         }
     }
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -312,8 +312,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
-                        {this.templateChrome}
+                        {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.viewModes}
+                        {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.templateChrome}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
@@ -324,6 +324,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 </div>
             </div>
         );
+    }
+}
+
+@observer
+export class CollectionDockingChrome extends React.Component<CollectionMenuProps> {
+    render() {
+        return (null);
     }
 }
 
@@ -534,7 +541,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>
 
             {!this.props.isOverlay ? (null) :
-                <button className={"antimodeMenu-button"} key="hypothesis" style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined }} title="Use Hypothesis" onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
+                <button className={"antimodeMenu-button"} key="hypothesis"
+                    style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                    title="Use Hypothesis"
+                    onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
                     <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
                 </button>
             }
