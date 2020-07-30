@@ -1,5 +1,4 @@
 import { StrCast, Cast } from "../../../fields/Types";
-import HypothesisAuthenticationManager from "../HypothesisAuthenticationManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { action } from "mobx";
 import { Doc } from "../../../fields/Doc";
@@ -8,18 +7,6 @@ import { WebField } from "../../../fields/URLField";
 import { DocumentManager } from "../../util/DocumentManager";
 
 export namespace Hypothesis {
-    export const fetchUser = async (apiKey: string) => {
-        const response = await fetch('https://api.hypothes.is/api/profile', {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-            },
-        });
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('DASH: Error in fetchUser GET request');
-        }
-    };
 
     // Send Hypothes.is client request to edit an annotation to add a Dash hyperlink
     export const makeLink = async (title: string, url: string, annotationId: string) => {
@@ -40,6 +27,7 @@ export namespace Hypothesis {
 
     // Construct an URL which will automatically scroll the web page to a specific annotation's position
     export const makeAnnotationUrl = (annotationId: string, baseUrl: string) => {
+        console.log("baseUrl", baseUrl, annotationId);
         return `${baseUrl}#annotations:${annotationId}`;
     };
 
@@ -58,8 +46,8 @@ export namespace Hypothesis {
                 doc.type === DocumentType.WEB && doc.data
             );
             filteredDocs.forEach(doc => {
-                console.log(Cast(doc.data, WebField)?.url.href);
-                if (uri === Cast(doc.data, WebField)?.url.href) results.push(doc); // TODO check history? imperfect matches?
+                console.log(uri, Cast(doc.data, WebField)?.url.href, uri === Cast(doc.data, WebField)?.url.href);
+                (uri === Cast(doc.data, WebField)?.url.href) && results.push(doc); // TODO check history? imperfect matches?
             });
         }));
 

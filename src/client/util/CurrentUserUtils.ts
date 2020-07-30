@@ -441,7 +441,6 @@ export class CurrentUserUtils {
             { toolTip: "Drag a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
             { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
-            { toolTip: "Connect a Hypothesis Account", title: "Hypothesis Account", icon: "heading", click: 'HypothesisAuthenticationManager.Instance.fetchAccessToken(true)' },
         ];
 
     }

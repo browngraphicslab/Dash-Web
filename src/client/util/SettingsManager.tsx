@@ -12,7 +12,6 @@ import { CurrentUserUtils } from "./CurrentUserUtils";
 import { Utils } from "../../Utils";
 import { Doc } from "../../fields/Doc";
 import GroupManager from "./GroupManager";
-import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 import { togglePlaygroundMode } from "../../fields/util";
 
@@ -92,10 +91,6 @@ export default class SettingsManager extends React.Component<{}> {
     googleAuthorize = (event: any) => {
         GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true);
     }
-    @action
-    hypothesisAuthorize = (event: any) => {
-        HypothesisAuthenticationManager.Instance.fetchAccessToken(true);
-    }
 
     @action
     togglePlaygroundMode = () => {
@@ -118,7 +113,6 @@ export default class SettingsManager extends React.Component<{}> {
                         <button onClick={this.noviceToggle} value="data">{`Set ${Doc.UserDoc().noviceMode ? "developer" : "novice"} mode`}</button>
                         <button onClick={this.togglePlaygroundMode}>{`${this.playgroundMode ? "Disable" : "Enable"} playground mode`}</button>
                         <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
-                        <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
                         <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
                         <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
                             {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}

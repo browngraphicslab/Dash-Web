@@ -305,7 +305,6 @@ export namespace Database {
         export enum AuxiliaryCollections {
             GooglePhotosUploadHistory = "uploadedFromGooglePhotos",
             GoogleAccess = "googleAuthentication",
-            HypothesisAccess = "hypothesisAuthentication"
         }
 
         /**
@@ -406,43 +405,6 @@ export namespace Database {
 
         }
 
-        export namespace HypothesisAccessToken {
-            /**
-             * Format stored in database.
-             */
-            interface StoredCredentials {
-                userId: string;
-                hypothesisApiKey: string;
-                hypothesisUsername: string;
-                _id?: string;
-            }
-
-            /**
-             * Writes the @param hypothesisApiKey to the database, associated
-             * with @param userId for later retrieval and updating. 
-             */
-            export const Write = async (userId: string, hypothesisApiKey: string, hypothesisUsername: string) => {
-                return Instance.insert({ userId, hypothesisApiKey, hypothesisUsername }, AuxiliaryCollections.HypothesisAccess);
-            };
-
-            /**
-             * Retrieves the credentials associaed with @param userId
-             * and optionally removes their database id according to @param removeId. 
-             */
-            export const Fetch = async (userId: string, removeId = true): Promise<Opt<StoredCredentials>> => {
-                return SanitizedSingletonQuery<StoredCredentials>({ userId }, AuxiliaryCollections.HypothesisAccess, removeId);
-            };
-
-            /**
-            * Revokes the credentials associated with @param userId. 
-            */
-            export const Revoke = async (userId: string) => {
-                const entry = await Fetch(userId, false);
-                if (entry) {
-                    Instance.delete({ _id: entry._id }, AuxiliaryCollections.HypothesisAccess);
-                }
-            };
-        }
     }
 
 }

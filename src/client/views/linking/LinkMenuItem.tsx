@@ -156,7 +156,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         const linkDoc = this.props.linkDoc;
 
         if (linkDoc.followLinkLocation === "openExternal" && this.props.destinationDoc.type === DocumentType.WEB) {
-            window.open(Hypothesis.makeAnnotationUrl(StrCast(this.props.linkDoc.annotationId), '_blank'));
+            window.open(Hypothesis.makeAnnotationUrl(StrCast(linkDoc.annotationId), StrCast(linkDoc.annotationUri)), '_blank');
             return;
         }
 
