@@ -55,17 +55,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
     class CollectionSubView extends DocComponent<X & SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
-                this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
+                this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -74,7 +74,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         componentWillUnmount() {
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
         }
 
         @computed get dataDoc() {
@@ -127,7 +127,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const docFilters = this.docFilters();
-            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            const viewSpecScript = ScriptCast(this.props.Document.viewSpecScript);
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
             return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, docFilters, docRangeFilters, viewSpecScript);
@@ -195,7 +195,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document) || de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
+                    if (movedDocs.length) {
+                        const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey || !this.props.isAnnotationOverlay ||
+                            Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
+                        added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
+                    } else added = res;
                 } else {
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
@@ -292,7 +296,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
-                            Doc.GetProto(htmlDoc)["data-text"] = text;
+                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc)["text"] = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
@@ -300,7 +304,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
                                     const y = NumCast(srcWeb._scrollTop) + (rect?.y || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 75, _height: 40, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -430,7 +434,7 @@ import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
-import { CollectionView } from "./CollectionView";
+import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";

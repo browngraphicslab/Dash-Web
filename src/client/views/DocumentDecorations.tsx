@@ -21,7 +21,7 @@ import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
-import { InkData, InkField, InkTool } from "../../fields/InkField";
+import { InkField } from "../../fields/InkField";
 import { Tooltip } from '@material-ui/core';
 
 library.add(faCaretUp);
@@ -59,6 +59,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _prevX = 0;
     private _prevY = 0;
     private _centerPoints: { X: number, Y: number }[] = [];
+    private _inkDocs: { x: number, y: number, width: number, height: number }[] = [];
 
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
@@ -88,7 +89,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
-            if (documentView.props.Document.type === DocumentType.LINK) {
+            if (documentView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
                 const docuBox = documentView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();
@@ -309,8 +310,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     const right = Math.max(...xs);
                     const bottom = Math.max(...ys);
 
-                    doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
-                    doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+                    // doc._height = (bottom - top) * element.props.ScreenToLocalTransform().Scale;
+                    // doc._width = (right - left) * element.props.ScreenToLocalTransform().Scale;
+                    doc._height = (bottom - top);
+                    doc._width = (right - left);
 
                 }
                 index++;
@@ -329,6 +332,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     _dragHeights = new Map<Doc, number>();
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+
+        this._inkDocs = [];
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height) {
+                this._inkDocs.push({ x: doc.x, y: doc.y, width: doc._width, height: doc._height });
+            }
+
+        }));
+
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
         if (e.button === 0) {
             this._resizeHdlId = e.currentTarget.id;
@@ -374,7 +387,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         move[1] = thisPt.thisY - this._snapY;
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
-
+        let dragBottom = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
@@ -412,6 +425,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             case "documentDecorations-bottomResizer":
                 unfreeze();
                 dH = move[1];
+                dragBottom = true;
                 break;
             case "documentDecorations-leftResizer":
                 unfreeze();
@@ -438,8 +452,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
-                    else dW = dH * nwidth / nheight;
+                    if (!e.ctrlKey && (!dragBottom || !element.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
+                        if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
+                        else dW = dH * nwidth / nheight;
+                    }
                 }
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
@@ -463,20 +479,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey) {
                             doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
                         doc._width = actualdW;
                         if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else doc._height = actualdH;
+                        else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect) {
+                        if (!fixedAspect || e.ctrlKey || (dragBottom && element.layoutDoc._fitWidth)) {
                             doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;
                         if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else doc._width = actualdW;
+                        else if (!fixedAspect || !e.ctrlKey) doc._width = actualdW;
                     }
                 } else {
                     dW && (doc._width = actualdW);
@@ -502,6 +518,27 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
         SnappingManager.clearSnapLines();
+
+
+        //need to change points for resize, or else rotation/control points will fail.
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView, index) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
+                const ink = Cast(doc.data, InkField)?.inkData;
+                if (ink) {
+                    const newPoints: { X: number, Y: number }[] = [];
+                    for (var i = 0; i < ink.length; i++) {
+                        // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
+                        const newX = (doc.x - this._inkDocs[index].x) + (ink[i].X * doc._width) / this._inkDocs[index].width;
+                        const newY = (doc.y - this._inkDocs[index].y) + (ink[i].Y * doc._height) / this._inkDocs[index].height;
+                        newPoints.push({ X: newX, Y: newY });
+                    }
+                    doc.data = new InkField(newPoints);
+
+                }
+
+            }
+        }));
     }
 
     @computed
@@ -549,8 +586,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div></Tooltip>) : (
-                <Tooltip title={<><div className="dash-tooltip">Iconify</div></>} placement="top">
-                    <div className="documentDecorations-minimizeButton" onClick={this.onCloseClick}>
+                <Tooltip title={<><div className="dash-tooltip">Delete</div></>} placement="top">
+                    <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                         {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                         <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                     </div></Tooltip>);
@@ -592,6 +629,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
+        var offset = 0;
+        //make offset larger for ink to edit points
+        if (seldoc.rootDoc.type === DocumentType.INK) {
+            offset = 20;
+        }
         return (<div className="documentDecorations" style={{ background: darkScheme }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -604,10 +646,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             </div>
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>
                 <div className="documentDecorations-container" key="container" ref={this.setTextBar} style={{
-                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
-                    left: bounds.x - this._resizeBorderWidth / 2,
-                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth + offset) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight + offset) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2 - offset / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight - offset / 2,
                 }}>
                     {maximizeIcon}
                     {titleArea}
@@ -616,7 +658,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-closeButton" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"

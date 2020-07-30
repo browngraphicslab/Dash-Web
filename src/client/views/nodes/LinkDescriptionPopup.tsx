@@ -4,7 +4,7 @@ import "./LinkDescriptionPopup.scss";
 import { observable, action } from "mobx";
 import { EditableView } from "../EditableView";
 import { LinkManager } from "../../util/LinkManager";
-import { LinkCreatedBox } from "./LinkCreatedBox";
+import { TaskCompletionBox } from "./TaskCompletedBox";
 
 
 @observer
@@ -31,7 +31,7 @@ export class LinkDescriptionPopup extends React.Component<{}> {
     onClick = (e: PointerEvent) => {
         if (this.popupRef && !!!this.popupRef.current?.contains(e.target as any)) {
             LinkDescriptionPopup.descriptionPopup = false;
-            LinkCreatedBox.linkCreated = false;
+            TaskCompletionBox.taskCompleted = false;
         }
     }
 

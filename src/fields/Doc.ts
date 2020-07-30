@@ -17,11 +17,10 @@ import { RichTextField } from "./RichTextField";
 import { ImageField, VideoField, WebField, AudioField, PdfField } from "./URLField";
 import { DateField } from "./DateField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl } from "./util";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction, GetEffectiveAcl, SharingPermissions } from "./util";
 import { LinkManager } from "../client/util/LinkManager";
-import { SharingPermissions } from "../client/util/SharingManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
 
@@ -103,26 +102,28 @@ export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
 export const AclEdit = Symbol("AclEdit");
+export const AclAdmin = Symbol("AclAdmin");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
-const CachedUpdates = Symbol("Cached updates");
+export const CachedUpdates = Symbol("Cached updates");
 
 const AclMap = new Map<string, symbol>([
     [SharingPermissions.None, AclPrivate],
     [SharingPermissions.View, AclReadonly],
     [SharingPermissions.Add, AclAddonly],
-    [SharingPermissions.Edit, AclEdit]
+    [SharingPermissions.Edit, AclEdit],
+    [SharingPermissions.Admin, AclAdmin]
 ]);
 
 export function fetchProto(doc: Doc) {
-    // if (doc.author !== Doc.CurrentUserEmail) {
-    untracked(() => {
-        const permissions: { [key: string]: symbol } = {};
+    const permissions: { [key: string]: symbol } = {};
 
-        Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
+    Object.keys(doc).filter(key => key.startsWith("ACL")).forEach(key => permissions[key] = AclMap.get(StrCast(doc[key]))!);
 
-        if (Object.keys(permissions).length) doc[AclSym] = permissions;
-    });
-    // }
+    if (Object.keys(permissions).length) doc[AclSym] = permissions;
+
+    if (GetEffectiveAcl(doc) === AclPrivate) {
+        runInAction(() => doc[FieldsSym](true));
+    }
 
     if (doc.proto instanceof Promise) {
         doc.proto.then(fetchProto);
@@ -142,7 +143,7 @@ export class Doc extends RefField {
             has: (target, key) => GetEffectiveAcl(target) !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                if (GetEffectiveAcl(target) !== AclPrivate) Object.assign(obj, target.___fields);
+                if (GetEffectiveAcl(target) !== AclPrivate) Object.assign(obj, target.___fieldKeys);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -150,11 +151,11 @@ export class Doc extends RefField {
                 if (prop.toString() === "__LAYOUT__") {
                     return Reflect.getOwnPropertyDescriptor(target, prop);
                 }
-                if (prop in target.__fields) {
+                if (prop in target.__fieldKeys) {
                     return {
                         configurable: true,//TODO Should configurable be true?
                         enumerable: true,
-                        value: target.__fields[prop]
+                        value: 0//() => target.__fields[prop])
                     };
                 }
                 return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -178,14 +179,22 @@ export class Doc extends RefField {
         this.___fields = value;
         for (const key in value) {
             const field = value[key];
+            field && (this.__fieldKeys[key] = true);
             if (!(field instanceof ObjectField)) continue;
             field[Parent] = this[Self];
             field[OnUpdate] = updateFunction(this[Self], key, field, this[SelfProxy]);
         }
     }
+    private get __fieldKeys() { return this.___fieldKeys; }
+    private set __fieldKeys(value) {
+        this.___fieldKeys = value;
+    }
 
     @observable
     private ___fields: any = {};
+
+    @observable
+    private ___fieldKeys: any = {};
 
     private [UpdatingFromServer]: boolean = false;
 
@@ -195,7 +204,14 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym] = () => this.___fields;
+    public [FieldsSym] = (clear?: boolean) => {
+        if (clear) {
+            this.___fields = {};
+            this.___fieldKeys = {};
+        }
+        return this.___fields;
+    }
+    @observable
     public [AclSym]: { [key: string]: symbol };
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
@@ -236,11 +252,18 @@ export class Doc extends RefField {
                 const fKey = key.substring(7);
                 const fn = async () => {
                     const value = await SerializationHelper.Deserialize(set[key]);
+                    const prev = GetEffectiveAcl(this);
                     this[UpdatingFromServer] = true;
                     this[fKey] = value;
+                    if (fKey.startsWith("ACL")) {
+                        fetchProto(this);
+                    }
                     this[UpdatingFromServer] = false;
+                    if (prev === AclPrivate && GetEffectiveAcl(this) !== AclPrivate) {
+                        DocServer.GetRefField(this[Id], true);
+                    }
                 };
-                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                if (sameAuthor || fKey.startsWith("ACL") || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
                     delete this[CachedUpdates][fKey];
                     await fn();
                 } else {
@@ -564,6 +587,11 @@ export namespace Doc {
     }
 
     export async function Zip(doc: Doc) {
+        // const a = document.createElement("a");
+        // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+        // a.href = url;
+        // a.download = `DocExport-${this.props.Document[Id]}.zip`;
+        // a.click();
         const { clone, map } = await Doc.MakeClone(doc, true);
         function replacer(key: any, value: any) {
             if (["cloneOf", "context", "cursors"].includes(key)) return undefined;
@@ -575,6 +603,7 @@ export namespace Doc {
                     return { fieldId: value[Id], __type: "proxy" };
                 }
             }
+            else if (value instanceof ScriptField) return { script: value.script, __type: "script" };
             else if (value instanceof RichTextField) return { Data: value.Data, Text: value.Text, __type: "RichTextField" };
             else if (value instanceof ImageField) return { url: value.url.href, __type: "image" };
             else if (value instanceof PdfField) return { url: value.url.href, __type: "pdf" };
@@ -892,7 +921,6 @@ export namespace Doc {
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
-
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
@@ -1212,7 +1240,7 @@ Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
-Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
+Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
 Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });

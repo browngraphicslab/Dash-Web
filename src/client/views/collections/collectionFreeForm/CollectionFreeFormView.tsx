@@ -57,7 +57,6 @@ export const panZoomSchema = createSchema({
     currentTimecode: "number",
     displayTimecode: "number",
     currentFrame: "number",
-    arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
     fitToBox: "boolean",
@@ -892,7 +891,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this.props.focus(doc);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
-                const offset = annotOn && (contextHgt / 2 * 96 / 72);
+                const offset = annotOn && (contextHgt / 2);
                 this.props.Document._scrollY = NumCast(doc.y) - offset;
             }
 
@@ -944,7 +943,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
-            ...this.props,
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
+            pinToPres: this.props.pinToPres,
+            whenActiveChanged: this.props.whenActiveChanged,
             NativeHeight: returnZero,
             NativeWidth: returnZero,
             fitToBox: false,
@@ -1001,10 +1004,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this.props.addDocTab(doc, where);
     });
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
-        const result = this.Document.arrangeScript?.script.run(params, console.log);
-        if (result?.success) {
-            return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
-        }
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, opacity } = this.Document.currentFrame === undefined ? params.pair.layout :
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentFrame || 0);
@@ -1145,7 +1144,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     componentDidMount() {
         super.componentDidMount?.();
-        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
+        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 
@@ -1243,11 +1242,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
-        const viewctrls = ContextMenu.Instance.findByDescription("View Controls...");
+        const viewctrls = ContextMenu.Instance.findByDescription("UI Controls...");
         const viewCtrlItems = viewctrls && "subitems" in viewctrls ? viewctrls.subitems : [];
         viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
         viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        !viewctrls && ContextMenu.Instance.addItem({ description: "View Controls...", subitems: viewCtrlItems, icon: "eye" });
+        !viewctrls && ContextMenu.Instance.addItem({ description: "UI Controls...", subitems: viewCtrlItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];

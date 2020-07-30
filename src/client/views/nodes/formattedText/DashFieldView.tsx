@@ -205,9 +205,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     {this._fieldKey}
                 </span>}
 
-            {/* <div className="dashFieldView-fieldSpan"> */}
-            {this.fieldValueContent}
-            {/* </div> */}
+            {this.props.fieldKey.startsWith("#") ? (null) : this.fieldValueContent}
 
             {!this._showEnumerables ? (null) : <div className="dashFieldView-enumerables" onPointerDown={this.onPointerDownEnumerables} />}
 

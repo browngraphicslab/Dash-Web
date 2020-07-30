@@ -104,7 +104,6 @@ export default class KeyManager {
                 }
                 doDeselect && SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
-                // RecommendationsBox.Instance.closeMenu();
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();
