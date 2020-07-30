@@ -473,6 +473,46 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    @computed
+    get clustersButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{this.selectedDoc?.useClusters ? "Stop Showing Clusters" : "Show Clusters"}</div></>}>
+            <div className={"propertiesButtons-linkButton-empty"}
+                style={{ backgroundColor: this.selectedDoc?.useClusters ? "#a0a0a0" : "" }}
+                onPointerDown={this.changeClusters}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    color={this.selectedDoc?.useClusters ? "black" : "white"}
+                    icon="braille" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
+    @action @undoBatch
+    changeFitToBox = () => {
+        this.selectedDoc && (this.selectedDoc._fitToBox = !this.selectedDoc._fitToBox);
+    }
+
+    @action @undoBatch
+    changeClusters = () => {
+        this.selectedDoc && (this.selectedDoc.useClusters = !this.selectedDoc.useClusters);
+    }
+
+    @computed
+    get fitContentButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">{this.selectedDoc?._fitToBox ? "Stop Fitting Content" : "Fit Content"}</div></>}>
+            <div className={"propertiesButtons-linkButton-empty"}
+                style={{ backgroundColor: this.selectedDoc?._fitToBox ? "#a0a0a0" : "" }}
+                onPointerDown={this.changeFitToBox}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    color={this.selectedDoc?._fitToBox ? "black" : "white"}
+                    icon="expand" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
     // @computed
     // get importButton() {
     //     const targetDoc = this.selectedDoc;
@@ -490,6 +530,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     //     </Tooltip>;
     // }
 
+
     render() {
         if (!this.selectedDoc) return (null);
 
@@ -498,6 +539,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const considerPush = isText && this.considerGoogleDocsPush;
         const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
+        const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
 
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
@@ -541,6 +583,15 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
                     {this.importButton}
                 </div> */}
+
+                <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+                    {this.clustersButton}
+                </div>
+
+                <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+                    {this.fitContentButton}
+                </div>
+
             </div>
         </div>;
     }

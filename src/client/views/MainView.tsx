@@ -172,7 +172,7 @@ export class MainView extends React.Component {
             fa.faFillDrip, fa.faLink, fa.faUnlink, fa.faBold, fa.faItalic, fa.faChevronLeft, fa.faUnderline, fa.faStrikethrough, fa.faSuperscript, fa.faSubscript,
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
-            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight);
+            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, fa.faExpand);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -420,7 +420,7 @@ export class MainView extends React.Component {
     @action
     onPointerMove = (e: PointerEvent) => {
         if (this.propertiesDownX) {
-            this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX) * .5;
+            this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX);
             if (this._propertiesWidth < 150) {
                 this._propertiesWidth = 0;
                 this.propertiesDownX = undefined;
@@ -446,7 +446,7 @@ export class MainView extends React.Component {
                     this._propertiesWidth = 0;
                 }
             } else {
-                this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX) * .5;
+                this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX);
                 if (this._propertiesWidth < 150) {
                     this._propertiesWidth = 0;
                 } else if (this._propertiesWidth > 400) {
@@ -573,7 +573,12 @@ export class MainView extends React.Component {
                 case "Settings": this.sidebarContent.proto = SettingsManager.Instance.open(); break;
                 case "Sharing": this.sidebarContent.proto = GroupManager.Instance.open(); break;
             }
-            MainView.expandFlyout();
+            if (str === "Settings" || str === "Sharing" || str === "Help") {
+                this.panelContent = "none";
+                this.flyoutWidth = 0;
+            } else {
+                MainView.expandFlyout();
+            }
         }
         return true;
     }
