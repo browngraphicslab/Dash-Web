@@ -92,7 +92,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
-            if (StrCast(Doc.Layout(documentView.props.Document).layout).includes("LinkAnchorBox")) {
+            if (documentView.props.LayoutTemplateString?.includes("LinkAnchorBox")) {
                 const docuBox = documentView.ContentDiv.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();

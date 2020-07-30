@@ -35,7 +35,6 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
-import { RecommendationsBox } from "../RecommendationsBox";
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
 import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
@@ -194,7 +193,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                    RecommendationsBox, ScreenshotBox, HTMLtag, ComparisonBox
+                    ScreenshotBox, HTMLtag, ComparisonBox
                 }}
                 bindings={bindings}
                 jsx={layoutFrame}
