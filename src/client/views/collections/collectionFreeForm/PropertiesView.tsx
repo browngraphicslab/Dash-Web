@@ -361,16 +361,16 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     render() {
 
         if (!this.selectedDoc) {
-            return <div className="propertiesView" >
-                <div className="propertiesView-title">
+            return <div className="propertiesView" style={{ width: this.props.width }}>
+                <div className="propertiesView-title" style={{ width: this.props.width, paddingLeft: 6 }}>
                     No Document Selected
             </div> </div>;
         }
 
         const novice = Doc.UserDoc().noviceMode;
 
-        return <div className="propertiesView" >
-            <div className="propertiesView-title">
+        return <div className="propertiesView" style={{ width: this.props.width }} >
+            <div className="propertiesView-title" style={{ width: this.props.width }}>
                 <div className="propertiesView-title-name">Properties </div>
                 <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
                     <FontAwesomeIcon icon="times" color="black" size="sm" />
@@ -381,7 +381,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div>
             <div className="propertiesView-settings">
                 <div className="propertiesView-settings-title" style={{ backgroundColor: this.openActions ? "black" : "" }}>
-                    Document Actions
+                    Actions
                     <div className="propertiesView-settings-title-icon"
                         onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}>
                         <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
@@ -447,9 +447,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                     </div>
                 </div>
-                {!novice && this.openFields ? <div className="propertiesView-fields-title-checkbox">
+                {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">
                     {this.fieldsCheckbox}
-                    <div className="propertiesView-fields-title-checkbox-text">Layout</div>
+                    <div className="propertiesView-fields-checkbox-text">Layout</div>
                 </div> : null}
                 {this.openFields ?
                     <div className="propertiesView-fields-content">

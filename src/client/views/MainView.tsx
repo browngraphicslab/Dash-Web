@@ -101,6 +101,7 @@ export class MainView extends React.Component {
             return "chevron-right";
         }
     }
+    @observable propertiesDownX: number | undefined;
 
     componentDidMount() {
         DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
@@ -233,7 +234,7 @@ export class MainView extends React.Component {
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            _width: this._panelWidth * .7 - this._propertiesWidth,
+            _width: this._panelWidth * .7 - this.propertiesWidth(),
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
         };
@@ -299,12 +300,12 @@ export class MainView extends React.Component {
 
     @action
     onResize = (r: any) => {
-        this._panelWidth = r.offset.width - this._propertiesWidth;
+        this._panelWidth = r.offset.width - this.propertiesWidth();
         this._panelHeight = r.offset.height;
     }
 
     @action
-    getPWidth = () => this._panelWidth - this._propertiesWidth;
+    getPWidth = () => this._panelWidth - this.propertiesWidth();
 
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
@@ -402,19 +403,66 @@ export class MainView extends React.Component {
     }
 
     @action
+    onDown = (e: React.PointerEvent) => {
+        this.propertiesDownX = e.screenX;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+        e.preventDefault();
+        // setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+        //     this._propertiesWidth = this._panelWidth - Math.max(Transform.Identity().transformPoint(e.clientX, 0)[0], 0);
+        //     return false;
+        // }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
+    }
+
+    @action
     onPointerMove = (e: PointerEvent) => {
-        this.flyoutWidth = Math.max(e.clientX, 0);
-        Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
-        this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
+        if (this.propertiesDownX) {
+            this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX) * .5;
+            if (this._propertiesWidth < 150) {
+                this._propertiesWidth = 0;
+                this.propertiesDownX = undefined;
+            } else if (this._propertiesWidth > 400) {
+                this._propertiesWidth = 400;
+                this.propertiesDownX = undefined;
+            }
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+        } else {
+            this.flyoutWidth = Math.max(e.clientX, 0);
+            Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
+            this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
+        }
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
-            this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
-            this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
+        if (this.propertiesDownX) {
+            if (Math.abs(this.propertiesDownX - e.screenX) < 3) {
+                if (this._propertiesWidth < 10) {
+                    this._propertiesWidth = 200;
+                } else {
+                    this._propertiesWidth = 0;
+                }
+            } else {
+                this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX) * .5;
+                if (this._propertiesWidth < 150) {
+                    this._propertiesWidth = 0;
+                } else if (this._propertiesWidth > 400) {
+                    this._propertiesWidth = 400;
+                }
+            }
+            this.propertiesDownX = undefined;
+        } else {
+            if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
+                this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
+                this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
+            }
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+
     }
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
@@ -501,91 +549,6 @@ export class MainView extends React.Component {
         </div>;
     }
 
-    // @computed get menuPanel() {
-    //     return <div className="mainView-menuPanel">
-    //         <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "workspace" ? "lightgrey" : "" }}>
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 style={{ backgroundColor: this.panelContent === "workspace" ? "lightgrey" : "" }}
-    //                 onPointerDown={e => this.selectPanel("workspace")}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="desktop"
-    //                     color={this.panelContent === "workspace" ? "black" : "white"} size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"
-    //                     style={{ color: this.panelContent === "workspace" ? "black" : "white" }}> Workspace </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "catalog" ? "lightgrey" : "" }}>
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 style={{ backgroundColor: this.panelContent === "catalog" ? "lightgrey" : "" }}
-    //                 onPointerDown={e => this.selectPanel("catalog")}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="file"
-    //                     color={this.panelContent === "catalog" ? "black" : "white"} size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"
-    //                     style={{ color: this.panelContent === "catalog" ? "black" : "white" }}> Catalog </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button" style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}>
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 style={{ backgroundColor: this.panelContent === "deleted" ? "lightgrey" : "" }}
-    //                 onPointerDown={e => this.selectPanel("deleted")}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="archive"
-    //                     color={this.panelContent === "deleted" ? "black" : "white"} size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"
-    //                     style={{ color: this.panelContent === "deleted" ? "black" : "white" }}> Recently Used </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button">
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 onPointerDown={e => this.selectPanel("upload")}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="upload" color="white" size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"> Import </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button">
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 //onPointerDown={e => this.selectPanel("sharing")}
-    //                 onClick={() => GroupManager.Instance.open()}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="users" color="white" size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"> Sharing </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button" style={{ marginBottom: "110px", backgroundColor: this.panelContent === "tools" ? "lightgrey" : "", }}>
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 onPointerDown={e => this.selectPanel("tools")}
-    //                 style={{
-    //                     backgroundColor: this.panelContent === "tools" ? "lightgrey" : "",
-    //                 }}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="wrench"
-    //                     color={this.panelContent === "tools" ? "black" : "white"} size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"
-    //                     style={{ color: this.panelContent === "tools" ? "black" : "white" }}> Tools </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button">
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 // style={{backgroundColor: this.panelContent= "help" ? "lightgrey" : "black"}}
-    //                 onPointerDown={e => this.selectPanel("help")} >
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="question-circle" color="white" size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"> Help </div>
-    //             </div>
-    //         </div>
-
-    //         <div className="mainView-menuPanel-button">
-    //             <div className="mainView-menuPanel-button-wrap"
-    //                 // onPointerDown={e => this.selectPanel("settings")}
-    //                 onClick={() => SettingsManager.Instance.open()}>
-    //                 <FontAwesomeIcon className="mainView-menuPanel-button-icon" icon="cog" color="white" size="lg" />
-    //                 <div className="mainView-menuPanel-button-label"> Settings </div>
-    //             </div>
-    //         </div>
-    //     </div>;
-    // }
-
 
     @action @undoBatch
     closeFlyout = () => {
@@ -606,8 +569,9 @@ export class MainView extends React.Component {
                 case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
                 case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
                 case "Catalog": this.sidebarContent.proto = CurrentUserUtils.catalogStack; break;
-                case "deleted": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
-                case "Search": this.sidebarContent.proto = CurrentUserUtils.searchStack; break;
+                case "Archive": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
+                case "Settings": this.sidebarContent.proto = SettingsManager.Instance.open(); break;
+                case "Sharing": this.sidebarContent.proto = GroupManager.Instance.open(); break;
             }
             MainView.expandFlyout();
         }
@@ -615,25 +579,21 @@ export class MainView extends React.Component {
     }
 
     @action @undoBatch
-    onDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._propertiesWidth = this._panelWidth - Math.max(Transform.Identity().transformPoint(e.clientX, 0)[0], 0);
-            return false;
-        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
+    closeProperties = () => {
+        this._propertiesWidth = 0;
     }
 
     @computed get propertiesView() {
         TraceMobx();
         return <div className="mainView-propertiesView" style={{
-            width: `200px`,
             overflow: this.propertiesWidth() < 15 ? "hidden" : undefined
         }}>
             <PropertiesView
-                width={200}
+                width={this.propertiesWidth()}
                 height={this._panelHeight}
                 renderDepth={1}
                 ScreenToLocalTransform={Transform.Identity}
-                onDown={this.onDown}
+                onDown={this.closeProperties}
             />
         </div>;
     }
@@ -643,7 +603,7 @@ export class MainView extends React.Component {
         const n = (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
 
-        const rightFlyout = this.selectedDocumentView ? this._propertiesWidth - 1 : this.propertiesWidth() > 10 ? 151.5 : 0;
+        const rightFlyout = this.propertiesWidth() - 1;
         return !this.userDoc ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
@@ -684,7 +644,8 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
                         </div>
                     }
-                    {this.propertiesWidth() < 10 ? (null) : this.propertiesView}
+                    {this.propertiesWidth() < 10 ? (null) :
+                        <div style={{ width: this.propertiesWidth() }}> {this.propertiesView} </div>}
                 </div>
             </div>);
     }

@@ -508,12 +508,12 @@ export class CurrentUserUtils {
         return [
             { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu("Workspace")' },
             { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu("Catalog")' },
-            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu("deleted")' },
+            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu("Archive")' },
             { title: "Import", icon: "upload", click: 'scriptContext.selectMenu("Import")' },
-            { title: "Sharing", icon: "users", click: 'scriptContext.groupManager.open()' },
+            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu("Sharing")' },
             { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu("Tools")' },
             { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu("Help")' },
-            { title: "Settings", icon: "cog", click: 'SettingsManager.Instance.open()' },
+            { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu("Settings")' },
         ];
     }
 
