@@ -54,9 +54,9 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
                 const dragData = new DragManager.DocumentDragData([this.rootDoc]);
                 dragData.dropAction = "alias";
                 dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isLinkButton"];
-                DragManager.StartDocumentDrag([this._ref.current!], dragData, down[0], down[1]);
+                DragManager.StartDocumentDrag([this._ref.current!], dragData, pt[0], pt[1]);
                 return true;
-            } else if (dragdist > separation) {
+            } else {
                 this.rootDoc[this.fieldKey + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
                 this.rootDoc[this.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
             }

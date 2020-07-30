@@ -64,11 +64,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        SelectionManager.DeselectAll();
-        const topDocView = this.props.docViews[0];
-        const ex = e.target.getBoundingClientRect().left;
-        const ey = e.target.getBoundingClientRect().top;
-        DocumentView.FloatDoc(topDocView, ex, ey);
+        DocumentView.FloatDoc(this.props.docViews[0]);
     }
 
     toggleAudio = (e: React.ChangeEvent<HTMLInputElement>): void => {
