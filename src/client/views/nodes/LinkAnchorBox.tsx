@@ -49,7 +49,6 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             const bounds = cdiv.getBoundingClientRect();
             const pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
             const separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
-            const dragdist = Math.sqrt((pt[0] - down[0]) * (pt[0] - down[0]) + (pt[1] - down[1]) * (pt[1] - down[1]));
             if (separation > 100) {
                 const dragData = new DragManager.DocumentDragData([this.rootDoc]);
                 dragData.dropAction = "alias";
