@@ -163,13 +163,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     //         }
                     //     });
                     // }
-                    if (effectiveAcl === AclAddonly) {
+                    if (effectiveAcl === AclAddonly && !getPlaygroundMode()) {
                         added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
                     }
                     else {
                         added.map(doc => doc.context = this.props.Document);
-                        targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
-                        targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                        (targetDataDoc[this.annotationKey] as List<Doc>).push(...added);
+                        if (!getPlaygroundMode()) targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
                     }
                 }
             }

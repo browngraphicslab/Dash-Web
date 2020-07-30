@@ -102,7 +102,7 @@ export default class GroupManager extends React.Component<{}> {
      */
     @action
     open = () => {
-        SelectionManager.DeselectAll();
+        // SelectionManager.DeselectAll();
         this.isOpen = true;
         this.populateUsers();
         this.populateGroups();

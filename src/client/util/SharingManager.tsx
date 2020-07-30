@@ -1,7 +1,7 @@
 import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocListCastAsync, AclAdmin, DataSym } from "../../fields/Doc";
+import { Doc, Opt, DocListCastAsync, AclAdmin, DataSym, AclPrivate } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../fields/Types";
 import * as RequestPromise from "request-promise";
@@ -19,7 +19,7 @@ import GroupMemberView from "./GroupMemberView";
 import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../fields/List";
-import { distributeAcls, SharingPermissions } from "../../fields/util";
+import { distributeAcls, SharingPermissions, GetEffectiveAcl } from "../../fields/util";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 
 export interface User {
@@ -80,7 +80,7 @@ export default class SharingManager extends React.Component<{}> {
 
     public open = (target: DocumentView) => {
         runInAction(() => this.users = []);
-        SelectionManager.DeselectAll();
+        // SelectionManager.DeselectAll();
         this.populateUsers().then(action(() => {
             this.targetDocView = target;
             this.targetDoc = target.props.Document;
@@ -93,8 +93,8 @@ export default class SharingManager extends React.Component<{}> {
 
     public close = action(() => {
         this.isOpen = false;
-        this.users = []; // resets the list of users and seleected users (in the react-select component)
-        this.selectedUsers = null;
+        this.users = [];
+        this.selectedUsers = null; // resets the list of users and seleected users (in the react-select component)
 
         setTimeout(action(() => {
             // this.copied = false;
@@ -108,10 +108,15 @@ export default class SharingManager extends React.Component<{}> {
         SharingManager.Instance = this;
     }
 
+    componentDidMount() {
+        this.populateUsers();
+    }
+
     /**
      * Populates the list of validated users (this.users) by adding registered users which have a rightSidebarCollection.
      */
     populateUsers = async () => {
+        runInAction(() => this.users = []);
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
@@ -379,24 +384,32 @@ export default class SharingManager extends React.Component<{}> {
         const users = this.individualSort === "ascending" ? this.users.sort(this.sortUsers) : this.individualSort === "descending" ? this.users.sort(this.sortUsers).reverse() : this.users;
         const groups = this.groupSort === "ascending" ? groupList.sort(this.sortGroups) : this.groupSort === "descending" ? groupList.sort(this.sortGroups).reverse() : groupList;
 
+        const effectiveAcl = this.targetDoc ? GetEffectiveAcl(this.targetDoc) : AclPrivate;
+
         const userListContents: (JSX.Element | null)[] = users.map(({ user, notificationDoc }) => {
             const userKey = user.email.replace('.', '_');
-            const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`], SharingPermissions.None);
+            const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`]);
 
-            return user.email === this.targetDoc?.author ? null : (
+            return !permissions || user.email === this.targetDoc?.author ? null : (
                 <div
                     key={userKey}
                     className={"container"}
                 >
                     <span className={"padding"}>{user.email}</span>
                     <div className="edit-actions">
-                        <select
-                            className={"permissions-dropdown"}
-                            value={permissions}
-                            onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
-                        >
-                            {this.sharingOptions}
-                        </select>
+                        {effectiveAcl === AclAdmin ? (
+                            <select
+                                className={"permissions-dropdown"}
+                                value={permissions}
+                                onChange={e => this.setInternalSharing({ user, notificationDoc }, e.currentTarget.value)}
+                            >
+                                {this.sharingOptions}
+                            </select>
+                        ) : (
+                                <div className={"permissions-dropdown"}>
+                                    {this.sharingOptions}
+                                </div>
+                            )}
                     </div>
                 </div>
             );

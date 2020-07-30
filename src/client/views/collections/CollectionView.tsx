@@ -157,7 +157,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 //     });
                 // }
 
-                if (effectiveAcl === AclAddonly) {
+                if (effectiveAcl === AclAddonly && !getPlaygroundMode()) {
                     added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
                 }
                 else {
@@ -179,8 +179,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         doc.context = this.props.Document;
                     });
                     added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                    targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-                    targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    // targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                    (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
+                    if (!getPlaygroundMode()) targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 }
             }
         }
