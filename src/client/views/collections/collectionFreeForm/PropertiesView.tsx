@@ -2,7 +2,7 @@ import React = require("react");
 import { observer } from "mobx-react";
 import "./PropertiesView.scss";
 import { observable, action, computed, runInAction } from "mobx";
-import { Doc, Field, DocListCast, WidthSym, HeightSym } from "../../../../fields/Doc";
+import { Doc, Field, DocListCast, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin } from "../../../../fields/Doc";
 import { DocumentView } from "../../nodes/DocumentView";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { EditableView } from "../../EditableView";
@@ -18,6 +18,7 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip, Checkbox } from "@material-ui/core";
 import SharingManager from "../../../util/SharingManager";
+import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
 
 
 interface PropertiesViewProps {
@@ -249,20 +250,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
-    @computed get permissionsSelect() {
-        return <select className="permissions-select" onChange={emptyFunction}>
-            <option key={"Can Edit"} value={"Can Edit"}>
-                Can Edit
-                        </option>
-            <option key={"Can Add"} value={"Can Add"}>
-                Can Add
-                        </option>
-            <option key={"Can View"} value={"Can View"}>
-                Can View
-                        </option>
-            <option key={"Not Shared"} value={"Not Shared"}>
-                Not Shared
-                        </option>
+    getPermissionsSelect(user: string) {
+        return <select className="permissions-select"
+            onChange={e => SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!)}>
+            {Object.values(SharingPermissions).map(permission => {
+                return (
+                    <option key={permission} value={permission} selected={this.selectedDoc![`ACL-${user.replace(".", "_")}`] === permission}>
+                        {permission}
+                    </option>);
+            })}
         </select>;
     }
 
@@ -286,23 +282,41 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </Tooltip>;
     }
 
-    sharingItem(name: string, notify: boolean, editable: boolean, permission?: string) {
+    sharingItem(name: string, notify: boolean, effectiveAcl: symbol, permission?: string) {
         return <div className="propertiesView-sharingTable-item">
             <div className="propertiesView-sharingTable-item-name" style={{ width: notify ? "70px" : "80px" }}> {name} </div>
             {notify ? this.notifyIcon : null}
             <div className="propertiesView-sharingTable-item-permission">
-                {editable ? this.permissionsSelect : permission}
+                {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name) : permission}
                 {permission === "Owner" ? this.expansionIcon : null}
             </div>
         </div>;
     }
 
     @computed get sharingTable() {
+        const AclMap = new Map<symbol, string>([
+            [AclPrivate, SharingPermissions.None],
+            [AclReadonly, SharingPermissions.View],
+            [AclAddonly, SharingPermissions.Add],
+            [AclEdit, SharingPermissions.Edit],
+            [AclAdmin, SharingPermissions.Admin]
+        ]);
+
+        const effectiveAcl = GetEffectiveAcl(this.selectedDoc!);
+        const tableEntries = [];
+
+        if (this.selectedDoc![AclSym]) {
+            for (const [key, value] of Object.entries(this.selectedDoc![AclSym])) {
+                const name = key.substring(4).replace("_", ".");
+                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author) tableEntries.push(this.sharingItem(name, false, effectiveAcl, AclMap.get(value)!));
+            }
+        }
+
+        tableEntries.unshift(this.sharingItem("Me", false, effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
+        if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), false, effectiveAcl, "Owner"));
+
         return <div className="propertiesView-sharingTable">
-            {this.sharingItem("Me", false, false, "Owner")}
-            {this.sharingItem("Public", false, true)}
-            {this.sharingItem("Group 1", true, true)}
-            {this.sharingItem("Group 2", true, true)}
+            {tableEntries}
         </div>;
     }
 

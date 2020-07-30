@@ -159,6 +159,8 @@
         border-radius: 6px;
         width: 170px;
         background-color: #ececec;
+        max-height: 130px;
+        overflow-y: scroll;
 
         .propertiesView-sharingTable-item {
 
