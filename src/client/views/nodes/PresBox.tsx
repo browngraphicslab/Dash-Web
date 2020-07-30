@@ -81,10 +81,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateCurrentPresentation = () => {
         Doc.UserDoc().activePresentation = this.rootDoc;
         if (this.itemIndex >= 0) {
-            const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
-            const srcContext = Cast(presTargetDoc.context, Doc, null);
-            if (srcContext) this.rootDoc.presCollection = srcContext;
-            else this.rootDoc.presCollection = presTargetDoc;
+            const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+            const targetDoc = activeItem.presentationTargetDoc ? Cast(activeItem.presentationTargetDoc, Doc, null) : undefined;
+            if (targetDoc) {
+                const srcContext = Cast(targetDoc.context, Doc, null);
+                if (srcContext) this.layoutDoc.presCollection = srcContext;
+            } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
         }
     }
 
@@ -117,8 +119,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     let newScale = 0.9 * Math.min(Number(panelWidth) / this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]), Number(panelHeight) / this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]));
                     // srcContext._panX = newPanX + (NumCast(presTargetDoc._viewScale) * this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + NumCast(presTargetDoc._panX) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) / 2));
                     // srcContext._panY = newPanY + (NumCast(presTargetDoc._viewScale) * this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + NumCast(presTargetDoc._panY) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) / 2));
-                    srcContext._panX = newPanX + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + NumCast(presTargetDoc._panX) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) / 2));
-                    srcContext._panY = newPanY + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + NumCast(presTargetDoc._panY) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) / 2));
+                    srcContext._panX = newPanX + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) / 2));
+                    srcContext._panY = newPanY + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) / 2));
                     // srcContext._panX = newPanX
                     // srcContext._panY = newPanY
                     srcContext._viewScale = newScale;
@@ -137,13 +139,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             let nextSelected = this.itemIndex + 1;
             this.gotoDocument(nextSelected, this.itemIndex);
 
-            for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
-                if (!this.childDocs[nextSelected].groupButton) {
-                    break;
-                } else {
-                    this.gotoDocument(nextSelected, this.itemIndex);
-                }
-            }
+            // for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
+            //     if (!this.childDocs[nextSelected].groupButton) {
+            //         break;
+            //     } else {
+            //         this.gotoDocument(nextSelected, this.itemIndex);
+            //     }
+            // }
         }
     }
 
@@ -236,81 +238,45 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         });
     }
 
-    checkCollection = async (curTarget: Doc, nextTarget: Doc) => {
-        const aliasOf = await DocCastAsync(curTarget.aliasOf);
-        const curContext = aliasOf && await DocCastAsync(aliasOf.context);
-        const aliasOfNext = await DocCastAsync(nextTarget.aliasOf);
-        const nextContext = aliasOfNext && await DocCastAsync(aliasOfNext.context);
-        if (curContext && nextContext) {
-            const collectionDocView = DocumentManager.Instance.getDocumentView(Cast(this.rootDoc.presCollection, Doc, null));
-            // Case: Documents are not in the same collection
-            if (curContext !== nextContext) {
-                // Current document is contained in the next collection (zoom out)
-                if (curContext.context === nextContext) {
-                    if (collectionDocView) collectionDocView.props.addDocTab(curContext, "replace"); console.log("hiii");
-                    console.log("current in next");
-                    // Next document is contained in the current collection (zoom in)
-                } else if (nextContext.context === curContext) {
-                    if (collectionDocView) collectionDocView.props.addDocTab(nextContext, "replace"); console.log("hiii2");
-                    console.log("next in current");
-                }
-                // No change in parent collection
-            } else {
-                console.log("same collection");
-            }
-
-        }
-    }
     /**
      * This method makes sure that cursor navigates to the element that
      * has the option open and last in the group. If not in the group, and it has
      * the option open, navigates to that element.
      */
-    navigateToElement = async (curDoc: Doc, fromDocIndex: number) => {
+    navigateToElement = (curDoc: Doc) => {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        const srcContext = Cast(targetDoc.context, Doc, null);
+        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
+        const collectionDocView = DocumentManager.Instance.getDocumentView(presCollection);
+        console.log("NC: " + srcContext.title);
+        console.log("PC: " + presCollection.title);
+        if (collectionDocView) {
+            if (srcContext !== presCollection) {
+                console.log(collectionDocView);
+                collectionDocView.props.addDocTab(srcContext, "inPlace");
+            }
+        } else if (srcContext) {
+            this.props.addDocTab(srcContext, "onRight");
+        } else if (!srcContext) {
+            this.props.addDocTab(targetDoc, "onRight");
+        }
         this.updateCurrentPresentation();
         const docToJump = curDoc;
         const willZoom = false;
 
-        const nextTarget = curDoc;
-        const curTarget = this.childDocs[fromDocIndex];
-        this.checkCollection(curTarget, nextTarget);
-        // const presDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
-        // let nextSelected = presDocs.indexOf(curDoc);
-        // const currentDocGroups: Doc[] = [];
-        // for (; nextSelected < presDocs.length - 1; nextSelected++) {
-        //     if (!presDocs[nextSelected + 1].groupButton) {
-        //         break;
-        //     }
-        //     currentDocGroups.push(presDocs[nextSelected]);
-        // }
-
-        // currentDocGroups.forEach((doc: Doc, index: number) => {
-        //     if (doc.presNavButton) {
-        //         docToJump = doc;
-        //         willZoom = false;
-        //     }
-        //     if (doc.presZoomButton) {
-        //         docToJump = doc;
-        //         willZoom = true;
-        //     }
-        // });
-
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
-        const aliasOf = await DocCastAsync(docToJump.aliasOf);
-        const srcContext = aliasOf && await DocCastAsync(aliasOf.context);
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            const target = (await DocCastAsync(curDoc.presentationTargetDoc)) || curDoc;
-            if (curDoc.presNavButton && target) {
-                DocumentManager.Instance.jumpToDocument(target, false, undefined, srcContext);
-            } else if (curDoc.presZoomButton && target) {
+            if (curDoc.presNavButton && targetDoc) {
+                DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
+            } else if (curDoc.presZoomButton && targetDoc) {
                 //awaiting jump so that new scale can be found, since jumping is async
-                await DocumentManager.Instance.jumpToDocument(target, true, undefined, srcContext);
+                DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
             }
         } else {
             //awaiting jump so that new scale can be found, since jumping is async
-            const presTargetDoc = await DocCastAsync(docToJump.presentationTargetDoc);
-            presTargetDoc && await DocumentManager.Instance.jumpToDocument(presTargetDoc, willZoom, undefined, srcContext);
+            targetDoc && DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
         }
     }
 
@@ -325,11 +291,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc.currentFrame = 0;
             }
-            // if (this.layoutDoc.presStatus === "edit") {
-            //     this.layoutDoc.presStatus = true;
-            //     this.startPresentation(index);
-            // }
-            this.navigateToElement(this.childDocs[index], fromDoc);
+            this.navigateToElement(this.childDocs[index]);
             this._selectedArray = [this.childDocs[index]];
             // this.hideIfNotPresented(index);
             // this.showAfterPresented(index);
@@ -361,22 +323,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     this.layoutDoc.presStatus = "manual";
                 }
             }, targetDoc.presDuration ? NumCast(targetDoc.presDuration) + NumCast(targetDoc.presTransition) : 2000);
-            // for (let i = this.itemIndex + 1; i <= this.childDocs.length; i++) {
-            //     if (this.itemIndex + 1 === this.childDocs.length) {
-            //         clearTimeout(this._presTimer);
-            //         this.layoutDoc.presStatus = "manual";
-            //     } else timer = setTimeout(() => { console.log(i); this.next(); }, i * 2000);
-            // }
-
         }
-
-        // if (this.layoutDoc.presStatus) {
-        //     this.resetPresentation();
-        // } else {
-        //     this.layoutDoc.presStatus = true;
-        //     this.startPresentation(0);
-        //     this.gotoDocument(0, this.itemIndex);
-        // }
     }
 
     //The function that resets the presentation by removing every action done by it. It also
@@ -410,19 +357,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
         if (srcContext) {
             if (srcContext.miniPres) {
-                document.removeEventListener("keydown", this.keyEvents, true);
+                document.removeEventListener("keydown", this.keyEvents, false);
                 srcContext.miniPres = false;
-                Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
+                // Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
                 CollectionDockingView.AddRightSplit(this.rootDoc);
-                this.layoutDoc.inOverlay = false;
+                // this.layoutDoc.inOverlay = false;
             } else {
-                document.addEventListener("keydown", this.keyEvents, true);
+                document.addEventListener("keydown", this.keyEvents, false);
                 srcContext.miniPres = true;
                 this.props.addDocTab?.(this.rootDoc, "close");
-                Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
+                // Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
             }
-
-
         }
         // if (srcContext) {
         //     Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
@@ -491,11 +436,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
-    // render() {
-    // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
-    // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
-    //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
-
     // KEYS
     @observable _selectedArray: Doc[] = [];
 
@@ -516,14 +456,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // this._selectedArray = [];
         this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
         // this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
-        console.log(this._selectedArray);
+        // console.log(this._selectedArray);
     }
 
     //Command click
     @action
     multiSelect = (doc: Doc) => {
         this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
-        console.log(this._selectedArray);
     }
 
     //Shift click
@@ -536,7 +475,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this._selectedArray.push(this.childDocs[i]);
             }
         }
-        console.log(this._selectedArray);
     }
 
 
@@ -646,9 +584,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     viewPaths = async () => {
         const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
-        // const docToJump = this.childDocs[0];
-        // const aliasOf = await DocCastAsync(docToJump.aliasOf);
-        // const srcContext = aliasOf && await DocCastAsync(aliasOf.context);
         if (this.pathBoolean) {
             console.log("true");
             if (srcContext) {
@@ -696,7 +631,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @computed get paths() {
-        // const paths = []; //List of all of the paths that need to be added
         let pathPoints = "";
         console.log(this.childDocs.length - 1);
         this.childDocs.forEach((doc, index) => {
@@ -713,7 +647,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
         });
         console.log(pathPoints);
-        // return paths;
         return (<polyline
             points={pathPoints}
             style={{
@@ -826,15 +759,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="slider-text"></div>
                             <div className="slider-text">Long</div>
                         </div>
-                        {/* <div title="Fade After" className={`ribbon-button ${activeItem.presFadeButton ? "active" : ""}`} onClick={this.onFadeDocumentAfterPresentedClick}>Fade After</div> */}
-                        {/* <div title="Hide After" className={`ribbon-button ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => console.log("hide before")}>Hide Before</div> */}
-                        {/* <div title="Hide Before" className={`ribbon-button ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => console.log("hide after")}>Hide After</div> */}
                     </div>
                     <div className="ribbon-box">
                         Effects
                         <div className="presBox-dropdown"
                             onPointerDown={e => e.stopPropagation()}
-                        // onClick={() => this.dropdownToggle('Movement')}
                         >
                             {effect}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2 }} icon={"angle-down"} />
@@ -1366,11 +1295,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         e.preventDefault();
         const doc = document.getElementById('resizable');
         if (doc && tagDocView) {
-            console.log(tagDocView.props.ContentScaling());
-            const transform = (tagDocView.props.ScreenToLocalTransform().scale(tagDocView.props.ContentScaling())).inverse();
-            console.log(transform);
+
             const scale = tagDocView.childScaling();
-            console.log(scale);
+            console.log("childScaling: " + scale);
+            const scale2 = tagDocView.props.ScreenToLocalTransform().Scale;
+            console.log("ScreenToLocal...Scale: " + scale2);
             let height = doc.offsetHeight;
             let width = doc.offsetWidth;
             let top = doc.offsetTop;
@@ -1407,9 +1336,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // }
             //Bottom right
             if (this._isDraggingBR) {
-                const newHeight = height += (e.movementY * tagDocView.props.ContentScaling());
+                const newHeight = height += (e.movementY * scale2);
                 doc.style.height = newHeight + 'px';
-                const newWidth = width += (e.movementX * tagDocView.props.ContentScaling());
+                const newWidth = width += (e.movementX * scale2);
                 doc.style.width = newWidth + 'px';
                 // Bottom left
             } else if (this._isDraggingBL) {
