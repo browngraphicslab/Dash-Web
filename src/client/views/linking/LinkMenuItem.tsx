@@ -153,15 +153,20 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     async followDefault() {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
+        const linkDoc = this.props.linkDoc;
 
-        if (this.props.linkDoc.followLinkLocation && this.props.linkDoc.followLinkLocation !== "Default") {
-            this.props.addDocTab(this.props.destinationDoc, StrCast(this.props.linkDoc.followLinkLocation));
+        if (linkDoc.followLinkLocation === "openExternal" && this.props.destinationDoc.type === DocumentType.WEB) {
+            window.open(Hypothesis.makeAnnotationUrl(StrCast(this.props.linkDoc.annotationId), '_blank'));
+            return;
+        }
+
+        if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "Default") {
+            this.props.addDocTab(this.props.destinationDoc, StrCast(linkDoc.followLinkLocation));
         } else {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
         }
 
-        // this.props.linkDoc.linksToAnnotation && setTimeout(() => window.open(StrCast(this.props.linkDoc.annotationUrl), '_blank'), 1000); // open external page if hypothes.is annotation
-        this.props.linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId));
+        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId));
     }
 
     @undoBatch
