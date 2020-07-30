@@ -227,6 +227,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
             ContentScaling={returnOne}
+            scriptContext={this.props.scriptContext}
             pinToPres={this.props.pinToPres}
         />;
     }

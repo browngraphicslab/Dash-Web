@@ -1,7 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faHireAHelper } from '@fortawesome/free-brands-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,57 +11,54 @@ import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../fields/Types';
+import { ScriptField } from '../../fields/ScriptField';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { CurrentUserUtils } from '../util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils, returnEmptyFilter, setupMoveUpEvents } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
-import { HistoryUtil } from '../util/History';
-import RichTextMenu from './nodes/formattedText/RichTextMenu';
-import { Scripting } from '../util/Scripting';
-import SettingsManager from '../util/SettingsManager';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { DocumentManager } from '../util/DocumentManager';
 import GroupManager from '../util/GroupManager';
+import { HistoryUtil } from '../util/History';
+import { Scripting } from '../util/Scripting';
+import { SelectionManager } from '../util/SelectionManager';
+import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
+import { SnappingManager } from '../util/SnappingManager';
 import { Transform } from '../util/Transform';
+import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
+import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
 import { CollectionLinearView } from './collections/CollectionLinearView';
+import CollectionMenu from './collections/CollectionMenu';
 import { CollectionView, CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
 import GestureOverlay from './GestureOverlay';
+import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import KeyManager from './GlobalKeyHandler';
+import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
 import { MainViewNotifs } from './MainViewNotifs';
 import { AudioBox } from './nodes/AudioBox';
+import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
+import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
+import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { RadialMenu } from './nodes/RadialMenu';
+import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { ScriptField, ComputedField } from '../../fields/ScriptField';
-import { TimelineMenu } from './animationtimeline/TimelineMenu';
-import { SnappingManager } from '../util/SnappingManager';
-import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
-import { DocumentManager } from '../util/DocumentManager';
-import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { LinkMenu } from './linking/LinkMenu';
-import { LinkDocPreview } from './nodes/LinkDocPreview';
-import { TaskCompletionBox } from './nodes/TaskCompletedBox';
-import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
-import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
-import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
-import CollectionMenu from './collections/CollectionMenu';
-import { Tooltip, AccordionActions } from '@material-ui/core';
-import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
-import { SelectionManager } from '../util/SelectionManager';
-import { PrefetchProxy } from '../../fields/Proxy';
-import { DragManager } from '../util/DragManager';
-import { discovery_v1, dialogflow_v2beta1 } from 'googleapis';
 
 @observer
 export class MainView extends React.Component {
@@ -311,9 +307,11 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    defaultBackgroundColors = (doc: Doc) => {
+    defaultBackgroundColors = (doc: Opt<Doc>) => {
+        if (this.panelContent === doc?.title) return "lightgrey";
         if (this.darkScheme) {
             switch (doc?.type) {
+                case DocumentType.MENUICON: return "white";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -323,6 +321,7 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc?.type) {
+                case DocumentType.MENUICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
@@ -381,7 +380,6 @@ export class MainView extends React.Component {
     onPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
             this.panelContent = "none";
-            CurrentUserUtils.panelContent = "none";
             this._canClick = true;
             this._flyoutSizeOnDown = e.clientX;
             document.removeEventListener("pointermove", this.onPointerMove);
@@ -427,9 +425,7 @@ export class MainView extends React.Component {
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
-        if (!(this.sidebarContent instanceof Doc)) {
-            return (null);
-        }
+        if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
                 <DocumentView
@@ -583,49 +579,20 @@ export class MainView extends React.Component {
     // }
 
     @action
-    selectPanel = (str: string) => {
+    selectMenu = (str: string) => {
         if (this.panelContent === str && this.flyoutWidth !== 0) {
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
             this.panelContent = str;
-            MainView.expandFlyout();
-            if (str === "tools") {
-                CurrentUserUtils.toolsBtn;
-                this.sidebarContent.proto = CurrentUserUtils.toolsStack;
-            } else if (str === "workspace") {
-                this.sidebarContent.proto = CurrentUserUtils.workspaceStack;
-            } else if (str === "catalog") {
-                this.sidebarContent.proto = CurrentUserUtils.catalogStack;
-            } else if (str === "deleted") {
-                this.sidebarContent.proto = CurrentUserUtils.closedStack;
-            } else if (str === "search") {
-                this.sidebarContent.proto = CurrentUserUtils.searchStack;
+            switch (this.panelContent) {
+                case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
+                case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
+                case "Catalog": this.sidebarContent.proto = CurrentUserUtils.catalogStack; break;
+                case "deleted": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
+                case "Search": this.sidebarContent.proto = CurrentUserUtils.searchStack; break;
             }
-        }
-        return true;
-    }
-
-    @action
-    selectMenu = (str: string) => {
-        if (CurrentUserUtils.panelContent === str && this.flyoutWidth !== 0) {
-            CurrentUserUtils.panelContent = "none";
-            this.flyoutWidth = 0;
-        } else {
-            CurrentUserUtils.panelContent = str;
             MainView.expandFlyout();
-            if (str === "tools") {
-                CurrentUserUtils.toolsBtn;
-                this.sidebarContent.proto = CurrentUserUtils.toolsStack;
-            } else if (str === "workspace") {
-                this.sidebarContent.proto = CurrentUserUtils.workspaceStack;
-            } else if (str === "catalog") {
-                this.sidebarContent.proto = CurrentUserUtils.catalogStack;
-            } else if (str === "deleted") {
-                this.sidebarContent.proto = CurrentUserUtils.closedStack;
-            } else if (str === "search") {
-                this.sidebarContent.proto = CurrentUserUtils.searchStack;
-            }
         }
         return true;
     }
@@ -660,7 +627,7 @@ export class MainView extends React.Component {
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
 
         const rightFlyout = this.selectedDocumentView ? this._propertiesWidth - 1 : this.propertiesWidth() > 10 ? 151.5 : 0;
-        return !this.userDoc || !(this.sidebarContent instanceof Doc) ? (null) : (
+        return !this.userDoc ? (null) : (
             <div className="mainView-mainContent" style={{
                 color: this.darkScheme ? "rgb(205,205,205)" : "black",
                 //change to times 2 for both pinned
@@ -672,7 +639,7 @@ export class MainView extends React.Component {
                     <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                         {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                             onPointerDown={this.onPointerDown}
-                            style={{ backgroundColor: this.defaultBackgroundColors(this.sidebarContent) }}>
+                            style={{ backgroundColor: this.defaultBackgroundColors(undefined) }}>
                             <span title="library View Dragger" style={{
                                 width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                                 //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
