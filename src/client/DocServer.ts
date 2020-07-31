@@ -9,6 +9,7 @@ import GestureOverlay from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';
+import { getPlaygroundMode } from '../fields/util';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -156,23 +157,23 @@ export namespace DocServer {
 
         let _isReadOnly = false;
         export function makeReadOnly() {
-            if (_isReadOnly) return;
-            _isReadOnly = true;
-            _CreateField = field => {
-                _cache[field[Id]] = field;
-            };
-            _UpdateField = emptyFunction;
-            _RespondToUpdate = emptyFunction;
+            if (!_isReadOnly) {
+                _isReadOnly = true;
+                _CreateField = field => _cache[field[Id]] = field;
+                _UpdateField = emptyFunction;
+                _RespondToUpdate = emptyFunction;
+            }
         }
 
         export function makeEditable() {
-            if (!_isReadOnly) return;
-            location.reload();
-            // _isReadOnly = false;
-            // _CreateField = _CreateFieldImpl;
-            // _UpdateField = _UpdateFieldImpl;
-            // _respondToUpdate = _respondToUpdateImpl;
-            // _cache = {};
+            if (_isReadOnly) {
+                location.reload();
+                // _isReadOnly = false;
+                // _CreateField = _CreateFieldImpl;
+                // _UpdateField = _UpdateFieldImpl;
+                // _respondToUpdate = _respondToUpdateImpl;
+                // _cache = {};
+            }
         }
 
         export function isReadOnly() { return _isReadOnly; }
@@ -451,7 +452,7 @@ export namespace DocServer {
     }
 
     function _UpdateFieldImpl(id: string, diff: any) {
-        Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+        (!getPlaygroundMode()) && Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
     let _UpdateField: (id: string, diff: any) => void = errorFunc;
