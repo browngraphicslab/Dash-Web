@@ -368,6 +368,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
 
 
+
+
+
+
     @undoBatch
     @action
     rotate = (angle: number) => {
@@ -439,27 +443,125 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
+    inputBox = (key: string, value: any, setter: (val: string) => {}, title: string) => {
+        return <div className="inputBox"
+            style={{
+                marginRight: title === "X:" ? "19px" : "",
+                marginLeft: title === "∠:" ? "39px" : ""
+            }}>
+            <div className="inputBox-title"> {title} </div>
+            <input className="inputBox-input"
+                type="text" value={value}
+                onChange={e => setter(e.target.value)} />
+            <div className="inputBox-button">
+                <div className="inputBox-button-up" key="up2"
+                    onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))} >
+                    <FontAwesomeIcon icon="caret-up" color="white" size="sm" />
+                </div>
+                <div className="inputbox-Button-down" key="down2"
+                    onPointerDown={undoBatch(action(() => this.upDownButtons("down", key)))} >
+                    <FontAwesomeIcon icon="caret-down" color="white" size="sm" />
+                </div>
+            </div>
+        </div>;
+    }
 
+    inputBoxDuo = (key: string, value: any, setter: (val: string) => {}, title1: string, key2: string, value2: any, setter2: (val: string) => {}, title2: string) => {
+        return <div className="inputBox-duo">
+            {this.inputBox(key, value, setter, title1)}
+            {title2 === "" ? (null) : this.inputBox(key2, value2, setter2, title2)}
+        </div>;
+    }
 
+    @action
+    upDownButtons = (dirs: string, field: string) => {
+        switch (field) {
+            case "rot": this.rotate((dirs === "up" ? .1 : -.1)); break;
+            // case "rot": this.selectedInk?.forEach(i => i.rootDoc.rotation = NumCast(i.rootDoc.rotation) + (dirs === "up" ? 0.1 : -0.1)); break;
+            case "Xps": this.selectedDoc && (this.selectedDoc.x = NumCast(this.selectedDoc?.x) + (dirs === "up" ? 10 : -10)); break;
+            case "Yps": this.selectedDoc && (this.selectedDoc.y = NumCast(this.selectedDoc?.y) + (dirs === "up" ? 10 : -10)); break;
+            case "stk": this.selectedDoc && (this.selectedDoc.strokeWidth = NumCast(this.selectedDoc?.strokeWidth) + (dirs === "up" ? .1 : -.1)); break;
+            case "wid":
+                const oldWidth = NumCast(this.selectedDoc?._width);
+                const oldHeight = NumCast(this.selectedDoc?._height);
+                const oldX = NumCast(this.selectedDoc?.x);
+                const oldY = NumCast(this.selectedDoc?.y);
+                this.selectedDoc && (this.selectedDoc._width = oldWidth + (dirs === "up" ? 10 : - 10));
+                this._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
+                const doc = this.selectedDoc;
+                if (doc?.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
+                    console.log(doc.x, doc.y, doc._height, doc._width);
+                    const ink = Cast(doc.data, InkField)?.inkData;
+                    console.log(ink);
+                    if (ink) {
+                        const newPoints: { X: number, Y: number }[] = [];
+                        for (var j = 0; j < ink.length; j++) {
+                            // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
+                            const newX = (NumCast(doc.x) - oldX) + (ink[j].X * NumCast(doc._width)) / oldWidth;
+                            const newY = (NumCast(doc.y) - oldY) + (ink[j].Y * NumCast(doc._height)) / oldHeight;
+                            newPoints.push({ X: newX, Y: newY });
+                        }
+                        doc.data = new InkField(newPoints);
+                    }
+                }
+                break;
+            case "hgt":
+                const oWidth = NumCast(this.selectedDoc?._width);
+                const oHeight = NumCast(this.selectedDoc?._height);
+                const oX = NumCast(this.selectedDoc?.x);
+                const oY = NumCast(this.selectedDoc?.y);
+                this.selectedDoc && (this.selectedDoc._height = oHeight + (dirs === "up" ? 10 : - 10));
+                this._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
+                const docu = this.selectedDoc;
+                if (docu?.type === DocumentType.INK && docu.x && docu.y && docu._height && docu._width) {
+                    console.log(docu.x, docu.y, docu._height, docu._width);
+                    const ink = Cast(docu.data, InkField)?.inkData;
+                    console.log(ink);
+                    if (ink) {
+                        const newPoints: { X: number, Y: number }[] = [];
+                        for (var j = 0; j < ink.length; j++) {
+                            // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
+                            const newX = (NumCast(docu.x) - oX) + (ink[j].X * NumCast(docu._width)) / oWidth;
+                            const newY = (NumCast(docu.y) - oY) + (ink[j].Y * NumCast(docu._height)) / oHeight;
+                            newPoints.push({ X: newX, Y: newY });
+                        }
+                        docu.data = new InkField(newPoints);
+                    }
+                }
+                break;
+        }
+    }
 
+    getField(key: string) {
+        //if (this.selectedDoc) {
+        return Field.toString(this.selectedDoc[key] as Field);
+        // } else {
+        //     return undefined as Opt<string>;
+        // }
+    }
 
+    @computed get shapeXps() { return this.getField("x"); }
+    @computed get shapeYps() { return this.getField("y"); }
+    @computed get shapeRot() { return this.getField("rotation"); }
+    @computed get shapeHgt() { return this.getField("_height"); }
+    @computed get shapeWid() { return this.getField("_width"); }
+    set shapeXps(value) { this.selectedDoc && (this.selectedDoc.x = Number(value)); }
+    set shapeYps(value) { this.selectedDoc && (this.selectedDoc.y = Number(value)); }
+    set shapeRot(value) { this.selectedDoc && (this.selectedDoc.rotation = Number(value)); }
+    set shapeWid(value) {
+        const oldWidth = NumCast(this.selectedDoc?._width);
+        this.selectedDoc && (this.selectedDoc._width = Number(value));
+        this._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
+    }
+    set shapeHgt(value) {
+        const oldHeight = NumCast(this.selectedDoc?._height);
+        this.selectedDoc && (this.selectedDoc._height = Number(value));
+        this._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    @computed get hgtInput() { return this.inputBoxDuo("hgt", this.shapeHgt, (val: string) => this.shapeHgt = val, "H:", "wid", this.shapeWid, (val: string) => this.shapeWid = val, "W:"); }
+    @computed get XpsInput() { return this.inputBoxDuo("Xps", this.shapeXps, (val: string) => this.shapeXps = val, "X:", "Yps", this.shapeYps, (val: string) => this.shapeYps = val, "Y:"); }
+    @computed get rotInput() { return this.inputBoxDuo("rot", this.shapeRot, (val: string) => { this.rotate(Number(val) - Number(this.shapeRot)); this.shapeRot = val; return true; }, "∠:", "rot", this.shapeRot, (val: string) => this.shapeRot = val, ""); }
 
 
 
@@ -468,7 +570,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get appearanceEditor() { return "appearance" };
 
-    @computed get transformEditor() { return this.controlPointsButton };
+    @computed get transformEditor() {
+        return <div className="transform-editor">
+            {this.controlPointsButton}
+            {this.hgtInput}
+            {this.XpsInput}
+            {this.rotInput}
+        </div>;
+    };
 
     render() {
 
@@ -492,10 +601,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 {this.editableTitle}
             </div>
             <div className="propertiesView-settings">
-                <div className="propertiesView-settings-title" style={{ backgroundColor: this.openActions ? "black" : "" }}>
+                <div className="propertiesView-settings-title"
+                    onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}
+                    style={{ backgroundColor: this.openActions ? "black" : "" }}>
                     Actions
-                    <div className="propertiesView-settings-title-icon"
-                        onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}>
+                    <div className="propertiesView-settings-title-icon">
                         <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>
@@ -504,10 +614,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div> : null}
             </div>
             <div className="propertiesView-sharing">
-                <div className="propertiesView-sharing-title" style={{ backgroundColor: this.openSharing ? "black" : "" }}>
+                <div className="propertiesView-sharing-title"
+                    onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
+                    style={{ backgroundColor: this.openSharing ? "black" : "" }}>
                     Sharing {"&"} Permissions
-                    <div className="propertiesView-sharing-title-icon"
-                        onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}>
+                    <div className="propertiesView-sharing-title-icon">
                         <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>
@@ -520,10 +631,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
 
             {this.isInk ? <div className="propertiesView-appearance">
-                <div className="propertiesView-appearance-title" style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
+                <div className="propertiesView-appearance-title"
+                    onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
+                    style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
                     Appearance
-                    <div className="propertiesView-appearance-title-icon"
-                        onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}>
+                    <div className="propertiesView-appearance-title-icon">
                         <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>
@@ -533,10 +645,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             </div> : null}
 
             {this.isInk ? <div className="propertiesView-transform">
-                <div className="propertiesView-transform-title" style={{ backgroundColor: this.openTransform ? "black" : "" }}>
+                <div className="propertiesView-transform-title"
+                    onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}
+                    style={{ backgroundColor: this.openTransform ? "black" : "" }}>
                     Transform
-                    <div className="propertiesView-transform-title-icon"
-                        onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}>
+                    <div className="propertiesView-transform-title-icon">
                         <FontAwesomeIcon icon={this.openTransform ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>
@@ -550,11 +663,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
 
             <div className="propertiesView-fields">
-                <div className="propertiesView-fields-title" style={{ backgroundColor: this.openFields ? "black" : "" }}>
+                <div className="propertiesView-fields-title"
+                    onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
+                    style={{ backgroundColor: this.openFields ? "black" : "" }}>
                     <div className="propertiesView-fields-title-name">
                         Fields {"&"} Tags
-                        <div className="propertiesView-fields-title-icon"
-                            onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}>
+                        <div className="propertiesView-fields-title-icon">
                             <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
                         </div>
                     </div>
@@ -569,7 +683,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div> : null}
             </div>
             <div className="propertiesView-layout">
-                <div className="propertiesView-layout-title" style={{ backgroundColor: this.openLayout ? "black" : "" }}>
+                <div className="propertiesView-layout-title"
+                    onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}
+                    style={{ backgroundColor: this.openLayout ? "black" : "" }}>
                     Layout
                     <div className="propertiesView-layout-title-icon"
                         onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>

@@ -434,3 +434,67 @@
         }
     }
 }
+
+.inputBox-duo {
+    display: flex;
+}
+
+.inputBox {
+
+    margin-top: 10px;
+    display: flex;
+    height: 19px;
+    margin-right: 15px;
+
+    .inputBox-title {
+        font-size: 12px;
+        padding-right: 5px;
+    }
+
+    .inputBox-input {
+        font-size: 10px;
+        width: 50px;
+        margin-right: 1px;
+        border-radius: 3px;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    .inputBox-button {
+
+        .inputBox-button-up {
+            background-color: #333333;
+    height: 9px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    border-radius: 1.5px;
+
+            &:hover {
+                background: rgb(131, 131, 131);
+                transform: scale(1.05);
+                cursor: pointer;
+            }
+        }
+
+        .inputBox-button-down {
+            background-color: #333333;
+    height: 9px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    border-radius: 1.5px;
+
+            &:hover {
+                background: rgb(131, 131, 131);
+                transform: scale(1.05);
+                cursor: pointer;
+            }
+        }
+
+    }
+}
