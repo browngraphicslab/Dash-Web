@@ -379,3 +379,58 @@
 
     }
 }
+
+.inking-button {
+
+    display: flex;
+
+    .inking-button-points {
+        background-color: #333333;
+        padding: 7px;
+        border-radius: 7px;
+        margin-right: 32px;
+        width: 32;
+        height: 32;
+        padding-top: 9px;
+        margin-left: 5px;
+
+        &:hover {
+            background: rgb(131, 131, 131);
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+    }
+
+    .inking-button-lock {
+        background-color: #333333;
+        padding: 7px;
+        border-radius: 7px;
+        margin-right: 32px;
+        width: 32;
+        height: 32;
+        padding-top: 9px;
+        padding-left: 10px;
+
+        &:hover {
+            background: rgb(131, 131, 131);
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+    }
+
+    .inking-button-rotate {
+        background-color: #333333;
+        padding: 7px;
+        border-radius: 7px;
+        width: 32;
+        height: 32;
+        padding-top: 9px;
+        padding-left: 10px;
+
+        &:hover {
+            background: rgb(131, 131, 131);
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+    }
+}

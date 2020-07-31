@@ -2,7 +2,7 @@ import React = require("react");
 import { observer } from "mobx-react";
 import "./PropertiesView.scss";
 import { observable, action, computed, runInAction } from "mobx";
-import { Doc, Field, DocListCast, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin } from "../../../../fields/Doc";
+import { Doc, Field, DocListCast, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt } from "../../../../fields/Doc";
 import { DocumentView } from "../../nodes/DocumentView";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { EditableView } from "../../EditableView";
@@ -21,6 +21,11 @@ import SharingManager from "../../../util/SharingManager";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import FormatShapePane from "./FormatShapePane";
 import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
+import { InkField } from "../../../../fields/InkField";
+import { undoBatch } from "../../../util/UndoManager";
+import { ColorState, SketchPicker } from "react-color";
+import AntimodeMenu from "../../AntimodeMenu";
+import "./FormatShapePane.scss";
 
 
 interface PropertiesViewProps {
@@ -349,6 +354,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             SetValue={this.setTitle} />;
     }
 
+    @action
     setTitle = (value: string) => {
         if (this.dataDoc) {
             this.selectedDoc && (this.selectedDoc.title = value);
@@ -357,6 +363,112 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
         return false;
     }
+
+
+
+
+
+    @undoBatch
+    @action
+    rotate = (angle: number) => {
+        const _centerPoints: { X: number, Y: number }[] = [];
+        if (this.selectedDoc) {
+            const doc = this.selectedDoc;
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
+                const ink = Cast(doc.data, InkField)?.inkData;
+                if (ink) {
+                    const xs = ink.map(p => p.X);
+                    const ys = ink.map(p => p.Y);
+                    const left = Math.min(...xs);
+                    const top = Math.min(...ys);
+                    const right = Math.max(...xs);
+                    const bottom = Math.max(...ys);
+                    _centerPoints.push({ X: left, Y: top });
+                }
+            }
+
+            var index = 0;
+            if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
+                doc.rotation = Number(doc.rotation) + Number(angle);
+                const ink = Cast(doc.data, InkField)?.inkData;
+                if (ink) {
+
+                    const newPoints: { X: number, Y: number }[] = [];
+                    for (var i = 0; i < ink.length; i++) {
+                        const newX = Math.cos(angle) * (ink[i].X - _centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].X;
+                        const newY = Math.sin(angle) * (ink[i].X - _centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].Y;
+                        newPoints.push({ X: newX, Y: newY });
+                    }
+                    doc.data = new InkField(newPoints);
+                    const xs = newPoints.map(p => p.X);
+                    const ys = newPoints.map(p => p.Y);
+                    const left = Math.min(...xs);
+                    const top = Math.min(...ys);
+                    const right = Math.max(...xs);
+                    const bottom = Math.max(...ys);
+
+                    doc._height = (bottom - top);
+                    doc._width = (right - left);
+                }
+                index++;
+            }
+        }
+    }
+
+    @observable _controlBtn: boolean = false;
+    @observable _lock: boolean = false;
+
+    @computed
+    get controlPointsButton() {
+        return <div className="inking-button">
+            <Tooltip title={<><div className="dash-tooltip">{"Edit points"}</div></>}>
+                <div className="inking-button-points" onPointerDown={action(() => this._controlBtn = !this._controlBtn)} style={{ backgroundColor: this._controlBtn ? "black" : "" }}>
+                    <FontAwesomeIcon icon="bezier-curve" color="white" size="lg" />
+                </div>
+            </Tooltip>
+            <Tooltip title={<><div className="dash-tooltip">{this._lock ? "Unlock points" : "Lock points"}</div></>}>
+                <div className="inking-button-lock" onPointerDown={action(() => this._lock = !this._lock)} >
+                    <FontAwesomeIcon icon={this._lock ? "unlock" : "lock"} color="white" size="lg" />
+                </div>
+            </Tooltip>
+            <Tooltip title={<><div className="dash-tooltip">{"Rotate 90˚"}</div></>}>
+                <div className="inking-button-rotate" onPointerDown={action(() => this.rotate(Math.PI / 2))}>
+                    <FontAwesomeIcon icon="undo" color="white" size="lg" />
+                </div>
+            </Tooltip>
+        </div>;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @computed get appearanceEditor() { return "appearance" };
+
+    @computed get transformEditor() { return this.controlPointsButton };
 
     render() {
 
@@ -416,7 +528,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>
                 </div>
                 {this.openAppearance ? <div className="propertiesView-appearance-content">
-                    <FormatShapePane />
+                    {this.appearanceEditor}
                 </div> : null}
             </div> : null}
 
@@ -429,7 +541,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>
                 </div>
                 {this.openTransform ? <div className="propertiesView-transform-content">
-                    transform
+                    {this.transformEditor}
                 </div> : null}
             </div> : null}
 

@@ -304,10 +304,10 @@ export namespace Docs {
             [DocumentType.MENUICON, {
                 layout: { view: MenuIconBox, dataField: defaultDataKey },
             }],
-            [DocumentType.RECOMMENDATION, {
-                layout: { view: RecommendationsBox, dataField: defaultDataKey },
-                options: { _width: 200, _height: 200 },
-            }],
+            // [DocumentType.RECOMMENDATION, {
+            //     layout: { view: RecommendationsBox, dataField: defaultDataKey },
+            //     options: { _width: 200, _height: 200 },
+            // }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: defaultDataKey }
             }],
