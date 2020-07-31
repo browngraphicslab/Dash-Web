@@ -746,7 +746,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             let lines = new List<string>(result[2]);
-                            result[0]._height = 46;
+                            console.log(lines);
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             highlights.forEach((item) => headers.add(item));
@@ -763,7 +763,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             let lines = new List<string>(result[2]);
                             highlights.forEach((item) => headers.add(item));
-                            result[0]._height = 46;
+                            console.log(lines);
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             if (i < this._visibleDocuments.length) {

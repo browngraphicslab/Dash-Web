@@ -30,7 +30,7 @@ export namespace SearchUtil {
         rows?: number;
         fq?: string;
         allowAliases?: boolean;
-        "facet"?:string;
+        "facet"?: string;
         "facet.field"?: string;
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
