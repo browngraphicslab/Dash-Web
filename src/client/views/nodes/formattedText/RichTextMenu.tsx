@@ -224,7 +224,7 @@ export default class RichTextMenu extends AntimodeMenu {
         if (this.view && this.TextView.props.isSelected(true)) {
             const path = (this.view.state.selection.$from as any).path;
             for (let i = path.length - 3; i < path.length && i >= 0; i -= 3) {
-                if (path[i]?.type === this.view.state.schema.nodes.paragraph) {
+                if (path[i]?.type === this.view.state.schema.nodes.paragraph || path[i]?.type === this.view.state.schema.nodes.heading) {
                     return path[i].attrs.align || "left";
                 }
             }
@@ -491,7 +491,7 @@ export default class RichTextMenu extends AntimodeMenu {
     alignParagraphs(state: EditorState<any>, align: "left" | "right" | "center", dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, align }, node.marks);
                 return false;
             }
@@ -504,7 +504,7 @@ export default class RichTextMenu extends AntimodeMenu {
     insetParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const inset = (node.attrs.inset ? Number(node.attrs.inset) : 0) + 10;
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
                 return false;
@@ -517,7 +517,7 @@ export default class RichTextMenu extends AntimodeMenu {
     outsetParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const inset = Math.max(0, (node.attrs.inset ? Number(node.attrs.inset) : 0) - 10);
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
                 return false;
@@ -530,8 +530,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
     indentParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
+        let headin = false;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
                 const indent = !nodeval ? 25 : nodeval < 0 ? 0 : nodeval + 25;
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
@@ -539,14 +540,14 @@ export default class RichTextMenu extends AntimodeMenu {
             }
             return true;
         });
-        dispatch?.(tr);
+        !headin && dispatch?.(tr);
         return true;
     }
 
     hangingIndentParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
                 const indent = !nodeval ? -25 : nodeval > 0 ? 0 : nodeval - 10;
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
@@ -828,6 +829,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     // TODO: should check for valid URL
+    @undoBatch
     makeLinkToURL = (target: string, lcoation: string) => {
         ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRight", "", target);
     }
