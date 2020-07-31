@@ -254,6 +254,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     pinToPres={emptyFunction}
                     bringToFront={returnFalse}
                     ContentScaling={returnOne}
+                    dontRegisterView={true}
                 />
             </div>;
         } else {
