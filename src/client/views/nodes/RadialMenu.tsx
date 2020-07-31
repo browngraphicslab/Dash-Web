@@ -1,7 +1,6 @@
 import React = require("react");
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import MobileInterface from "../../../mobile/MobileInterface";
 import "./RadialMenu.scss";
 import { RadialMenuItem, RadialMenuProps } from "./RadialMenuItem";
 
@@ -26,7 +25,6 @@ export class RadialMenu extends React.Component {
 
 
     catchTouch = (te: React.TouchEvent) => {
-        console.log("caught");
         te.stopPropagation();
         te.preventDefault();
     }
@@ -38,7 +36,6 @@ export class RadialMenu extends React.Component {
         this._mouseY = e.clientY;
         this.used = false;
         document.addEventListener("pointermove", this.onPointerMove);
-
     }
 
     @observable
@@ -92,7 +89,6 @@ export class RadialMenu extends React.Component {
 
     @action
     componentDidMount = () => {
-        console.log(this._pageX);
         document.addEventListener("pointerdown", this.onPointerDown);
         document.addEventListener("pointerup", this.onPointerUp);
         this.previewcircle();
@@ -176,7 +172,6 @@ export class RadialMenu extends React.Component {
 
     @action
     openMenu = (x: number, y: number) => {
-
         this._pageX = x;
         this._pageY = y;
         this._shouldDisplay;
@@ -216,7 +211,7 @@ export class RadialMenu extends React.Component {
 
 
     render() {
-        if (!this._display || MobileInterface.Instance) {
+        if (!this._display) {
             return null;
         }
         const style = this._yRelativeToTop ? { left: this._pageX - 130, top: this._pageY - 130 } :

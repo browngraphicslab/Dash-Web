@@ -1,12 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import {
-    faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
-    faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
-    faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
-    faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
-    faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight
-} from '@fortawesome/free-solid-svg-icons';
+import { faHireAHelper, faBuffer } from '@fortawesome/free-brands-svg-icons';
+import * as fa from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
@@ -35,7 +29,6 @@ import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import InkOptionsMenu from './collections/collectionFreeForm/InkOptionsMenu';
 import { CollectionLinearView } from './collections/CollectionLinearView';
 import { CollectionView, CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
@@ -60,6 +53,11 @@ import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { LinkMenu } from './linking/LinkMenu';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { SearchBox } from './search/SearchBox';
+import { TaskCompletionBox } from './nodes/TaskCompletedBox';
+import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
+import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
+import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
+import CollectionMenu from './collections/CollectionMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -85,9 +83,8 @@ export class MainView extends React.Component {
 
     public isPointerDown = false;
 
-
     componentDidMount() {
-        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType"]); // can play with these fields on someone else's
+        DocServer.setPlaygroundFields(["dataTransition", "_viewTransition", "_panX", "_panY", "_viewScale", "_viewType", "_chromeStatus"]); // can play with these fields on someone else's
 
         const tag = document.createElement('script');
 
@@ -102,7 +99,7 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("paste", KeyManager.Instance.paste as any);
-        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on 
+        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on
             const id = FormattedTextBox.GetDocFromUrl(e.detail);
             DocServer.GetRefField(id).then(doc => {
                 if (doc instanceof Doc) {
@@ -140,12 +137,21 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
-            faTerminal, faToggleOn, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard, fileSolid,
-            faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
-            faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
-            faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
-            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faArrowsAlt, faQuoteLeft, faSortAmountDown, faAlignLeft, faAlignCenter, faAlignRight);
+        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt,
+            fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
+            fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
+            fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
+            fa.faCaretSquareDown, fa.faCaretSquareRight, fa.faArrowsAltH, fa.faPlus, fa.faMinus, fa.faTerminal, fa.faToggleOn, fa.faFile, fa.faLocationArrow,
+            fa.faSearch, fa.faFileDownload, fa.faStop, fa.faCalculator, fa.faWindowMaximize, fa.faAddressCard, fa.faQuestionCircle, fa.faArrowLeft,
+            fa.faArrowRight, fa.faArrowDown, fa.faArrowUp, fa.faBolt, fa.faBullseye, fa.faCaretUp, fa.faCat, fa.faCheck, fa.faChevronRight, fa.faClipboard,
+            fa.faClone, fa.faCloudUploadAlt, fa.faCommentAlt, fa.faCompressArrowsAlt, fa.faCut, fa.faEllipsisV, fa.faEraser, fa.faExclamation, fa.faFileAlt,
+            fa.faFileAudio, fa.faFilePdf, fa.faFilm, fa.faFilter, fa.faFont, fa.faGlobeAsia, fa.faHighlighter, fa.faLongArrowAltRight, fa.faMousePointer,
+            fa.faMusic, fa.faObjectGroup, fa.faPause, fa.faPen, fa.faPenNib, fa.faPhone, fa.faPlay, fa.faPortrait, fa.faRedoAlt, fa.faStamp, fa.faStickyNote,
+            fa.faTimesCircle, fa.faThumbtack, fa.faTree, fa.faTv, fa.faUndoAlt, fa.faVideo, fa.faAsterisk, fa.faBrain, fa.faImage, fa.faPaintBrush, fa.faTimes,
+            fa.faEye, fa.faArrowsAlt, fa.faQuoteLeft, fa.faSortAmountDown, fa.faAlignLeft, fa.faAlignCenter, fa.faAlignRight, fa.faHeading, fa.faRulerCombined,
+            fa.faFillDrip, fa.faLink, fa.faUnlink, fa.faBold, fa.faItalic, fa.faChevronLeft, fa.faUnderline, fa.faStrikethrough, fa.faSuperscript, fa.faSubscript,
+            fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
+            fa.faBezierCurve, fa.faCircle, fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -161,17 +167,17 @@ export class MainView extends React.Component {
         if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
             TimelineMenu.Instance.closeMenu();
         }
-        if (targets && targets.length && SearchBox.Instance._searchbarOpen){
+        if (targets && targets.length && SearchBox.Instance._searchbarOpen) {
             let check = false;
-            targets.forEach((thing)=>{
-            if (thing.className.toString()==="collectionSchemaView-table" || thing.className.toString()==="beta"|| thing.className.toString()==="collectionSchemaView-menuOptions-wrapper") {
-                check=true;
+            targets.forEach((thing) => {
+                if (thing.className.toString() === "collectionSchemaView-table" || thing.className.toString() === "beta" || thing.className.toString() === "collectionSchemaView-menuOptions-wrapper") {
+                    check = true;
+                }
+            });
+            if (check === false) {
+                SearchBox.Instance.closeSearch();
             }
-        });
-        if (check===false){
-            SearchBox.Instance.closeSearch();
         }
-    }
 
 
     });
@@ -348,7 +354,7 @@ export class MainView extends React.Component {
 
 
 
-    
+
 
     @computed get mainDocView() {
         return <DocumentView Document={this.mainContainer!}
@@ -434,7 +440,7 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    sidebarScreenToLocal = () => new Transform(0, RichTextMenu.Instance.Pinned ? -35 : 0, 1);
+    sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
     @computed get flyout() {
@@ -500,9 +506,6 @@ export class MainView extends React.Component {
                     <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                         <FontAwesomeIcon icon="cog" size="lg" />
                     </button>
-                    <button className="mainView-settings" key="groups" onClick={() => GroupManager.Instance.open()}>
-                        <FontAwesomeIcon icon="columns" size="lg" />
-                    </button>
                 </div>
             </div>
             {this.docButtons}
@@ -511,39 +514,43 @@ export class MainView extends React.Component {
 
     @computed get mainContent() {
         const sidebar = this.userDoc?.["tabs-panelContainer"];
+        const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
+        const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div>
-            <div style={{height:"32px", width:"100%", backgroundColor:"black"}}>
-            {this.search}
-            </div> 
-            <div className="mainView-mainContent" style={{
-                color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                height: RichTextMenu.Instance?.Pinned ? `calc(100% - ${ANTIMODEMENU_HEIGHT})` : "100%"
-            }} >
-                <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
-                    <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-                        <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
-                            style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
-                            <span title="library View Dragger" style={{
-                                width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
-                                //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
-                                position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
-                                top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
-                            }} />
-                        </div>
-                        <div className="mainView-libraryFlyout" style={{
-                            //transformOrigin: this._flyoutTranslate ? "" : "left center",
-                            transition: this._flyoutTranslate ? "" : "width .5s",
-                            //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
-                            boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
-                        }}>
-                            {this.flyout}
-                            {this.expandButton}
-                        </div>
-                    </div>
-                    {this.dockingContent}
+                <div style={{ height: "32px", width: "100%", backgroundColor: "black" }}>
+                    {this.search}
                 </div>
-            </div>
+                <div className="mainView-mainContent" style={{
+                    color: this.darkScheme ? "rgb(205,205,205)" : "black",
+                    //change to times 2 for both pinned
+                    height,
+                    width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
+                }} >
+                    <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
+                        <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
+                            <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
+                                style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
+                                <span title="library View Dragger" style={{
+                                    width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
+                                    //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
+                                    position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
+                                    top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
+                                }} />
+                            </div>
+                            <div className="mainView-libraryFlyout" style={{
+                                //transformOrigin: this._flyoutTranslate ? "" : "left center",
+                                transition: this._flyoutTranslate ? "" : "width .5s",
+                                //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
+                                boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
+                            }}>
+                                {this.flyout}
+                                {this.expandButton}
+                            </div>
+                        </div>
+                        {this.dockingContent}
+                    </div>
+                </div>
             </div>);
     }
 
@@ -656,21 +663,27 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
+            <HypothesisAuthenticationManager />
             <DocumentDecorations />
-            <GestureOverlay>
-                <RichTextMenu key="rich" />
-                {this.mainContent}
-            </GestureOverlay>
-            <PreviewCursor />
+            <CollectionMenu />
+            <FormatShapePane />
+            <RichTextMenu key="rich" />
+            {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
+            <GestureOverlay >
+                {this.mainContent}
+            </GestureOverlay>
+            <PreviewCursor />
+            <TaskCompletionBox />
             <ContextMenu />
+            <FormatShapePane />
             <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
-            <InkOptionsMenu />
+
             <OverlayView />
             <TimelineMenu />
             {this.snapLines}

@@ -57,7 +57,7 @@ export interface EditableProps {
     highlight?: boolean;
     positions?: number[];
     search?: string;
-    bing?: () => string|undefined;
+    bing?: () => string | undefined;
 }
 
 /**
@@ -79,7 +79,6 @@ export class EditableView extends React.Component<EditableProps> {
     //     // this is done because when autosuggest is turned on, the suggestions are passed in as a prop,
     //     // so when the suggestions are passed in, and no editing prop is passed in, it used to set it
     //     // to false. this will no longer do so -syip
-    //     console.log("props editing = " + nextProps.editing);
     //     if (nextProps.editing && nextProps.editing !== this._editing) {
     //         this._editing = nextProps.editing;
     //         EditableView.loadId = "";
@@ -191,27 +190,27 @@ export class EditableView extends React.Component<EditableProps> {
         let results = [];
         let contents = this.props.bing!();
 
-        if (contents!== undefined){
-        if (this.props.positions!==undefined){
-        let positions = this.props.positions;
-        let length = this.props.search!.length;
+        if (contents !== undefined) {
+            if (this.props.positions !== undefined) {
+                let positions = this.props.positions;
+                let length = this.props.search!.length;
 
-        // contents = String(this.props.contents.valueOf());
+                // contents = String(this.props.contents.valueOf());
 
-        results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(0, this.props.positions![0]) : this.props.placeholder?.valueOf()}</span>);
-        positions.forEach((num, cur) => {
-            results.push(<span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : this.props.placeholder?.valueOf()}</span>);
-            let end = 0;
-            cur === positions.length-1? end = contents.length: end = positions[cur + 1];
-            results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : this.props.placeholder?.valueOf()}</span>);
+                results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(0, this.props.positions![0]) : this.props.placeholder?.valueOf()}</span>);
+                positions.forEach((num, cur) => {
+                    results.push(<span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : this.props.placeholder?.valueOf()}</span>);
+                    let end = 0;
+                    cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
+                    results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : this.props.placeholder?.valueOf()}</span>);
+                }
+                )
+            }
+            return results;
         }
-        )
-    }
-        return results;
-}
-else{
-    return <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>;
-}
+        else {
+            return <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>;
+        }
     }
 
     render() {
@@ -228,7 +227,7 @@ else{
                     ref={this._ref}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick} placeholder={this.props.placeholder}>
-                    {this.props.highlight === undefined || this.props.positions===undefined || this.props.bing===undefined? <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
+                    {this.props.highlight === undefined || this.props.positions === undefined || this.props.bing === undefined ? <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
                         : this.returnHighlights()}
                 </div>
             );

@@ -5,12 +5,10 @@ import { Doc } from "../../fields/Doc";
 import { InkData, InkTool } from "../../fields/InkField";
 import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
-import MobileInterface from "../../mobile/MobileInterface";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
-import { DocServer } from "../DocServer";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
@@ -24,7 +22,8 @@ import { RadialMenu } from "./nodes/RadialMenu";
 import HorizontalPalette from "./Palette";
 import { Touchable } from "./Touchable";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import HeightLabel from "./collections/collectionMulticolumn/MultirowHeightLabel";
+import * as fitCurve from 'fit-curve';
+import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -56,6 +55,7 @@ export default class GestureOverlay extends Touchable {
 
     @observable private showMobileInkOverlay: boolean = false;
 
+    private _overlayRef = React.createRef<HTMLDivElement>();
     private _d1: Doc | undefined;
     private _inkToTextDoc: Doc | undefined;
     private _thumbDoc: Doc | undefined;
@@ -64,7 +64,7 @@ export default class GestureOverlay extends Touchable {
     private _hands: Map<number, React.Touch[]> = new Map<number, React.Touch[]>();
     private _holdTimer: NodeJS.Timeout | undefined;
 
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -112,7 +112,7 @@ export default class GestureOverlay extends Touchable {
     onReactTouchStart = (te: React.TouchEvent) => {
         document.removeEventListener("touchmove", this.onReactHoldTouchMove);
         document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-        if (RadialMenu.Instance._display === true) {
+        if (RadialMenu.Instance?._display === true) {
             te.preventDefault();
             te.stopPropagation();
             RadialMenu.Instance.closeMenu();
@@ -161,9 +161,8 @@ export default class GestureOverlay extends Touchable {
             if (nts.nt.length === 1) {
                 // -- radial menu code --
                 this._holdTimer = setTimeout(() => {
-                    console.log("hold");
-                    const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    const pt: any = te.touches[te.touches.length - 1];
+                    const target = document.elementFromPoint(te.changedTouches?.item(0).clientX, te.changedTouches?.item(0).clientY);
+                    const pt: any = te.touches[te.touches?.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
@@ -498,39 +497,26 @@ export default class GestureOverlay extends Touchable {
     onPointerDown = (e: React.PointerEvent) => {
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
-            e.stopPropagation();
-            e.preventDefault();
-
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointerup", this.onPointerUp);
+            setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, emptyFunction);
         }
     }
 
     @action
     onPointerMove = (e: PointerEvent) => {
-        if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
-            this._points.push({ X: e.clientX, Y: e.clientY });
-            e.stopPropagation();
-            e.preventDefault();
+        this._points.push({ X: e.clientX, Y: e.clientY });
 
-
-            if (this._points.length > 1) {
-                const B = this.svgBounds;
-                const initialPoint = this._points[0.];
-                const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
-                const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
-                if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
-                    switch (this.Tool) {
-                        case ToolglassTools.RadialMenu:
-                            document.removeEventListener("pointermove", this.onPointerMove);
-                            document.removeEventListener("pointerup", this.onPointerUp);
-                        //this.handle1PointerHoldStart(e);
-                    }
+        if (this._points.length > 1) {
+            const B = this.svgBounds;
+            const initialPoint = this._points[0.];
+            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+            if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
+                switch (this.Tool) {
+                    case ToolglassTools.RadialMenu: return true;
                 }
             }
         }
+        return false;
     }
 
     handleLineGesture = (): boolean => {
@@ -552,7 +538,7 @@ export default class GestureOverlay extends Touchable {
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
                 // we don't want to create a link between ink strokes (doing so makes drawing a t very hard)
                 if (this._d1.type !== "ink" && doc.type !== "ink") {
-                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link");
+                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link", "");
                     actionPerformed = true;
                 }
             }
@@ -580,14 +566,6 @@ export default class GestureOverlay extends Touchable {
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
             //push first points to so interactionUtil knows pointer is up
             this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
-            if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
-                DocServer.Mobile.dispatchGesturePoints({
-                    points: this._points,
-                    bounds: B,
-                    color: ActiveInkColor(),
-                    width: ActiveInkWidth()
-                });
-            }
 
             const initialPoint = this._points[0.];
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);
@@ -597,8 +575,6 @@ export default class GestureOverlay extends Touchable {
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
-                        document.removeEventListener("pointermove", this.onPointerMove);
-                        document.removeEventListener("pointerup", this.onPointerUp);
                         this._strokes.push(new Array(...this._points));
                         this._points = [];
                         CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes).then((results) => {
@@ -627,12 +603,12 @@ export default class GestureOverlay extends Touchable {
                         break;
                 }
             }
-            //if any of the shape is activated in the InkOptionsMenu
+            //if any of the shape is activated in the CollectionFreeFormViewChrome
             else if (this.InkShape) {
                 this.makePolygon(this.InkShape, false);
                 this.dispatchGesture(GestureUtils.Gestures.Stroke);
                 this._points = [];
-                if (this.InkShape !== "noRec") {
+                if (!CollectionFreeFormViewChrome.Instance._keepMode) {
                     this.InkShape = "";
                 }
             }
@@ -642,57 +618,58 @@ export default class GestureOverlay extends Touchable {
                 let actionPerformed = false;
                 if (result && result.Score > 0.7) {
                     switch (result.Name) {
-                        case GestureUtils.Gestures.Box:
-                            this.dispatchGesture(GestureUtils.Gestures.Box);
-                            actionPerformed = true;
-                            break;
-                        case GestureUtils.Gestures.StartBracket:
-                            this.dispatchGesture(GestureUtils.Gestures.StartBracket);
-                            actionPerformed = true;
-                            break;
-                        case GestureUtils.Gestures.EndBracket:
-                            this.dispatchGesture("endbracket");
-                            actionPerformed = true;
-                            break;
-                        case GestureUtils.Gestures.Line:
-                            actionPerformed = this.handleLineGesture();
-                            break;
-                        case GestureUtils.Gestures.Triangle:
-                            this.makePolygon("triangle", true);
-                            break;
-                        case GestureUtils.Gestures.Circle:
-                            this.makePolygon("circle", true);
-                            break;
-                        case GestureUtils.Gestures.Rectangle:
-                            this.makePolygon("rectangle", true);
-                            break;
-                        case GestureUtils.Gestures.Scribble:
-                            console.log("scribble");
-                            break;
-                    }
-                    if (actionPerformed) {
-                        this._points = [];
+                        case GestureUtils.Gestures.Box: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.Box); break;
+                        case GestureUtils.Gestures.StartBracket: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.StartBracket); break;
+                        case GestureUtils.Gestures.EndBracket: actionPerformed = this.dispatchGesture("endbracket"); break;
+                        case GestureUtils.Gestures.Line: actionPerformed = this.handleLineGesture(); break;
+                        case GestureUtils.Gestures.Triangle: actionPerformed = this.makePolygon("triangle", true); break;
+                        case GestureUtils.Gestures.Circle: actionPerformed = this.makePolygon("circle", true); break;
+                        case GestureUtils.Gestures.Rectangle: actionPerformed = this.makePolygon("rectangle", true); break;
+                        case GestureUtils.Gestures.Scribble: console.log("scribble"); break;
                     }
                 }
 
                 // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
+                    const newPoints = this._points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+                    newPoints.pop();
+                    const controlPoints: { X: number, Y: number }[] = [];
+
+                    const bezierCurves = fitCurve(newPoints, 10);
+                    for (const curve of bezierCurves) {
+
+                        controlPoints.push({ X: curve[0][0], Y: curve[0][1] });
+                        controlPoints.push({ X: curve[1][0], Y: curve[1][1] });
+                        controlPoints.push({ X: curve[2][0], Y: curve[2][1] });
+                        controlPoints.push({ X: curve[3][0], Y: curve[3][1] });
+
+
+                    }
+                    this._points = controlPoints;
+
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
-                    this._points = [];
                 }
+                this._points = [];
             }
         } else {
             this._points = [];
         }
-        SetActiveArrowStart("none");
-        GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
-        SetActiveArrowEnd("none");
-        GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
+        //get out of ink mode after each stroke=
+        if (!CollectionFreeFormViewChrome.Instance._keepMode) {
+            Doc.SetSelectedTool(InkTool.None);
+            CollectionFreeFormViewChrome.Instance._selected = CollectionFreeFormViewChrome.Instance._shapesNum;
+            SetActiveArrowStart("none");
+            GestureOverlay.Instance.SavedArrowStart = ActiveArrowStart();
+            SetActiveArrowEnd("none");
+            GestureOverlay.Instance.SavedArrowEnd = ActiveArrowEnd();
+        }
     }
 
     makePolygon = (shape: string, gesture: boolean) => {
+        //take off gesture recognition for now
+        if (gesture) {
+            return false;
+        }
         const xs = this._points.map(p => p.X);
         const ys = this._points.map(p => p.Y);
         var right = Math.max(...xs);
@@ -700,7 +677,7 @@ export default class GestureOverlay extends Touchable {
         var bottom = Math.max(...ys);
         var top = Math.min(...ys);
         if (shape === "noRec") {
-            return;
+            return false;
         }
         if (!gesture) {
             //if shape options is activated in inkOptionMenu
@@ -725,21 +702,56 @@ export default class GestureOverlay extends Touchable {
         this._points = [];
         switch (shape) {
             //must push an extra point in the end so InteractionUtils knows pointer is up.
-            //must be (points[0].X,points[0]-1) 
+            //must be (points[0].X,points[0]-1)
             case "rectangle":
                 this._points.push({ X: left, Y: top });
-                this._points.push({ X: right, Y: top });
-                this._points.push({ X: right, Y: bottom });
-                this._points.push({ X: left, Y: bottom });
                 this._points.push({ X: left, Y: top });
-                this._points.push({ X: left, Y: top - 1 });
+
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: top });
+
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+
+                // this._points.push({ X: left, Y: top - 1 });
                 break;
             case "triangle":
+                // this._points.push({ X: left, Y: bottom });
+                // this._points.push({ X: right, Y: bottom });
+                // this._points.push({ X: (right + left) / 2, Y: top });
+                // this._points.push({ X: left, Y: bottom });
+                // this._points.push({ X: left, Y: bottom - 1 });
                 this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+
                 this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+
                 this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: (right + left) / 2, Y: top });
+
                 this._points.push({ X: left, Y: bottom });
-                this._points.push({ X: left, Y: bottom - 1 });
+                this._points.push({ X: left, Y: bottom });
+
+
                 break;
             case "circle":
                 const centerX = (right + left) / 2;
@@ -756,11 +768,37 @@ export default class GestureOverlay extends Touchable {
                 }
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
+                // this._points.push({ X: centerX, Y: top });
+                // this._points.push({ X: centerX + radius / 2, Y: top });
+
+                // this._points.push({ X: right, Y: top + radius / 2 });
+                // this._points.push({ X: right, Y: top + radius });
+                // this._points.push({ X: right, Y: top + radius });
+                // this._points.push({ X: right, Y: bottom - radius / 2 });
+
+                // this._points.push({ X: right - radius / 2, Y: bottom });
+                // this._points.push({ X: right - radius, Y: bottom });
+                // this._points.push({ X: right - radius, Y: bottom });
+                // this._points.push({ X: left + radius / 2, Y: bottom });
+
+                // this._points.push({ X: left, Y: bottom - radius / 2 });
+                // this._points.push({ X: left, Y: bottom - radius });
+                // this._points.push({ X: left, Y: bottom - radius });
+                // this._points.push({ X: left, Y: top + radius / 2 });
+
+                // this._points.push({ X: left + radius / 2, Y: top });
+                // this._points.push({ X: left + radius, Y: top });
+
+
+
+
+
+
+
                 break;
             case "line":
                 this._points.push({ X: left, Y: top });
                 this._points.push({ X: right, Y: bottom });
-                // this._points.push({ X: right, Y: bottom - 1 });
                 break;
             case "arrow":
                 const x1 = left;
@@ -781,11 +819,12 @@ export default class GestureOverlay extends Touchable {
                 this._points.push({ X: x2, Y: y2 });
             // this._points.push({ X: x1, Y: y1 - 1 });
         }
+        return true;
     }
 
     dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
         const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
-        target?.dispatchEvent(
+        return target?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                 {
                     bubbles: true,
@@ -797,7 +836,7 @@ export default class GestureOverlay extends Touchable {
                     }
                 }
             )
-        );
+        ) || false;
     }
 
     getBounds = (stroke: InkData) => {
@@ -816,10 +855,11 @@ export default class GestureOverlay extends Touchable {
 
     @computed get elements() {
         const width = Number(ActiveInkWidth());
+        const rect = this._overlayRef.current?.getBoundingClientRect();
         const B = this.svgBounds;
         B.left = B.left - width / 2;
         B.right = B.right + width / 2;
-        B.top = B.top - width / 2;
+        B.top = B.top - width / 2 - (rect?.y || 0);
         B.bottom = B.bottom + width / 2;
         B.width += width;
         B.height += width;
@@ -836,7 +876,7 @@ export default class GestureOverlay extends Touchable {
             }),
             this._points.length <= 1 ? (null) : <svg key="svg" width={B.width} height={B.height}
                 style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false, false)}
+                {InteractionUtils.CreatePolyline(this._points.map(p => ({ X: p.X, Y: p.Y - (rect?.y || 0) })), B.left, B.top, ActiveInkColor(), width, width, ActiveInkBezierApprox(), ActiveFillColor(), ActiveArrowStart(), ActiveArrowEnd(), ActiveDash(), 1, 1, this.InkShape, "none", false, false)}
             </svg>]
         ];
     }
@@ -885,7 +925,8 @@ export default class GestureOverlay extends Touchable {
 
     render() {
         return (
-            <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
+            <div className="gestureOverlay-cont" ref={this._overlayRef}
+                onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.elements}
 
@@ -912,7 +953,7 @@ export default class GestureOverlay extends Touchable {
     }
 }
 
-// export class 
+// export class
 
 export enum ToolglassTools {
     InkToText = "inktotext",

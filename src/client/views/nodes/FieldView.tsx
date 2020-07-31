@@ -25,7 +25,7 @@ export interface FieldViewProps {
     Document: Doc;
     DataDoc?: Doc;
     LibraryPath: Doc[];
-    onClick?: ScriptField;
+    onClick?: () => ScriptField;
     dropAction: dropActionType;
     backgroundHalo?: () => boolean;
     docFilters: () => string[];
@@ -46,8 +46,8 @@ export interface FieldViewProps {
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     ignoreAutoHeight?: boolean;
-    PanelWidth: () => number | string;
-    PanelHeight: () => number | string;
+    PanelWidth: () => number;
+    PanelHeight: () => number;
     PanelPosition: string;
     overflow?: boolean;
     NativeHeight: () => number;

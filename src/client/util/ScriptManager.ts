@@ -32,24 +32,17 @@ export class ScriptManager {
     }
 
     public addScript(scriptDoc: Doc): boolean {
-
-        console.log("in add script method");
-
         const scriptList = this.getAllScripts();
         scriptList.push(scriptDoc);
         if (ScriptManager.Instance.ScriptManagerDoc) {
             ScriptManager.Instance.ScriptManagerDoc.data = new List<Doc>(scriptList);
             ScriptManager.addScriptToGlobals(scriptDoc);
-            console.log("script added");
             return true;
         }
         return false;
     }
 
     public deleteScript(scriptDoc: Doc): boolean {
-
-        console.log("in delete script method");
-
         if (scriptDoc.name) {
             Scripting.removeGlobal(StrCast(scriptDoc.name));
         }
@@ -70,7 +63,6 @@ export class ScriptManager {
         Scripting.removeGlobal(StrCast(scriptDoc.name));
 
         const params = Cast(scriptDoc["data-params"], listSpec("string"), []);
-        console.log(params);
         const paramNames = params.reduce((o: string, p: string) => {
             if (params.indexOf(p) === params.length - 1) {
                 o = o + p.split(":")[0].trim();
@@ -81,8 +73,6 @@ export class ScriptManager {
         }, "" as string);
 
         const f = new Function(paramNames, StrCast(scriptDoc.script));
-
-        console.log(scriptDoc.script);
 
         Object.defineProperty(f, 'name', { value: StrCast(scriptDoc.name), writable: false });
 

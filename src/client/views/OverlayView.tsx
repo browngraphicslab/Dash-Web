@@ -124,7 +124,9 @@ export class OverlayView extends React.Component {
         ele = <div key={Utils.GenerateGuid()} className="overlayView-wrapperDiv" style={{
             transform: `translate(${options.x}px, ${options.y}px)`,
             width: options.width,
-            height: options.height
+            height: options.height,
+            top: 0,
+            left: 0
         }}>{ele}</div>;
         this._elements.push(ele);
         return remove;

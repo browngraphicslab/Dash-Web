@@ -1,14 +1,20 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
+import { action, observable, computed, toJS } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../fields/Doc";
-import { StrCast } from "../../../fields/Types";
+import { Doc, Opt } from "../../../fields/Doc";
+import { StrCast, DateCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
 import './LinkEditor.scss';
 import React = require("react");
+import { DocumentView } from "../nodes/DocumentView";
+import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
+import { EditableView } from "../EditableView";
+import { RefObject } from "react";
+import { Tooltip } from "@material-ui/core";
+import { undoBatch } from "../../util/UndoManager";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -281,27 +287,157 @@ interface LinkEditorProps {
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
+    @observable description = StrCast(LinkManager.currentLink?.description);
+    @observable openDropdown: boolean = false;
+    @observable showInfo: boolean = false;
+    @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
+    @observable private buttonColor: string = "black";
+
+
+    //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
+
+    @undoBatch
     @action
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         this.props.showLinks();
     }
 
+    @action
+    setDescripValue = (value: string) => {
+        if (LinkManager.currentLink) {
+            LinkManager.currentLink.description = value;
+            this.buttonColor = "rgb(62, 133, 55)";
+            setTimeout(action(() => {
+                this.buttonColor = "black";
+            }), 750);
+            return true;
+        }
+    }
+
+    @action
+    onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            this.setDescripValue(this.description);
+            document.getElementById('input')?.blur();
+        }
+    }
+
+    @action
+    onDown = () => {
+        this.setDescripValue(this.description);
+    }
+
+    @action
+    handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.description = e.target.value;
+    }
+
+
+    @computed
+    get editDescription() {
+        return <div className="linkEditor-description">
+            <div className="linkEditor-description-label">
+                Link Label:</div>
+            <div className="linkEditor-description-input">
+                <div className="linkEditor-description-editing">
+                    <input
+                        style={{ width: "100%" }}
+                        id="input"
+                        value={this.description}
+                        placeholder={"enter link label"}
+                        // color={"rgb(88, 88, 88)"}
+                        onKeyDown={this.onKey}
+                        onChange={this.handleChange}
+                    ></input>
+                </div>
+                <div className="linkEditor-description-add-button"
+                    style={{ backgroundColor: this.buttonColor }}
+                    onPointerDown={this.onDown}>Set</div>
+            </div></div>;
+    }
+
+    @action
+    changeDropdown = () => {
+        this.openDropdown = !this.openDropdown;
+    }
+
+    @action
+    changeFollowBehavior = (follow: string) => {
+        this.openDropdown = false;
+        Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;
+    }
+
+    @computed
+    get followingDropdown() {
+        return <div className="linkEditor-followingDropdown">
+            <div className="linkEditor-followingDropdown-label">
+                Follow Behavior:</div>
+            <div className="linkEditor-followingDropdown-dropdown">
+                <div className="linkEditor-followingDropdown-header"
+                    onPointerDown={this.changeDropdown}>
+                    {StrCast(this.props.linkDoc.followLinkLocation, "Default")}
+                    <FontAwesomeIcon className="linkEditor-followingDropdown-icon"
+                        icon={this.openDropdown ? "chevron-up" : "chevron-down"}
+                        size={"lg"} />
+                </div>
+                <div className="linkEditor-followingDropdown-optionsList"
+                    style={{ display: this.openDropdown ? "" : "none" }}>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("Default")}>
+                        Default
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("onRight")}>
+                        Always open in right tab
+                        </div>
+                    <div className="linkEditor-followingDropdown-option"
+                        onPointerDown={() => this.changeFollowBehavior("inTab")}>
+                        Always open in new tab
+                        </div>
+                </div>
+            </div>
+        </div>;
+    }
+
+    @action
+    changeInfo = () => {
+        this.showInfo = !this.showInfo;
+    }
+
     render() {
         const destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
         const groups = [this.props.linkDoc].map(groupDoc => {
-            return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.linkRelationship)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
+            return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.linkRelationship)} linkDoc={this.props.linkDoc}
+                sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
 
         return !destination ? (null) : (
             <div className="linkEditor">
-                {this.props.hideback ? (null) : <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>}
                 <div className="linkEditor-info">
-                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
-                    <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    <Tooltip title={<><div className="dash-tooltip">Return to link menu</div></>} placement="top">
+                        <button className="linkEditor-button-back"
+                            style={{ display: this.props.hideback ? "none" : "" }}
+                            onClick={this.props.showLinks}>
+                            <FontAwesomeIcon icon="arrow-left" size="sm" /> </button>
+                    </Tooltip>
+                    <p className="linkEditor-linkedTo">Editing Link to: <b>{
+                        destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
+                    <Tooltip title={<><div className="dash-tooltip">Show more link information</div></>} placement="top">
+                        <div className="linkEditor-downArrow"><FontAwesomeIcon className="button" icon={this.infoIcon} size="lg" onPointerDown={this.changeInfo} /></div>
+                    </Tooltip>
                 </div>
-                {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
+                {this.showInfo ? <div className="linkEditor-moreInfo">
+                    <div>{this.props.linkDoc.author ? <div> <b>Author:</b> {this.props.linkDoc.author}</div> : null}</div>
+                    <div>{this.props.linkDoc.creationDate ? <div> <b>Creation Date:</b>
+                        {DateCast(this.props.linkDoc.creationDate).toString()}</div> : null}</div>
+                </div> : null}
+
+                <div>{this.editDescription}</div>
+                <div>{this.followingDropdown}</div>
+
+                {/* {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>} */}
             </div>
 
         );

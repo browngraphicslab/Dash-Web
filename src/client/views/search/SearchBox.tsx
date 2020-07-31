@@ -250,7 +250,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             return returnedUri;
 
         } catch (e) {
-            console.log(e);
+            console.log("SearchBox:" + e);
         }
     }
 
@@ -910,7 +910,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         // when the next css transition finishes (which should be the one we just triggered)
         element.addEventListener('transitionend', function handler(e) {
             // remove this event listener so it only gets triggered once
-            console.log("autoset");
             element.removeEventListener('transitionend', handler);
 
             // remove "height" from the element's inline styles, so it can return to its initial value
@@ -925,7 +924,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     autoset(thing: string) {
         const element = document.getElementById(thing)!;
-        console.log("autoset");
         element.removeEventListener('transitionend', function (e) { });
 
         // remove "height" from the element's inline styles, so it can return to its initial value

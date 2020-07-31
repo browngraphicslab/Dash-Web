@@ -9,7 +9,12 @@ import { Id, Copy, ToScriptString, ToString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { Plugins } from "./util";
 
-@Deserializable("proxy")
+function deserializeProxy(field: any) {
+    if (!field.cache) {
+        field.cache = DocServer.GetCachedRefField(field.fieldId) as any;
+    }
+}
+@Deserializable("proxy", deserializeProxy)
 export class ProxyField<T extends RefField> extends ObjectField {
     constructor();
     constructor(value: T);
@@ -17,6 +22,7 @@ export class ProxyField<T extends RefField> extends ObjectField {
     constructor(value?: T | string) {
         super();
         if (typeof value === "string") {
+            this.cache = DocServer.GetCachedRefField(value) as any;
             this.fieldId = value;
         } else if (value) {
             this.cache = value;

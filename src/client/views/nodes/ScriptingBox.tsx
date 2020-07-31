@@ -32,7 +32,7 @@ const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
 
     private dropDisposer?: DragManager.DragDropDisposer;
-    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
+    protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
     private _overlayDisposer?: () => void;
     private _caretPos = 0;
@@ -109,7 +109,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     resetSuggestionPos(caret: any) {
         if (!this._suggestionRef.current || !this._scriptTextRef.current) return;
-        console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
         const suggestionWidth = this._suggestionRef.current.offsetWidth;
         const scriptWidth = this._scriptTextRef.current.offsetWidth;
         const top = caret.top;

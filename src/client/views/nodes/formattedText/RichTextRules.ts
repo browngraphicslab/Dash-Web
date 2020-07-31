@@ -90,7 +90,7 @@ export class RichTextRules {
                     textDoc.inlineTextCount = numInlines + 1;
                     const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
                     const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
-                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: 9, title: "inline comment" });
+                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: "9pt", title: "inline comment" });
                     textDocInline.title = inlineFieldKey; // give the annotation its own title
                     textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
@@ -317,13 +317,12 @@ export class RichTextRules {
 
             // create an inline view of a tag stored under the '#' field
             new InputRule(
-                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
+                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_\-0-9]*)\s$/),
                 (state, match, start, end) => {
                     const tag = match[1];
                     if (!tag) return state.tr;
-                    const multiple = tag.split(";");
-                    this.Document[DataSym]["#"] = multiple.length > 1 ? new List(multiple) : tag;
-                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
+                    this.Document[DataSym]["#" + tag] = ".";
+                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" + tag });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),
 

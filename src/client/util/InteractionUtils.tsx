@@ -27,7 +27,7 @@ export namespace InteractionUtils {
     export interface MultiTouchEventDisposer { (): void; }
 
     /**
-     * 
+     *
      * @param element - element to turn into a touch target
      * @param startFunc - event handler, typically Touchable.onTouchStart (classes that inherit touchable can pass in this.onTouchStart)
      */
@@ -94,9 +94,19 @@ export namespace InteractionUtils {
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
         dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
+
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
+        }
+        else if (points.length >= 5 && points[3].X === points[4].X) {
+            for (var i = 0; i < points.length - 3; i += 4) {
+                const array = [[points[i].X, points[i].Y], [points[i + 1].X, points[i + 1].Y], [points[i + 2].X, points[i + 2].Y], [points[i + 3].X, points[i + 3].Y]];
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, array);
+                    pts.push({ X: point[0], Y: point[1] });
+                }
+            }
         }
         else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
             //pointer is up (first and last points are the same)
@@ -111,7 +121,17 @@ export namespace InteractionUtils {
                 }
             }
         } else {
-            pts = points;
+            pts = points.slice();
+            // bcz: Ugh... this is ugly, but shapes apprently have an extra point added that is = (p[0].x,p[0].y+1) as some sort of flag.  need to remove it here.
+            if (pts.length > 2 && pts[pts.length - 2].X === pts[0].X && pts[pts.length - 2].Y === pts[0].Y) {
+                pts.pop();
+            }
+        }
+        if (isNaN(scalex)) {
+            scalex = 1;
+        }
+        if (isNaN(scaley)) {
+            scaley = 1;
         }
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},
@@ -119,24 +139,23 @@ export namespace InteractionUtils {
         const dashArray = String(Number(width) * Number(dash));
         const defGuid = Utils.GenerateGuid();
         const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
-        return (<svg fill={fill === "none" ? color : fill}> {/* setting the svg fill sets the arrowhead fill */}
+        return (<svg fill={color}> {/* setting the svg fill sets the arrowStart fill */}
             {nodefs ? (null) : <defs>
                 {arrowStart !== "dot" && arrowEnd !== "dot" ? (null) : <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
                     <circle r={1} fill="context-stroke" />
                 </marker>}
-                {arrowStart !== "arrowHead" && arrowEnd !== "arrowHead" ? (null) : <marker id={`arrowHead${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
+                {arrowStart !== "arrow" && arrowEnd !== "arrow" ? (null) : <marker id={`arrowStart${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
                     <polygon points={`${arrowDim} ${-Math.max(1, arrowDim / 2)}, ${arrowDim} ${Math.max(1, arrowDim / 2)}, -1 0`} />
                 </marker>}
-                {arrowStart !== "arrowEnd" && arrowEnd !== "arrowEnd" ? (null) : <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
+                {arrowStart !== "arrow" && arrowEnd !== "arrow" ? (null) : <marker id={`arrowEnd${defGuid}`} orient="auto" overflow="visible" refX="1.6" refY="0" markerWidth="10" markerHeight="7">
                     <polygon points={`${2 - arrowDim} ${-Math.max(1, arrowDim / 2)}, ${2 - arrowDim} ${Math.max(1, arrowDim / 2)}, 3 0`} />
                 </marker>}
             </defs>}
-
             <polyline
                 points={strpts}
                 style={{
                     filter: drawHalo ? "url(#inkSelectionHalo)" : undefined,
-                    fill,
+                    fill: fill ? fill : "transparent",
                     opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",
@@ -145,24 +164,12 @@ export namespace InteractionUtils {
                     strokeLinecap: "round",
                     strokeDasharray: dashArray
                 }}
-                markerStart={`url(#${arrowStart + defGuid})`}
-                markerEnd={`url(#${arrowEnd + defGuid})`}
+                markerStart={`url(#${arrowStart + "Start" + defGuid})`}
+                markerEnd={`url(#${arrowEnd + "End" + defGuid})`}
             />
 
         </svg>);
     }
-
-    // export function makeArrow() {
-    //     return (
-    //         InkOptionsMenu.Instance.getColors().map(color => {
-    //             const id1 = "arrowHeadTest" + color;
-    //             console.log(color);
-    //             <marker id={id1} orient="auto" overflow="visible" refX="0" refY="1" markerWidth="10" markerHeight="7">
-    //                 <polygon points="0 0, 3 1, 0 2" fill={"#" + color} />
-    //             </marker>;
-    //         })
-    //     );
-    // }
 
     export function makePolygon(shape: string, points: { X: number, Y: number }[]) {
         if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y + 1 === points[0].Y) {
@@ -213,10 +220,28 @@ export namespace InteractionUtils {
                 points.push({ X: left, Y: top });
                 return points;
             case "triangle":
+                // points.push({ X: left, Y: bottom });
+                // points.push({ X: right, Y: bottom });
+                // points.push({ X: (right + left) / 2, Y: top });
+                // points.push({ X: left, Y: bottom });
+
                 points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: bottom });
+
                 points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+                points.push({ X: right, Y: bottom });
+
                 points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+                points.push({ X: (right + left) / 2, Y: top });
+
                 points.push({ X: left, Y: bottom });
+                points.push({ X: left, Y: bottom });
+
+
                 return points;
             case "circle":
                 const centerX = (right + left) / 2;
@@ -252,6 +277,7 @@ export namespace InteractionUtils {
             //     points.push({ X: x2, Y: y2 });
             //     return points;
             case "line":
+
                 points.push({ X: left, Y: top });
                 points.push({ X: right, Y: bottom });
                 return points;
@@ -278,8 +304,8 @@ export namespace InteractionUtils {
 
     /**
      * Returns euclidean distance between two points
-     * @param pt1 
-     * @param pt2 
+     * @param pt1
+     * @param pt2
      */
     export function TwoPointEuclidist(pt1: React.Touch, pt2: React.Touch): number {
         return Math.sqrt(Math.pow(pt1.clientX - pt2.clientX, 2) + Math.pow(pt1.clientY - pt2.clientY, 2));
@@ -378,7 +404,6 @@ export namespace InteractionUtils {
         //                 let dist12 = TwoPointEuclidist(pt1, pt2);
         //                 let dist23 = TwoPointEuclidist(pt2, pt3);
         //                 let dist13 = TwoPointEuclidist(pt1, pt3);
-        //                 console.log(`distances: ${dist12}, ${dist23}, ${dist13}`);
         //                 let dist12close = dist12 < leniency;
         //                 let dist23close = dist23 < leniency;
         //                 let dist13close = dist13 < leniency;

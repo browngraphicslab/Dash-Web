@@ -180,7 +180,14 @@ export namespace WebSocket {
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
         clients[userEmail] = new Client(userEmail.toString());
-        console.log(green(`user ${userEmail} has connected to the web socket`));
+        const currentdate = new Date();
+        const datetime = currentdate.getDate() + "/"
+            + (currentdate.getMonth() + 1) + "/"
+            + currentdate.getFullYear() + " @ "
+            + currentdate.getHours() + ":"
+            + currentdate.getMinutes() + ":"
+            + currentdate.getSeconds();
+        console.log(green(`user ${userEmail} has connected to the web socket at: ${datetime}`));
         socketMap.set(socket, userEmail);
     }
 

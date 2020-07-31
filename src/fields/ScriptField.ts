@@ -3,7 +3,7 @@ import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions, CompileE
 import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Doc, Field } from "./Doc";
+import { Doc, Field, Opt } from "./Doc";
 import { Plugins, setter } from "./util";
 import { computedFn } from "mobx-utils";
 import { ProxyField } from "./Proxy";
@@ -38,6 +38,21 @@ const scriptSchema = createSimpleSchema({
 });
 
 async function deserializeScript(script: ScriptField) {
+    if (script.script.originalScript === 'getCopy(this.dragFactory, true)') {
+        return (script as any).script = (ScriptField.GetCopyOfDragFactory ?? (ScriptField.GetCopyOfDragFactory = ScriptField.MakeFunction('getCopy(this.dragFactory, true)')))?.script;
+    }
+    if (script.script.originalScript === 'links(self)') {
+        return (script as any).script = (ScriptField.LinksSelf ?? (ScriptField.LinksSelf = ComputedField.MakeFunction('links(self)')))?.script;
+    }
+    if (script.script.originalScript === 'openOnRight(getCopy(this.dragFactory, true))') {
+        return (script as any).script = (ScriptField.OpenOnRight ?? (ScriptField.OpenOnRight = ComputedField.MakeFunction('openOnRight(getCopy(this.dragFactory, true))')))?.script;
+    }
+    if (script.script.originalScript === 'deiconifyView(self)') {
+        return (script as any).script = (ScriptField.DeiconifyView ?? (ScriptField.DeiconifyView = ComputedField.MakeFunction('deiconifyView(self)')))?.script;
+    }
+    if (script.script.originalScript === 'convertToButtons(dragData)') {
+        return (script as any).script = (ScriptField.ConvertToButtons ?? (ScriptField.ConvertToButtons = ComputedField.MakeFunction('convertToButtons(dragData)', { dragData: "DocumentDragData" })))?.script;
+    }
     const captures: ProxyField<Doc> = (script as any).captures;
     if (captures) {
         const doc = (await captures.value())!;
@@ -65,6 +80,11 @@ export class ScriptField extends ObjectField {
     @serializable(autoObject())
     private captures?: ProxyField<Doc>;
 
+    public static GetCopyOfDragFactory: Opt<ScriptField>;
+    public static LinksSelf: Opt<ScriptField>;
+    public static OpenOnRight: Opt<ScriptField>;
+    public static DeiconifyView: Opt<ScriptField>;
+    public static ConvertToButtons: Opt<ScriptField>;
     constructor(script: CompiledScript, setterscript?: CompiledScript) {
         super();
 
@@ -161,6 +181,10 @@ export class ComputedField extends ScriptField {
 
 Scripting.addGlobal(function getIndexVal(list: any[], index: number) {
     return list.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any);
+}, "returns the value at a given index of a list", "(list: any[], index: number)");
+
+Scripting.addGlobal(function makeScript(script: string) {
+    return ScriptField.MakeScript(script);
 }, "returns the value at a given index of a list", "(list: any[], index: number)");
 
 export namespace ComputedField {

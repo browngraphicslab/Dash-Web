@@ -135,7 +135,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeSorting = (col: any) => {
-        console.log(col.heading);
         if (col.desc === undefined) {
             // no sorting
             this.props.changeColumnSort(col, true);
@@ -149,7 +148,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    changeTitleMode = () => { console.log("header clicked"); this._showTitleDropdown = !this._showTitleDropdown; }
+    changeTitleMode = () => this._showTitleDropdown = !this._showTitleDropdown;
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
@@ -219,7 +218,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: col.color, padding: "2px",
                         display: "flex", cursor: "default", height: "100%",
                     }}>
-                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop:"4px" }} />
+                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px" }} />
                     {/* <div className="keys-dropdown"
                         style={{ display: "inline", zIndex: 1000 }}> */}
                     {keysDropdown}

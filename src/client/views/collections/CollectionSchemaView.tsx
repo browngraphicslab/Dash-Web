@@ -352,7 +352,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     openHeader = (col: any, screenx: number, screeny: number) => {
-        console.log("header opening");
         this._col = col;
         this._headerOpen = !this._headerOpen;
         this._pointerX = screenx;

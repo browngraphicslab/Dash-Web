@@ -10,8 +10,6 @@ export { ts };
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d';
 import { Doc, Field } from '../../fields/Doc';
-import { Cast } from "../../fields/Types";
-import { listSpec } from "../../fields/Schema";
 
 export interface ScriptSucccess {
     success: true;
@@ -95,10 +93,10 @@ export namespace Scripting {
     export function removeGlobal(name: string) {
         if (getGlobals().includes(name)) {
             delete _scriptingGlobals[name];
-            if (_scriptingDescriptions[name]){
+            if (_scriptingDescriptions[name]) {
                 delete _scriptingDescriptions[name];
             }
-            if (_scriptingParams[name]){
+            if (_scriptingParams[name]) {
                 delete _scriptingParams[name];
             }
             return true;
@@ -123,11 +121,11 @@ export namespace Scripting {
         return _scriptingGlobals;
     }
 
-    export function getDescriptions(){
+    export function getDescriptions() {
         return _scriptingDescriptions;
     }
 
-    export function getParameters(){
+    export function getParameters() {
         return _scriptingParams;
     }
 }

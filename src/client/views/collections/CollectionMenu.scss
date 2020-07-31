@@ -1,35 +1,47 @@
 @import "../globalCssVariables";
-@import '~js-datepicker/dist/datepicker.min.css';
 
-.collectionViewChrome-cont {
-    position: absolute;
+
+.collectionMenu-cont {
+    position:relative;
+    display:inline-flex;
     width: 100%;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    background: lightgrey;
+    background: #323232;
+    color: white;
     transform-origin: top left;
+    top: 0;
+    width:100%;
 
-    .collectionViewChrome {
+    .antimodeMenu-button {
+        padding: 0;
+        width: 30px;
+        display: flex;
+        svg {
+            margin:auto;
+        }
+    }
+
+    .collectionMenu {
         display: flex;
         padding-bottom: 1px;
         height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
         overflow: visible;
         z-index: 9001;
+        border: unset;
 
         .collectionViewBaseChrome {
             display: flex;
 
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
-                //text-transform: uppercase;
-                //letter-spacing: 2px;
-                background: rgb(238, 238, 238);
-                color: grey;
+                background: #323232;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -52,21 +64,22 @@
                 margin-left: 3px;
                 margin-right: 0px;
                 font-size: 75%;
-                background: rgb(238, 238, 238);
+                background: #323232;
+                color: white;
                 border: none;
-                color: grey;
+                border-right: solid gray 1px;
             }
 
             .commandEntry-outerDiv {
                 pointer-events: all;
-                background-color: gray;
+                background-color: #323232;
                 display: flex;
                 flex-direction: row;
                 height: 30px;
 
                 .commandEntry-drop {
                     color: white;
-                    width: 25px;
+                    width: 30px;
                     margin-top: auto;
                     margin-bottom: auto;
                 }
@@ -75,10 +88,16 @@
             .collectionViewBaseChrome-collapse {
                 transition: all .5s, opacity 0.3s;
                 position: absolute;
-                width: 40px;
+                width: 30px;
                 transform-origin: top left;
                 pointer-events: all;
                 // margin-top: 10px;
+            }
+
+            @media only screen and (max-device-width: 480px) {
+                .collectionViewBaseChrome-collapse {
+                    display: none;
+                }
             }
 
             .collectionViewBaseChrome-template,
@@ -88,27 +107,25 @@
                 color: grey;
                 margin-top: auto;
                 margin-bottom: auto;
-                margin-left: 5px;
             }
-
-            .collectionViewBaseChrome-viewModes {
-                margin-left: 25px;
-            }
-
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 5px;
                 display: grid;
+                border: none;
+                border-right: solid gray 1px;
 
                 .collectionViewBaseChrome-filterIcon {
                     position: relative;
                     display: flex;
                     margin: auto;
-                    background: gray;
+                    background: #323232;
                     color: white;
                     width: 30px;
                     height: 30px;
                     align-items: center;
                     justify-content: center;
+                    border: none;
+                    border-right: solid gray 1px;
                 }
 
                 .collectionViewBaseChrome-viewSpecsInput {
@@ -184,11 +201,12 @@
                 font-size: 75%;
                 //text-transform: uppercase;
                 //letter-spacing: 2px;
-                background: rgb(238, 238, 238);
-                color: grey;
+                background: #121721;
+                color: white;
                 outline-color: black;
+                color: white;
                 border: none;
-                //padding: 12px 10px 11px 10px;
+                border-right: solid gray 1px;
             }
 
             .collectionGridViewChrome-viewPicker:active {
@@ -291,29 +309,55 @@
     }
 }
 
-.collectionFreeFormViewChrome-cont {
-    width: 60px;
-    display: flex;
+.collectionFreeFormMenu-cont {
+    display: inline-flex;
     position: relative;
     align-items: center;
+
+    .antimodeMenu-button {
+        text-align: center;
+        display: block;
+    }
+    .color-previewI {
+        width: 80%;
+        height: 20%;
+        bottom: 0;
+        position: absolute;
+    }
+    .color-previewII {
+        width: 80%;
+        height: 80%;
+        margin-left: 10%;
+    }
+
+    .btn-group {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        margin: auto;
+        /* Make the buttons appear below each other */
+    }
+    
+    .btn-draw {
+        display: inline-flex;
+        margin: auto;
+        /* Make the buttons appear below each other */
+    }
 
     .fwdKeyframe,
     .numKeyframe,
     .backKeyframe {
         cursor: pointer;
-        position: absolute;
+        position: relative;
         width: 20;
         height: 30;
         bottom: 0;
-        background: gray;
-        display: flex;
+        background: #323232;
+        display: inline-flex;
         align-items: center;
         color: white;
     }
 
     .backKeyframe {
-        left: 0;
-
         svg {
             display: block;
             margin: auto;
@@ -321,19 +365,16 @@
     }
 
     .numKeyframe {
-        left: 20;
-        display: flex;
         flex-direction: column;
-        padding: 5px;
+        padding-top: 5px;
     }
 
     .fwdKeyframe {
-        left: 40;
-
         svg {
             display: block;
             margin: auto;
         }
+        border-right: solid gray 1px;
     }
 }
 

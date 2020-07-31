@@ -10,6 +10,12 @@ import { Transform } from "../../util/Transform";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import React = require("react");
 import { DocumentView } from './DocumentView';
+import { sortAndDeduplicateDiagnostics } from 'typescript';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { LinkManager } from '../../util/LinkManager';
+import { DocumentLinksButton } from './DocumentLinksButton';
+import { ContextMenu } from '../ContextMenu';
+import { undoBatch } from '../../util/UndoManager';
 
 interface Props {
     linkDoc?: Doc;
@@ -24,6 +30,23 @@ export class LinkDocPreview extends React.Component<Props> {
     @observable public static LinkInfo: Opt<{ linkDoc?: Doc; addDocTab: (document: Doc, where: string) => boolean, linkSrc: Doc; href?: string; Location: number[] }>;
     @observable _targetDoc: Opt<Doc>;
     @observable _toolTipText = "";
+    _editRef = React.createRef<HTMLDivElement>();
+
+    @action
+    onContextMenu = (e: React.MouseEvent) => {
+        DocumentLinksButton.EditLink = undefined;
+        LinkDocPreview.LinkInfo = undefined;
+        e.preventDefault();
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    @action.bound
+    async followDefault() {
+        DocumentLinksButton.EditLink = undefined;
+        LinkDocPreview.LinkInfo = undefined;
+        this._targetDoc ? DocumentManager.Instance.FollowLink(this.props.linkDoc, this._targetDoc, doc => this.props.addDocTab(doc, "onRight"), false) : null;
+    }
 
     componentDidUpdate() { this.updatePreview(); }
     componentDidMount() { this.updatePreview(); }
@@ -56,20 +79,23 @@ export class LinkDocPreview extends React.Component<Props> {
             this.props.addDocTab(Docs.Create.WebDocument(this.props.href, { title: this.props.href, _width: 200, _height: 400, UseCors: true }), "onRight");
         }
     }
-    width = () => Math.min(350, NumCast(this._targetDoc?.[WidthSym](), 350));
-    height = () => Math.min(350, NumCast(this._targetDoc?.[HeightSym](), 350));
+    width = () => Math.min(225, NumCast(this._targetDoc?.[WidthSym](), 225));
+    height = () => Math.min(225, NumCast(this._targetDoc?.[HeightSym](), 225));
     @computed get targetDocView() {
         return !this._targetDoc ?
-            <div style={{ pointerEvents: "all", maxWidth: 350, maxHeight: 250, width: "100%", height: "100%", overflow: "hidden" }}>
+            <div style={{
+                pointerEvents: "all", maxWidth: 225, maxHeight: 225, width: "100%", height: "100%",
+                overflow: "hidden"
+            }}>
                 <div style={{ width: "100%", height: "100%", textOverflow: "ellipsis", }} onPointerDown={this.pointerDown}>
                     {this._toolTipText}
                 </div>
             </div> :
+
             <ContentFittingDocumentView
                 Document={this._targetDoc}
                 LibraryPath={emptyPath}
                 fitToBox={true}
-                backgroundColor={this.props.backgroundColor}
                 moveDocument={returnFalse}
                 rootSelected={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
@@ -83,15 +109,15 @@ export class LinkDocPreview extends React.Component<Props> {
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
                 renderDepth={0}
-                PanelWidth={this.width}
-                PanelHeight={this.height}
+                PanelWidth={() => this.width() - 16} //Math.min(350, NumCast(target._width, 350))}
+                PanelHeight={() => this.height() - 16} //Math.min(250, NumCast(target._height, 250))}
                 focus={emptyFunction}
                 whenActiveChanged={returnFalse}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
                 NativeWidth={returnZero}
                 NativeHeight={returnZero}
-            />;
+                backgroundColor={this.props.backgroundColor} />;
     }
 
     render() {
@@ -99,7 +125,10 @@ export class LinkDocPreview extends React.Component<Props> {
             style={{
                 position: "absolute", left: this.props.location[0],
                 top: this.props.location[1], width: this.width(), height: this.height(),
-                boxShadow: "black 2px 2px 1em"
+                zIndex: 1000,
+                border: "8px solid white", borderRadius: "7px",
+                boxShadow: "3px 3px 1.5px grey",
+                borderBottom: "8px solid white", borderRight: "8px solid white"
             }}>
             {this.targetDocView}
         </div>;

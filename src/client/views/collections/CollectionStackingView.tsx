@@ -126,7 +126,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                 changed = true;
             });
         }
-        changed && setTimeout(action(() => { if (this.columnHeaders) { this.columnHeaders.length = 0; this.columnHeaders.push(...columnHeaders); } }), 0);
+        changed && setTimeout(action(() => this.columnHeaders?.splice(0, this.columnHeaders.length, ...columnHeaders)), 0);
         return fields;
     }
 
@@ -166,8 +166,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         this.createDashEventsTarget(ele!); //so the whole grid is the drop target?
     }
 
-    @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
-    @computed get onChildDoubleClickHandler() { return this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
+    @computed get onChildClickHandler() { return () => this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
+    @computed get onChildDoubleClickHandler() { return () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
@@ -211,7 +211,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             NativeHeight={returnZero}
             NativeWidth={returnZero}
             fitToBox={false}
-            dontRegisterView={this.props.dontRegisterView}
+            dontRegisterView={BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
@@ -252,7 +252,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             return wid * aspect;
         }
         return layoutDoc._fitWidth ? !nh ? this.props.PanelHeight() - 2 * this.yMargin :
-            Math.min(wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1), this.props.PanelHeight() - 2 * this.yMargin) : layoutDoc[HeightSym]();
+            Math.min(wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1), this.props.PanelHeight() - 2 * this.yMargin) : Math.max(20, layoutDoc[HeightSym]());
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

@@ -18,10 +18,10 @@ import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
 import { log_execution } from "./ActionUtilities";
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
+import HypothesisManager from "./ApiManagers/HypothesisManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
-import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
 import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
 
@@ -72,6 +72,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         new DeleteManager(),
         new UtilManager(),
         new GeneralGoogleManager(),
+        new HypothesisManager(),
         new GooglePhotosManager(),
     ];
 
@@ -104,6 +105,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
+        console.log(detector.is("iPhone"));
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
 

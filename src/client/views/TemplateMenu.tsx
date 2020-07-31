@@ -63,14 +63,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         this.props.docViews.map(dv => dv.switchViews(false, "layout"));
     }
 
-    toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        SelectionManager.DeselectAll();
-        const topDocView = this.props.docViews[0];
-        const ex = e.target.getBoundingClientRect().left;
-        const ey = e.target.getBoundingClientRect().top;
-        DocumentView.FloatDoc(topDocView, ex, ey);
-    }
-
     toggleAudio = (e: React.ChangeEvent<HTMLInputElement>): void => {
         this.props.docViews.map(dv => dv.props.Document._showAudio = e.target.checked);
     }
@@ -108,8 +100,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     return100 = () => 100;
     @computed get scriptField() {
-        return ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+        const script = ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
             { docs: new List<Doc>(this.props.docViews.map(dv => dv.props.Document)) });
+        return script ? () => script : undefined;
     }
     templateIsUsed = (selDoc: Doc, templateDoc: Doc) => {
         const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
@@ -126,7 +119,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
-        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={firstDoc.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
         addedTypes.concat(noteTypes).map(template => template.treeViewChecked = this.templateIsUsed(firstDoc, template));
@@ -142,8 +134,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionView={undefined}
                 docFilters={returnEmptyFilter}
                 rootSelected={returnFalse}
-                onCheckedClick={this.scriptField!}
-                onChildClick={this.scriptField!}
+                onCheckedClick={this.scriptField}
+                onChildClick={this.scriptField}
                 LibraryPath={emptyPath}
                 dropAction={undefined}
                 active={returnTrue}

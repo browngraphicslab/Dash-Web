@@ -97,7 +97,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @observable private _zoomed = 1;
 
     private _pdfViewer: any;
-    private _retries = 0; // number of times tried to create the PDF viewer 
+    private _retries = 0; // number of times tried to create the PDF viewer
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
@@ -263,7 +263,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         const eventBus = new PDFJSViewer.EventBus(true);
         eventBus._on("pagesinit", this.pagesinit);
         eventBus._on("pagerendered", action(() => this._showCover = this._showWaiting = false));
-        const pdfLinkService = new PDFJSViewer.PDFLinkService();
+        const pdfLinkService = new PDFJSViewer.PDFLinkService({ eventBus });
         const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService, eventBus });
         this._pdfViewer = new PDFJSViewer.PDFViewer({
             container: this._mainCont.current,
@@ -353,7 +353,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     scrollToAnnotation = (scrollToAnnotation: Doc) => {
         if (scrollToAnnotation) {
-            const offset = this.visibleHeight() / 2 * 96 / 72;
+            const offset = this.visibleHeight() / 2;
             this._mainCont.current && smoothScroll(500, this._mainCont.current, NumCast(scrollToAnnotation.y) - offset);
             Doc.linkFollowHighlight(scrollToAnnotation);
         }
@@ -399,7 +399,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     search = (searchString: string, fwd: boolean, clear: boolean = false) => {
         if (clear) {
-            this._pdfViewer.findController.executeCommand('reset', {});
+            this._pdfViewer.findController.executeCommand('reset', { query: "" });
         } else if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
         } else if (this._pdfViewer.pageViewsReady) {
@@ -533,7 +533,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         if (this._marqueeing) {
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
                 const marquees = this._mainCont.current!.getElementsByClassName("pdfViewerDash-dragAnnotationBox");
-                if (marquees && marquees.length) { // copy the marquee and convert it to a permanent annotation. 
+                if (marquees?.length) { // copy the marquee and convert it to a permanent annotation.
                     const style = (marquees[0] as HTMLDivElement).style;
                     const copy = document.createElement("div");
                     copy.style.left = style.left;
@@ -556,7 +556,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         }
         else {
             const sel = window.getSelection();
-            if (sel && sel.type === "Range") {
+            if (sel?.type === "Range") {
                 const selRange = sel.getRangeAt(0);
                 this.createTextAnnotation(sel, selRange);
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -649,7 +649,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     @action
     onZoomWheel = (e: React.WheelEvent) => {
-        if (this.active()) {
+        if (this.active(true)) {
             e.stopPropagation();
             if (e.ctrlKey) {
                 const curScale = Number(this._pdfViewer.currentScaleValue);
@@ -703,7 +703,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         </div>;
     }
     @computed get pdfViewerDiv() {
-        return <div className={"pdfViewerDash-text" + ((!DocumentDecorations.Instance.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
+        return <div className={"pdfViewerDash-text" + ((!DocumentDecorations.Instance?.Interacting && (this.props.isSelected() || this.props.isChildActive())) ? "-selected" : "")} ref={this._viewer} />;
     }
     @computed get contentScaling() { return this.props.ContentScaling(); }
     @computed get standinViews() {
@@ -717,7 +717,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     marqueeX = () => this._marqueeX;
     marqueeY = () => this._marqueeY;
     marqueeing = () => this._marqueeing;
-    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling() * 72 / 96;
+    visibleHeight = () => this.props.PanelHeight() / this.props.ContentScaling();
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
@@ -725,8 +725,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
                 overflowX: this._zoomed !== 1 ? "scroll" : undefined,
-                width: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeWidth) : `${100 / this.contentScaling}%`,
-                height: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeHeight) : `${100 / this.contentScaling}%`,
+                width: !this.props.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.props.Document._nativeWidth) : `${100 / this.contentScaling}%`,
+                height: !this.props.Document._fitWidth && (window.screen.width > 600) ? NumCast(this.props.Document._nativeHeight) : `${100 / this.contentScaling}%`,
                 transform: `scale(${this.props.ContentScaling()})`
             }}  >
             {this.pdfViewerDiv}
@@ -738,7 +738,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
 }
 
-interface PdfViewerMarqueeProps {
+export interface PdfViewerMarqueeProps {
     isMarqueeing: () => boolean;
     width: () => number;
     height: () => number;
@@ -747,7 +747,7 @@ interface PdfViewerMarqueeProps {
 }
 
 @observer
-class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
+export class PdfViewerMarquee extends React.Component<PdfViewerMarqueeProps> {
     render() {
         return !this.props.isMarqueeing() ? (null) : <div className="pdfViewerDash-dragAnnotationBox"
             style={{
