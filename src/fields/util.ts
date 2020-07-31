@@ -122,10 +122,6 @@ export function togglePlaygroundMode() {
     playgroundMode = !playgroundMode;
 }
 
-export function getPlaygroundMode() {
-    return playgroundMode;
-}
-
 // the list of groups that the current user is a member of 
 let currentUserGroups: string[] = [];
 
@@ -188,7 +184,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
                 }
             }
         }
-        return effectiveAcl;
+        return playgroundMode && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
     }
     return AclAdmin;
 }

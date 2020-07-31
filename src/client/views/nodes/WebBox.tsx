@@ -13,7 +13,7 @@ import { List } from "../../../fields/List";
 import { listSpec, makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode } from "../../../fields/util";
+import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
 import { addStyleSheet, clearStyleSheetRules, emptyFunction, returnOne, returnZero, Utils, returnTrue } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -536,7 +536,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     highlight = (color: string) => {
         // creates annotation documents for current highlights
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
-        if ([AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) || getPlaygroundMode()) {
+        if ([AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl)) {
             const annotationDoc = this.makeAnnotationDocument(color);
             annotationDoc && Doc.AddDocToList(this.props.Document, this.annotationKey, annotationDoc);
             return annotationDoc;

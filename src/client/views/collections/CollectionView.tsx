@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, SharingPermissions } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, SharingPermissions } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -142,7 +142,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
 
         if (added.length) {
-            if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
+            if (effectiveAcl === AclPrivate || effectiveAcl === AclReadonly) {
                 return false;
             }
             else {
@@ -157,7 +157,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 //     });
                 // }
 
-                if (effectiveAcl === AclAddonly && !getPlaygroundMode()) {
+                if (effectiveAcl === AclAddonly) {
                     added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
                 }
                 else {
@@ -181,7 +181,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
                     // targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
-                    if (!getPlaygroundMode()) targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 }
             }
         }
@@ -193,7 +193,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const collectionEffectiveAcl = GetEffectiveAcl(this.props.Document);
         const docEffectiveAcl = GetEffectiveAcl(doc);
         // you can remove the document if you either have Admin/Edit access to the collection or to the specific document
-        if (collectionEffectiveAcl === AclEdit || collectionEffectiveAcl === AclAdmin || docEffectiveAcl === AclAdmin || docEffectiveAcl === AclEdit || getPlaygroundMode()) {
+        if (collectionEffectiveAcl === AclEdit || collectionEffectiveAcl === AclAdmin || docEffectiveAcl === AclAdmin || docEffectiveAcl === AclEdit) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);

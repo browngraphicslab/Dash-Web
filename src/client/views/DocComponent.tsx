@@ -7,7 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl, getPlaygroundMode, SharingPermissions } from '../../fields/util';
+import { GetEffectiveAcl, SharingPermissions } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -150,7 +150,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
             if (added.length) {
-                if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
+                if (effectiveAcl === AclPrivate || effectiveAcl === AclReadonly) {
                     return false;
                 }
                 else {
@@ -163,13 +163,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     //         }
                     //     });
                     // }
-                    if (effectiveAcl === AclAddonly && !getPlaygroundMode()) {
+                    if (effectiveAcl === AclAddonly) {
                         added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
                     }
                     else {
                         added.map(doc => doc.context = this.props.Document);
                         (targetDataDoc[this.annotationKey] as List<Doc>).push(...added);
-                        if (!getPlaygroundMode()) targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                        targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
                     }
                 }
             }
