@@ -120,17 +120,14 @@ export default class SharingManager extends React.Component<{}> {
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
-            const isCandidate = user.email !== Doc.CurrentUserEmail;
-            if (isCandidate) {
-                const userDocument = await DocServer.GetRefField(user.userDocumentId);
-                if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
-                    runInAction(() => {
-                        if (notificationDoc instanceof Doc) {
-                            this.users.push({ user, notificationDoc });
-                        }
-                    });
-                }
+            const userDocument = await DocServer.GetRefField(user.userDocumentId);
+            if (userDocument instanceof Doc) {
+                const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                runInAction(() => {
+                    if (notificationDoc instanceof Doc) {
+                        this.users.push({ user, notificationDoc });
+                    }
+                });
             }
         });
         return Promise.all(evaluating);
@@ -407,7 +404,7 @@ export default class SharingManager extends React.Component<{}> {
                             </select>
                         ) : (
                                 <div className={"permissions-dropdown"}>
-                                    {this.sharingOptions}
+                                    {permissions}
                                 </div>
                             )}
                     </div>

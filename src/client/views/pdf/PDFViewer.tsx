@@ -4,7 +4,7 @@ const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { Doc, DocListCast, FieldResult, HeightSym, Opt, WidthSym, AclAddonly, AclEdit, AclAdmin } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -13,7 +13,7 @@ import { createSchema, makeInterface } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
-import { TraceMobx } from "../../../fields/util";
+import { TraceMobx, GetEffectiveAcl, getPlaygroundMode } from "../../../fields/util";
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, emptyPath, intersectRect, returnZero, smoothScroll, Utils } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -565,9 +565,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     highlight = (color: string) => {
         // creates annotation documents for current highlights
-        const annotationDoc = this.makeAnnotationDocument(color);
-        annotationDoc && this.props.addDocument?.(annotationDoc);
-        return annotationDoc;
+        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        if ([AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) || getPlaygroundMode()) {
+            const annotationDoc = this.makeAnnotationDocument(color);
+            annotationDoc && Doc.AddDocToList(this.props.Document, this.annotationKey, annotationDoc);
+            return annotationDoc;
+        }
+        return undefined;
     }
 
     /**
