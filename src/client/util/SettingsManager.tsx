@@ -9,18 +9,20 @@ import "./SettingsManager.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Networking } from "../Network";
 import { CurrentUserUtils } from "./CurrentUserUtils";
-import { Utils } from "../../Utils";
+import { Utils, addStyleSheet, addStyleSheetRule, removeStyleSheetRule } from "../../Utils";
 import { Doc } from "../../fields/Doc";
 import GroupManager from "./GroupManager";
 import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 import { togglePlaygroundMode } from "../../fields/util";
+import { DocServer } from "../DocServer";
 
 library.add(fa.faTimes);
 
 @observer
 export default class SettingsManager extends React.Component<{}> {
     public static Instance: SettingsManager;
+    static _settingsStyle = addStyleSheet();
     @observable private isOpen = false;
     @observable private dialogueBoxOpacity = 1;
     @observable private overlayOpacity = 0.4;
@@ -99,8 +101,12 @@ export default class SettingsManager extends React.Component<{}> {
 
     @action
     togglePlaygroundMode = () => {
-        togglePlaygroundMode();
+        //togglePlaygroundMode();
         this.playgroundMode = !this.playgroundMode;
+        if (this.playgroundMode) DocServer.Control.makeReadOnly();
+        else DocServer.Control.makeEditable();
+
+        addStyleSheetRule(SettingsManager._settingsStyle, "lm_header", { background: "pink !important" });
     }
 
     private get settingsInterface() {

@@ -1037,6 +1037,7 @@ export namespace DocUtils {
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
                     if (newDoc) {
+                        newDoc.author = Doc.CurrentUserEmail;
                         newDoc.x = x;
                         newDoc.y = y;
                         docAdder(newDoc);
