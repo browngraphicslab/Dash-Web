@@ -9,7 +9,6 @@ import GestureOverlay from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';
-import { getPlaygroundMode } from '../fields/util';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -452,7 +451,7 @@ export namespace DocServer {
     }
 
     function _UpdateFieldImpl(id: string, diff: any) {
-        (!getPlaygroundMode()) && Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+        (!DocServer.Control.isReadOnly()) && Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
     let _UpdateField: (id: string, diff: any) => void = errorFunc;

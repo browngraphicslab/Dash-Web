@@ -74,7 +74,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     const fromServer = target[UpdatingFromServer];
     const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
     const writeToDoc = sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || (writeMode !== DocServer.WriteMode.LiveReadonly);
-    const writeToServer = (sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || writeMode === DocServer.WriteMode.Default) && !playgroundMode;
+    const writeToServer = (sameAuthor || effectiveAcl === AclEdit || effectiveAcl === AclAdmin || writeMode === DocServer.WriteMode.Default) && !DocServer.Control.isReadOnly();// && !playgroundMode;
 
     if (writeToDoc) {
         if (value === undefined) {
@@ -116,11 +116,11 @@ export function OVERRIDE_ACL(val: boolean) {
 }
 
 // playground mode allows the user to add/delete documents or make layout changes without them saving to the server
-let playgroundMode = false;
+// let playgroundMode = false;
 
-export function togglePlaygroundMode() {
-    playgroundMode = !playgroundMode;
-}
+// export function togglePlaygroundMode() {
+//     playgroundMode = !playgroundMode;
+// }
 
 // the list of groups that the current user is a member of 
 let currentUserGroups: string[] = [];
@@ -186,7 +186,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
             }
         }
         // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
-        return playgroundMode && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
+        return DocServer?.Control?.isReadOnly?.() && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
     }
     return AclAdmin;
 }
