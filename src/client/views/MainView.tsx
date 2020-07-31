@@ -300,7 +300,7 @@ export class MainView extends React.Component {
 
     @action
     onResize = (r: any) => {
-        this._panelWidth = r.offset.width - this.propertiesWidth();
+        this._panelWidth = r.offset.width;// - this.propertiesWidth();
         this._panelHeight = r.offset.height;
     }
 
@@ -368,102 +368,37 @@ export class MainView extends React.Component {
         TraceMobx();
         const mainContainer = this.mainContainer;
         const width = this.flyoutWidth;
-        return <Measure offset onResize={this.onResize}>
-            {({ measureRef }) =>
-                <div ref={measureRef} className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
-                    {!mainContainer ? (null) : this.mainDocView}
-                </div>
-            }
-        </Measure>;
+        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
+            {!mainContainer ? (null) : this.mainDocView}
+        </div>;
     }
 
     _canClick = false;
 
     @action
-    onPointerDown = (e: React.PointerEvent) => {
+    onPropertiesPointerDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            this._propertiesWidth = this._panelWidth - e.clientX;
+            return false;
+        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
+    }
+
+    @action
+    onFlyoutPointerDown = (e: React.PointerEvent) => {
+        this.panelContent = "none";
         if (this._flyoutTranslate) {
-            this.panelContent = "none";
-            this._canClick = true;
-            this._flyoutSizeOnDown = e.clientX;
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointerup", this.onPointerUp);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }
-
-    @action
-    pointerLeaveDragger = () => {
-        if (!this._flyoutTranslate) {
-            this.flyoutWidth = 0;
-            this._flyoutTranslate = true;
-        }
-    }
-
-    @action
-    onDown = (e: React.PointerEvent) => {
-        this.propertiesDownX = e.screenX;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
-        e.preventDefault();
-        // setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-        //     this._propertiesWidth = this._panelWidth - Math.max(Transform.Identity().transformPoint(e.clientX, 0)[0], 0);
-        //     return false;
-        // }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
-    }
-
-    @action
-    onPointerMove = (e: PointerEvent) => {
-        if (this.propertiesDownX) {
-            this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX);
-            if (this._propertiesWidth < 150) {
-                this._propertiesWidth = 0;
-                this.propertiesDownX = undefined;
-            } else if (this._propertiesWidth > 400) {
-                this._propertiesWidth = 400;
-                this.propertiesDownX = undefined;
-            }
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-        } else {
-            this.flyoutWidth = Math.max(e.clientX, 0);
-            Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
-            this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
-        }
-    }
-    @action
-    onPointerUp = (e: PointerEvent) => {
-        if (this.propertiesDownX) {
-            if (Math.abs(this.propertiesDownX - e.screenX) < 3) {
-                if (this._propertiesWidth < 10) {
-                    this._propertiesWidth = 200;
-                } else {
-                    this._propertiesWidth = 0;
-                }
-            } else {
-                this._propertiesWidth = this._propertiesWidth + (this.propertiesDownX - e.screenX);
-                if (this._propertiesWidth < 150) {
-                    this._propertiesWidth = 0;
-                } else if (this._propertiesWidth > 400) {
-                    this._propertiesWidth = 400;
-                }
-            }
-            this.propertiesDownX = undefined;
-        } else {
-            if (Math.abs(e.clientX - this._flyoutSizeOnDown) < 4 && this._canClick) {
+            setupMoveUpEvents(this, e, action((e: PointerEvent) => {
+                this.flyoutWidth = Math.max(e.clientX, 0);
+                Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
+                this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
+                return false;
+            }), emptyFunction, action(() => {
                 this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
                 this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
-            }
+            }));
         }
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-
     }
+
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
@@ -603,56 +538,67 @@ export class MainView extends React.Component {
         </div>;
     }
 
+    @computed get mainInnerContent() {
+        const rightFlyout = this.propertiesWidth() - 1;
+        return <>
+            {this.menuPanel}
+            <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
+                <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
+                    {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
+                        onPointerDown={this.onFlyoutPointerDown}
+                        style={{ backgroundColor: this.defaultBackgroundColors(undefined) }}>
+                        <span title="library View Dragger" style={{
+                            width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
+                            //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
+                            position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
+                            top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
+                        }} />
+                        <div className="mainview-libraryHandle-icon">
+                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" /> </div>
+                    </div> : null}
+                    <div className="mainView-libraryFlyout" style={{
+                        //transformOrigin: this._flyoutTranslate ? "" : "left center",
+                        transition: this._flyoutTranslate ? "" : "width .5s",
+                        //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
+                        boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw"
+                    }}>
+                        {this.flyout}
+                        {this.expandButton}
+                    </div>
+                </div>
+                {this.dockingContent}
+                {this.showProperties ? (null) :
+                    <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
+                        style={{ right: rightFlyout, top: "45%" }}>
+                        <div className="mainView-propertiesDragger-icon">
+                            <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
+                    </div>
+                }
+                {this.propertiesWidth() < 10 ? (null) :
+                    <div style={{ width: this.propertiesWidth() }}> {this.propertiesView} </div>}
+            </div>
+        </>;
+    }
+
     @computed get mainContent() {
         //const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const n = (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
-
-        const rightFlyout = this.propertiesWidth() - 1;
+        const pinned = FormatShapePane.Instance?.Pinned;
+        const innerContent = this.mainInnerContent;
         return !this.userDoc ? (null) : (
-            <div className="mainView-mainContent" style={{
-                color: this.darkScheme ? "rgb(205,205,205)" : "black",
-                //change to times 2 for both pinned
-                height,
-                width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
-            }} >
-                {this.menuPanel}
-                <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
-                    <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-                        {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
-                            onPointerDown={this.onPointerDown}
-                            style={{ backgroundColor: this.defaultBackgroundColors(undefined) }}>
-                            <span title="library View Dragger" style={{
-                                width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
-                                //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
-                                position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
-                                top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
-                            }} />
-                            <div className="mainview-libraryHandle-icon">
-                                <FontAwesomeIcon icon="chevron-left" color="black" size="sm" /> </div>
-                        </div> : null}
-                        <div className="mainView-libraryFlyout" style={{
-                            //transformOrigin: this._flyoutTranslate ? "" : "left center",
-                            transition: this._flyoutTranslate ? "" : "width .5s",
-                            //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
-                            boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.2vw"
-                        }}>
-                            {this.flyout}
-                            {this.expandButton}
-                        </div>
+            <Measure offset onResize={this.onResize}>
+                {({ measureRef }) =>
+                    <div className="mainView-mainContent" ref={measureRef} style={{
+                        color: this.darkScheme ? "rgb(205,205,205)" : "black",
+                        //change to times 2 for both pinned
+                        height,
+                        width: pinned ? `calc(100% - 200px)` : "100%"
+                    }} >
+                        {innerContent}
                     </div>
-                    {this.dockingContent}
-                    {this.showProperties ? (null) :
-                        <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onDown}
-                            style={{ right: rightFlyout, top: "45%" }}>
-                            <div className="mainView-propertiesDragger-icon">
-                                <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
-                        </div>
-                    }
-                    {this.propertiesWidth() < 10 ? (null) :
-                        <div style={{ width: this.propertiesWidth() }}> {this.propertiesView} </div>}
-                </div>
-            </div>);
+                }
+            </Measure>);
     }
 
     public static expandFlyout = action(() => {

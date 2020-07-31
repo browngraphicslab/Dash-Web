@@ -295,7 +295,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
-        return <div className="propertiesView-sharingTable-item">
+        return <div className="propertiesView-sharingTable-item" key="name">
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "70px" : "80px" }}> {name} </div>
             {name !== "Me" ? this.notifyIcon : null}
             <div className="propertiesView-sharingTable-item-permission">
