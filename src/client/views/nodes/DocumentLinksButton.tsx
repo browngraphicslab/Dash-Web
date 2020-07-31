@@ -11,13 +11,14 @@ import { DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "./DocumentView";
-import { StrCast } from "../../../fields/Types";
+import { StrCast, Cast } from "../../../fields/Types";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
 import { Hypothesis } from "../../apis/hypothesis/HypothesisUtils";
 import { Id } from "../../../fields/FieldSymbols";
 import { TaskCompletionBox } from "./TaskCompletedBox";
 import React = require("react");
 import './DocumentLinksButton.scss';
+import { WebField } from "../../../fields/URLField";
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -40,27 +41,30 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static AnnotationUri: string | undefined;
 
     componentDidMount() {
-        document.addEventListener("linkAnnotationToDash", this.onLinkFromAnnotation);
+        document.addEventListener("completeLinkToAnnotation", this.onLinkFromAnnotation);
     }
 
     componentWillUnmount() {
-        document.removeEventListener("linkAnnotationToDash", this.onLinkFromAnnotation);
+        document.removeEventListener("completeLinkToAnnotation", this.onLinkFromAnnotation);
     }
 
+    @action
     onLinkFromAnnotation = async (e: any) => {
-        const annotationUri = e.detail.uri;
-        const sourceDoc = DocumentLinksButton.StartLink && await Hypothesis.getSourceWebDoc(annotationUri);
+        const annotationId: string = e.detail.id;
+        const annotationUri: string = e.detail.uri;
+        const sourceDoc: Doc = e.detail.sourceDoc;
 
-        this.props.View.props.Document.type === DocumentType.WEB && console.log(sourceDoc === this.props.View.props.Document,
-            sourceDoc,
-            this.props.View.props.Document,
-            sourceDoc!.title,
-            this.props.View.props.Document,
-            sourceDoc!.data,
-            this.props.View.props.Document.data);
+        // DocumentLinksButton.StartLink && this.props.View.props.Document.type === DocumentType.WEB && console.log(
+        //     sourceDoc.title,
+        //     this.props.View.props.Document.title,
+        //     sourceDoc.data,
+        //     this.props.View.props.Document.data,
+        //     Doc.AreProtosEqual(sourceDoc, this.props.View.props.Document));
 
-        if (sourceDoc === this.props.View.props.Document && sourceDoc !== DocumentLinksButton.StartLink) {
-            this.finishLinkClick(20, 20);
+        if (Doc.AreProtosEqual(sourceDoc, this.props.View.props.Document) && sourceDoc !== DocumentLinksButton.StartLink) {
+            DocumentLinksButton.AnnotationId = annotationId;
+            DocumentLinksButton.AnnotationUri = annotationUri;
+            this.finishLinkClick(500, 100);
             console.log("completed link from annotation");
         }
     }
@@ -122,7 +126,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @action @undoBatch
     completeLink = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e, doubleTap) => {
-            if (doubleTap && this.props.InMenu && !!!this.props.StartLink) {
+            if (doubleTap && !this.props.StartLink) {
                 if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                     DocumentLinksButton.StartLink = undefined;
                     DocumentLinksButton.AnnotationId = undefined;
@@ -169,7 +173,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             DocumentLinksButton.StartLink = undefined;
             DocumentLinksButton.AnnotationId = undefined;
         } else {
-            if (this.props.InMenu && !!!this.props.StartLink) {
+            if (!this.props.StartLink) {
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink }, { doc: this.props.View.props.Document }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
                     // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
@@ -179,11 +183,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
                     // if the link is to a Hypothes.is annotation
                     if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
-                        const targetDoc = this.props.View.props.Document;
+                        // figure out whether the StartLink doc or the current doc is the one to be linked to the annotation (the one NOT containing the annotation)
+                        const toBeLinked: Doc = DocumentLinksButton.AnnotationUri === Cast(DocumentLinksButton.StartLink.data, WebField)?.url.href ?
+                            this.props.View.props.Document : DocumentLinksButton.StartLink;
                         Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                         Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                         Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
-                        Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                        Hypothesis.makeLink(StrCast(toBeLinked.title), Utils.prepend("/doc/" + toBeLinked[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
                     }
 
                     runInAction(() => {

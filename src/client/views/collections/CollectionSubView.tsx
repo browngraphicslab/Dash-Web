@@ -353,8 +353,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     title: uriList,
                     _width: 400,
                     _height: 315,
-                    _nativeWidth: 600,
-                    _nativeHeight: 472.5
+                    _nativeWidth: 850,
+                    _nativeHeight: 962,
+                    UseCors: true
                 }));
                 return;
             }

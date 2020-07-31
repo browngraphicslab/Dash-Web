@@ -105,17 +105,26 @@ export class MainView extends React.Component {
             });
         });
         document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to link an annotation to Dash
-            if (!DocumentLinksButton.StartLink) { // starts link only if there are none already started (else, a listener in DocumentLinksButton will handle link completion)
-                const annotationId = e.detail.id;
-                const annotationUri = e.detail.uri;
-                const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
-                console.log("sourceDoc: ", sourceDoc.title);
+            const annotationId = e.detail.id;
+            const annotationUri = e.detail.uri;
+            const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
+            console.log("sourceDoc: ", sourceDoc.title);
 
+            if (!DocumentLinksButton.StartLink) { // starts link only if there are none already started (else, a listener in DocumentLinksButton will handle link completion)
                 runInAction(() => {
                     DocumentLinksButton.AnnotationId = annotationId;
                     DocumentLinksButton.AnnotationUri = annotationUri;
                     DocumentLinksButton.StartLink = sourceDoc;
                 });
+            } else { // if a link's already started in Dash, send event to DocumentLinksButton tofinish the link to the annotation
+                document.dispatchEvent(new CustomEvent<{ id: string, uri: string, sourceDoc: Doc }>("completeLinkToAnnotation", {
+                    detail: {
+                        id: annotationId,
+                        uri: annotationUri,
+                        sourceDoc: sourceDoc
+                    },
+                    bubbles: true
+                }));
             }
         });
 
