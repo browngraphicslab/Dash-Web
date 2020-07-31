@@ -55,10 +55,8 @@ import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
-import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import CollectionMenu from './collections/CollectionMenu';
 import { Hypothesis } from '../apis/hypothesis/HypothesisUtils';
-import { SelectionManager } from '../util/SelectionManager';
 
 @observer
 export class MainView extends React.Component {
@@ -107,19 +105,37 @@ export class MainView extends React.Component {
             });
         });
         document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to link an annotation to Dash
-            const annotationId = e.detail.id;
-            const annotationUri = e.detail.uri;
-            const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
-            console.log("sourceDoc: ", sourceDoc ? sourceDoc.title : "not found");
+            if (!DocumentLinksButton.StartLink) { // starts link only if there are none already started (else, a listener in DocumentLinksButton will handle link completion)
+                const annotationId = e.detail.id;
+                const annotationUri = e.detail.uri;
+                const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
+                console.log("sourceDoc: ", sourceDoc.title);
 
-            // TO BE FIXED, currently cannot start links from new webpages that don't exist in Dash
-            const source = sourceDoc || SelectionManager.SelectedDocuments()[0];
-            runInAction(() => {
-                DocumentLinksButton.AnnotationId = annotationId;
-                DocumentLinksButton.AnnotationUri = annotationUri;
-                DocumentLinksButton.StartLink = source;
-            });
+                runInAction(() => {
+                    DocumentLinksButton.AnnotationId = annotationId;
+                    DocumentLinksButton.AnnotationUri = annotationUri;
+                    DocumentLinksButton.StartLink = sourceDoc;
+                });
+            }
         });
+
+        // reaction(() => SelectionManager.SelectedDocuments(), selected => {
+        //     console.log("selection changed");
+        //     const selectedWebDocs = selected.map(docView => docView.props.Document).filter(doc => doc.type === DocumentType.WEB);
+        //     const urls = selectedWebDocs.map(doc => Cast(doc.data, WebField)?.url.href).filter(url => url !== undefined);
+        //     console.log("urls", urls);
+
+        //     const frame = document.getElementById('hyp_sidebar') as HTMLIFrameElement;
+        //     console.log("contentwindow?", frame.contentDocument);
+        //     if (frame.contentWindow) {
+        //         frame.contentWindow.postMessage("hello sidebar", window.origin);
+        //     }
+
+        //     document.dispatchEvent(new CustomEvent('showAnnotations', {
+        //         detail: urls,
+        //         bubbles: true
+        //     }));
+        // });
     }
 
     componentWillUnMount() {
@@ -623,7 +639,6 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
-            <HypothesisAuthenticationManager />
             <DocumentDecorations />
             <CollectionMenu />
             <FormatShapePane />

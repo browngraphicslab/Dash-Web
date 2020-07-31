@@ -3,8 +3,8 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { action } from "mobx";
 import { Doc } from "../../../fields/Doc";
 import { DocumentType } from "../../documents/DocumentTypes";
-import { WebField } from "../../../fields/URLField";
-import { DocumentManager } from "../../util/DocumentManager";
+import { Docs } from "../../documents/Documents";
+import { SelectionManager } from "../../util/SelectionManager";
 
 export namespace Hypothesis {
 
@@ -39,20 +39,21 @@ export namespace Hypothesis {
 
     // Return corres
     export const getSourceWebDoc = async (uri: string) => {
+        const currentDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        if (StrCast(currentDoc.data) === uri) return currentDoc; // always check first whether the current doc is the source, only resort to Search otherwise
+
         const results: Doc[] = [];
         await SearchUtil.Search("web", true).then(action(async (res: SearchUtil.DocSearchResult) => {
             const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
             const filteredDocs = docs.filter(doc =>
-                doc.type === DocumentType.WEB && doc.data
+                doc.author === Doc.CurrentUserEmail && doc.type === DocumentType.WEB && doc.data
             );
-            filteredDocs.forEach(doc => {
-                console.log(uri, Cast(doc.data, WebField)?.url.href, uri === Cast(doc.data, WebField)?.url.href);
-                (uri === Cast(doc.data, WebField)?.url.href) && results.push(doc); // TODO check history? imperfect matches?
-            });
+            filteredDocs.forEach(doc => { uri === StrCast(doc.data) && results.push(doc); }); // TODO check history? imperfect matches?
         }));
 
-        // TODO: open & return new Web doc with given uri if no matching Web docs are found
-        return results.length ? DocumentManager.Instance.getFirstDocumentView(results[0]) : undefined;
+        results.forEach(doc => console.log(doc.title, StrCast(doc.data)));
+
+        return results.length ? results[0] : Docs.Create.WebDocument(uri, { _nativeWidth: 850, _nativeHeight: 962, _width: 600 }); // create and return a new Web doc with given uri if no matching docs are found
     };
 
     export const scrollToAnnotation = (annotationId: string) => {
