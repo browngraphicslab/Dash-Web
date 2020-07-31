@@ -184,6 +184,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
                 }
             }
         }
+        // if we're in playground mode, return AclEdit (or AclAdmin if that's the user's effectiveAcl)
         return playgroundMode && HierarchyMapping.get(effectiveAcl)! < 3 ? AclEdit : effectiveAcl;
     }
     return AclAdmin;
@@ -194,6 +195,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
  * @param acl the access right being stored (e.g. "Can Edit")
  * @param target the document on which this access right is being set
  * @param inheritingFromCollection whether the target is being assigned rights after being dragged into a collection (and so is inheriting the ACLs from the collection)
+ * inheritingFromCollection is not currently being used but could be used if ACL assignment defaults change
  */
 export function distributeAcls(key: string, acl: SharingPermissions, target: Doc, inheritingFromCollection?: boolean) {
 
@@ -205,7 +207,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         ["Admin", 4]
     ]);
 
-    let changed = false;
+    let changed = false; // determines whether fetchProto should be called or not (i.e. is there a change that should be reflected in target[AclSym])
     const dataDoc = target[DataSym];
 
     // if it is inheriting from a collection, it only inherits if A) the key doesn't already exist or B) the right being inherited is more restrictive
@@ -241,7 +243,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         });
     }
 
-    changed && fetchProto(target); // updates aclsym when changes to acls have been made
+    changed && fetchProto(target); // updates target[AclSym] when changes to acls have been made
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
@@ -251,6 +253,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
     const effectiveAcl = GetEffectiveAcl(target, in_prop);
     if (effectiveAcl !== AclEdit && effectiveAcl !== AclAdmin) return true;
 
+    // if you're trying to change an acl but don't have Admin access / you're trying to change it to something that isn't an acceptable acl, you can't
     if (typeof prop === "string" && prop.startsWith("ACL") && (effectiveAcl !== AclAdmin || ![...Object.values(SharingPermissions), undefined].includes(value))) return true;
     // if (typeof prop === "string" && prop.startsWith("ACL") && !["Can Edit", "Can Add", "Can View", "Not Shared", undefined].includes(value)) return true;
 

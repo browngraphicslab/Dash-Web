@@ -81,13 +81,14 @@ export default class SharingManager extends React.Component<{}> {
     public open = (target: DocumentView) => {
         runInAction(() => this.users = []);
         // SelectionManager.DeselectAll();
-        this.populateUsers().then(action(() => {
+        this.populateUsers();
+        runInAction(() => {
             this.targetDocView = target;
             this.targetDoc = target.props.Document;
             DictationOverlay.Instance.hasActiveModal = true;
             this.isOpen = true;
             this.permissions = SharingPermissions.Edit;
-        }));
+        });
 
     }
 
@@ -108,6 +109,9 @@ export default class SharingManager extends React.Component<{}> {
         SharingManager.Instance = this;
     }
 
+    /**
+     * Populates the list of users.
+     */
     componentDidMount() {
         this.populateUsers();
     }
