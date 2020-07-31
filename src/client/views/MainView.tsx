@@ -361,7 +361,7 @@ export class MainView extends React.Component {
             docFilters={returnEmptyFilter}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
-            renderDepth={0}
+            renderDepth={-1}
         />;
     }
     @computed get dockingContent() {
@@ -372,8 +372,6 @@ export class MainView extends React.Component {
             {!mainContainer ? (null) : this.mainDocView}
         </div>;
     }
-
-    _canClick = false;
 
     @action
     onPropertiesPointerDown = (e: React.PointerEvent) => {
@@ -389,7 +387,6 @@ export class MainView extends React.Component {
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
-                Math.abs(this.flyoutWidth - this._flyoutSizeOnDown) > 6 && (this._canClick = false);
                 this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
                 return false;
             }), emptyFunction, action(() => {
