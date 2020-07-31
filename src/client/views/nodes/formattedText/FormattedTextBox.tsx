@@ -228,7 +228,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (!this.dataDoc[AclSym]) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
-                    (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
+                    (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()))) && (this.dataDoc["lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (json !== curLayout?.Data) {
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
@@ -280,7 +280,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
-    public highlightSearchTerms = (terms: string[])=> {
+    public highlightSearchTerms = (terms: string[]) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
 
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
@@ -291,30 +291,30 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
 
-            
+
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
-            
+
             console.log(this._searchIndex, length);
-            if (this._searchIndex>1){
-                this._searchIndex+=-2;
+            if (this._searchIndex > 1) {
+                this._searchIndex += -2;
             }
-            else if (this._searchIndex===1){
-                this._searchIndex=length-1;
+            else if (this._searchIndex === 1) {
+                this._searchIndex = length - 1;
             }
-            else if (this._searchIndex===0 && length!==1){
-                this._searchIndex=length-2;
+            else if (this._searchIndex === 0 && length !== 1) {
+                this._searchIndex = length - 2;
             }
             let index = this._searchIndex;
 
             Doc.GetProto(this.dataDoc).searchIndex = index;
-            Doc.GetProto(this.dataDoc).length=length;
+            Doc.GetProto(this.dataDoc).length = length;
         }
     }
 
-    public highlightSearchTerms2 = (terms: string[])=> {
+    public highlightSearchTerms2 = (terms: string[]) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
 
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
@@ -323,7 +323,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let length = res[0].length;
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
-            res.map(r => r.map(h => flattened.push(h)));       
+            res.map(r => r.map(h => flattened.push(h)));
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
@@ -331,7 +331,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let index = this._searchIndex;
 
             Doc.GetProto(this.dataDoc).searchIndex = index;
-            Doc.GetProto(this.dataDoc).length=length;
+            Doc.GetProto(this.dataDoc).length = length;
         }
     }
 

@@ -40,6 +40,7 @@ import * as _ from "lodash";
 import { checkIfStateModificationsAreAllowed } from 'mobx/lib/internal';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { indexOf } from 'lodash';
+import { protocol } from 'socket.io-client';
 
 
 library.add(faTimes);
@@ -379,22 +380,42 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
             let found: [Doc, string[], string[]][] = [];
             let docsforFilter: Doc[] = []
-            docs.forEach((d) => {
-                let hlights: string[] = [];
-                const protos = Doc.GetAllPrototypes(d);
-                let proto = protos[protos.length - 2];
-                Object.keys(proto).forEach(key => {
-                    if (StrCast(d[key]).includes(query)) {
-                        console.log(key, d[key]);
-                        hlights.push(key);
+            let newarray: Doc[] = [];
+
+            while (docs.length > 0) {
+                console.log("iteration");
+                newarray = [];
+                docs.forEach((d) => {
+                    console.log(d);
+                    if (d.data != undefined) {
+                        let newdocs = DocListCast(d.data);
+                        newdocs.forEach((newdoc) => {
+                            console.log(newdoc);
+                            newarray.push(newdoc);
+
+                        });
                     }
+
+
+                    let hlights: string[] = [];
+
+                    const protos = Doc.GetAllPrototypes(d);
+                    let proto = protos[protos.length - 1];
+                    protos.forEach(proto => {
+                        Object.keys(proto).forEach(key => {
+                            // console.log(key, d[key]);
+                            if (StrCast(d[key]).includes(query) && !hlights.includes(key)) {
+                                hlights.push(key);
+                            }
+                        })
+                    });
+                    if (hlights.length > 0) {
+                        found.push([d, hlights, []]);
+                        docsforFilter.push(d);
+                    };
                 });
-                if (hlights.length > 0) {
-                    found.push([d, hlights, []]);
-                    docsforFilter.push(d);
-                };
-            });
-            console.log(found);
+                docs = newarray;
+            }
             this._results = found;
             this.docsforfilter = docsforFilter;
             if (this.filter === true) {
@@ -406,6 +427,20 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this.noresults = "No collection selected :(";
         }
 
+    }
+
+
+    documentKeys(doc: Doc) {
+        const keys: { [key: string]: boolean } = {};
+        // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
+        //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
+        //  invalidated and re-rendered.   This workaround will inquire all of the document fields before the options button is clicked.
+        //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
+        //  is displayed (unlikely) it won't show up until something else changes.
+        //TODO Types
+        Doc.GetAllPrototypes(doc).map
+            (proto => Object.keys(proto).forEach(key => keys[key] = false));
+        return Array.from(Object.keys(keys));
     }
 
     applyBasicFieldFilters(query: string) {
@@ -669,7 +704,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        let headers = new Set<string>(["title", "author", "creationDate"]);
+        let headers = new Set<string>(["title", "author", "lastModified"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             if (this.noresults === "") {
                 this.noresults = "No search results :(";
@@ -734,12 +769,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             if (i < this._visibleDocuments.length) {
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";
-                                console.log("WHYYYY");
-                                console.log(result[0]);
-
                                 Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                                 this.children++;
-
                             }
                         }
                     }

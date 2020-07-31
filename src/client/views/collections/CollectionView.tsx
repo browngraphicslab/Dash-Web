@@ -159,6 +159,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
                 targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
                 targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                targetDataDoc["lastModified"] = new DateField(new Date(Date.now()));
+
             }
         }
         return true;
@@ -554,7 +556,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
-            <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition==="absolute"? "flex" : "", justifyContent: this.props.PanelPosition==="absolute"? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition === "absolute" ? "flex" : "", justifyContent: this.props.PanelPosition === "absolute" ? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>

@@ -146,6 +146,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     added.map(doc => doc.context = this.props.Document);
                     targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
                     targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    targetDataDoc["lastModified"] = new DateField(new Date(Date.now()));
+
                 }
             }
             return true;
