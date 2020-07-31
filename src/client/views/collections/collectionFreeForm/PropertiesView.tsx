@@ -16,7 +16,7 @@ import { Transform } from "../../../util/Transform";
 import { PropertiesButtons } from "../../PropertiesButtons";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip, Checkbox } from "@material-ui/core";
+import { Tooltip, Checkbox, Divider } from "@material-ui/core";
 import SharingManager from "../../../util/SharingManager";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import FormatShapePane from "./FormatShapePane";
@@ -563,12 +563,148 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get XpsInput() { return this.inputBoxDuo("Xps", this.shapeXps, (val: string) => this.shapeXps = val, "X:", "Yps", this.shapeYps, (val: string) => this.shapeYps = val, "Y:"); }
     @computed get rotInput() { return this.inputBoxDuo("rot", this.shapeRot, (val: string) => { this.rotate(Number(val) - Number(this.shapeRot)); this.shapeRot = val; return true; }, "∠:", "rot", this.shapeRot, (val: string) => this.shapeRot = val, ""); }
 
+    @observable private _fillBtn = false;
+    @observable private _lineBtn = false;
+
+    private _lastFill = "#D0021B";
+    private _lastLine = "#D0021B";
+    private _lastDash = "2";
+
+    @computed get colorFil() { const ccol = this.getField("fillColor") || ""; ccol && (this._lastFill = ccol); return ccol; }
+    @computed get colorStk() { const ccol = this.getField("color") || ""; ccol && (this._lastLine = ccol); return ccol; }
+    set colorFil(value) { value && (this._lastFill = value); this.selectedDoc && (this.selectedDoc.fillColor = value ? value : undefined); }
+    set colorStk(value) { value && (this._lastLine = value); this.selectedDoc && (this.selectedDoc.color = value ? value : undefined); }
+
+    colorButton(value: string, setter: () => {}) {
+        return <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
+            <div className="color-button-preview" style={{
+                backgroundColor: value ?? "121212", width: 15, height: 15,
+                display: value === "" || value === "transparent" ? "none" : ""
+            }} />
+            {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
+        </div>;
+    }
+
+    @undoBatch
+    @action
+    switchStk = (color: ColorState) => {
+        const val = String(color.hex);
+        this.colorStk = val;
+        return true;
+    }
+    @undoBatch
+    @action
+    switchFil = (color: ColorState) => {
+        const val = String(color.hex);
+        this.colorFil = val;
+        return true;
+    }
+
+    colorPicker(setter: (color: string) => {}, type: string) {
+        return <SketchPicker onChange={type === "stk" ? this.switchStk : this.switchFil}
+            presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
+                '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
+                '#FFFFFF', '#f1efeb', 'transparent']}
+            color={type === "stk" ? this.colorStk : this.colorFil} />;
+    }
+
+    @computed get fillButton() { return this.colorButton(this.colorFil, () => { this._fillBtn = !this._fillBtn; this._lineBtn = false; return true; }); }
+    @computed get lineButton() { return this.colorButton(this.colorStk, () => { this._lineBtn = !this._lineBtn; this._fillBtn = false; return true; }); }
+
+    @computed get fillPicker() { return this.colorPicker((color: string) => this.colorFil = color, "fil"); }
+    @computed get linePicker() { return this.colorPicker((color: string) => this.colorStk = color, "stk"); }
+
+    @computed get strokeAndFill() {
+        return <div>
+            <div key="fill" className="strokeAndFill">
+                <div className="fill">
+                    <div className="fill-title">Fill:</div>
+                    <div className="fill-button">{this.fillButton}</div>
+                </div>
+                <div className="stroke">
+                    <div className="stroke-title"> Stroke: </div>
+                    <div className="stroke-button">{this.lineButton}</div>
+                </div>
+            </div>
+            {this._fillBtn ? this.fillPicker : ""}
+            {this._lineBtn ? this.linePicker : ""}
+        </div>;
+    }
+
+    @computed get solidStk() { return this.selectedDoc?.color && (!this.selectedDoc?.strokeDash || this.selectedDoc?.strokeDash === "0") ? true : false; }
+    @computed get dashdStk() { return !this.unStrokd && this.getField("strokeDash") || ""; }
+    @computed get unStrokd() { return this.selectedDoc?.color ? true : false; }
+    @computed get widthStk() { return this.getField("strokeWidth") || "1"; }
+    @computed get markHead() { return this.getField("strokeStartMarker") || ""; }
+    @computed get markTail() { return this.getField("strokeEndMarker") || ""; }
+    set solidStk(value) { this.dashdStk = ""; this.unStrokd = !value; }
+    set dashdStk(value) {
+        value && (this._lastDash = value) && (this.unStrokd = false);
+        this.selectedDoc && (this.selectedDoc.strokeDash = value ? this._lastDash : undefined);
+    }
+    set widthStk(value) { this.selectedDoc && (this.selectedDoc.strokeWidth = Number(value)); }
+    set unStrokd(value) { this.colorStk = value ? "" : this._lastLine; }
+    set markHead(value) { this.selectedDoc && (this.selectedDoc.strokeStartMarker = value); }
+    set markTail(value) { this.selectedDoc && (this.selectedDoc.strokeEndMarker = value); }
 
 
+    @computed get stkInput() { return this.regInput("stk", this.widthStk, (val: string) => this.widthStk = val); }
 
 
+    regInput = (key: string, value: any, setter: (val: string) => {}) => {
+        return <div className="inputBox">
+            <input className="inputBox-input"
+                type="text" value={value}
+                onChange={e => setter(e.target.value)} />
+            <div className="inputBox-button">
+                <div className="inputBox-button-up" key="up2"
+                    onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))} >
+                    <FontAwesomeIcon icon="caret-up" color="white" size="sm" />
+                </div>
+                <div className="inputbox-Button-down" key="down2"
+                    onPointerDown={undoBatch(action(() => this.upDownButtons("down", key)))} >
+                    <FontAwesomeIcon icon="caret-down" color="white" size="sm" />
+                </div>
+            </div>
+        </div>;
+    }
 
-    @computed get appearanceEditor() { return "appearance" };
+    @computed get widthAndDash() {
+        return <div>{(this.solidStk || this.dashdStk) ? "Width" : ""}
+            {(this.solidStk || this.dashdStk) ? this.stkInput : ""}
+
+
+            {(this.solidStk || this.dashdStk) ? <input type="range"
+                defaultValue={Number(this.widthStk)} min={1} max={100}
+                onChange={undoBatch(action((e) => this.widthStk = e.target.value))} /> : (null)}
+            <br />
+            {(this.solidStk || this.dashdStk) ? <>
+                <p style={{ position: "absolute", fontSize: 12 }}>Arrow Head</p>
+                <input key="markHead" className="formatShapePane-inputBtn" type="checkbox"
+                    checked={this.markHead !== ""}
+                    onChange={undoBatch(action(() => this.markHead = this.markHead ? "" : "arrow"))}
+                    style={{ position: "absolute", right: 110, width: 20 }} />
+                <p style={{ position: "absolute", fontSize: 12, right: 30 }}>Arrow End</p>
+                <input key="markTail" className="formatShapePane-inputBtn" type="checkbox"
+                    checked={this.markTail !== ""}
+                    onChange={undoBatch(action(() => this.markTail = this.markTail ? "" : "arrow"))}
+                    style={{ position: "absolute", right: 0, width: 20 }} />
+                <br />
+            </> : ""}
+                Dash:
+            <input key="markHead" className="formatShapePane-inputBtn"
+                type="checkbox" checked={this.dashdStk === "2"}
+                onChange={undoBatch(action(() => this.dashdStk = this.dashdStk === "2" ? "0" : "2"))}
+                style={{ position: "absolute", right: 110, width: 20 }} />
+        </div>;
+    }
+
+    @computed get appearanceEditor() {
+        return <div className="appearance-editor">
+            {this.widthAndDash}
+            {this.strokeAndFill}
+        </div>;
+    }
 
     @computed get transformEditor() {
         return <div className="transform-editor">
@@ -577,7 +713,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             {this.XpsInput}
             {this.rotInput}
         </div>;
-    };
+    }
 
     render() {
 

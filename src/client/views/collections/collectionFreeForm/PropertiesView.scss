@@ -466,12 +466,12 @@
 
         .inputBox-button-up {
             background-color: #333333;
-    height: 9px;
-    padding-left: 3px;
-    padding-right: 3px;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    border-radius: 1.5px;
+            height: 9px;
+            padding-left: 3px;
+            padding-right: 3px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            border-radius: 1.5px;
 
             &:hover {
                 background: rgb(131, 131, 131);
@@ -482,12 +482,12 @@
 
         .inputBox-button-down {
             background-color: #333333;
-    height: 9px;
-    padding-left: 3px;
-    padding-right: 3px;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    border-radius: 1.5px;
+            height: 9px;
+            padding-left: 3px;
+            padding-right: 3px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            border-radius: 1.5px;
 
             &:hover {
                 background: rgb(131, 131, 131);
@@ -496,5 +496,46 @@
             }
         }
 
+    }
+}
+
+.color-palette {
+    width: 160px;
+    height: 360;
+}
+
+.strokeAndFill {
+
+    display: flex;
+
+    .fill {
+        margin-right: 30px;
+        display: flex;
+        padding-bottom: 7px;
+        margin-left: 20px;
+
+        .fill-title {
+            font-size: 12px;
+            margin-right: 2px;
+        }
+
+        .fill-button {
+            padding-top: 2px;
+            margin-top: -1px;
+        }
+    }
+
+    .stroke {
+        display: flex;
+
+        .stroke-title {
+            font-size: 12px;
+        }
+
+        .stroke-button {
+            padding-top: 2px;
+            margin-left: 2px;
+            margin-top: -1px;
+        }
     }
 }
