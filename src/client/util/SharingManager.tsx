@@ -124,14 +124,17 @@ export default class SharingManager extends React.Component<{}> {
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
-            const userDocument = await DocServer.GetRefField(user.userDocumentId);
-            if (userDocument instanceof Doc) {
-                const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
-                runInAction(() => {
-                    if (notificationDoc instanceof Doc) {
-                        this.users.push({ user, notificationDoc });
-                    }
-                });
+            const isCandidate = user.email !== Doc.CurrentUserEmail;
+            if (isCandidate) {
+                const userDocument = await DocServer.GetRefField(user.userDocumentId);
+                if (userDocument instanceof Doc) {
+                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                    runInAction(() => {
+                        if (notificationDoc instanceof Doc) {
+                            this.users.push({ user, notificationDoc });
+                        }
+                    });
+                }
             }
         });
         return Promise.all(evaluating);
@@ -422,14 +425,28 @@ export default class SharingManager extends React.Component<{}> {
                     key={"owner"}
                     className={"container"}
                 >
-                    <span className={"padding"}>{this.targetDoc?.author}</span>
+                    <span className={"padding"}>{this.targetDoc?.author === Doc.CurrentUserEmail ? "Me" : this.targetDoc?.author}</span>
                     <div className="edit-actions">
                         <div className={"permissions-dropdown"}>
                             Owner
                         </div>
                     </div>
                 </div>
-            )
+            ),
+            this.targetDoc?.author !== Doc.CurrentUserEmail ?
+                (
+                    <div
+                        key={"me"}
+                        className={"container"}
+                    >
+                        <span className={"padding"}>Me</span>
+                        <div className="edit-actions">
+                            <div className={"permissions-dropdown"}>
+                                {this.targetDoc?.[`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`]}
+                            </div>
+                        </div>
+                    </div>
+                ) : null
         );
 
         const groupListContents = groups.map(group => {

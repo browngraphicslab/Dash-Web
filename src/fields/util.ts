@@ -160,7 +160,8 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
         // if the current user is the author of the document / the current user is a member of the admin group
-        if (target.__fields?.author === Doc.CurrentUserEmail || target.author === Doc.CurrentUserEmail || currentUserGroups.includes("admin")) return AclAdmin;
+        // but not if the doc in question is an alias - the current user will be the author of their alias rather than the original author
+        if ((Doc.CurrentUserEmail === (target.__fields?.author || target.author) && !(target.aliasOf || target.__fields?.aliasOf)) || currentUserGroups.includes("admin")) return AclAdmin;
 
         // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
@@ -214,6 +215,14 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
     if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) {
         target[key] = acl;
         changed = true;
+
+        // maps over the aliases of the document
+        if (target.aliases) {
+            DocListCast(target.aliases).map(alias => {
+                distributeAcls(key, acl, alias);
+            });
+        }
+
     }
 
     if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
