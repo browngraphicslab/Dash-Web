@@ -1,8 +1,8 @@
-import { Database } from './database';
-
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
+import { Database } from './database';
 import { Search } from './Search';
+
 
 function addDoc(doc: any, ids: string[], files: { [name: string]: string[] }) {
     for (const key in doc) {

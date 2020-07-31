@@ -1,8 +1,8 @@
-import RouteSubscriber from "./RouteSubscriber";
-import { DashUserModel } from "./authentication/DashUserModel";
-import { Request, Response, Express } from 'express';
-import { cyan, red, green } from 'colors';
+import { cyan, green, red } from 'colors';
+import { Express, Request, Response } from 'express';
 import { AdminPriviliges } from ".";
+import { DashUserModel } from "./authentication/DashUserModel";
+import RouteSubscriber from "./RouteSubscriber";
 
 export enum Method {
     GET,

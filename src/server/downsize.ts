@@ -1,5 +1,5 @@
-import * as sharp from 'sharp';
 import * as fs from 'fs';
+import * as sharp from 'sharp';
 
 const folder = "./src/server/public/files/";
 const pngTypes = ["png", "PNG"];
