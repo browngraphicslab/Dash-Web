@@ -14,18 +14,17 @@
         padding-top: 12px;
         padding-bottom: 12px;
         display: flex;
-
-        .propertiesView-title-name {
-            font-size: 18px;
-            font-weight: bold;
-            padding-left: 45px;
-        }
+        font-size: 18px;
+        font-weight: bold;
+        justify-content: center;
 
         .propertiesView-title-icon {
             width: 20px;
             height: 20px;
             padding-left: 38px;
             margin-top: -5px;
+            right: 19;
+            position: absolute;
 
             &:hover {
                 color: grey;
@@ -580,7 +579,7 @@
             margin-right: 35px;
 
             .arrows-head-title {
-                font-size: 12;
+                font-size: 10;
             }
 
             .arrows-head-input {
@@ -593,7 +592,7 @@
             display: flex;
 
             .arrows-tail-title {
-                font-size: 12;
+                font-size: 10;
             }
 
             .arrows-tail-input {
@@ -610,7 +609,7 @@
         margin-bottom: 6px;
 
         .dashed-title {
-            font-size: 12;
+            font-size: 10;
         }
 
         .dashed-input {

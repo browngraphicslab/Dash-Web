@@ -115,7 +115,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
                 const contents = doc[key];
-                if (contents === "UNDEFINED") {
+                if (key[0] === "#") {
                     rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "2px" }} key={key}>
                         <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                     &nbsp;
@@ -158,7 +158,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             for (const key of Object.keys(ids).slice().sort()) {
                 if (key[0] === key[0].toUpperCase() || key[0] === "#" || key === "author" || key === "creationDate" || key.indexOf("lastModified") !== -1) {
                     const contents = doc[key];
-                    if (contents === "UNDEFINED") {
+                    if (key[0] === "#") {
                         rows.push(<div className="uneditable-field" key={key}>
                             <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
                     &nbsp;
@@ -211,7 +211,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
                 return true;
             } else if (value[0] === "#") {
-                const newVal = value + ":'UNDEFINED'";
+                const newVal = value + `:'${value}'`;
                 KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
                 return true;
             }
@@ -745,7 +745,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
         return <div className="propertiesView" style={{ width: this.props.width }} >
             <div className="propertiesView-title" style={{ width: this.props.width }}>
-                <div className="propertiesView-title-name">Properties </div>
+                Properties
                 <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
                     <FontAwesomeIcon icon="times" color="black" size="sm" />
                 </div>
