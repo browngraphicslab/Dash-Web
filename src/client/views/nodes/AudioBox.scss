@@ -140,6 +140,14 @@
                     height: 100%;
                     background-color: red;
                     position: absolute;
+                    top: 0px;
+                }
+
+                .waveform {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
                 }
 
                 .audiobox-linker,
@@ -259,7 +267,7 @@
 
                 .audiobox-marker-container1:hover,
                 .audiobox-marker-minicontainer:hover {
-                    opacity: 1;
+                    opacity: 0.8;
                 }
 
                 .audiobox-marker-minicontainer {

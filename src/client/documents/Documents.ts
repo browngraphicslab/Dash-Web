@@ -628,7 +628,7 @@ export namespace Docs {
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), { hideLinkButton: true, useLinkSmallAnchor: true, ...options });
+            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), { ...options }); // hideLinkButton: false, useLinkSmallAnchor: false,
             Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
             return instance;
         }

@@ -29,7 +29,8 @@ import { LabelBox } from "./LabelBox";
 import { Transform } from "../../util/Transform";
 import { Scripting } from "../../util/Scripting";
 import { ColorBox } from "./ColorBox";
-
+import Waveform from "react-audio-waveform"
+import axios from "axios"
 
 // testing testing 
 
@@ -73,6 +74,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _amount: number = 1;
     _markers: Array<any> = [];
     _first: boolean = false;
+    _buckets: Array<number> = new Array();
 
     private _isPointerDown = false;
     private _currMarker: any;
@@ -80,6 +82,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @observable private _dragging: boolean = false;
     @observable private _duration = 0;
     @observable private _rect: Array<any> = [];
+    // @observable private _buckets: Array<number> = new Array();
 
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
@@ -297,6 +300,81 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const field = Cast(this.props.Document[this.props.fieldKey], AudioField);
         const path = (field instanceof AudioField) ? field.url.href : "";
         return path === nullAudio ? "" : path;
+    }
+
+    @action
+    buckets = async () => {
+        let audioCtx = new (window.AudioContext)();
+        const buckets: number[] = [];
+
+        axios({ url: this.path, responseType: "arraybuffer" })
+            .then(async response => {
+                let audioData = response.data;
+
+                await audioCtx.decodeAudioData(audioData, buffer => {
+                    let decodedAudioData = buffer.getChannelData(0);
+                    const NUMBER_OF_BUCKETS = 100;
+                    let bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
+
+                    for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
+                        let startingPoint = i * bucketDataSize;
+                        let endingPoint = i * bucketDataSize + bucketDataSize;
+                        let max = 0;
+                        for (let j = startingPoint; j < endingPoint; j++) {
+                            if (decodedAudioData[j] > max) {
+                                max = decodedAudioData[j];
+                            }
+                        }
+                        let size = Math.abs(max);
+                        buckets.push(size / 2);
+                        this._buckets.push(size / 2);
+                    }
+
+                });
+                return buckets;
+            });
+    }
+
+    @computed get peaks() {
+        // let audioCtx = new (window.AudioContext)();
+        // let buckets: number[] = [];
+
+        // return (async () => {
+        //     await axios({ url: this.path, responseType: "arraybuffer" })
+        //         .then(response => {
+        //             let audioData = response.data;
+
+        //             audioCtx.decodeAudioData(audioData, buffer => {
+        //                 let decodedAudioData = buffer.getChannelData(0);
+        //                 const NUMBER_OF_BUCKETS = 100;
+        //                 let bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
+
+
+
+        //                 for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
+        //                     let startingPoint = i * bucketDataSize;
+        //                     let endingPoint = i * bucketDataSize + bucketDataSize;
+        //                     let max = 0;
+        //                     for (let j = startingPoint; j < endingPoint; j++) {
+        //                         if (decodedAudioData[j] > max) {
+        //                             max = decodedAudioData[j];
+        //                         }
+        //                     }
+        //                     let size = Math.abs(max);
+        //                     console.log(size);
+        //                     buckets.push(size / 2);
+        //                     console.log(buckets);
+        //                 }
+        //             });
+        //             console.log(buckets);
+        //             return buckets;
+        //         });
+        //     console.log(buckets.length);
+        //     return buckets;
+        // })();
+
+
+        return this.buckets();
     }
 
     @computed get audio() {
@@ -595,6 +673,17 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
                                 }
                             }}>
+                            <div className="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px" }}>
+                                {console.log(this.peaks)}
+                                <Waveform
+                                    color={"#000000"}
+                                    height={20}
+                                    barWidth={0.1}
+                                    pos={this.layoutDoc.currentTimecode}
+                                    duration={this.layoutDoc.duration}
+                                    peaks={this._buckets.length === 100 ? this._buckets : undefined}
+                                    progressColor={"#0000ff"} />
+                            </div>
                             {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
                                 // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
                                 let rect;
