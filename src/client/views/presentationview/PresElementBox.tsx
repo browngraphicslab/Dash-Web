@@ -248,10 +248,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         console.log("normal click");
                     }
                 }}
-                onPointerDown={e => {
-                    this.props.dropAction;
-                    e.stopPropagation();
-                }}
+                onPointerDown={e => { }}
             >
                 {treecontainer ? (null) : <>
                     <div className="presElementBox-number">

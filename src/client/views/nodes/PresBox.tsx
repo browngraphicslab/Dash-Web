@@ -63,6 +63,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
+        this.layoutDoc._gridGap = 5;
         // document.addEventListener("keydown", this.keyEvents, false);
     }
 
@@ -80,14 +81,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     updateCurrentPresentation = () => {
         Doc.UserDoc().activePresentation = this.rootDoc;
-        if (this.itemIndex >= 0) {
-            const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-            const targetDoc = activeItem.presentationTargetDoc ? Cast(activeItem.presentationTargetDoc, Doc, null) : undefined;
-            if (targetDoc) {
-                const srcContext = Cast(targetDoc.context, Doc, null);
-                if (srcContext) this.layoutDoc.presCollection = srcContext;
-            } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
-        }
     }
 
     @undoBatch
@@ -136,7 +129,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
             // Case 2: No more frames in current doc and next slide is defined, therefore move to next slide
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
-            let nextSelected = this.itemIndex + 1;
+            const nextSelected = this.itemIndex + 1;
             this.gotoDocument(nextSelected, this.itemIndex);
 
             // for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
@@ -249,16 +242,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const srcContext = Cast(targetDoc.context, Doc, null);
         const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
         const collectionDocView = DocumentManager.Instance.getDocumentView(presCollection);
+        if (this.itemIndex >= 0) {
+            if (targetDoc) {
+                if (srcContext) this.layoutDoc.presCollection = srcContext;
+            } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
+        }
         console.log("NC: " + srcContext.title);
         console.log("PC: " + presCollection.title);
         if (collectionDocView) {
             if (srcContext !== presCollection) {
+                console.log("Case 1: new srcContext inside of current collection so add a new tab to the current pres collection");
                 console.log(collectionDocView);
                 collectionDocView.props.addDocTab(srcContext, "inPlace");
             }
         } else if (srcContext) {
+            console.log("Case 2: srcContext - not open and collection containing this document exists, so open collection that contains it and then await zooming in on document");
             this.props.addDocTab(srcContext, "onRight");
         } else if (!srcContext) {
+            console.log("Case 3: !srcContext - no collection containing this document, therefore open document itself on right");
             this.props.addDocTab(targetDoc, "onRight");
         }
         this.updateCurrentPresentation();
@@ -382,7 +383,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         //         Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
         //     }
         // }
-    };
+    }
 
     @undoBatch
     viewChanged = action((e: React.ChangeEvent) => {
@@ -390,7 +391,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const viewType = e.target.selectedOptions[0].value as CollectionViewType;
         viewType === CollectionViewType.Stacking && (this.rootDoc._pivotField = undefined); // pivot field may be set by the user in timeline view (or some other way) -- need to reset it here
         // this.updateMinimize(this.rootDoc._viewType = viewType);
-        if (viewType === CollectionViewType.Stacking) this.rootDoc._gridGap = 5;
+        if (viewType === CollectionViewType.Stacking) this.layoutDoc._gridGap = 5;
     });
 
     @undoBatch
