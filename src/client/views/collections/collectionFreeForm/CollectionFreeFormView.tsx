@@ -1144,7 +1144,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     componentDidMount() {
         super.componentDidMount?.();
-        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
+        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 
@@ -1292,7 +1292,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         setTimeout(() => {
                             SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
                                 docs.docs.forEach(d => LinkManager.Instance.addLink(d));
-                            })
+                            });
                         }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
                     }
                 }

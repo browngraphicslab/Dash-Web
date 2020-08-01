@@ -521,7 +521,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 tab.element[0].onpointerdown = (e: any) => {
                     const view = DocumentManager.Instance.getDocumentView(doc);
                     view && SelectionManager.SelectDoc(view, false);
-                }
+                };
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
                     if (!this._isPointerDown || !SnappingManager.GetIsDragging()) return;
@@ -747,10 +747,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this.onActiveContentItemChanged();
         this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, "white") }),
             (data) => {
-                const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document))
+                const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
                 this._tab.style.backgroundColor = selected ? data.color : "";
             }
-        )
+        );
     }
 
     componentWillUnmount() {

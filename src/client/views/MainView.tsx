@@ -305,7 +305,7 @@ export class MainView extends React.Component {
     }
 
     @action
-    getPWidth = () => this._panelWidth - this.propertiesWidth();
+    getPWidth = () => this._panelWidth - this.propertiesWidth()
 
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
@@ -406,7 +406,7 @@ export class MainView extends React.Component {
     //sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
 
-    @computed get closePosition() { return 55 + this.flyoutWidth }
+    @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">

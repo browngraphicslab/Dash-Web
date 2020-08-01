@@ -464,7 +464,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className={"propertiesButtons-linkButton-empty"}
                 onPointerDown={() => {
                     if (this.selectedDocumentView) {
-                        GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDocumentView.Document }).then(console.log)
+                        GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDocumentView.Document }).then(console.log);
                     }
                 }}>
                 {<FontAwesomeIcon className="documentdecorations-icon"
