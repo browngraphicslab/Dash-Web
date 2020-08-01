@@ -464,7 +464,7 @@ export class MainView extends React.Component {
                 onClick={undefined}
                 ScreenToLocalTransform={this.mainContainerXf}
                 ContentScaling={returnOne}
-                PanelWidth={() => 80}
+                PanelWidth={() => 60}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
