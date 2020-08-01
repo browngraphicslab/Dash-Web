@@ -378,7 +378,7 @@ export class MainView extends React.Component {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._propertiesWidth = this._panelWidth - e.clientX;
             return false;
-        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 200) : 0), false);
+        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
     }
 
     @action
@@ -464,7 +464,7 @@ export class MainView extends React.Component {
                 onClick={undefined}
                 ScreenToLocalTransform={this.mainContainerXf}
                 ContentScaling={returnOne}
-                PanelWidth={() => 60}
+                PanelWidth={() => 70}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}

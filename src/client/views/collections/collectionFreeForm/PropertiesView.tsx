@@ -26,6 +26,7 @@ import { undoBatch } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from "react-color";
 import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
+import { discovery_v1 } from "googleapis";
 
 
 interface PropertiesViewProps {
@@ -295,7 +296,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
-        return <div className="propertiesView-sharingTable-item" key="name">
+        return <div className="propertiesView-sharingTable-item">
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "70px" : "80px" }}> {name} </div>
             {name !== "Me" ? this.notifyIcon : null}
             <div className="propertiesView-sharingTable-item-permission">
@@ -399,11 +400,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 if (ink) {
 
                     const newPoints: { X: number, Y: number }[] = [];
-                    ink.forEach(i => {
-                        const newX = Math.cos(angle) * (i.X - _centerPoints[index].X) - Math.sin(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].X;
-                        const newY = Math.sin(angle) * (i.X - _centerPoints[index].X) + Math.cos(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].Y;
+                    for (var i = 0; i < ink.length; i++) {
+                        const newX = Math.cos(angle) * (ink[i].X - _centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].X;
+                        const newY = Math.sin(angle) * (ink[i].X - _centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
-                    });
+                    }
                     doc.data = new InkField(newPoints);
                     const xs = newPoints.map(p => p.X);
                     const ys = newPoints.map(p => p.Y);
@@ -534,7 +535,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     getField(key: string) {
-        return Field.toString(this.selectedDoc?.[key] as Field);
+        //if (this.selectedDoc) {
+        return Field.toString(this.selectedDoc[key] as Field);
+        // } else {
+        //     return undefined as Opt<string>;
+        // }
     }
 
     @computed get shapeXps() { return this.getField("x"); }
@@ -565,7 +570,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     private _lastFill = "#D0021B";
     private _lastLine = "#D0021B";
-    private _lastDash = "2";
+    private _lastDash: any = "2";
 
     @computed get colorFil() { const ccol = this.getField("fillColor") || ""; ccol && (this._lastFill = ccol); return ccol; }
     @computed get colorStk() { const ccol = this.getField("color") || ""; ccol && (this._lastLine = ccol); return ccol; }
@@ -629,7 +634,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get solidStk() { return this.selectedDoc?.color && (!this.selectedDoc?.strokeDash || this.selectedDoc?.strokeDash === "0") ? true : false; }
-    @computed get dashdStk() { return !this.unStrokd && this.getField("strokeDash") || ""; }
+    @computed get dashdStk() { return this.selectedDoc?.strokeDash || ""; }
     @computed get unStrokd() { return this.selectedDoc?.color ? true : false; }
     @computed get widthStk() { return this.getField("strokeWidth") || "1"; }
     @computed get markHead() { return this.getField("strokeStartMarker") || ""; }
@@ -667,33 +672,48 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get widthAndDash() {
-        return <div>{(this.solidStk || this.dashdStk) ? "Width" : ""}
-            {(this.solidStk || this.dashdStk) ? this.stkInput : ""}
+        return <div className="widthAndDash">
+            <div className="width">
+                <div className="width-top">
+                    <div className="width-title">Width:</div>
+                    <div className="width-input">{this.stkInput}</div>
+                </div>
+                <input className="width-range" type="range"
+                    defaultValue={Number(this.widthStk)} min={1} max={100}
+                    onChange={undoBatch(action((e) => this.widthStk = e.target.value))} />
+            </div>
 
-
-            {(this.solidStk || this.dashdStk) ? <input type="range"
-                defaultValue={Number(this.widthStk)} min={1} max={100}
-                onChange={undoBatch(action((e) => this.widthStk = e.target.value))} /> : (null)}
-            <br />
-            {(this.solidStk || this.dashdStk) ? <>
-                <p style={{ position: "absolute", fontSize: 12 }}>Arrow Head</p>
-                <input key="markHead" className="formatShapePane-inputBtn" type="checkbox"
-                    checked={this.markHead !== ""}
-                    onChange={undoBatch(action(() => this.markHead = this.markHead ? "" : "arrow"))}
-                    style={{ position: "absolute", right: 110, width: 20 }} />
-                <p style={{ position: "absolute", fontSize: 12, right: 30 }}>Arrow End</p>
-                <input key="markTail" className="formatShapePane-inputBtn" type="checkbox"
-                    checked={this.markTail !== ""}
-                    onChange={undoBatch(action(() => this.markTail = this.markTail ? "" : "arrow"))}
-                    style={{ position: "absolute", right: 0, width: 20 }} />
-                <br />
-            </> : ""}
-                Dash:
-            <input key="markHead" className="formatShapePane-inputBtn"
-                type="checkbox" checked={this.dashdStk === "2"}
-                onChange={undoBatch(action(() => this.dashdStk = this.dashdStk === "2" ? "0" : "2"))}
-                style={{ position: "absolute", right: 110, width: 20 }} />
+            <div className="arrows">
+                <div className="arrows-head">
+                    <div className="arrows-head-title" >Arrow Head: </div>
+                    <input key="markHead" className="arrows-head-input" type="checkbox"
+                        checked={this.markHead !== ""}
+                        onChange={undoBatch(action(() => this.markHead = this.markHead ? "" : "arrow"))} />
+                </div>
+                <div className="arrows-tail">
+                    <div className="arrows-tail-title" >Arrow End: </div>
+                    <input key="markTail" className="arrows-tail-input" type="checkbox"
+                        checked={this.markTail !== ""}
+                        onChange={undoBatch(action(() => this.markTail = this.markTail ? "" : "arrow"))} />
+                </div>
+            </div>
+            <div className="dashed">
+                <div className="dashed-title">Dash:</div>
+                <input key="markHead" className="dashed-input"
+                    type="checkbox" checked={this.dashdStk === "2"}
+                    onChange={this.changeDash} />
+            </div>
         </div>;
+    }
+
+    @undoBatch @action
+    changeDash = () => {
+        const dash = this.dashdStk;
+        if (dash === "2") {
+            this.dashdStk = "0";
+        } else {
+            this.dashdStk = "2";
+        }
     }
 
     @computed get appearanceEditor() {

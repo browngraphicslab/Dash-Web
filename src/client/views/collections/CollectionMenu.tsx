@@ -554,11 +554,12 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get formatPane() {
-        return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
-            onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
-            style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
-            <FontAwesomeIcon icon="angle-double-right" size="lg" />
-        </button>;
+        // return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
+        //     onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
+        //     style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
+        //     <FontAwesomeIcon icon="angle-double-right" size="lg" />
+        // </button>;
+        return null;
     }
 
     render() {

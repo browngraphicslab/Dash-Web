@@ -221,7 +221,8 @@
         border: 1px solid black;
         padding: 5px;
         border-radius: 6px;
-        width: 170px;
+        /* width: 170px; */
+        margin-right: 10px;
         background-color: #ececec;
         max-height: 130px;
         overflow-y: scroll;
@@ -250,6 +251,9 @@
 
             .propertiesView-sharingTable-item-permission {
                 display: flex;
+                right: 34;
+                float: right;
+                position: absolute;
 
                 .permissions-select {
                     z-index: 1;
@@ -392,7 +396,7 @@
         width: 32;
         height: 32;
         padding-top: 9px;
-        margin-left: 5px;
+        margin-left: 18px;
 
         &:hover {
             background: rgb(131, 131, 131);
@@ -505,14 +509,14 @@
 }
 
 .strokeAndFill {
-
     display: flex;
+    margin-top: 10px;
 
     .fill {
-        margin-right: 30px;
+        margin-right: 40px;
         display: flex;
         padding-bottom: 7px;
-        margin-left: 20px;
+        margin-left: 35px;
 
         .fill-title {
             font-size: 12px;
@@ -536,6 +540,82 @@
             padding-top: 2px;
             margin-left: 2px;
             margin-top: -1px;
+        }
+    }
+}
+
+.widthAndDash {
+
+    .width {
+        .width-top {
+            display: flex;
+
+            .width-title {
+                font-size: 12;
+                margin-right: 20px;
+                margin-left: 35px;
+                text-align: center;
+            }
+
+            .width-input {
+                margin-right: 30px;
+                margin-top: -10px;
+            }
+        }
+
+        .width-range {
+            margin-right: 1px;
+            margin-bottom: 6;
+        }
+    }
+
+    .arrows {
+
+        display: flex;
+        margin-bottom: 3px;
+
+        .arrows-head {
+
+            display: flex;
+            margin-right: 35px;
+
+            .arrows-head-title {
+                font-size: 12;
+            }
+
+            .arrows-head-input {
+                margin-left: 6px;
+                margin-top: 2px;
+            }
+        }
+
+        .arrows-tail {
+            display: flex;
+
+            .arrows-tail-title {
+                font-size: 12;
+            }
+
+            .arrows-tail-input {
+                margin-left: 6px;
+                margin-top: 2px;
+            }
+        }
+    }
+
+    .dashed {
+
+        display: flex;
+        margin-left: 74px;
+        margin-bottom: 6px;
+
+        .dashed-title {
+            font-size: 12;
+        }
+
+        .dashed-input {
+            margin-left: 6px;
+            margin-top: 2px;
         }
     }
 }
