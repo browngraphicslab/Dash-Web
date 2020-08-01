@@ -286,14 +286,26 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                 }
             });
             if (super.onInternalDrop(e, de)) {
-                const newDoc = de.complete.docDragData.droppedDocuments[0];
+                const newDocs = de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 if (docs) {
-                    if (targInd === -1) targInd = docs.length;
-                    else targInd = docs.indexOf(this.filteredChildren[targInd]);
-                    const srcInd = docs.indexOf(newDoc);
-                    docs.splice(srcInd, 1);
-                    docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, newDoc);
+                    newDocs.map((doc, i) => {
+                        if (i === 0) {
+                            if (targInd === -1) targInd = docs.length;
+                            else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                            const srcInd = docs.indexOf(doc);
+                            docs.splice(srcInd, 1);
+                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                        } else {
+                            if (targInd === -1) targInd = docs.length;
+                            else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                            const srcInd = docs.indexOf(doc);
+                            const firstInd = docs.indexOf(newDocs[0]);
+                            docs.splice(srcInd, 1);
+                            // docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                            docs.splice(firstInd + 1, 0, doc);
+                        }
+                    });
                 }
             }
         }

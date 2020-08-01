@@ -4,8 +4,8 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocCastAsync, WidthSym } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse, returnOne, numberRange } from "../../../Utils";
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
+import { returnFalse, returnOne, numberRange, setupMoveUpEvents, emptyFunction, returnTrue } from "../../../Utils";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -15,7 +15,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface, listSpec } from "../../../fields/Schema";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { PrefetchProxy } from "../../../fields/Proxy";
 import { ScriptField } from "../../../fields/ScriptField";
 import { Scripting } from "../../util/Scripting";
@@ -29,6 +29,7 @@ import { Tooltip } from "@material-ui/core";
 import { CollectionFreeFormViewChrome } from "../collections/CollectionMenu";
 import { conformsTo } from "lodash";
 import { translate } from "googleapis/build/src/apis/translate";
+import { DragManager, dropActionType } from "../../util/DragManager";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -36,6 +37,7 @@ const PresBoxDocument = makeInterface(documentSchema);
 @observer
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    private treedropDisposer?: DragManager.DragDropDisposer;
     static Instance: PresBox;
     @observable _isChildActive = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
@@ -67,9 +69,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         // document.addEventListener("keydown", this.keyEvents, false);
     }
 
-    // componentWillUnmount() {
-    //     document.removeEventListener("keydown", this.keyEvents, false);
-    // }
+    componentWillUnmount() {
+        this.treedropDisposer?.();
+    }
 
     onPointerOver = () => {
         document.addEventListener("keydown", this.keyEvents, true);
@@ -236,21 +238,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * has the option open and last in the group. If not in the group, and it has
      * the option open, navigates to that element.
      */
-    navigateToElement = (curDoc: Doc) => {
+    navigateToElement = async (curDoc: Doc) => {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-        const srcContext = Cast(targetDoc.context, Doc, null);
-        const presCollection = Cast(this.rootDoc.presCollection, Doc, null);
-        const collectionDocView = DocumentManager.Instance.getDocumentView(presCollection);
+        const srcContext = await DocCastAsync(targetDoc.context);
+        const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
+        const collectionDocView = presCollection ? DocumentManager.Instance.getDocumentView(presCollection) : undefined;
         if (this.itemIndex >= 0) {
             if (targetDoc) {
                 if (srcContext) this.layoutDoc.presCollection = srcContext;
             } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
         }
-        console.log("NC: " + srcContext.title);
-        console.log("PC: " + presCollection.title);
+        if (srcContext) console.log("NC: " + srcContext.title);
+        if (presCollection) console.log("PC: " + presCollection.title);
         if (collectionDocView) {
-            if (srcContext !== presCollection) {
+            if (srcContext && srcContext !== presCollection) {
                 console.log("Case 1: new srcContext inside of current collection so add a new tab to the current pres collection");
                 console.log(collectionDocView);
                 collectionDocView.props.addDocTab(srcContext, "inPlace");
@@ -270,14 +272,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
             if (curDoc.presNavButton && targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
+                await DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
             } else if (curDoc.presZoomButton && targetDoc) {
                 //awaiting jump so that new scale can be found, since jumping is async
-                DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
+                await DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
             }
         } else {
             //awaiting jump so that new scale can be found, since jumping is async
-            targetDoc && DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
+            targetDoc && await DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
         }
     }
 
@@ -424,9 +426,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
     addDocumentFilter = (doc: Doc | Doc[]) => {
         const docs = doc instanceof Doc ? [doc] : doc;
-        docs.forEach(doc => {
-            doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
-            !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+        docs.forEach((doc, i) => {
+            if (this.childDocs.includes(doc)) {
+                console.log(docs.length);
+                console.log(i + 1);
+                if (docs.length === i + 1) return false;
+            } else {
+                doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
+                !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+            }
         });
         return true;
     }
@@ -439,6 +447,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     // KEYS
     @observable _selectedArray: Doc[] = [];
+    @observable _eleArray: HTMLElement[] = [];
 
     @computed get listOfSelected() {
         const list = this._selectedArray.map((doc: Doc, index: any) => {
@@ -462,18 +471,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     //Command click
     @action
-    multiSelect = (doc: Doc) => {
+    multiSelect = (doc: Doc, ref: HTMLElement) => {
         this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
+        this._eleArray.push(ref);
     }
 
     //Shift click
     @action
-    shiftSelect = (doc: Doc) => {
+    shiftSelect = (doc: Doc, ref: HTMLElement) => {
         this._selectedArray = [];
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         if (activeItem) {
             for (let i = Math.min(this.itemIndex, this.childDocs.indexOf(doc)); i <= Math.max(this.itemIndex, this.childDocs.indexOf(doc)); i++) {
                 this._selectedArray.push(this.childDocs[i]);
+                this._eleArray.push(ref);
             }
         }
     }
@@ -1552,9 +1563,68 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+
+    protected createPresDropTarget = (ele: HTMLDivElement) => {
+        console.log("created?");
+        this.treedropDisposer?.();
+        ele && (this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this)));
+        if (ele) {
+            console.log("ele: " + ele.className)
+        }
+    }
+
+    protected onInternalPreDrop(e: Event, de: DragManager.DropEvent, targetAction: dropActionType) {
+        console.log("preDrop?")
+        if (de.complete.docDragData) {
+            // if targetDropAction is, say 'alias', but we're just dragging within a collection, we want to ignore the targetAction.
+            // otherwise, the targetAction should become the actual action (which can still be overridden by the userDropAction -eg, shift/ctrl keys)
+            if (targetAction && !de.complete.docDragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+                de.complete.docDragData.dropAction = targetAction;
+            }
+            e.stopPropagation();
+        }
+    }
+
+    @action
+    protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
+        console.log("drop in pres")
+        const docDragData = de.complete.docDragData;
+        ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
+        if (docDragData && this.props.addDocument) {
+            console.log("docDragData && this.props.addDocument");
+            let added = false;
+            const dropaction = docDragData.dropAction || docDragData.userDropAction;
+            if (dropaction && dropaction !== "move") {
+                console.log("dropaction && dropaction !== move");
+                added = this.props.addDocument(docDragData.droppedDocuments);
+            } else if (docDragData.moveDocument) {
+                console.log("docDragData.moveDocument");
+                const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
+                const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
+                const res = addedDocs.length ? this.props.addDocument(addedDocs) : true;
+                if (movedDocs.length) {
+                    const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey ||
+                        Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
+                    added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.props.addDocument : returnFalse);
+                } else added = res;
+            } else {
+                console.log("else");
+                added = this.props.addDocument(docDragData.droppedDocuments);
+            }
+            added && e.stopPropagation();
+            return added;
+        }
+        return false;
+    }
+
     render() {
         this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
+        // const addDocument = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => {
+        //     return add(doc, relativeTo ? relativeTo : docs[i], before !== undefined ? before : false);
+        // };
         return <div onPointerOver={this.onPointerOver} onPointerLeave={this.onPointerLeave} className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
                 <select className="presBox-viewPicker"
@@ -1600,7 +1670,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             {this.moreInfoDropdown}
             {this.transitionDropdown}
             {this.progressivizeDropdown}
-            <div className="presBox-listCont" >
+            <div className="presBox-listCont"
+                ref={this.createPresDropTarget}>
                 {mode !== CollectionViewType.Invalid ?
                     <CollectionView {...this.props}
                         ContainingCollectionDoc={this.props.Document}
@@ -1609,11 +1680,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         moveDocument={returnFalse}
                         childOpacity={returnOne}
                         childLayoutTemplate={this.childLayoutTemplate}
-                        filterAddDocument={returnFalse}
+                        filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}
                         dontRegisterView={true}
                         focus={this.selectElement}
-                        presMultiSelect={this.multiSelect}
+                        // presMultiSelect={this.multiSelect}
                         ScreenToLocalTransform={this.getTransform} />
                     : (null)
                 }
@@ -1632,8 +1703,10 @@ Scripting.addGlobal(function lookupPresBoxField(container: Doc, field: string, d
 
 
 
-        // console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
-        // const presOrderedDocs = DocListCast(activeItem.presOrderedDocs);
-        // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
-        //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
-        // }
+// console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
+// const presOrderedDocs = DocListCast(activeItem.presOrderedDocs);
+// if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
+//     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
+// }
+
+

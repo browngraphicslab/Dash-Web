@@ -6,7 +6,7 @@ import { documentSchema } from '../../../fields/documentSchemas';
 import { Id } from "../../../fields/FieldSymbols";
 import { createSchema, makeInterface, listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, BoolCast, ScriptCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero, numberRange } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero, numberRange, setupMoveUpEvents } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from '../DocComponent';
@@ -18,6 +18,10 @@ import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocum
 import { PresBox } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
+import { DragManager } from "../../util/DragManager";
+import { undoBatch } from "../../util/UndoManager";
+import { DocUtils } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -40,6 +44,7 @@ const PresDocument = makeInterface(presSchema, documentSchema);
 @observer
 export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDocument>(PresDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
+    private _treedropDisposer?: DragManager.DragDropDisposer;
     _heightDisposer: IReactionDisposer | undefined;
     // these fields are conditionally computed fields on the layout document that take this document as a parameter
     @computed get indexInPres() { return Number(this.lookupField("indexInPres")); }  // the index field is where this document is in the presBox display list (since this value is different for each presentation element, the value can't be stored on the layout template which is used by all display elements)
@@ -180,13 +185,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
      */
+
     @computed get renderEmbeddedInline() {
         return !this.rootDoc.presExpandInlineButton || !this.targetDoc ? (null) :
             <div className="presElementBox-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
-                    dragDivName={"collectionFreeFormDocumentView-container"}
                     LibraryPath={emptyPath}
                     fitToBox={true}
                     backgroundColor={this.props.backgroundColor}
@@ -230,6 +235,30 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         return "M: " + transitionInS + "s";
     }
 
+    private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+    headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
+    }
+
+    startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
+        // const ele: HTMLElement[] = PresBox.Instance._eleArray.map(doc => doc);
+        const activeItem = this.rootDoc;
+        const dragData = new DragManager.DocumentDragData(PresBox.Instance._selectedArray.map(doc => doc));
+        // let value = this.getValue(this._heading);
+        // value = typeof value === "string" ? `"${value}"` : value;
+        if (activeItem) {
+            DragManager.StartDocumentDrag(PresBox.Instance._eleArray.map(ele => ele), dragData, e.clientX, e.clientY);
+            activeItem.dragging = true;
+            return true;
+        }
+        return false;
+    }
+
+
+
     render() {
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (this.itemIndex === this.indexInPres ? " presElementBox-active" : "");
@@ -237,18 +266,31 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
+                ref={this._itemRef}
                 onClick={e => {
+                    if (this.props.active(true) || PresBox.Instance._selectedArray.includes(this.rootDoc)) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                     if (e.ctrlKey || e.metaKey) {
-                        PresBox.Instance.multiSelect(this.rootDoc);
+                        PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!);
                         console.log("cmmd click");
                     } else if (e.shiftKey) {
-                        PresBox.Instance.shiftSelect(this.rootDoc);
+                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!);
                     } else {
                         this.props.focus(this.rootDoc); e.stopPropagation();
+                        PresBox.Instance._eleArray = [];
+                        PresBox.Instance._eleArray.push(this._itemRef.current!);
                         console.log("normal click");
                     }
                 }}
-                onPointerDown={e => { }}
+                // onClick={e => {
+                //     if (this.props.active(true)) {
+                //         e.stopPropagation();
+                //         e.preventDefault();
+                //     }
+                // }}
+                onPointerDown={this.headerDown}
             >
                 {treecontainer ? (null) : <>
                     <div className="presElementBox-number">
