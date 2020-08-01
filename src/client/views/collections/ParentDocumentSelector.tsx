@@ -42,14 +42,14 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     async fetchDocuments() {
         const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document));
         const containerProtoSets = await Promise.all(aliases.map(async alias =>
-            await Promise.all((await SearchUtil.Search("", true, { fq: `data_l:"${alias[Id]}"` })).docs)));
+            ((await SearchUtil.Search("", true, { fq: `data_l:"${alias[Id]}"` })).docs)));
         const containerProtos = containerProtoSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>());
         const containerSets = await Promise.all(Array.from(containerProtos.keys()).map(async container => {
-            return (await SearchUtil.GetAliasesOfDocument(container));
+            return (SearchUtil.GetAliasesOfDocument(container));
         }));
         const containers = containerSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>());
         const doclayoutSets = await Promise.all(Array.from(containers.keys()).map(async (dp) => {
-            return (await SearchUtil.GetAliasesOfDocument(dp));
+            return (SearchUtil.GetAliasesOfDocument(dp));
         }));
         const doclayouts = Array.from(doclayoutSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>()).keys());
         runInAction(() => {

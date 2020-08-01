@@ -49,7 +49,7 @@ export default class CollectionMenu extends AntimodeMenu {
 
     componentDidMount() {
         reaction(() => SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0],
-            (doc) => doc && this.SetSelection(doc))
+            (doc) => doc && this.SetSelection(doc));
     }
 
     @action
@@ -162,7 +162,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
     };
 
-    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand] };
+    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
 
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];

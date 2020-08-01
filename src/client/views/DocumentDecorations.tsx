@@ -528,12 +528,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
+                    ink.forEach(i => {
                         // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
-                        const newX = (doc.x - this._inkDocs[index].x) + (ink[i].X * doc._width) / this._inkDocs[index].width;
-                        const newY = (doc.y - this._inkDocs[index].y) + (ink[i].Y * doc._height) / this._inkDocs[index].height;
+                        const newX = ((doc.x || 0) - this._inkDocs[index].x) + (i.X * (doc._width || 0)) / this._inkDocs[index].width;
+                        const newY = ((doc.y || 0) - this._inkDocs[index].y) + (i.Y * (doc._height || 0)) / this._inkDocs[index].height;
                         newPoints.push({ X: newX, Y: newY });
-                    }
+                    });
                     doc.data = new InkField(newPoints);
 
                 }

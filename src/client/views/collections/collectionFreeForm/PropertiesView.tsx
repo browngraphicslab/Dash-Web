@@ -295,7 +295,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
-        return <div className="propertiesView-sharingTable-item">
+        return <div className="propertiesView-sharingTable-item" key="name">
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "70px" : "80px" }}> {name} </div>
             {name !== "Me" ? this.notifyIcon : null}
             <div className="propertiesView-sharingTable-item-permission">
@@ -399,11 +399,11 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 if (ink) {
 
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
-                        const newX = Math.cos(angle) * (ink[i].X - _centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].X;
-                        const newY = Math.sin(angle) * (ink[i].X - _centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].Y;
+                    ink.forEach(i => {
+                        const newX = Math.cos(angle) * (i.X - _centerPoints[index].X) - Math.sin(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].X;
+                        const newY = Math.sin(angle) * (i.X - _centerPoints[index].X) + Math.cos(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
-                    }
+                    });
                     doc.data = new InkField(newPoints);
                     const xs = newPoints.map(p => p.X);
                     const ys = newPoints.map(p => p.Y);
@@ -534,11 +534,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     getField(key: string) {
-        //if (this.selectedDoc) {
-        return Field.toString(this.selectedDoc[key] as Field);
-        // } else {
-        //     return undefined as Opt<string>;
-        // }
+        return Field.toString(this.selectedDoc?.[key] as Field);
     }
 
     @computed get shapeXps() { return this.getField("x"); }

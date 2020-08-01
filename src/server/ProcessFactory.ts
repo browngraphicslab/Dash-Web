@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync } from "fs";
-import { pathFromRoot, fileDescriptorFromStream } from './ActionUtilities';
-import rimraf = require("rimraf");
 import { ChildProcess, spawn, StdioOptions } from "child_process";
+import { existsSync, mkdirSync } from "fs";
 import { Stream } from "stream";
+import { fileDescriptorFromStream, pathFromRoot } from './ActionUtilities';
+import rimraf = require("rimraf");
 
 export namespace ProcessFactory {
 

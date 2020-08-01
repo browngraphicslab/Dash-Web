@@ -836,7 +836,7 @@ export class CurrentUserUtils {
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
+        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window

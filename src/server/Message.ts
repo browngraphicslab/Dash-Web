@@ -1,6 +1,6 @@
-import { Utils } from "../Utils";
 import { Point } from "../pen-gestures/ndollar";
 import { AnalysisResult, ImportResults } from "../scraping/buxton/final/BuxtonImporter";
+import { Utils } from "../Utils";
 
 export class Message<T> {
     private _name: string;

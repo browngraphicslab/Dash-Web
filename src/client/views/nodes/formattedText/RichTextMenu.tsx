@@ -530,7 +530,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     indentParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
-        let headin = false;
+        const heading = false;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
             if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
@@ -540,7 +540,7 @@ export default class RichTextMenu extends AntimodeMenu {
             }
             return true;
         });
-        !headin && dispatch?.(tr);
+        !heading && dispatch?.(tr);
         return true;
     }
 

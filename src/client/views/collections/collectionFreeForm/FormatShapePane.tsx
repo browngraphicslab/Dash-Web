@@ -13,7 +13,6 @@ import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
 import { undoBatch } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from 'react-color';
-import { DocumentView } from "../../../views/nodes/DocumentView"
 
 @observer
 export default class FormatShapePane extends AntimodeMenu {
@@ -124,12 +123,12 @@ export default class FormatShapePane extends AntimodeMenu {
                     console.log(ink);
                     if (ink) {
                         const newPoints: { X: number, Y: number }[] = [];
-                        for (var j = 0; j < ink.length; j++) {
+                        ink.forEach(i => {
                             // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
-                            const newX = (doc.x - oldX) + (ink[j].X * doc._width) / oldWidth;
-                            const newY = (doc.y - oldY) + (ink[j].Y * doc._height) / oldHeight;
+                            const newX = ((doc.x || 0) - oldX) + (i.X * (doc._width || 0)) / oldWidth;
+                            const newY = ((doc.y || 0) - oldY) + (i.Y * (doc._height || 0)) / oldHeight;
                             newPoints.push({ X: newX, Y: newY });
-                        }
+                        });
                         doc.data = new InkField(newPoints);
                     }
                 }
@@ -148,12 +147,12 @@ export default class FormatShapePane extends AntimodeMenu {
                     console.log(ink);
                     if (ink) {
                         const newPoints: { X: number, Y: number }[] = [];
-                        for (var j = 0; j < ink.length; j++) {
+                        ink.forEach(i => {
                             // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
-                            const newX = (doc.x - oldX) + (ink[j].X * doc._width) / oldWidth;
-                            const newY = (doc.y - oldY) + (ink[j].Y * doc._height) / oldHeight;
+                            const newX = ((doc.x || 0) - oldX) + (i.X * (doc._width || 0)) / oldWidth;
+                            const newY = ((doc.y || 0) - oldY) + (i.Y * (doc._height || 0)) / oldHeight;
                             newPoints.push({ X: newX, Y: newY });
-                        }
+                        });
                         doc.data = new InkField(newPoints);
                     }
                 }
@@ -191,11 +190,11 @@ export default class FormatShapePane extends AntimodeMenu {
                 if (ink) {
 
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
-                        const newX = Math.cos(angle) * (ink[i].X - _centerPoints[index].X) - Math.sin(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].X;
-                        const newY = Math.sin(angle) * (ink[i].X - _centerPoints[index].X) + Math.cos(angle) * (ink[i].Y - _centerPoints[index].Y) + _centerPoints[index].Y;
+                    ink.forEach(i => {
+                        const newX = Math.cos(angle) * (i.X - _centerPoints[index].X) - Math.sin(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].X;
+                        const newY = Math.sin(angle) * (i.X - _centerPoints[index].X) + Math.cos(angle) * (i.Y - _centerPoints[index].Y) + _centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
-                    }
+                    });
                     doc.data = new InkField(newPoints);
                     const xs = newPoints.map(p => p.X);
                     const ys = newPoints.map(p => p.Y);
