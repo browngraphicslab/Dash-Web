@@ -36,6 +36,5 @@ export enum DocumentType {
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
     SCRIPTDB = "scriptdb",          // database of scripts
-    RECOMMENDATION = "recommendation", // view of a recommendation
     GROUPDB = "groupdb"         // database of groups
 }

@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faHireAHelper } from '@fortawesome/free-brands-svg-icons';
+import { faHireAHelper, faBuffer } from '@fortawesome/free-brands-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -149,7 +149,7 @@ export class MainView extends React.Component {
             fa.faFillDrip, fa.faLink, fa.faUnlink, fa.faBold, fa.faItalic, fa.faChevronLeft, fa.faUnderline, fa.faStrikethrough, fa.faSuperscript, fa.faSubscript,
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faBezierCurve, fa.faCircle, fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, fa.faAngleUp, fa.faAngleDown, fa.faPlayCircle, fa.faClock,
-            fa.faRocket, fa.faExchangeAlt);
+            fa.faRocket, fa.faExchangeAlt, faBuffer);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }

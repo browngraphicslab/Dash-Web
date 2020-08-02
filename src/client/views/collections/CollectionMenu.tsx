@@ -27,6 +27,7 @@ import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { DocUtils } from "../../documents/Documents";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -313,12 +314,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
                         {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.viewModes}
-                        {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.templateChrome}
+                        {this.props.type === CollectionViewType.Docking ? (null) : this.templateChrome}
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
                             </button>
                         </div>
+
+                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) : <button className={"antimodeMenu-button"} key="float"
+                            style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                            title="Toggle Overlay Layer"
+                            onClick={() => DocumentView.FloatDoc(this.props.docView)}>
+                            <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
+                        </button>}
                     </div>
                     {this.subChrome}
                 </div>
@@ -540,7 +548,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
             </div>
 
-            {!this.props.isOverlay ? (null) :
+            {!this.props.isOverlay || this.document.type !== DocumentType.WEB ? (null) :
                 <button className={"antimodeMenu-button"} key="hypothesis"
                     style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
                     title="Use Hypothesis"
