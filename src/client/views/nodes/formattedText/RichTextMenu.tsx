@@ -436,10 +436,16 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
+        if ((this.view?.state.selection.$from.pos || 0) < 2) {
+            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize;
+        }
         this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch, true);
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
+        if ((this.view?.state.selection.$from.pos || 0) < 2) {
+            this.TextView.layoutDoc._fontFamily = mark.attrs.family;
+        }
         this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch, true);
     }
 
