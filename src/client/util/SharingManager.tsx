@@ -142,7 +142,7 @@ export default class SharingManager extends React.Component<{}> {
      * @param group 
      * @param permission 
      */
-    setInternalGroupSharing = (group: Doc, permission: string) => {
+    setInternalGroupSharing = (group: Doc, permission: string, targetDoc?: Doc) => {
         const members: string[] = JSON.parse(StrCast(group.members));
         const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
@@ -224,7 +224,7 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
-    setInternalSharing = (recipient: ValidatedUser, permission: string) => {
+    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
         const { user, notificationDoc } = recipient;
         const target = targetDoc || this.targetDoc!;
         const key = user.email.replace('.', '_');

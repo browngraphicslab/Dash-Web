@@ -156,7 +156,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
-                if (key[0] === key[0].toUpperCase() || key[0] === "#" || key === "author" || key === "creationDate" || key.indexOf("lastModified") !== -1) {
+                if ((key[0] === key[0].toUpperCase() && key.substring(0, 3) !== "ACL")
+                    || key[0] === "#" || key === "author" ||
+                    key === "creationDate" || key.indexOf("lastModified") !== -1) {
+
                     const contents = doc[key];
                     if (key[0] === "#") {
                         rows.push(<div className="uneditable-field" key={key}>
@@ -297,8 +300,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
         return <div className="propertiesView-sharingTable-item">
-            <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "70px" : "80px" }}> {name} </div>
-            {name !== "Me" ? this.notifyIcon : null}
+            <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "85px" : "80px" }}> {name} </div>
+            {/* {name !== "Me" ? this.notifyIcon : null} */}
             <div className="propertiesView-sharingTable-item-permission">
                 {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name) : permission}
                 {permission === "Owner" ? this.expansionIcon : null}

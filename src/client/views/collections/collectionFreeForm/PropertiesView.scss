@@ -241,7 +241,7 @@
 
             .propertiesView-sharingTable-item-name {
                 font-weight: bold;
-                width: 80px;
+                width: 95px;
                 overflow-x: hidden;
                 display: inline-block;
                 text-overflow: ellipsis;
@@ -259,8 +259,8 @@
                     border: none;
                     background-color: inherit;
                     width: 75px;
-                    text-align: justify; // for Edge
-                    text-align-last: end;
+                    //text-align: justify; // for Edge
+                    //text-align-last: end;
 
                     &:hover {
                         cursor: pointer;
