@@ -536,12 +536,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     highlight = (color: string) => {
         // creates annotation documents for current highlights
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
-        if ([AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl)) {
-            const annotationDoc = this.makeAnnotationDocument(color);
-            annotationDoc && Doc.AddDocToList(this.props.Document, this.annotationKey, annotationDoc);
-            return annotationDoc;
-        }
-        return undefined;
+        const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color);
+        annotationDoc && this.addDocument?.(annotationDoc);
+        return annotationDoc ?? undefined;
     }
     /**
      * This is temporary for creating annotations from highlights. It will
