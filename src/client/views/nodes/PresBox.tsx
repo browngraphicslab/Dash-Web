@@ -5,13 +5,14 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, DocCastAsync, WidthSym } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../fields/Types";
-import { returnFalse, returnOne, numberRange, setupMoveUpEvents, emptyFunction, returnTrue } from "../../../Utils";
+import { returnFalse, returnOne, numberRange, returnTrue } from "../../../Utils";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView, DockedFrameRenderer } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { FieldView, FieldViewProps } from './FieldView';
+import { DocumentType } from "../../documents/DocumentTypes";
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface, listSpec } from "../../../fields/Schema";
@@ -30,6 +31,7 @@ import { CollectionFreeFormViewChrome } from "../collections/CollectionMenu";
 import { conformsTo } from "lodash";
 import { translate } from "googleapis/build/src/apis/translate";
 import { DragManager, dropActionType } from "../../util/DragManager";
+import { actionAsync } from "mobx-utils";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -92,55 +94,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
         const lastFrame = Cast(presTargetDoc.lastFrame, "number", null);
         const curFrame = NumCast(presTargetDoc.currentFrame);
+        let internalFrames: boolean = false;
+        if (presTargetDoc.presProgressivize || presTargetDoc.zoomProgressivize || presTargetDoc.scrollProgressivize) internalFrames = true;
         // Case 1: There are still other frames and should go through all frames before going to next slide
-        if (lastFrame !== undefined && curFrame < lastFrame) {
+        if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
             presTargetDoc._viewTransition = "all 1s";
             setTimeout(() => presTargetDoc._viewTransition = undefined, 1010);
             presTargetDoc.currentFrame = curFrame + 1;
-            if (presTargetDoc.zoomProgressivize) {
-                const srcContext = Cast(presTargetDoc.context, Doc, null);
-                const srcDocView = DocumentManager.Instance.getDocumentView(srcContext);
-                if (srcContext && srcDocView) {
-                    const layoutdoc = Doc.Layout(presTargetDoc);
-                    const panelWidth: number = srcDocView.props.PanelWidth();
-                    const panelHeight: number = srcDocView.props.PanelHeight();
-                    console.log("srcDocView: " + srcDocView.props.PanelWidth());
-                    // console.log("layoutdoc._width: " + layoutdoc._width);
-                    // console.log("srcContext._width: " + srcContext._width);
-                    const newPanX = NumCast(presTargetDoc.x) + NumCast(layoutdoc._width) / 2;
-                    const newPanY = NumCast(presTargetDoc.y) + NumCast(layoutdoc._height) / 2;
-                    // const newPanX = NumCast(presTargetDoc.x) + panelWidth / 2;
-                    // const newPanY = NumCast(presTargetDoc.y) + panelHeight / 2;
-                    let newScale = 0.9 * Math.min(Number(panelWidth) / this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]), Number(panelHeight) / this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]));
-                    // srcContext._panX = newPanX + (NumCast(presTargetDoc._viewScale) * this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + NumCast(presTargetDoc._panX) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) / 2));
-                    // srcContext._panY = newPanY + (NumCast(presTargetDoc._viewScale) * this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + NumCast(presTargetDoc._panY) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) / 2));
-                    srcContext._panX = newPanX + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) / 2));
-                    srcContext._panY = newPanY + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) / 2));
-                    // srcContext._panX = newPanX
-                    // srcContext._panY = newPanY
-                    srcContext._viewScale = newScale;
-                    console.log("X: " + srcContext._panX + ", Y: " + srcContext._panY + ", Scale: " + srcContext._viewScale);
-                    const resize = document.getElementById('resizable');
-                    if (resize) {
-                        resize.style.width = this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) + 'px';
-                        resize.style.height = this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) + 'px';
-                        resize.style.top = this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + 'px';
-                        resize.style.left = this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + 'px';
-                    }
-                }
-            }
+            if (presTargetDoc.zoomProgressivize) this.zoomProgressivizeNext(presTargetDoc);
             // Case 2: No more frames in current doc and next slide is defined, therefore move to next slide
         } else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             const nextSelected = this.itemIndex + 1;
             this.gotoDocument(nextSelected, this.itemIndex);
-
-            // for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
-            //     if (!this.childDocs[nextSelected].groupButton) {
-            //         break;
-            //     } else {
-            //         this.gotoDocument(nextSelected, this.itemIndex);
-            //     }
-            // }
         }
     }
 
@@ -160,6 +125,58 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             prevSelected = Math.max(0, prevSelected - 1);
 
             this.gotoDocument(prevSelected, this.itemIndex);
+        }
+    }
+
+    zoomProgressivizeNext = (presTargetDoc: Doc) => {
+        const srcContext = Cast(presTargetDoc.context, Doc, null);
+        const docView = DocumentManager.Instance.getDocumentView(presTargetDoc);
+        const vfLeft: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]);
+        const vfWidth: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]);
+        const vfTop: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]);
+        const vfHeight: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]);
+        // Case 1: document that is not a Golden Layout tab
+        if (srcContext) {
+            console.log("CASE 1");
+            const srcDocView = DocumentManager.Instance.getDocumentView(srcContext);
+            if (srcDocView) {
+                const layoutdoc = Doc.Layout(presTargetDoc);
+                const panelWidth: number = srcDocView.props.PanelWidth();
+                const panelHeight: number = srcDocView.props.PanelHeight();
+                console.log("srcDocView: " + srcDocView.props.PanelWidth());
+                // console.log("layoutdoc._width: " + layoutdoc._width);
+                // console.log("srcContext._width: " + srcContext._width);
+                const newPanX = NumCast(presTargetDoc.x) + NumCast(layoutdoc._width) / 2;
+                const newPanY = NumCast(presTargetDoc.y) + NumCast(layoutdoc._height) / 2;
+                // const newPanX = NumCast(presTargetDoc.x) + panelWidth / 2;
+                // const newPanY = NumCast(presTargetDoc.y) + panelHeight / 2;
+                let newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
+                // srcContext._panX = newPanX + (NumCast(presTargetDoc._viewScale) * this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]) + NumCast(presTargetDoc._panX) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]) / 2));
+                // srcContext._panY = newPanY + (NumCast(presTargetDoc._viewScale) * this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]) + NumCast(presTargetDoc._panY) + (this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]) / 2));
+                srcContext._panX = newPanX + (vfLeft + (vfWidth / 2));
+                srcContext._panY = newPanY + (vfTop + (vfHeight / 2));
+                // srcContext._panX = newPanX
+                // srcContext._panY = newPanY
+                srcContext._viewScale = newScale;
+                console.log("X: " + srcContext._panX + ", Y: " + srcContext._panY + ", Scale: " + srcContext._viewScale);
+            }
+        }
+        // Case 2: document is the containing collection
+        if (docView && !srcContext) {
+            console.log("CASE 2");
+            const panelWidth: number = docView.props.PanelWidth();
+            const panelHeight: number = docView.props.PanelHeight();
+            let newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
+            presTargetDoc._panX = vfLeft + (vfWidth / 2);
+            presTargetDoc._panY = vfTop + (vfWidth / 2);
+            presTargetDoc._viewScale = newScale;
+        }
+        const resize = document.getElementById('resizable');
+        if (resize) {
+            resize.style.width = vfWidth + 'px';
+            resize.style.height = vfHeight + 'px';
+            resize.style.top = vfTop + 'px';
+            resize.style.left = vfLeft + 'px';
         }
     }
 
@@ -440,14 +457,28 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;
     removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
-    getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
+    getTransform = () => this.props.ScreenToLocalTransform();// listBox padding-left and pres-box-cont minHeight - .translate(-5, -65)
     panelHeight = () => this.props.PanelHeight() - 40;
     active = (outsideReaction?: boolean) => ((Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground) &&
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     // KEYS
     @observable _selectedArray: Doc[] = [];
+    @observable _sortedSelectedArray: Doc[] = [];
     @observable _eleArray: HTMLElement[] = [];
+    @observable _dragArray: HTMLElement[] = [];
+
+    //TODO: Update to radix / quick sort
+    @action
+    sortArray = (): Doc[] => {
+        const sort: Doc[] = this._selectedArray;
+        this.childDocs.forEach((doc, i) => {
+            if (this._selectedArray.includes(doc)) {
+                sort.push(doc);
+            }
+        });
+        return sort;
+    }
 
     @computed get listOfSelected() {
         const list = this._selectedArray.map((doc: Doc, index: any) => {
@@ -473,6 +504,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     multiSelect = (doc: Doc, ref: HTMLElement) => {
         this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
+        const ele = ref.getElementsByClassName("stacking");
         this._eleArray.push(ref);
     }
 
@@ -1013,16 +1045,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </div>
                         <div className="ribbon-final-box">
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "collection" ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Child documents</div>
                                 <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "flex" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "collection" || targetDoc.type === "image" ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL || targetDoc.type === "image" ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
                                 <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
                                 <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div>
                             </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "rtf" ? "inline-flex" : "none" }}>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
                                 <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
                             </div>
@@ -1178,7 +1210,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const x: List<number> = xlist;
         const y: List<number> = ylist;
         const tags: JSX.Element[] = [];
-        let pathPoints = ""; //List of all of the paths that need to be added
+        let pathPoints = ""; //List of all of the pathpoints that need to be added
         // console.log(x);
         // console.log(x.length);
         // console.log(x[0]);
@@ -1566,58 +1598,58 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
 
 
-    protected createPresDropTarget = (ele: HTMLDivElement) => {
-        console.log("created?");
-        this.treedropDisposer?.();
-        ele && (this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this)));
-        if (ele) {
-            console.log("ele: " + ele.className)
-        }
-    }
+    // protected createPresDropTarget = (ele: HTMLDivElement) => {
+    //     console.log("created?");
+    //     this.treedropDisposer?.();
+    //     ele && (this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this)));
+    //     if (ele) {
+    //         console.log("ele: " + ele.className)
+    //     }
+    // }
 
-    protected onInternalPreDrop(e: Event, de: DragManager.DropEvent, targetAction: dropActionType) {
-        console.log("preDrop?")
-        if (de.complete.docDragData) {
-            // if targetDropAction is, say 'alias', but we're just dragging within a collection, we want to ignore the targetAction.
-            // otherwise, the targetAction should become the actual action (which can still be overridden by the userDropAction -eg, shift/ctrl keys)
-            if (targetAction && !de.complete.docDragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
-                de.complete.docDragData.dropAction = targetAction;
-            }
-            e.stopPropagation();
-        }
-    }
+    // protected onInternalPreDrop(e: Event, de: DragManager.DropEvent, targetAction: dropActionType) {
+    //     console.log("preDrop?")
+    //     if (de.complete.docDragData) {
+    //         // if targetDropAction is, say 'alias', but we're just dragging within a collection, we want to ignore the targetAction.
+    //         // otherwise, the targetAction should become the actual action (which can still be overridden by the userDropAction -eg, shift/ctrl keys)
+    //         if (targetAction && !de.complete.docDragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+    //             de.complete.docDragData.dropAction = targetAction;
+    //         }
+    //         e.stopPropagation();
+    //     }
+    // }
 
-    @action
-    protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
-        console.log("drop in pres")
-        const docDragData = de.complete.docDragData;
-        ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
-        if (docDragData && this.props.addDocument) {
-            console.log("docDragData && this.props.addDocument");
-            let added = false;
-            const dropaction = docDragData.dropAction || docDragData.userDropAction;
-            if (dropaction && dropaction !== "move") {
-                console.log("dropaction && dropaction !== move");
-                added = this.props.addDocument(docDragData.droppedDocuments);
-            } else if (docDragData.moveDocument) {
-                console.log("docDragData.moveDocument");
-                const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
-                const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
-                const res = addedDocs.length ? this.props.addDocument(addedDocs) : true;
-                if (movedDocs.length) {
-                    const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey ||
-                        Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
-                    added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.props.addDocument : returnFalse);
-                } else added = res;
-            } else {
-                console.log("else");
-                added = this.props.addDocument(docDragData.droppedDocuments);
-            }
-            added && e.stopPropagation();
-            return added;
-        }
-        return false;
-    }
+    // @action
+    // protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
+    //     console.log("drop in pres")
+    //     const docDragData = de.complete.docDragData;
+    //     ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
+    //     if (docDragData && this.props.addDocument) {
+    //         console.log("docDragData && this.props.addDocument");
+    //         let added = false;
+    //         const dropaction = docDragData.dropAction || docDragData.userDropAction;
+    //         if (dropaction && dropaction !== "move") {
+    //             console.log("dropaction && dropaction !== move");
+    //             added = this.props.addDocument(docDragData.droppedDocuments);
+    //         } else if (docDragData.moveDocument) {
+    //             console.log("docDragData.moveDocument");
+    //             const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
+    //             const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
+    //             const res = addedDocs.length ? this.props.addDocument(addedDocs) : true;
+    //             if (movedDocs.length) {
+    //                 const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey ||
+    //                     Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
+    //                 added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.props.addDocument : returnFalse);
+    //             } else added = res;
+    //         } else {
+    //             console.log("else");
+    //             added = this.props.addDocument(docDragData.droppedDocuments);
+    //         }
+    //         added && e.stopPropagation();
+    //         return added;
+    //     }
+    //     return false;
+    // }
 
     render() {
         this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields
@@ -1670,8 +1702,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             {this.moreInfoDropdown}
             {this.transitionDropdown}
             {this.progressivizeDropdown}
-            <div className="presBox-listCont"
-                ref={this.createPresDropTarget}>
+            <div className="presBox-listCont">
+                {/* ref={this.createPresDropTarget}> */}
                 {mode !== CollectionViewType.Invalid ?
                     <CollectionView {...this.props}
                         ContainingCollectionDoc={this.props.Document}
@@ -1685,6 +1717,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         dontRegisterView={true}
                         focus={this.selectElement}
                         // presMultiSelect={this.multiSelect}
+                        // ScreenToLocalTransform={Transform.Identity} />
                         ScreenToLocalTransform={this.getTransform} />
                     : (null)
                 }

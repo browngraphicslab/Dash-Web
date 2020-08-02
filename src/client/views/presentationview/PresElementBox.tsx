@@ -19,9 +19,6 @@ import { PresBox } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
-import { undoBatch } from "../../util/UndoManager";
-import { DocUtils } from "../../documents/Documents";
-import { DocumentManager } from "../../util/DocumentManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -44,7 +41,6 @@ const PresDocument = makeInterface(presSchema, documentSchema);
 @observer
 export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDocument>(PresDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
-    private _treedropDisposer?: DragManager.DragDropDisposer;
     _heightDisposer: IReactionDisposer | undefined;
     // these fields are conditionally computed fields on the layout document that take this document as a parameter
     @computed get indexInPres() { return Number(this.lookupField("indexInPres")); }  // the index field is where this document is in the presBox display list (since this value is different for each presentation element, the value can't be stored on the layout template which is used by all display elements)
@@ -178,14 +174,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     embedHeight = () => 100;
-    embedWidth = () => this.props.PanelWidth() - 20;
+    // embedWidth = () => this.props.PanelWidth();
     // embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
-    // embedWidth = () => this.props.PanelWidth() - 20;
+    embedWidth = () => this.props.PanelWidth() - 20;
     /**
      * The function that is responsible for rendering a preview or not for this
      * presentation element.
      */
-
     @computed get renderEmbeddedInline() {
         return !this.rootDoc.presExpandInlineButton || !this.targetDoc ? (null) :
             <div className="presElementBox-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
@@ -194,7 +189,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     LibraryPath={emptyPath}
                     fitToBox={true}
-                    backgroundColor={this.props.backgroundColor}
+                    backgroundColor={() => "darkgrey"}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -238,15 +233,21 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        const element = document.elementFromPoint(e.clientX, e.clientY)?.parentElement;
         e.stopPropagation();
         e.preventDefault();
-        setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
+        if (element) {
+            console.log(element.className);
+            if (PresBox.Instance._eleArray.includes(element)) {
+                setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
+            }
+        }
     }
 
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
         // const ele: HTMLElement[] = PresBox.Instance._eleArray.map(doc => doc);
         const activeItem = this.rootDoc;
-        const dragData = new DragManager.DocumentDragData(PresBox.Instance._selectedArray.map(doc => doc));
+        const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
         // let value = this.getValue(this._heading);
         // value = typeof value === "string" ? `"${value}"` : value;
         if (activeItem) {
@@ -265,13 +266,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const pbi = "presElementBox-interaction";
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
-                style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 ref={this._itemRef}
+                style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 onClick={e => {
-                    if (this.props.active(true) || PresBox.Instance._selectedArray.includes(this.rootDoc)) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
                     if (e.ctrlKey || e.metaKey) {
                         PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!);
                         console.log("cmmd click");
@@ -292,7 +289,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 // }}
                 onPointerDown={this.headerDown}
             >
-                {treecontainer ? (null) : <>
+                <>
                     <div className="presElementBox-number">
                         {`${this.indexInPres + 1}.`}
                     </div>
@@ -313,7 +310,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>
                         <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
                     </div></Tooltip>
-                </>}
+                </>
                 <div className="presElementBox-highlight" style={{ display: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "block" : "none" }} />
                 <div className="presElementBox-buttons" style={{ display: this.rootDoc.presExpandInlineButton ? "grid" : "none" }}>
                     <button title="Zoom" className={pbi + (this.rootDoc.presZoomButton ? "-selected" : "")} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} onPointerDown={e => e.stopPropagation()} /></button>
@@ -328,3 +325,5 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         );
     }
 }
+
+// this.layoutDoc.title !== "pres element template"
