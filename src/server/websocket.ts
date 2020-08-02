@@ -209,12 +209,13 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
+        console.log(green(`> 1 field`));
         Database.Instance.getDocument(id, callback);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
-        console.log(green(`Returning ${ids.length} fields`));
-        Database.Instance.getDocuments(ids, callback);
+        console.log(green(`> ${ids.length} fields`));
+        ids.length && Database.Instance.getDocuments(ids, callback);
     }
 
     const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
