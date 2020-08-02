@@ -48,6 +48,8 @@ export class CurrentUserUtils {
     @observable public static closedStack: any | undefined;
     @observable public static searchStack: any | undefined;
 
+    @observable public static selectedPanel: string = "none";
+
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
         if (doc["template-button-query"] === undefined) {
@@ -520,8 +522,9 @@ export class CurrentUserUtils {
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
             const buttons = CurrentUserUtils.menuBtnDescriptions();
-            const menuBtns = buttons.map(({ title, icon, click }) => Docs.Create.MenuIconDocument({
+            const menuBtns = buttons.map(({ title, icon, click }) => Docs.Create.FontIconDocument({
                 icon,
+                menuIcon: true,
                 title,
                 _backgroundColor: "black",
                 stayInCollection: true,

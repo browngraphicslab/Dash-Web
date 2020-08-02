@@ -12,8 +12,10 @@ import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
 import { Tooltip } from '@material-ui/core';
+import { createUnionOrIntersectionTypeNode } from 'typescript';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const FontIconSchema = createSchema({
-    icon: "string"
+    icon: "string",
 });
 
 type FontIconDocument = makeInterface<[typeof FontIconSchema]>;
@@ -59,20 +61,45 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
 
     render() {
-        const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
-        const refLayout = Doc.Layout(referenceDoc);
-        const button = <button className="fontIconBox-outerDiv" ref={this._ref} onContextMenu={this.specificContextMenu}
-            style={{
-                padding: Cast(this.layoutDoc._xPadding, "number", null),
-                background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
-                boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
-            }}>
-            <FontAwesomeIcon className="fontIconBox-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
-            {!this.rootDoc.title ? (null) : <div className="fontIconBox-label" style={{ width: this.rootDoc.label ? "max-content" : undefined }}> {StrCast(this.rootDoc.label, StrCast(this.rootDoc.title).substring(0, 6))} </div>}
-        </button>;
-        return !this.layoutDoc.toolTip ? button :
-            <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
-                {button}
-            </Tooltip>;
+
+        //style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document) }}>
+
+        if (this.layoutDoc.menuIcon) {
+
+            let backgroundColor = "black";
+            if (this.dataDoc.title === "Sharing" || this.dataDoc.title === "Help" || this.dataDoc.title === "Settings" || this.dataDoc.title === "Import") {
+                backgroundColor = "black";
+            } else {
+                backgroundColor = CurrentUserUtils.selectedPanel === this.dataDoc.title ? "lightgrey" : "black";
+            }
+
+            const color = backgroundColor === "lightgrey" ? "black" : "white";
+            const menuBTN = <div className="menuButton" style={{ backgroundColor: backgroundColor }}>
+
+                <div className="menuButton-wrap" style={{ backgroundColor: backgroundColor }}>
+                    <FontAwesomeIcon className="menuButton-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={color} size="lg" />
+                    <div className="menuButton-label" style={{ color: color }}> {this.dataDoc.title} </div>
+                </div>
+            </div>;
+
+            return menuBTN;
+        } else {
+            const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
+            const refLayout = Doc.Layout(referenceDoc);
+            const button = <button className="fontIconBox-outerDiv" ref={this._ref} onContextMenu={this.specificContextMenu}
+                style={{
+                    padding: Cast(this.layoutDoc._xPadding, "number", null),
+                    background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
+                    boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
+                }}>
+                <FontAwesomeIcon className="fontIconBox-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
+                {!this.rootDoc.title ? (null) : <div className="fontIconBox-label" style={{ width: this.rootDoc.label ? "max-content" : undefined }}> {StrCast(this.rootDoc.label, StrCast(this.rootDoc.title).substring(0, 6))} </div>}
+            </button>;
+            return !this.layoutDoc.toolTip ? button :
+                <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
+                    {button}
+                </Tooltip>;
+        }
+
     }
 }

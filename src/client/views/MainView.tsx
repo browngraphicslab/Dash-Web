@@ -234,7 +234,7 @@ export class MainView extends React.Component {
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            _width: this._panelWidth * .7 - this.propertiesWidth(),
+            _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
         };
@@ -367,7 +367,7 @@ export class MainView extends React.Component {
     @computed get dockingContent() {
         TraceMobx();
         const mainContainer = this.mainContainer;
-        const width = this.flyoutWidth;
+        const width = this.flyoutWidth + this.propertiesWidth();
         return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
             {!mainContainer ? (null) : this.mainDocView}
         </div>;
@@ -388,10 +388,16 @@ export class MainView extends React.Component {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
                 this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
+                if (this.flyoutWidth === 0) {
+                    CurrentUserUtils.selectedPanel = "none";
+                }
                 return false;
             }), emptyFunction, action(() => {
                 this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
                 this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
+                if (this.flyoutWidth === 0) {
+                    CurrentUserUtils.selectedPanel = "none";
+                }
             }));
         }
     }
@@ -464,7 +470,7 @@ export class MainView extends React.Component {
                 onClick={undefined}
                 ScreenToLocalTransform={this.mainContainerXf}
                 ContentScaling={returnOne}
-                PanelWidth={() => 70}
+                PanelWidth={() => 60}
                 PanelHeight={this.getContentsHeight}
                 renderDepth={0}
                 focus={emptyFunction}
@@ -484,6 +490,7 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
+        CurrentUserUtils.selectedPanel = "none";
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }
@@ -493,10 +500,12 @@ export class MainView extends React.Component {
     @action @undoBatch
     selectMenu = (str: string) => {
         if (this.panelContent === str && this.flyoutWidth !== 0) {
+            CurrentUserUtils.selectedPanel = "none";
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
             this.panelContent = str;
+            CurrentUserUtils.selectedPanel = str;
             switch (this.panelContent) {
                 case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
                 case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
@@ -505,7 +514,8 @@ export class MainView extends React.Component {
                 case "Settings": this.sidebarContent.proto = SettingsManager.Instance.open(); break;
                 case "Sharing": this.sidebarContent.proto = GroupManager.Instance.open(); break;
             }
-            if (str === "Settings" || str === "Sharing" || str === "Help") {
+            if (str === "Settings" || str === "Sharing" || str === "Help" || str === "Import") {
+                CurrentUserUtils.selectedPanel = "none";
                 this.panelContent = "none";
                 this.flyoutWidth = 0;
             } else {

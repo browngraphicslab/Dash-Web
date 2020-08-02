@@ -179,6 +179,12 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
+    shareFromPropertiesSidebar = (shareWith: string, permission: SharingPermissions, target: Doc) => {
+        const user = this.users.find(({ user: { email } }) => email === (shareWith === "Me" ? Doc.CurrentUserEmail : shareWith));
+        if (user) this.setInternalSharing(user, permission, target);
+        else this.setInternalGroupSharing(GroupManager.Instance.getGroup(shareWith)!, permission, target);
+    }
+
     /**
      * Removes the documents shared with a user through a group when the user is removed from the group.
      * @param group 
