@@ -167,6 +167,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
     }
 
+    @undoBatch
     @action
     showLink = () => {
         this.props.linkDoc.hidden = !this.props.linkDoc.hidden;

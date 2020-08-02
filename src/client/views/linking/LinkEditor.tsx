@@ -296,14 +296,13 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
-    @undoBatch
-    @action
+    @action @undoBatch
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         this.props.showLinks();
     }
 
-    @action
+    @action @undoBatch
     setDescripValue = (value: string) => {
         if (LinkManager.currentLink) {
             LinkManager.currentLink.description = value;
@@ -362,7 +361,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this.openDropdown = !this.openDropdown;
     }
 
-    @action
+    @action @undoBatch
     changeFollowBehavior = (follow: string) => {
         this.openDropdown = false;
         Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;

@@ -67,7 +67,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
             if (doubleTap && this.props.InMenu && this.props.StartLink) {
                 //action(() => Doc.BrushDoc(this.props.View.Document));
-                DocumentLinksButton.StartLink = this.props.View;
+                if (DocumentLinksButton.StartLink === this.props.View) {
+                    DocumentLinksButton.StartLink = undefined;
+                } else {
+                    DocumentLinksButton.StartLink = this.props.View;
+                }
             } else if (!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
                 DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
@@ -78,7 +82,12 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @action @undoBatch
     onLinkClick = (e: React.MouseEvent): void => {
         if (this.props.InMenu && this.props.StartLink) {
-            DocumentLinksButton.StartLink = this.props.View;
+            if (DocumentLinksButton.StartLink === this.props.View) {
+                DocumentLinksButton.StartLink = undefined;
+            } else {
+                DocumentLinksButton.StartLink = this.props.View;
+            }
+
             //action(() => Doc.BrushDoc(this.props.View.Document));
         } else if (!this.props.InMenu) {
             DocumentLinksButton.EditLink = this.props.View;
@@ -124,7 +133,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (DocumentLinksButton.StartLink === this.props.View) {
             DocumentLinksButton.StartLink = undefined;
         } else {
-            if (this.props.InMenu && !!!this.props.StartLink) {
+            if (this.props.InMenu && !this.props.StartLink) {
                 if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
                     const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
                     // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
@@ -156,6 +165,11 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable
     public static EditLink: DocumentView | undefined;
     public static EditLinkLoc: number[] = [0, 0];
+
+
+    @action clearLinks() {
+        DocumentLinksButton.StartLink = undefined;
+    }
 
     @computed
     get linkButton() {
@@ -205,11 +219,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     link : links.length}
 
             </div>
-            {DocumentLinksButton.StartLink && this.props.InMenu && !!!this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
+            {DocumentLinksButton.StartLink && this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
                 onPointerDown={this.completeLink} onClick={e => this.finishLinkClick(e.screenX, e.screenY)} /> : (null)}
             {DocumentLinksButton.StartLink === this.props.View && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
-                style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }} /> : (null)}
+                style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
+                onPointerDown={this.clearLinks} onClick={this.clearLinks}
+            /> : (null)}
         </div>;
 
         return (!links.length) && !this.props.AlwaysOn ? (null) :
