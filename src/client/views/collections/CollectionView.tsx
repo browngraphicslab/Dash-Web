@@ -591,11 +591,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {/* {(!this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
+            {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
                 <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
                     style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }
-            {this.facetWidth() < 10 ? (null) : this.filterView}  */}
+            {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);
     }
 }
