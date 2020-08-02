@@ -238,7 +238,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this.color
         };
         const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
         const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
@@ -278,7 +277,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             oneLine: true,
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this.color
         };
         return this.props.parent.props.Document.miniHeaders ?
             <div className="collectionStackingView-miniHeader">

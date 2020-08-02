@@ -20,6 +20,9 @@ import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 
 library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle);
 
+/**
+ * Interface for options for the react-select component
+ */
 export interface UserOptions {
     label: string;
     value: string;
@@ -30,15 +33,13 @@ export default class GroupManager extends React.Component<{}> {
 
     static Instance: GroupManager;
     @observable isOpen: boolean = false; // whether the GroupManager is to be displayed or not.
-    @observable private dialogueBoxOpacity: number = 1; // opacity of the dialogue box div of the MainViewModal.
-    @observable private overlayOpacity: number = 0.4; // opacity of the overlay div of the MainViewModal.
     @observable private users: string[] = []; // list of users populated from the database.
     @observable private selectedUsers: UserOptions[] | null = null; // list of users selected in the "Select users" dropdown.
     @observable currentGroup: Opt<Doc>; // the currently selected group.
     @observable private createGroupModalOpen: boolean = false;
     private inputRef: React.RefObject<HTMLInputElement> = React.createRef(); // the ref for the input box.
-    private createGroupButtonRef: React.RefObject<HTMLButtonElement> = React.createRef();
-    private currentUserGroups: string[] = [];
+    private createGroupButtonRef: React.RefObject<HTMLButtonElement> = React.createRef(); // the ref for the group creation button
+    private currentUserGroups: string[] = []; // the list of groups the current user is a member of
     @observable private buttonColour: "#979797" | "black" = "#979797";
     @observable private groupSort: "ascending" | "descending" | "none" = "none";
 
@@ -49,6 +50,9 @@ export default class GroupManager extends React.Component<{}> {
         GroupManager.Instance = this;
     }
 
+    /**
+     * Populates the list of users and groups.
+     */
     componentDidMount() {
         this.populateUsers();
         this.populateGroups();
@@ -62,8 +66,6 @@ export default class GroupManager extends React.Component<{}> {
         const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
         const raw = JSON.parse(userList) as User[];
         const evaluating = raw.map(async user => {
-            // const isCandidate = user.email !== Doc.CurrentUserEmail;
-            // if (isCandidate) {
             const userDocument = await DocServer.GetRefField(user.userDocumentId);
             if (userDocument instanceof Doc) {
                 const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
@@ -73,11 +75,13 @@ export default class GroupManager extends React.Component<{}> {
                     }
                 });
             }
-            // }
         });
         return Promise.all(evaluating);
     }
 
+    /**
+     * Populates the list of groups the current user is a member of and sets this list to be used in the GetEffectiveAcl in util.ts
+     */
     populateGroups = () => {
         DocListCastAsync(this.GroupManagerDoc?.data).then(groups => {
             groups?.forEach(group => {
@@ -145,25 +149,8 @@ export default class GroupManager extends React.Component<{}> {
     }
 
     /**
-     * @returns a readonly copy of a single group document
+     * Returns an array of the list of members of a given group.
      */
-    getGroupCopy(groupName: string): Doc | undefined {
-        const groupDoc = this.getGroup(groupName);
-        if (groupDoc) {
-            const { members, owners } = groupDoc;
-            return Doc.assign(new Doc, { groupName, members: StrCast(members), owners: StrCast(owners) });
-        }
-        return undefined;
-    }
-    /**
-     * @returns a readonly copy of the list of group documents
-     */
-    getAllGroupsCopy(): Doc[] {
-        return this.getAllGroups().map(({ groupName, owners, members }) =>
-            Doc.assign(new Doc, { groupName: (StrCast(groupName)), owners: (StrCast(owners)), members: (StrCast(members)) })
-        );
-    }
-
     getGroupMembers(group: string | Doc): string[] {
         if (group instanceof Doc) return JSON.parse(StrCast(group.members)) as string[];
         else return JSON.parse(StrCast(this.getGroup(group)!.members)) as string[];
@@ -316,6 +303,9 @@ export default class GroupManager extends React.Component<{}> {
 
     }
 
+    /**
+     * @returns the MainViewModal which allows the user to create groups.
+     */
     private get groupCreationModal() {
         const contents = (
             <div className="group-create">
@@ -415,7 +405,7 @@ export default class GroupManager extends React.Component<{}> {
                     <div
                         className="sort-groups"
                         onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
-                        Name {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""} {/* → */}
+                        Name {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""}
                     </div>
                     <div className="group-body">
                         {groups.map(group =>

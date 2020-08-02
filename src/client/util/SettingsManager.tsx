@@ -14,7 +14,6 @@ import { Doc } from "../../fields/Doc";
 import GroupManager from "./GroupManager";
 import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
-import { togglePlaygroundMode } from "../../fields/util";
 import { DocServer } from "../DocServer";
 
 library.add(fa.faTimes);
@@ -101,7 +100,6 @@ export default class SettingsManager extends React.Component<{}> {
 
     @action
     togglePlaygroundMode = () => {
-        //togglePlaygroundMode();
         this.playgroundMode = !this.playgroundMode;
         if (this.playgroundMode) DocServer.Control.makeReadOnly();
         else DocServer.Control.makeEditable();

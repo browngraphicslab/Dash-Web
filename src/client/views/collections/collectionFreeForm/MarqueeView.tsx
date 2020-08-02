@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Opt, DocListCast, DataSym, AclEdit, AclAddonly, AclAdmin } from "../../../../fields/Doc";
-import { GetEffectiveAcl, getPlaygroundMode } from "../../../../fields/util";
+import { GetEffectiveAcl } from "../../../../fields/util";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
@@ -281,7 +281,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this._downX = x;
             this._downY = y;
             const effectiveAcl = GetEffectiveAcl(this.props.Document);
-            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl) || getPlaygroundMode()) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl)) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
             this.clearSelection();
         }
     });
