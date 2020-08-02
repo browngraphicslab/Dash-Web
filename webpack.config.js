@@ -66,42 +66,42 @@ module.exports = {
     },
     module: {
         rules: [{
-                test: [/\.tsx?$/],
-                use: [{
-                    loader: 'ts-loader',
-                    options: {
-                        transpileOnly: true
-                    }
-                }]
+            test: [/\.tsx?$/],
+            use: [{
+                loader: 'ts-loader',
+                options: {
+                    transpileOnly: true
+                }
+            }]
+        },
+        {
+            test: /\.scss|css$/,
+            use: [{
+                loader: "style-loader"
             },
             {
-                test: /\.scss|css$/,
-                use: [{
-                        loader: "style-loader"
-                    },
-                    {
-                        loader: "css-loader"
-                    },
-                    {
-                        loader: "sass-loader"
-                    }
-                ]
+                loader: "css-loader"
             },
             {
-                test: /\.(jpg|png|pdf)$/,
-                use: [{
-                    loader: 'file-loader'
-                }]
-            },
-            {
-                test: /\.(png|jpg|gif)$/i,
-                use: [{
-                    loader: 'url-loader',
-                    options: {
-                        limit: 8192
-                    }
-                }]
+                loader: "sass-loader"
             }
+            ]
+        },
+        {
+            test: /\.(jpg|png|pdf)$/,
+            use: [{
+                loader: 'file-loader'
+            }]
+        },
+        {
+            test: /\.(png|jpg|gif)$/i,
+            use: [{
+                loader: 'url-loader',
+                options: {
+                    limit: 8192
+                }
+            }]
+        }
         ]
     },
     plugins,

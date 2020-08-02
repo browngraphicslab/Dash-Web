@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import { logPort } from './ActionUtilities';
 import { Utils } from "../Utils";
 import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "./Message";
@@ -215,7 +214,7 @@ export namespace WebSocket {
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
         console.log(green(`> ${ids.length} fields`));
-        ids.length && Database.Instance.getDocuments(ids, callback);
+        Database.Instance.getDocuments(ids, callback);
     }
 
     const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
