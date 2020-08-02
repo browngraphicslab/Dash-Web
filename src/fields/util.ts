@@ -10,6 +10,7 @@ import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
+import { addSyntheticLeadingComment } from "typescript";
 
 
 function _readOnlySetter(): never {
@@ -155,6 +156,7 @@ export enum SharingPermissions {
  * Calculates the effective access right to a document for the current user.
  */
 export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
+    if (!target) return AclPrivate;
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {

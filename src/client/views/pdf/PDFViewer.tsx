@@ -568,7 +568,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
         const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color);
         annotationDoc && this.addDocument?.(annotationDoc);
-        return annotationDoc ?? undefined;
+        return annotationDoc as Doc ?? undefined;
     }
 
     /**

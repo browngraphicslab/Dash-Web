@@ -586,7 +586,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
-        const canDelete = SelectionManager.SelectedDocuments().map(docView => GetEffectiveAcl(docView.props.Document)).some(permission => permission === AclAdmin || permission === AclEdit);
+        const canDelete = SelectionManager.SelectedDocuments().map(docView => GetEffectiveAcl(docView.props.ContainingCollectionDoc)).some(permission => permission === AclAdmin || permission === AclEdit);
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
             <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
@@ -597,7 +597,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                             {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                             <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
-                        </div></Tooltip>) : null;
+                        </div></Tooltip>) : (null);
 
         const titleArea = this._edtingTitle ?
             <>
