@@ -298,7 +298,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             oneLine: true,
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this._color
         };
         const newEditableViewProps = {
             GetValue: () => "",
@@ -306,7 +305,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this._color
         };
         const headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
@@ -332,11 +330,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             {this._paletteOn ? this.renderColorPicker() : (null)}
                         </div>
                     }
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        (null) :
-                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
-                            <FontAwesomeIcon icon="trash" size="lg" />
-                        </button>}
+                    {<button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
+                        <FontAwesomeIcon icon="trash" size="lg" />
+                    </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionOptions">
                             <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
