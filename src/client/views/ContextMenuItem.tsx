@@ -80,7 +80,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
     render() {
         if ("event" in this.props) {
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onClick={this.handleEvent}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onPointerDown={this.handleEvent}>
                     {this.props.icon ? (
                         <span className="icon-background">
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
@@ -95,7 +95,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
             const where = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "flex-start" : this._overPosY > window.innerHeight * 2 / 3 ? "flex-end" : "center";
             const marginTop = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "20px" : this._overPosY > window.innerHeight * 2 / 3 ? "-20px" : "";
             const submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px", marginTop }}>
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "90%", left: "0px", marginTop }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             if (!("noexpand" in this.props)) {

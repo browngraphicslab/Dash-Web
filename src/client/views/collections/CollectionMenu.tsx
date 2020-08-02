@@ -25,6 +25,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView } from "../nodes/DocumentView";
 import { ColorState } from "react-color";
 import { ObjectField } from "../../../fields/ObjectField";
+import RichTextMenu from "../nodes/formattedText/RichTextMenu";
+import { RichTextField } from "../../../fields/RichTextField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { DocUtils } from "../../documents/Documents";
@@ -47,7 +49,7 @@ export default class CollectionMenu extends AntimodeMenu {
 
     componentDidMount() {
         reaction(() => SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0],
-            (doc) => doc && this.SetSelection(doc))
+            (doc) => doc && this.SetSelection(doc));
     }
 
     @action
@@ -160,7 +162,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
     };
 
-    _freeform_commands = [this._viewCommand, this._saveFilterCommand, this._fitContentCommand, this._clusterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand];
+    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
+
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
     _schema_commands = [this._templateCommand, this._narrativeCommand];
@@ -308,18 +311,32 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         </div>;
     }
 
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    @computed get isText() {
+        if (this.selectedDoc) {
+            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+        }
+        else return false;
+    }
+
     render() {
         return (
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.props.type === CollectionViewType.Invalid || this.props.type === CollectionViewType.Docking ? (null) : this.viewModes}
-                        {this.props.type === CollectionViewType.Docking ? (null) : this.templateChrome}
-                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
+                        {this.props.type === CollectionViewType.Invalid ||
+                            this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.viewModes}
+                        {this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.templateChrome}
+                        {/* <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
                             </button>
-                        </div>
+                        </div> */}
 
                         {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) : <button className={"antimodeMenu-button"} key="float"
                             style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
@@ -356,6 +373,20 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get childDocs() {
         return DocListCast(this.dataField);
     }
+
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else { return undefined; }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    @computed get isText() {
+        if (this.selectedDoc) {
+            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+        }
+        else return false;
+    }
+
     @undoBatch
     @action
     nextKeyframe = (): void => {
@@ -384,6 +415,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     miniMap = (): void => {
         this.document.hideMinimap = !this.document.hideMinimap;
     }
+
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
     // private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
@@ -523,40 +555,44 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get formatPane() {
-        return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
-            onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
-            style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
-            <FontAwesomeIcon icon="angle-double-right" size="lg" />
-        </button>;
+        // return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
+        //     onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
+        //     style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
+        //     <FontAwesomeIcon icon="angle-double-right" size="lg" />
+        // </button>;
+        return null;
     }
 
     render() {
         return !this.props.docView.layoutDoc ? (null) : <div className="collectionFreeFormMenu-cont">
-            {this.props.docView.props.renderDepth !== 0 ? (null) :
+            {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) :
                 <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
                     <FontAwesomeIcon icon={"map"} size={"lg"} />
                 </div>
             }
-            <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
+            {!!!this.isText ? <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
                 <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-            </div>
-            <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
+            </div> : null}
+            {!!!this.isText ? <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
                 onClick={action(() => this.document.editing = !this.document.editing)} >
                 {NumCast(this.document.currentFrame)}
-            </div>
-            <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
+            </div> : null}
+            {!!!this.isText ? <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
                 <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-            </div>
+            </div> : null}
 
-            {!this.props.isOverlay || this.document.type !== DocumentType.WEB ? (null) :
+            {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText ? (null) :
                 <button className={"antimodeMenu-button"} key="hypothesis"
-                    style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                    style={{
+                        backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
+                        borderRight: "1px solid gray"
+                    }}
                     title="Use Hypothesis"
                     onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
                     <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
                 </button>
             }
-            {!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating ?
+            {(!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating) && !this.isText ?
                 <>
                     {this.drawButtons}
                     {this.widthPicker}
@@ -566,6 +602,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 </> :
                 (null)
             }
+            {this.isText ? <RichTextMenu key="rich" /> : null}
         </div>;
     }
 }

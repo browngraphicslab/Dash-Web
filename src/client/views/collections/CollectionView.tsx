@@ -78,6 +78,7 @@ export interface CollectionViewCustomProps {
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
     childOpacity?: () => number;
+    hideFilter?: true;
 }
 
 export interface CollectionRenderProps {
@@ -309,7 +310,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
             const options = cm.findByDescription("Options...");
             const optionItems = options && "subitems" in options ? options.subitems : [];
-            optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode ? optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" }) : null;
             if (this.props.Document.childLayout instanceof Doc) {
                 optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
@@ -368,7 +369,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
     set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
-    bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
+    bodyPanelWidth = () => this.props.PanelWidth();
     facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
 
     @computed get dataDoc() {
@@ -490,6 +491,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return false;
         }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
     }
+
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
@@ -559,6 +561,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </div>
             </div>;
     }
+
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
@@ -588,11 +591,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {(!this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
+            {/* {(!this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
                 <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
                     style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }
-            {this.facetWidth() < 10 ? (null) : this.filterView}
+            {this.facetWidth() < 10 ? (null) : this.filterView}  */}
         </div>);
     }
 }

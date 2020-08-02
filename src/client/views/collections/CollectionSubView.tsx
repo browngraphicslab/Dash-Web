@@ -296,7 +296,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
-                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc)["text"] = text;
+                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);

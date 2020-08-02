@@ -1145,7 +1145,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     componentDidMount() {
         super.componentDidMount?.();
-        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
+        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 
@@ -1240,13 +1240,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Reset View", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
         appearanceItems.push({ description: `${this.fitToContent ? "Make Zoomable" : "Scale to Window"}`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
-        appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
+        !Doc.UserDoc().noviceMode ? appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" }) : null;
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const viewctrls = ContextMenu.Instance.findByDescription("UI Controls...");
         const viewCtrlItems = viewctrls && "subitems" in viewctrls ? viewctrls.subitems : [];
-        viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
-        viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+
+
+        !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" }) : null;
+        !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" }) : null;
         !viewctrls && ContextMenu.Instance.addItem({ description: "UI Controls...", subitems: viewCtrlItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
@@ -1291,7 +1293,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         setTimeout(() => {
                             SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
                                 docs.docs.forEach(d => LinkManager.Instance.addLink(d));
-                            })
+                            });
                         }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
                     }
                 }

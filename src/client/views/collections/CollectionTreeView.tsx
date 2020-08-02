@@ -90,7 +90,10 @@ class TreeView extends React.Component<TreeViewProps> {
     get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
     get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.doc.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
-    set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.doc.treeViewOpen = this._overrideTreeViewOpen = c; }
+    set treeViewOpen(c: boolean) {
+        if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
+        else this.doc.treeViewOpen = this._overrideTreeViewOpen = c;
+    }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && BoolCast(this.doc.treeViewOpen)) || this._overrideTreeViewOpen; }
     @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.defaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
@@ -101,7 +104,7 @@ class TreeView extends React.Component<TreeViewProps> {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCast(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
             (layout ? DocListCast(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
-            DocListCast(this.doc[field])) as Doc[]; // otherwise use the document's data field
+            DocListCast(this.doc[field])); // otherwise use the document's data field
     }
     @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }

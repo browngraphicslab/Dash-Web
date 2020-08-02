@@ -32,6 +32,7 @@ import { conformsTo } from "lodash";
 import { translate } from "googleapis/build/src/apis/translate";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { actionAsync } from "mobx-utils";
+import { SelectionManager } from "../../util/SelectionManager";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -260,7 +261,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         const srcContext = await DocCastAsync(targetDoc.context);
         const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
-        const collectionDocView = presCollection ? DocumentManager.Instance.getDocumentView(presCollection) : undefined;
+        const collectionDocView = presCollection ? await DocumentManager.Instance.getDocumentView(presCollection) : undefined;
         if (this.itemIndex >= 0) {
             if (targetDoc) {
                 if (srcContext) this.layoutDoc.presCollection = srcContext;
@@ -496,6 +497,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     selectElement = (doc: Doc) => {
         // this._selectedArray = [];
         this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
+        const view = DocumentManager.Instance.getDocumentView(doc);
+        view && SelectionManager.SelectDoc(view, false);
         // this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
         // console.log(this._selectedArray);
     }
@@ -504,8 +507,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     multiSelect = (doc: Doc, ref: HTMLElement) => {
         this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
-        const ele = ref.getElementsByClassName("stacking");
         this._eleArray.push(ref);
+        const view = DocumentManager.Instance.getDocumentView(doc);
+        view && SelectionManager.SelectDoc(view, true);
     }
 
     //Shift click
@@ -517,6 +521,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             for (let i = Math.min(this.itemIndex, this.childDocs.indexOf(doc)); i <= Math.max(this.itemIndex, this.childDocs.indexOf(doc)); i++) {
                 this._selectedArray.push(this.childDocs[i]);
                 this._eleArray.push(ref);
+                const view = DocumentManager.Instance.getDocumentView(doc);
+                view && SelectionManager.SelectDoc(view, true);
             }
         }
     }

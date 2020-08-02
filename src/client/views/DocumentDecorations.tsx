@@ -1,5 +1,5 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes, faAngleLeft, faAngleRight, faAngleDoubleLeft, faAngleDoubleRight, faPause } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes, faAngleLeft, faAngleRight, faAngleDoubleLeft, faAngleDoubleRight, faPause, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction, get } from "mobx";
 import { observer } from "mobx-react";
@@ -47,6 +47,7 @@ library.add(faAngleDoubleRight);
 library.add(faAngleLeft);
 library.add(faAngleRight);
 library.add(faPause);
+library.add(faExternalLinkAlt);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -533,12 +534,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
+                    ink.forEach(i => {
                         // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
-                        const newX = (doc.x - this._inkDocs[index].x) + (ink[i].X * doc._width) / this._inkDocs[index].width;
-                        const newY = (doc.y - this._inkDocs[index].y) + (ink[i].Y * doc._height) / this._inkDocs[index].height;
+                        const newX = ((doc.x || 0) - this._inkDocs[index].x) + (i.X * (doc._width || 0)) / this._inkDocs[index].width;
+                        const newY = ((doc.y || 0) - this._inkDocs[index].y) + (i.Y * (doc._height || 0)) / this._inkDocs[index].height;
                         newPoints.push({ X: newX, Y: newY });
-                    }
+                    });
                     doc.data = new InkField(newPoints);
 
                 }
@@ -617,9 +618,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 </div>}
             </> :
             <>
-                {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="cog" />
-                </div></Tooltip>}
+                {/* {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
+                    <FontAwesomeIcon size="lg" icon="bars" />
+                </div></Tooltip>} */}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
                     <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
                 </div>
@@ -666,7 +667,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                                 {"_"}
                             </div></Tooltip>}
                     <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
-                        {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                        {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"
                         onPointerDown={this.onRotateDown}> ⟲ </div>

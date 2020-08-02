@@ -72,8 +72,6 @@ export default class SharingManager extends React.Component<{}> {
     @observable private showUserOptions: boolean = false; // whether to show individuals as options when sharing (in the react-select component)
     @observable private showGroupOptions: boolean = false; // // whether to show groups as options when sharing (in the react-select component)
 
-
-
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
     // }
@@ -148,7 +146,7 @@ export default class SharingManager extends React.Component<{}> {
         const members: string[] = JSON.parse(StrCast(group.members));
         const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-        const target = this.targetDoc!;
+        const target = targetDoc || this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
 
         target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
@@ -222,7 +220,7 @@ export default class SharingManager extends React.Component<{}> {
 
     setInternalSharing = (recipient: ValidatedUser, permission: string) => {
         const { user, notificationDoc } = recipient;
-        const target = this.targetDoc!;
+        const target = targetDoc || this.targetDoc!;
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
 

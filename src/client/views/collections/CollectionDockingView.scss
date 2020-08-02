@@ -12,6 +12,7 @@
         width: 100%;
         height: 100%;
         position: absolute;
+
         .miniThumb {
             background: #25252525;
             position: absolute;
@@ -89,6 +90,7 @@
     transform: translate(0px, -3px);
     cursor: grab;
 }
+
 .lm_title.focus-visible {
     cursor: text;
 }
@@ -96,23 +98,25 @@
 .lm_title_wrap {
     overflow: hidden;
     height: 19px;
-    margin-top: -3px;
-    display:inline-block;
+    margin-top: -2px;
+    display: inline-block;
 }
+
 .lm_active .lm_title {
     border: solid 1px lightgray;
 }
+
 .lm_header .lm_tab .lm_close_tab {
     position: absolute;
     text-align: center;
 }
 
 .lm_header .lm_tab {
-    padding-right : 20px;
+    padding-right: 20px;
 }
 
 .lm_popout {
-    display:none;
+    display: none;
 }
 
 .messageCounter {
@@ -135,6 +139,7 @@
     position: absolute;
     top: 0;
     left: 0;
+
     // overflow: hidden;  // bcz: menus don't show up when this is on (e.g., the parentSelectorMenu)
     .collectionDockingView-gear {
         padding-left: 5px;
@@ -142,7 +147,10 @@
         width: 18px;
         display: inline-block;
         margin: auto;
+
+        display: none;
     }
+
     .collectionDockingView-dragAsDocument {
         touch-action: none;
         position: absolute;

@@ -44,7 +44,7 @@
             background: none;
 
             &:hover {
-                text-overflow: visible;
+                text-overflow: unset;
                 overflow-x: auto;
             }
         }
