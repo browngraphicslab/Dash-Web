@@ -208,7 +208,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="propertiesButtons-linker"
-                style={{ backgroundColor: isPinned ? "white" : "rgb(37, 43, 51)", color: isPinned ? "black" : "white" }}
+                style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white" }}
                 onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
@@ -238,6 +238,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
     }
+    @undoBatch
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.selectedDocumentView!;
@@ -273,12 +274,17 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 </div></Tooltip>;
     }
 
+    @undoBatch
     onCopy = () => {
         if (this.selectedDoc && this.selectedDocumentView) {
-            const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
-            copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
-            copy.y = NumCast(this.selectedDoc.y) + 30;
-            this.selectedDocumentView.props.addDocument?.(copy);
+            // const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
+            // copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            // copy.y = NumCast(this.selectedDoc.y) + 30;
+            // this.selectedDocumentView.props.addDocument?.(copy);
+            const alias = Doc.MakeAlias(this.selectedDoc);
+            alias.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            alias.y = NumCast(this.selectedDoc.y) + 30;
+            this.selectedDocumentView.props.addDocument?.(alias);
         }
     }
 
@@ -295,7 +301,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
-    @action
+    @action @undoBatch
     onLock = () => {
         this.selectedDocumentView?.toggleLockPosition();
     }
@@ -337,13 +343,17 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">{"Delete Document"}</div></>}>
             <div className={"propertiesButtons-linkButton-empty"}
-                onPointerDown={() => {
-                    this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
-                }}>
+                onPointerDown={this.deleteDocument}>
                 {<FontAwesomeIcon className="propertiesButtons-icon"
                     icon="trash-alt" size="sm" />}
             </div>
         </Tooltip>;
+    }
+
+    @undoBatch
+    @action
+    deleteDocument = () => {
+        this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
     }
 
     @computed
@@ -380,6 +390,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         }
     }
 
+    @undoBatch
     @action
     handleOptionChange = (e: any) => {
         const value = e.target.value;

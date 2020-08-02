@@ -677,10 +677,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onCopy = () => {
-        const copy = Doc.MakeCopy(this.props.Document, true);
-        copy.x = NumCast(this.props.Document.x) + NumCast(this.props.Document._width);
-        copy.y = NumCast(this.props.Document.y) + 30;
-        this.props.addDocument?.(copy);
+        const alias = Doc.MakeAlias(this.props.Document);
+        alias.x = NumCast(this.props.Document.x) + NumCast(this.props.Document._width);
+        alias.y = NumCast(this.props.Document.y) + 30;
+        this.props.addDocument?.(alias);
     }
 
     @action

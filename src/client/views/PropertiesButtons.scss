@@ -77,10 +77,19 @@ $linkGap : 3px;
     text-align: center;
     border-radius: 5px;
     pointer-events: auto;
-    color: $dark-color;
-    border: $dark-color 1px solid;
+    // color: $dark-color;
+    // border: $dark-color 1px solid;
+    background-color: #252b33;
+    color: #fcfbf7;
     transition: 0.2s ease all;
     margin-right: 5px;
+    padding-top: 5px;
+
+    &:hover {
+        background: $main-accent;
+        transform: scale(1.05);
+        cursor: pointer;
+    }
 }
 
 .propertiesButtons-linker:hover {

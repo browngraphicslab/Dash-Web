@@ -66,18 +66,21 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
         if (this.layoutDoc.menuIcon) {
 
-            let backgroundColor = "black";
-            if (this.dataDoc.title === "Sharing" || this.dataDoc.title === "Help" || this.dataDoc.title === "Settings" || this.dataDoc.title === "Import") {
-                backgroundColor = "black";
-            } else {
-                backgroundColor = CurrentUserUtils.selectedPanel === this.dataDoc.title ? "lightgrey" : "black";
-            }
+            // let backgroundColor = "black";
+            // if (this.dataDoc.title === "Sharing" || this.dataDoc.title === "Help" || this.dataDoc.title === "Settings" || this.dataDoc.title === "Import") {
+            //     backgroundColor = "black";
+            // } else {
+            //     backgroundColor = CurrentUserUtils.selectedPanel === this.dataDoc.title ? "lightgrey" : "";
+            // }
 
-            const color = backgroundColor === "lightgrey" ? "black" : "white";
-            const menuBTN = <div className="menuButton" style={{ backgroundColor: backgroundColor }}>
+            const color = CurrentUserUtils.selectedPanel === this.dataDoc.title ? "black" : "white";
+            const menuBTN = <div className="menuButton"
+                style={{ backgroundColor: CurrentUserUtils.selectedPanel === this.dataDoc.title ? "lightgrey" : "" }}>
 
-                <div className="menuButton-wrap" style={{ backgroundColor: backgroundColor }}>
-                    <FontAwesomeIcon className="menuButton-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={color} size="lg" />
+                <div className="menuButton-wrap"
+                    style={{ backgroundColor: CurrentUserUtils.selectedPanel === this.dataDoc.title ? "lightgrey" : "" }}>
+                    <FontAwesomeIcon className="menuButton-icon"
+                        icon={StrCast(this.dataDoc.icon, "user") as any} color={color} size="lg" />
                     <div className="menuButton-label" style={{ color: color }}> {this.dataDoc.title} </div>
                 </div>
             </div>;

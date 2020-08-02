@@ -785,7 +785,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         onClicks.push({
             description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.doc, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
         });
-        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
+        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});

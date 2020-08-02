@@ -205,7 +205,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
-
+    @undoBatch
     setKeyValue = (value: string) => {
         if (this.selectedDoc && this.dataDoc) {
             const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
@@ -266,9 +266,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
+    @undoBatch
+    changePermissions = (e: any, user: string) => {
+        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
+    }
+
     getPermissionsSelect(user: string) {
         return <select className="permissions-select"
-            onChange={e => SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!)}>
+            onChange={e => this.changePermissions(e, user)}>
             {Object.values(SharingPermissions).map(permission => {
                 return (
                     <option key={permission} value={permission} selected={this.selectedDoc![`ACL-${user.replace(".", "_")}`] === permission}>
@@ -344,6 +349,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         />;
     }
 
+    @undoBatch
     @action
     toggleCheckbox = () => {
         this.layoutFields = !this.layoutFields;
@@ -359,6 +365,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             SetValue={this.setTitle} />;
     }
 
+    @undoBatch
     @action
     setTitle = (value: string) => {
         if (this.dataDoc) {
@@ -368,13 +375,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
         return false;
     }
-
-
-
-
-
-
-
 
 
     @undoBatch
@@ -739,9 +739,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
         if (!this.selectedDoc) {
             return <div className="propertiesView" style={{ width: this.props.width }}>
-                <div className="propertiesView-title" style={{ width: this.props.width, paddingLeft: 6 }}>
+                <div className="propertiesView-title" style={{ width: this.props.width }}>
                     No Document Selected
-            </div> </div>;
+                <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
+                        <FontAwesomeIcon icon="times" color="black" size="xs" />
+                    </div>
+                </div>
+            </div>;
         }
 
         const novice = Doc.UserDoc().noviceMode;
@@ -783,9 +787,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div> : null}
             </div>
 
-
-
-
             {this.isInk ? <div className="propertiesView-appearance">
                 <div className="propertiesView-appearance-title"
                     onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
@@ -813,10 +814,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {this.transformEditor}
                 </div> : null}
             </div> : null}
-
-
-
-
 
             <div className="propertiesView-fields">
                 <div className="propertiesView-fields-title"
