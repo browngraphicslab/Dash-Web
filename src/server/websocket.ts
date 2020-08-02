@@ -10,7 +10,7 @@ import * as sio from 'socket.io';
 import YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { GoogleCredentialsLoader, SSL } from "./apis/google/CredentialsLoader";
 import { timeMap } from "./ApiManagers/UserManager";
-import { green } from "colors";
+import { green, blue } from "colors";
 import { networkInterfaces } from "os";
 import executeImport from "../scraping/buxton/final/BuxtonImporter";
 import { DocumentsCollection } from "./IDatabase";
@@ -187,7 +187,7 @@ export namespace WebSocket {
             + currentdate.getHours() + ":"
             + currentdate.getMinutes() + ":"
             + currentdate.getSeconds();
-        console.log(green(`user ${userEmail} has connected to the web socket at: ${datetime}`));
+        console.log(blue(`user ${userEmail} has connected to the web socket at: ${datetime}`));
         socketMap.set(socket, userEmail);
     }
 
@@ -209,7 +209,7 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-        console.log(green(`> 1 field`));
+        process.stdout.write(`(f)`)
         Database.Instance.getDocument(id, callback);
     }
 
