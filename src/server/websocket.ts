@@ -208,7 +208,7 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-        process.stdout.write(`(f)`)
+        process.stdout.write(`…`)
         Database.Instance.getDocument(id, callback);
     }
 
