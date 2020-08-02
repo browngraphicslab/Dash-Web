@@ -30,6 +30,8 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { listSpec } from '../../../fields/Schema';
 import { clamp } from 'lodash';
+import { InteractionUtils } from '../../util/InteractionUtils';
+import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -462,6 +464,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         const className = (e.target as any).className;
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
+        }
+        if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
+            return;
+        } else {
+            e.stopPropagation();
         }
     }
 

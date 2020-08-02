@@ -1,5 +1,5 @@
-import { green } from "colors";
 import * as express from "express";
+import { blue, green } from "colors";
 import { createServer, Server } from "https";
 import { networkInterfaces } from "os";
 import * as sio from 'socket.io';
@@ -186,7 +186,7 @@ export namespace WebSocket {
             + currentdate.getHours() + ":"
             + currentdate.getMinutes() + ":"
             + currentdate.getSeconds();
-        console.log(green(`user ${userEmail} has connected to the web socket at: ${datetime}`));
+        console.log(blue(`user ${userEmail} has connected to the web socket at: ${datetime}`));
         socketMap.set(socket, userEmail);
     }
 
@@ -208,10 +208,12 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
+        process.stdout.write(`(f)`)
         Database.Instance.getDocument(id, callback);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
+        console.log(green(`> ${ids.length} fields`));
         Database.Instance.getDocuments(ids, callback);
     }
 

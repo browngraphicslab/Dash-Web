@@ -331,7 +331,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         [...this.props.renderedIds, this.doc[Id]], this.props.libraryPath, this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
-            return <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.doc[Id] + this.doc.title}>
+            return <ul key={this.doc[Id] + this.doc.title}><div ref={this._dref} style={{ display: "inline-block" }} >
                 {this.expandedField}
             </div></ul>;
         } else {
