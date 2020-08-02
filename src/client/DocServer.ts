@@ -329,7 +329,6 @@ export namespace DocServer {
                 map[id] = cached;
             }
         }
-        if (!requestedIds.length) return ({});
 
         // 2) synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
         // fields for the given ids. This returns a promise, which, when resolved, indicates that all the JSON serialized versions of
