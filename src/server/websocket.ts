@@ -213,6 +213,7 @@ export namespace WebSocket {
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
+        console.log(green(`Returning ${ids.length} fields`));
         Database.Instance.getDocuments(ids, callback);
     }
 
