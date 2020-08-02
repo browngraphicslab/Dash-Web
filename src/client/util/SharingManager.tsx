@@ -94,7 +94,6 @@ export default class SharingManager extends React.Component<{}> {
 
     public close = action(() => {
         this.isOpen = false;
-        this.users = [];
         this.selectedUsers = null; // resets the list of users and seleected users (in the react-select component)
 
         setTimeout(action(() => {
@@ -450,9 +449,9 @@ export default class SharingManager extends React.Component<{}> {
         );
 
         const groupListContents = groups.map(group => {
-            const permissions = StrCast(this.targetDoc?.[`ACL-${StrCast(group.groupName)}`], SharingPermissions.None);
+            const permissions = StrCast(this.targetDoc?.[`ACL-${StrCast(group.groupName)}`]);
 
-            return permissions === SharingPermissions.None ? null : (
+            return !permissions ? null : (
                 <div
                     key={StrCast(group.groupName)}
                     className={"container"}
