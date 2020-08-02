@@ -10,7 +10,7 @@
         "child_process": "empty"
     },
     "scripts": {
-        "start-release": "cross-env RELEASE=true NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
+        "start-release": "cross-env RELEASE=true NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --debug -- src/server/index.ts",
         "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --debug --transpile-only -- src/server/index.ts",
         "oldstart": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --debug -- src/server/index.ts",
         "debug": "cross-env NODE_OPTIONS=--max_old_space_size=8192 ts-node-dev --transpile-only --inspect -- src/server/index.ts",
