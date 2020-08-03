@@ -498,11 +498,11 @@ export class CurrentUserUtils {
         title: string, icon: string, click: string,
     }[] {
         return [
+            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
             { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu(self, "Workspace")' },
             { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu(self, "Catalog")' },
             { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu(self, "Archive")' },
             { title: "Import", icon: "upload", click: 'scriptContext.selectMenu(self, "Import")' },
-            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
             { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu(self, "Tools")' },
             { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu(self, "Help")' },
             { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu(self, "Settings")' },
@@ -821,8 +821,8 @@ export class CurrentUserUtils {
 
     // Right sidebar is where mobile uploads are contained
     static setupRightSidebar(doc: Doc) {
-        if (doc.rightSidebarCollection === undefined) {
-            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
+        if (doc["sidebar-sharing"] === undefined) {
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
         }
     }
 
