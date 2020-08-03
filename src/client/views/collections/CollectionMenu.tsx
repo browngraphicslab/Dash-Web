@@ -344,9 +344,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         } else { return undefined; }
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
-    @computed get isText() {
+    @computed get notACollection() {
         if (this.selectedDoc) {
-            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+            const layoutField = Doc.LayoutField(this.selectedDoc);
+            return this.props.type === CollectionViewType.Docking ||
+                typeof (layoutField) === "string" && !layoutField?.includes("CollectionView");
         }
         else return false;
     }
@@ -356,9 +358,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             <div className="collectionMenu-cont" >
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
-                        {this.props.type === CollectionViewType.Invalid ||
-                            this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.viewModes}
-                        {this.props.type === CollectionViewType.Docking || (this.isText && Doc.UserDoc().noviceMode) ? (null) : this.templateChrome}
+                        {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
+                        {this.notACollection && Doc.UserDoc().noviceMode ? (null) : this.templateChrome}
                         {Doc.UserDoc().noviceMode ? (null) :
                             <Tooltip title={<div className="dash-tooltip">filter documents to show</div>} placement="bottom">
                                 <div className="collectionViewBaseChrome-viewSpecs" style={{ display: "grid" }}>
