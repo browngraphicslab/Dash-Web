@@ -531,6 +531,7 @@ export class CurrentUserUtils {
                 stayInCollection: true,
                 _width: 60,
                 _height: 60,
+                onDoubleClick: ScriptField.MakeScript('console.log("hi")', { scriptContext: "any" }),
                 onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
             }));
 

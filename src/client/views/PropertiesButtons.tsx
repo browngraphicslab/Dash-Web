@@ -550,6 +550,23 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    @computed
+    get contextButton() {
+        if (this.selectedDoc) {
+            return <Tooltip title={<><div className="dash-tooltip">Show Context</div></>}>
+                <div className={"propertiesButtons-linkButton-empty"}>
+                    <ParentDocSelector Document={this.selectedDoc} addDocTab={(doc, where) => {
+                        where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
+                            this.selectedDocumentView?.props.addDocTab(doc, "onRight");
+                        return true;
+                    }} />
+                </div>
+            </Tooltip>;
+        } else {
+            return false;
+        }
+
+    }
 
     // @computed
     // get importButton() {
@@ -605,6 +622,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.onClickButton}
             </div>
+            {/* <div className="propertiesButtons-button">
+                {this.contextButton}
+            </div> */}
             <div className="propertiesButtons-button">
                 {this.sharingButton}
             </div>

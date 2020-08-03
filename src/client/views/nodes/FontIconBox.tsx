@@ -6,7 +6,7 @@ import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
 import { StrCast, Cast, NumCast } from '../../../fields/Types';
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
@@ -75,6 +75,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
             const color = CurrentUserUtils.selectedPanel === this.dataDoc.title ? "black" : "white";
             const menuBTN = <div className="menuButton"
+                onDoubleClick={emptyFunction}
                 style={{ backgroundColor: CurrentUserUtils.selectedPanel === this.dataDoc.title ? "lightgrey" : "" }}>
 
                 <div className="menuButton-wrap"
