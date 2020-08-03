@@ -71,8 +71,7 @@ export default class SharingManager extends React.Component<{}> {
     // if both showUserOptions and showGroupOptions are false then both are displayed
     @observable private showUserOptions: boolean = false; // whether to show individuals as options when sharing (in the react-select component)
     @observable private showGroupOptions: boolean = false; // // whether to show groups as options when sharing (in the react-select component)
-
-
+    private populating: boolean = false;
 
     // private get linkVisible() {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
@@ -119,24 +118,27 @@ export default class SharingManager extends React.Component<{}> {
      * Populates the list of validated users (this.users) by adding registered users which have a rightSidebarCollection.
      */
     populateUsers = async () => {
-        runInAction(() => this.users = []);
-        const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
-        const raw = JSON.parse(userList) as User[];
-        const evaluating = raw.map(async user => {
-            const isCandidate = user.email !== Doc.CurrentUserEmail;
-            if (isCandidate) {
-                const userDocument = await DocServer.GetRefField(user.userDocumentId);
-                if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
-                    runInAction(() => {
-                        if (notificationDoc instanceof Doc) {
-                            this.users.push({ user, notificationDoc });
-                        }
-                    });
+        if (!this.populating) {
+            this.populating = true;
+            runInAction(() => this.users = []);
+            const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
+            const raw = JSON.parse(userList) as User[];
+            const evaluating = raw.map(async user => {
+                const isCandidate = user.email !== Doc.CurrentUserEmail;
+                if (isCandidate) {
+                    const userDocument = await DocServer.GetRefField(user.userDocumentId);
+                    if (userDocument instanceof Doc) {
+                        const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                        runInAction(() => {
+                            if (notificationDoc instanceof Doc) {
+                                this.users.push({ user, notificationDoc });
+                            }
+                        });
+                    }
                 }
-            }
-        });
-        return Promise.all(evaluating);
+            });
+            return Promise.all(evaluating).then(() => this.populating = false);
+        }
     }
 
     /**

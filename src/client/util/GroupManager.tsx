@@ -42,6 +42,7 @@ export default class GroupManager extends React.Component<{}> {
     private currentUserGroups: string[] = []; // the list of groups the current user is a member of
     @observable private buttonColour: "#979797" | "black" = "#979797";
     @observable private groupSort: "ascending" | "descending" | "none" = "none";
+    private populating: boolean = false;
 
 
 
@@ -62,21 +63,24 @@ export default class GroupManager extends React.Component<{}> {
      * Fetches the list of users stored on the database.
      */
     populateUsers = async () => {
-        runInAction(() => this.users = []);
-        const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
-        const raw = JSON.parse(userList) as User[];
-        const evaluating = raw.map(async user => {
-            const userDocument = await DocServer.GetRefField(user.userDocumentId);
-            if (userDocument instanceof Doc) {
-                const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
-                runInAction(() => {
-                    if (notificationDoc instanceof Doc) {
-                        this.users.push(user.email);
-                    }
-                });
-            }
-        });
-        return Promise.all(evaluating);
+        if (!this.populating) {
+            this.populating = true;
+            runInAction(() => this.users = []);
+            const userList = await RequestPromise.get(Utils.prepend("/getUsers"));
+            const raw = JSON.parse(userList) as User[];
+            const evaluating = raw.map(async user => {
+                const userDocument = await DocServer.GetRefField(user.userDocumentId);
+                if (userDocument instanceof Doc) {
+                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                    runInAction(() => {
+                        if (notificationDoc instanceof Doc) {
+                            this.users.push(user.email);
+                        }
+                    });
+                }
+            });
+            return Promise.all(evaluating).then(() => this.populating = false);
+        }
     }
 
     /**
