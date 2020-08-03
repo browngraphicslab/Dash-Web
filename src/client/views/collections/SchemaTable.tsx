@@ -283,11 +283,37 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             Header: <CollectionSchemaAddColumnHeader createColumn={this.createColumn} />,
             accessor: (doc: Doc) => 0,
             id: "add",
-            Cell: (rowProps: CellInfo) => <></>,
+            Cell: (rowProps: CellInfo) => <div> <button onClick={(e) => this.nextHighlight(e, this.props.Document)} style={{ padding: 2, left: 77 }}>
+                <FontAwesomeIcon icon="arrow-up" size="sm" />
+            </button>
+                <button onClick={(e) => this.nextHighlight2(e, this.props.Document)} style={{ padding: 2, left: 87 }}>
+                    <FontAwesomeIcon icon="arrow-down" size="sm" />
+                </button></div>,
             width: 28,
             resizable: false
         });
         return columns;
+    }
+
+
+
+    @action
+    nextHighlight = (e: React.MouseEvent, doc: Doc) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        doc.searchMatch = false;
+        setTimeout(() => doc.searchMatch = true, 0);
+        doc.searchIndex = NumCast(doc.searchIndex);
+    }
+
+    @action
+    nextHighlight2 = (e: React.MouseEvent, doc: Doc) => {
+        e.preventDefault();
+        e.stopPropagation();
+        doc.searchMatch2 = false;
+        setTimeout(() => doc.searchMatch2 = true, 0);
+        doc.searchIndex = NumCast(doc.searchIndex);
     }
 
     constructor(props: SchemaTableProps) {
