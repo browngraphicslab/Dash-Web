@@ -1,9 +1,9 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes, faAngleLeft, faAngleRight, faAngleDoubleLeft, faAngleDoubleRight, faPause } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes, faAngleLeft, faAngleRight, faAngleDoubleLeft, faAngleDoubleRight, faPause, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction, runInAction, get } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Field, WidthSym, HeightSym } from "../../fields/Doc";
+import { Doc, DataSym, Field, WidthSym, HeightSym, AclEdit, AclAdmin } from "../../fields/Doc";
 import { Document } from '../../fields/documentSchemas';
 import { ScriptField } from '../../fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../fields/Types";
@@ -23,6 +23,10 @@ import { SnappingManager } from '../util/SnappingManager';
 import { HtmlField } from '../../fields/HtmlField';
 import { InkField } from "../../fields/InkField";
 import { Tooltip } from '@material-ui/core';
+import { GetEffectiveAcl } from '../../fields/util';
+import { DocumentIcon } from './nodes/DocumentIcon';
+import { render } from 'react-dom';
+import { createLessThan } from 'typescript';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -44,6 +48,7 @@ library.add(faAngleDoubleRight);
 library.add(faAngleLeft);
 library.add(faAngleRight);
 library.add(faPause);
+library.add(faExternalLinkAlt);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -152,8 +157,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length) {
-                const next = Array.from(child.children).find(c => typeof (c.className) !== "string");
-                if (typeof (next?.className) === "string" && next?.className.includes("documentView-node")) break;
+                const next = Array.from(child.children).find(c => typeof (c.className) === "string");
+                if (next?.className.includes("documentView-node")) break;
                 if (next) child = next;
                 else break;
             }
@@ -194,8 +199,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             SelectionManager.DeselectAll();
 
             selected.map(dv => {
-                recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                dv.props.removeDocument?.(dv.props.Document);
+                const effectiveAcl = GetEffectiveAcl(dv.props.Document);
+                if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
+                    recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
+                    dv.props.removeDocument?.(dv.props.Document);
+                }
             });
         }
     }
@@ -527,12 +535,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const ink = Cast(doc.data, InkField)?.inkData;
                 if (ink) {
                     const newPoints: { X: number, Y: number }[] = [];
-                    for (var i = 0; i < ink.length; i++) {
+                    ink.forEach(i => {
                         // (new x — oldx) + (oldxpoint * newWidt)/oldWidth 
-                        const newX = (doc.x - this._inkDocs[index].x) + (ink[i].X * doc._width) / this._inkDocs[index].width;
-                        const newY = (doc.y - this._inkDocs[index].y) + (ink[i].Y * doc._height) / this._inkDocs[index].height;
+                        const newX = ((doc.x || 0) - this._inkDocs[index].x) + (i.X * (doc._width || 0)) / this._inkDocs[index].width;
+                        const newY = ((doc.y || 0) - this._inkDocs[index].y) + (i.Y * (doc._height || 0)) / this._inkDocs[index].height;
                         newPoints.push({ X: newX, Y: newY });
-                    }
+                    });
                     doc.data = new InkField(newPoints);
 
                 }
@@ -580,17 +588,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
+        const canDelete = SelectionManager.SelectedDocuments().map(docView => GetEffectiveAcl(docView.props.ContainingCollectionDoc)).some(permission => permission === AclAdmin || permission === AclEdit);
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
             <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
-                </div></Tooltip>) : (
-                <Tooltip title={<><div className="dash-tooltip">Delete</div></>} placement="top">
-                    <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
-                        {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                        <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
-                    </div></Tooltip>);
+                </div></Tooltip>) : canDelete ? (
+                    <Tooltip title={<><div className="dash-tooltip">Delete</div></>} placement="top">
+                        <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
+                            {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
+                            <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                        </div></Tooltip>) : (null);
 
         const titleArea = this._edtingTitle ?
             <>
@@ -659,7 +668,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                                 {"_"}
                             </div></Tooltip>}
                     <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
-                        {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                        {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
                     </div></Tooltip>
                     <div id="documentDecorations-rotation" className="documentDecorations-rotation"
                         onPointerDown={this.onRotateDown}> ⟲ </div>

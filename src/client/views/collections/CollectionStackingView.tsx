@@ -230,6 +230,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
             ContentScaling={returnOne}
+            scriptContext={this.props.scriptContext}
             pinToPres={this.props.pinToPres}
         />;
     }
@@ -484,7 +485,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     })}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
-                    onWheel={e => this.props.active() && e.stopPropagation()} >
+                    onWheel={e => this.props.active(true) && e.stopPropagation()} >
                     {this.renderedSections}
                     {!this.showAddAGroup ? (null) :
                         <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

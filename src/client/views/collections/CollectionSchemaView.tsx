@@ -257,7 +257,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchema-headerMenu-group">
                 <div onClick={() => this.typesDropdownChange(!this._openTypes)}>
                     <label>Column type:</label>
-                    <FontAwesomeIcon icon={"caret-down"} size="sm" style={{ float: "right" }} />
+                    <FontAwesomeIcon icon={"caret-down"} size="lg" style={{ float: "right" }} />
                 </div>
                 {this._openTypes ? allColumnTypes : justColType}
             </div >

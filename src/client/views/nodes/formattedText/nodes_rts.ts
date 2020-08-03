@@ -79,14 +79,14 @@ export const nodes: { [index: string]: NodeSpec } = {
         { tag: "h5", attrs: { level: 5 } },
         { tag: "h6", attrs: { level: 6 } }],
         toDOM(node) {
-            var dom = toParagraphDOM(node) as any;
-            var level = node.attrs.level || 1;
+            const dom = toParagraphDOM(node) as any;
+            const level = node.attrs.level || 1;
             dom[0] = 'h' + level;
             return dom;
         },
         getAttrs(dom: any) {
-            var attrs = getParagraphNodeAttrs(dom) as any;
-            var level = Number(dom.nodeName.substring(1)) || 1;
+            const attrs = getParagraphNodeAttrs(dom) as any;
+            const level = Number(dom.nodeName.substring(1)) || 1;
             attrs.level = level;
             return attrs;
         }

@@ -102,6 +102,44 @@
     user-select: none;
 }
 
+.mainView-propertiesDragger {
+    background-color: rgb(140, 139, 139);
+    height: 55px;
+    width: 17px;
+    position: absolute;
+    top: 55%;
+    border: 1px black solid;
+    border-radius: 0;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-right: unset;
+    z-index: 2;
+
+    .mainView-propertiesDragger-icon {
+        width: 10px;
+        height: 10px;
+        float: left;
+        margin-left: 5.5px;
+        padding-top: 19px;
+    }
+
+    &:hover {
+        cursor: grab;
+    }
+}
+
+.mainiView-propertiesView {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    border-left: solid 1px;
+    z-index: 100000;
+    cursor: auto;
+}
+
 .mainView-flyoutContainer {
     display: flex;
     flex-direction: column;
@@ -112,6 +150,74 @@
     .documentView-node-topmost {
         background: lightgrey;
     }
+}
+
+.mainView-menuPanel {
+
+    width: 60px;
+    background-color: black;
+    height: 100%;
+    //overflow-y: scroll;
+    //overflow-x: hidden;
+
+
+    .mainView-menuPanel-button {
+        padding: 7px;
+        padding-left: 7px;
+        width: 100%;
+
+        .mainView-menuPanel-button-wrap {
+            width: 45px;
+            /* padding: 5px; */
+            touch-action: none;
+            background: black;
+            transform-origin: top left;
+            /* margin-bottom: 5px; */
+            margin-top: 5px;
+            margin-right: 25px;
+            border-radius: 8px;
+
+            &:hover {
+                background: rgb(61, 61, 61);
+                cursor: pointer;
+            }
+        }
+    }
+
+    .mainView-menuPanel-button-label {
+        color: white;
+        margin-left: px;
+        margin-right: 4px;
+        border-radius: 8px;
+        width: 42px;
+        position: relative;
+        text-align: center;
+        font-size: 8px;
+        margin-top: 1px;
+        letter-spacing: normal;
+        padding: 3px;
+        background-color: inherit;
+    }
+
+    .mainView-menuPanel-button-icon {
+        width: auto;
+        height: 35px;
+        padding: 5px;
+    }
+
+    svg {
+        width: 95% !important;
+        height: 95%;
+    }
+}
+
+.mainView-searchPanel {
+    width: 100%;
+    height: 32px;
+    background-color: black;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .mainView-mainDiv {
@@ -162,26 +268,44 @@
     display: flex;
     flex-direction: column;
     z-index: 2;
+
+    .mainView-libraryFlyout-close {
+        right: 6;
+        top: 5;
+        position: absolute;
+        margin-right: 6px;
+        z-index: 10;
+        margin-bottom: 10;
+    }
 }
 
 .mainView-expandFlyoutButton {
     position: absolute;
-    top: 100px;
-    right: 30px;
+    top: 120px;
+    right: 55px;
     cursor: pointer;
 }
 
 .mainView-libraryHandle {
-    width: 20px;
+    width: 28px;
     left: calc(100% - 10px);
-    height: 40px;
+    height: 55px;
     top: 50%;
     border: 1px solid black;
-    border-radius: 5px;
+    border-radius: 8px;
     position: absolute;
     z-index: 2;
     touch-action: none;
-    cursor: ew-resize;
+    cursor: grab;
+
+    .mainView-libraryHandle-icon {
+        width: 10px;
+        height: 10px;
+        float: right;
+        margin-right: 3px;
+        padding-top: 19px;
+    }
+
 }
 
 .mainView-workspace {

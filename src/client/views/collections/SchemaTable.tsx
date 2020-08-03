@@ -148,7 +148,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    changeTitleMode = () => this._showTitleDropdown = !this._showTitleDropdown;
+    changeTitleMode = () => this._showTitleDropdown = !this._showTitleDropdown
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {

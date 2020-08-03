@@ -1048,12 +1048,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span> */}
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
-                    <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg" style={{ position: "relative", left: 24, padding: 1 }} />
+                    <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg" style={{ color: "black", position: "relative", left: 24, padding: 1 }} />
                     <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
-                        style={{ paddingLeft: 23, width: this._searchbarOpen ? "200px" : "200px" }} />
+                        style={{ paddingLeft: 23, color: "black", width: this._searchbarOpen ? "200px" : "200px" }} />
                 </div>
-                <div style={{ zIndex: 2000 }}>
+                <div style={{ zIndex: 20000, color: "black" }}>
                     {this._searchbarOpen === true ?
                         <div style={{ display: "flex", justifyContent: "center", }}>
                             <div style={{

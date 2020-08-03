@@ -14,7 +14,6 @@ import { Doc } from "../../fields/Doc";
 import GroupManager from "./GroupManager";
 import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
-import { togglePlaygroundMode } from "../../fields/util";
 import { DocServer } from "../DocServer";
 
 library.add(fa.faTimes);
@@ -101,7 +100,6 @@ export default class SettingsManager extends React.Component<{}> {
 
     @action
     togglePlaygroundMode = () => {
-        //togglePlaygroundMode();
         this.playgroundMode = !this.playgroundMode;
         if (this.playgroundMode) DocServer.Control.makeReadOnly();
         else DocServer.Control.makeEditable();
@@ -138,7 +136,7 @@ export default class SettingsManager extends React.Component<{}> {
                             {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
                             {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
                             <button onClick={this.dispatchRequest}>submit</button>
-                            <a href="/forgotPassword">forgot password?</a>
+                            <a style={{ marginLeft: 65, marginTop: -20 }} href="/forgotPassword">forgot password?</a>
 
                         </div>
                         : undefined}

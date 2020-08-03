@@ -2,8 +2,8 @@
 
 
 .collectionMenu-cont {
-    position:relative;
-    display:inline-flex;
+    position: relative;
+    display: inline-flex;
     width: 100%;
     opacity: 0.9;
     z-index: 9001;
@@ -12,14 +12,15 @@
     color: white;
     transform-origin: top left;
     top: 0;
-    width:100%;
+    width: 100%;
 
     .antimodeMenu-button {
         padding: 0;
         width: 30px;
         display: flex;
+
         svg {
-            margin:auto;
+            margin: auto;
         }
     }
 
@@ -108,6 +109,7 @@
                 margin-top: auto;
                 margin-bottom: auto;
             }
+
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 5px;
                 display: grid;
@@ -318,12 +320,14 @@
         text-align: center;
         display: block;
     }
+
     .color-previewI {
         width: 80%;
         height: 20%;
         bottom: 0;
         position: absolute;
     }
+
     .color-previewII {
         width: 80%;
         height: 80%;
@@ -336,7 +340,7 @@
         margin: auto;
         /* Make the buttons appear below each other */
     }
-    
+
     .btn-draw {
         display: inline-flex;
         margin: auto;
@@ -374,6 +378,7 @@
             display: block;
             margin: auto;
         }
+
         border-right: solid gray 1px;
     }
 }
@@ -398,14 +403,14 @@
 
     .collectionSchemaViewChrome-toggler {
         width: 100px;
-        height: 41px;
+        height: 35px;
         background-color: black;
         position: relative;
     }
 
     .collectionSchemaViewChrome-togglerButton {
         width: 47px;
-        height: 35px;
+        height: 30px;
         background-color: $light-color-secondary;
         // position: absolute;
         transition: all 0.5s ease;

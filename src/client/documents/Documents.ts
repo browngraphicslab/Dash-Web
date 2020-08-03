@@ -153,6 +153,7 @@ export interface DocumentOptions {
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
+    iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
@@ -303,6 +304,10 @@ export namespace Docs {
                 layout: { view: FontIconBox, dataField: defaultDataKey },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
             }],
+            // [DocumentType.RECOMMENDATION, {
+            //     layout: { view: RecommendationsBox, dataField: defaultDataKey },
+            //     options: { _width: 200, _height: 200 },
+            // }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: defaultDataKey }
             }],

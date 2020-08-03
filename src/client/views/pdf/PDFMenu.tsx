@@ -93,7 +93,7 @@ export default class PDFMenu extends AntimodeMenu {
 
     @computed get highlighter() {
         const button =
-            <button className="antimodeMenu-button color-preview-button" title="" key="highilghter-button" onPointerDown={this.highlightClicked}>
+            <button className="antimodeMenu-button color-preview-button" title="" key="highlighter-button" onPointerDown={this.highlightClicked}>
                 <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
                 <div className="color-preview" style={{ backgroundColor: this.highlightColor }}></div>
             </button>;

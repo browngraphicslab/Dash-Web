@@ -1,5 +1,5 @@
-import * as rp from 'request-promise';
 import { red } from 'colors';
+import * as rp from 'request-promise';
 
 const pathTo = (relative: string) => `http://localhost:8983/solr/dash/${relative}`;
 

@@ -1,7 +1,5 @@
 import React = require("react");
 import { observer } from "mobx-react";
-import { documentSchema } from "../../../fields/documentSchemas";
-import { makeInterface } from "../../../fields/Schema";
 import "./TaskCompletedBox.scss";
 import { observable, action } from "mobx";
 import { Fade } from "@material-ui/core";

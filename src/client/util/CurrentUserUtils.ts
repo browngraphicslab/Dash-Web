@@ -12,7 +12,7 @@ import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
 import { DragManager } from "./DragManager";
 import { Scripting } from "./Scripting";
-import { CollectionViewType } from "../views/collections/CollectionView";
+import { CollectionViewType, CollectionView } from "../views/collections/CollectionView";
 import { makeTemplate } from "./DropConverter";
 import { RichTextField } from "../../fields/RichTextField";
 import { PrefetchProxy } from "../../fields/Proxy";
@@ -37,6 +37,8 @@ export class CurrentUserUtils {
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestWorkspace: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
+
+    @observable public static propertiesWidth: number = 0;
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
@@ -423,20 +425,21 @@ export class CurrentUserUtils {
             this.setupActiveMobileMenu(doc);
         }
         return [
-            { title: "Drag a comparison box", toolTip: "columns", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
-            { title: "Drag a collection", toolTip: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
-            { title: "Drag a web page", toolTip: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
-            { title: "Drag a cat image", toolTip: "Img", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
-            { title: "Drag a screenshot", toolTip: "Grab", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
-            { title: "Drag a webcam", toolTip: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { title: "Drag a audio recorder", toolTip: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
-            { title: "Drag a clickable button", toolTip: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding:10, _yPadding: 10, title: "Button" })' },
-            { title: "Drag a presentation view", toolTip: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
-            { title: "Drag a search box", toolTip: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.SearchDocument({ _width: 200, title: "an image of a cat" })' },
-            { title: "Drag a scripting box", toolTip: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
-            { title: "Drag an import folder", toolTip: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
-            { title: "Drag a mobile view", toolTip: "Phone", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
-            { title: "Drag an instance of the device collection", toolTip: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
+            { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
+            { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
+            { toolTip: "Drag a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
+            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
+            { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
+            //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
+            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc },
+            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc },
+
+            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc },
+            { toolTip: "Drag a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
+            { toolTip: "Drag a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
+            // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
+            { toolTip: "Drag a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
+            // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
             // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
             // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
@@ -461,7 +464,7 @@ export class CurrentUserUtils {
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
-            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
+            _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
             icon,
             title,
             toolTip,
@@ -487,6 +490,62 @@ export class CurrentUserUtils {
         }
         return doc.myItemCreators as Doc;
     }
+
+    static menuBtnDescriptions(): {
+        title: string, icon: string, click: string,
+    }[] {
+        return [
+            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu(self, "Workspace")' },
+            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu(self, "Catalog")' },
+            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu(self, "Archive")' },
+            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu(self, "Import")' },
+            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
+            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu(self, "Tools")' },
+            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu(self, "Help")' },
+            { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu(self, "Settings")' },
+            { title: "User Doc", icon: "address-card", click: 'scriptContext.selectMenu(self, "UserDoc")' },
+        ];
+    }
+
+    static setupMenuPanel(doc: Doc) {
+        if (doc.menuStack === undefined) {
+            const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
+                Docs.Create.FontIconDocument({
+                    icon,
+                    iconShape: "square",
+                    title,
+                    _backgroundColor: "black",
+                    stayInCollection: true,
+                    childDropAction: "same",
+                    _width: 60,
+                    _height: 60,
+                    onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
+                }));
+            const userDoc = menuBtns[menuBtns.length - 1];
+            userDoc.target = doc;
+            userDoc.hidden = ComputedField.MakeFunction("self.target.noviceMode");
+
+            doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
+                title: "menuItemPanel",
+                dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
+                _backgroundColor: "black",
+                _gridGap: 0,
+                _yMargin: 0,
+                _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled",
+            }));
+        }
+        // this resets all sidebar buttons to being deactivated
+        PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
+            stack && PromiseValue(stack.data).then(btns => {
+                DocListCastAsync(btns).then(bts => bts?.forEach(btn => {
+                    btn.color = "white";
+                    btn._backgroundColor = "";
+                }));
+            })
+        });
+        return doc.menuStack as Doc;
+    }
+
 
     // Sets up mobile menu if it is undefined creates a new one, otherwise returns existing menu
     static setupActiveMobileMenu(doc: Doc) {
@@ -586,16 +645,14 @@ export class CurrentUserUtils {
         return Cast(userDoc.thumbDoc, Doc);
     }
 
-    static setupLibrary(userDoc: Doc) {
-        return CurrentUserUtils.setupWorkspaces(userDoc);
-    }
-
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
     // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
     static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
+
+        doc["tabs-button-tools"] = undefined;
 
         if (doc.myCreators === undefined) {
             doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
@@ -611,88 +668,82 @@ export class CurrentUserUtils {
             doc.myColorPicker = new PrefetchProxy(color);
         }
 
-        if (doc["tabs-button-tools"] === undefined) {
+        if (doc["sidebar-tools"] === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
+                title: "sidebar-tools", _width: 500, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true
             })) as any as Doc;
-            doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", _fontSize: "10pt",
-                letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: toolsStack,
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: toolsStack,
-                removeDropProperties: new List<string>(["lockedPosition"]),
-                stayInCollection: true,
-                targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
-            }));
+
+            doc["sidebar-tools"] = toolsStack;
         }
-        (doc["tabs-button-tools"] as Doc).sourcePanel; // prefetch sourcePanel
-        return doc["tabs-button-tools"] as Doc;
     }
 
     static setupWorkspaces(doc: Doc) {
         // setup workspaces library item
+        doc.myWorkspaces === undefined;
         if (doc.myWorkspaces === undefined) {
             doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true,
+                title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true,
             }));
         }
-        const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
-        (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
-        (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
+        if (doc["sidebar-workspaces"] === undefined) {
+            const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
+            (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
+            (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
 
-        return doc.myWorkspaces as Doc;
+            const workspaces = doc.myWorkspaces as Doc;
+
+            doc["sidebar-workspaces"] = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
+        }
     }
+
     static setupCatalog(doc: Doc) {
+        doc.myCatalog === undefined;
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", stayInCollection: true,
+                childDropAction: "alias", targetDropAction: "same", stayInCollection: true, treeViewOpen: true,
             }));
         }
-        return doc.myCatalog as Doc;
+
+        if (doc["sidebar-catalog"] === undefined) {
+            const catalog = doc.myCatalog as Doc;
+
+            doc["sidebar-catalog"] = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
+                title: "sidebar-catalog",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
+        }
     }
     static setupRecentlyClosed(doc: Doc) {
         // setup Recently Closed library item
+        doc.myRecentlyClosed === undefined;
         if (doc.myRecentlyClosed === undefined) {
             doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, stayInCollection: true,
+                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, stayInCollection: true,
             }));
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
         PromiseValue(Cast(doc.myRecentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
-        const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-        (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-        (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        if (doc["sidebar-recentlyClosed"] === undefined) {
+            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
 
-        return doc.myRecentlyClosed as Doc;
-    }
-    // setup the Library button which will display the library panel.  This panel includes a collection of workspaces, documents, and recently closed views
-    static setupLibraryPanel(doc: Doc, sidebarContainer: Doc) {
-        const workspaces = CurrentUserUtils.setupWorkspaces(doc);
-        const documents = CurrentUserUtils.setupCatalog(doc);
-        const recentlyClosed = CurrentUserUtils.setupRecentlyClosed(doc);
+            const recentlyClosed = doc.myRecentlyClosed as Doc;
 
-        if (doc["tabs-button-library"] === undefined) {
-            const libraryStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-                treeViewTruncateTitleWidth: 150,
+            doc["sidebar-recentlyClosed"] = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
+                title: "sidebar-recentlyClosed",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
-            doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same",
-                letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: libraryStack,
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: libraryStack,
-                removeDropProperties: new List<string>(["lockedPosition"]),
-                stayInCollection: true,
-                targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
-            }));
         }
-        return doc["tabs-button-library"] as Doc;
     }
 
     // setup the Search button which will display the search panel.
@@ -708,45 +759,44 @@ export class CurrentUserUtils {
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
             }));
         }
-        return doc["tabs-button-search"] as Doc;
+    }
+    static setupUserDoc(doc: Doc) {
+        if (doc["sidebar-userDoc"] === undefined) {
+            doc.treeViewOpen = true;
+            doc.treeViewExpandedView = "fields";
+            doc["sidebar-userDoc"] = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "sidebar-userDoc",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
+        }
     }
 
     static setupSidebarContainer(doc: Doc) {
-        if (doc["tabs-panelContainer"] === undefined) {
+        if (doc["sidebar"] === undefined) {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
             sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
-            doc["tabs-panelContainer"] = new PrefetchProxy(sidebarContainer);
+            doc["sidebar"] = new PrefetchProxy(sidebarContainer);
         }
-        return doc["tabs-panelContainer"] as Doc;
+        return doc["sidebar"] as Doc;
     }
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
         const sidebarContainer = CurrentUserUtils.setupSidebarContainer(doc);
         const toolsBtn = await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
-        const libraryBtn = CurrentUserUtils.setupLibraryPanel(doc, sidebarContainer);
         const searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
         if (doc["search-panel"] === undefined) {
             doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({ _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", })) as any as Doc;
         }
-        // Finally, setup the list of buttons to display in the sidebar
-        if (doc["tabs-buttons"] === undefined) {
-            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
-                _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
-                title: "sidebar btn row stack", backgroundColor: "dimGray",
-            }));
-            (toolsBtn.onClick as ScriptField).script.run({ this: toolsBtn });
-        }
 
 
-
-        // new PrefetchProxy(Docs.Create.StackingDocument([libraryBtn, searchBtn, toolsBtn], {
-        //     _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
-        //     title: "sidebar btn row stack", backgroundColor: "dimGray",
-        // }));
-
-
+        await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
+        CurrentUserUtils.setupWorkspaces(doc);
+        CurrentUserUtils.setupCatalog(doc);
+        CurrentUserUtils.setupRecentlyClosed(doc);
+        CurrentUserUtils.setupUserDoc(doc);
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
@@ -756,7 +806,7 @@ export class CurrentUserUtils {
     })) as any as Doc
 
     static ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
+        ...opts, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 40, _nativeHeight: 40, _width: 40, _height: 40
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
@@ -860,6 +910,8 @@ export class CurrentUserUtils {
         doc.activeDash = StrCast(doc.activeDash, "0");
         doc.fontSize = StrCast(doc.fontSize, "12pt");
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
+        doc.fontColor = StrCast(doc.fontColor, "black");
+        doc.fontHighlight = StrCast(doc.fontHighlight, "");
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
@@ -867,6 +919,7 @@ export class CurrentUserUtils {
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
+        this.setupMenuPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
