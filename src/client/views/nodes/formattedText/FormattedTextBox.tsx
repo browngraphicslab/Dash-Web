@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -93,6 +93,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _first: Boolean = true;
+    private _recordingStart: number = 0;
+    private _currentTime: number = 0;
+    private _linkTime: number | null = null;
+    private _pause: boolean = false;
 
     @computed get _recording() { return this.dataDoc.audioState === "recording"; }
     set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
@@ -140,6 +145,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         super(props);
         FormattedTextBox.Instance = this;
         this.updateHighlights();
+        this._recordingStart = Date.now();
+        this.layoutDoc._timeStampOnEnter = true;
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -197,9 +204,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     dispatchTransaction = (tx: Transaction) => {
+        let timeStamp;
+        clearTimeout(timeStamp);
+        console.log("hi");
         if (this._editorView) {
+
             const metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
             if (metadata) {
+
                 const range = tx.selection.$from.blockRange(tx.selection.$to);
                 let text = range ? tx.doc.textBetween(range.start, range.end) : "";
                 let textEndSelection = tx.selection.to;
@@ -221,6 +233,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.dataDoc[key] = value;
                 }
             }
+
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             (tx.storedMarks && !this._editorView.state.storedMarks) && (this._editorView.state.storedMarks = tx.storedMarks);
@@ -234,19 +247,33 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const json = JSON.stringify(state.toJSON());
             let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+
+
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
+                            console.log("type");
+                            if (!this._pause && !this.layoutDoc._timeStampOnEnter) {
+                                console.log("started");
+                                timeStamp = setTimeout(() => this.pause(), 10 * 1000);
+                            }
+
+                            if (this._pause) {
+                                this._pause = false;
+                                this.insertTime();
+                            }
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
                             this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                             ScriptCast(this.layoutDoc.onTextChanged, null)?.script.run({ this: this.layoutDoc, self: this.rootDoc, text: curText });
                             unchanged = false;
+
                         }
+
                     } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                         this.dataDoc[this.props.fieldKey] = undefined;
                         this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
@@ -260,9 +287,70 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             } else {
+
                 const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
                 json.selection = state.toJSON().selection;
                 this._editorView.updateState(EditorState.fromJSON(this.config, json));
+            }
+        }
+    }
+
+    pause = () => this._pause = true;
+
+    formatTime = (time: number) => {
+        const hours = Math.floor(time / 60 / 60);
+        const minutes = Math.floor(time / 60) - (hours * 60);
+        const seconds = time % 60;
+
+        return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+    }
+
+    insertTime = () => {
+        let linkTime;
+        if (this._first) {
+            this._first = false;
+            DocListCast(this.dataDoc.links).map((l, i) => {
+                let la1 = l.anchor1 as Doc;
+                let la2 = l.anchor2 as Doc;
+                this._linkTime = NumCast(l.anchor2_timecode);
+                if (Doc.AreProtosEqual(la2, this.dataDoc)) {
+                    la1 = l.anchor2 as Doc;
+                    la2 = l.anchor1 as Doc;
+                    this._linkTime = NumCast(l.anchor1_timecode);
+                }
+
+            })
+
+
+
+        }
+        this._currentTime = Date.now();
+        let time;
+        console.log(this._linkTime);
+        this._linkTime ? time = this.formatTime(Math.round(this._linkTime + this._currentTime / 1000 - this._recordingStart / 1000)) : time = null;
+
+        if (this._editorView) {
+            const state = this._editorView.state;
+            const now = Date.now();
+            let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
+            if (!this._break && state.selection.to !== state.selection.from) {
+                for (let i = state.selection.from; i <= state.selection.to; i++) {
+                    const pos = state.doc.resolve(i);
+                    const um = Array.from(pos.marks()).find(m => m.type === schema.marks.user_mark);
+                    if (um) {
+                        mark = um;
+                        break;
+                    }
+                }
+            }
+            if (time) {
+                let value = "";
+                this._break = false;
+                value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
+                console.log(value);
+                const from = state.selection.from;
+                const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
+                this._editorView.dispatch(this._editorView.state.tr.insertText(value));
             }
         }
     }
@@ -501,6 +589,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
+        uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
             description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
@@ -594,6 +683,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const recordingStart = DateCast(this.props.Document.recordingStart).date.getTime();
             this._break = false;
             value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
+            console.log(value);
             const from = state.selection.from;
             const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
             this._editorView.dispatch(inserted.setSelection(TextSelection.create(inserted.doc, from, from + value.length + 1)));
@@ -1295,30 +1385,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         e.stopPropagation();
         if (e.key === "Tab" || e.key === "Enter") {
-            // console.log(this._recording);
-            // if (this._editorView) {
-            //     const state = this._editorView.state;
-            //     const now = Date.now();
-            //     let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
-            //     if (!this._break && state.selection.to !== state.selection.from) {
-            //         for (let i = state.selection.from; i <= state.selection.to; i++) {
-            //             const pos = state.doc.resolve(i);
-            //             const um = Array.from(pos.marks()).find(m => m.type === schema.marks.user_mark);
-            //             if (um) {
-            //                 mark = um;
-            //                 break;
-            //             }
-            //         }
-            //     }
-            //     const recordingStart = DateCast(this.props.Document.recordingStart).date.getTime();
-            //     this._break = false;
-            //     let value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000;
-            //     //let value = "[0:02]";
-            //     const from = state.selection.from;
-            //     const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
-
-            //     this._editorView.dispatch(inserted.setSelection(TextSelection.create(inserted.doc, from, from + value.length + 1)));
-            // }
+            if (e.key === "Enter" && this.layoutDoc._timeStampOnEnter) {
+                this.insertTime();
+            }
             e.preventDefault();
         }
         if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {
@@ -1371,6 +1440,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
+        trace();
+        // if (this.props.Document.recordingStart) {
+        //     console.log(DateCast(this.props.Document.recordingStart).date.getTime());
+        // }
+
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;

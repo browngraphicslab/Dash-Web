@@ -75,6 +75,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _markers: Array<any> = [];
     _first: boolean = false;
     _buckets: Array<number> = new Array();
+    _count: Array<any> = [];
 
     private _isPointerDown = false;
     private _currMarker: any;
@@ -516,53 +517,74 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return false;
     }
 
-    // Probably need a better way to format
-    isOverlap = (m: any, i: number) => {
-        console.log("called");
-        let counter = 0;
-
-        if (this._first) {
-            this._markers = [];
-            this._first = false;
-        }
-        for (let i = 0; i < this._markers.length; i++) {
-            if ((m.audioEnd > this._markers[i].audioStart && m.audioStart < this._markers[i].audioEnd)) {
-                counter++;
-                console.log(counter);
-            }
+    markers = () => {
+        const increment = NumCast(this.layoutDoc.duration) / 500;
+        this._count = [];
+        for (let i = 0; i < 500; i++) {
+            this._count.push([increment * i, 0])
         }
 
-        if (this.dataDoc.markerAmount < counter) {
-            this.dataDoc.markerAmount = counter;
-        }
-
-        this._markers.push(m);
-
-        return counter;
     }
 
-    // isOverlap = (m: any) => {
-    //     if (this._markers.length < 1) {
-    //         this._markers = new Array(Math.round(this.dataDoc.duration)).fill(0);
+    // Probably need a better way to format
+    // isOverlap = (m: any, i: number) => {
+    //     console.log("called");
+    //     let counter = 0;
+
+    //     if (this._first) {
+    //         this._markers = [];
+    //         this._first = false;
     //     }
-    //     console.log(this._markers);
-    //     let max = 0
-
-    //     for (let i = Math.round(m.audioStart); i <= Math.round(m.audioEnd); i++) {
-    //         this._markers[i] = this._markers[i] + 1;
-    //         console.log(this._markers[i]);
-
-    //         if (this._markers[i] > max) {
-    //             max = this._markers[i];
+    //     for (let i = 0; i < this._markers.length; i++) {
+    //         if ((m.audioEnd > this._markers[i].audioStart && m.audioStart < this._markers[i].audioEnd)) {
+    //             counter++;
+    //             console.log(counter);
     //         }
     //     }
 
-    //     console.log(max);
-    //     if (this.dataDoc.markerAmount < max) {
-    //         this.dataDoc.markerAmount = max;
+    //     if (this.dataDoc.markerAmount < counter) {
+    //         this.dataDoc.markerAmount = counter;
     //     }
-    //     return max
+
+    //     this._markers.push(m);
+
+    //     return counter;
     // }
+
+    isOverlap = (m: any) => {
+        if (this._first) {
+            this._first = false;
+            this.markers();
+            console.log(this._count);
+        }
+
+
+        let max = 0
+
+        for (let i = 0; i < 500; i++) {
+            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
+                this._count[i][1]++;
+
+                if (this._count[i][1] > max) {
+                    max = this._count[i][1];
+                }
+            }
+
+
+        }
+
+        for (let i = 0; i < 500; i++) {
+            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
+                this._count[i][1] = max;
+            }
+
+        }
+
+        if (this.dataDoc.markerAmount < max) {
+            this.dataDoc.markerAmount = max;
+        }
+        return max - 1
+    }
 
     formatTime = (time: number) => {
         const hours = Math.floor(time / 60 / 60);
@@ -607,6 +629,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     reset = () => {
         this._first = true;
+    }
+
+    @computed get height() {
+        console.log(this.layoutDoc._height);
+        if (this.layoutDoc._height) {
+            return 0.8 * this.layoutDoc._height
+        }
     }
 
     render() {
@@ -673,14 +702,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
                                 }
                             }}>
-                            <div className="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px" }}>
+                            <div className="waveform" id="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px" }}>
                                 {console.log(this.peaks)}
                                 <Waveform
                                     color={"#000000"}
-                                    height={20}
+                                    height={this.height}
                                     barWidth={0.1}
                                     pos={this.layoutDoc.currentTimecode}
-                                    duration={this.layoutDoc.duration}
+                                    duration={this.dataDoc.duration}
                                     peaks={this._buckets.length === 100 ? this._buckets : undefined}
                                     progressColor={"#0000ff"} />
                             </div>
@@ -690,7 +719,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 (!m.isLabel) ?
                                     (this.layoutDoc.hideMarkers) ? (null) :
                                         rect =
-                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${this.formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 2) * 100}%`, top: `${this.isOverlap(m, i) * 1 / (this.dataDoc.markerAmount + 2) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
+                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${this.formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${this.formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`, top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
                                             <DocumentView {...this.props}
                                                 Document={m}
@@ -700,7 +729,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                                 rootSelected={returnFalse}
                                                 LayoutTemplate={undefined}
                                                 ContainingCollectionDoc={this.props.Document}
-                                                removeDocument={undefined}
+                                                removeDocument={this.removeDocument}
                                                 parentActive={returnTrue}
                                                 onClick={this.layoutDoc.playOnClick ? this.rangeScript : undefined}
                                                 ignoreAutoHeight={false}
@@ -722,7 +751,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                                 rootSelected={returnFalse}
                                                 LayoutTemplate={undefined}
                                                 ContainingCollectionDoc={this.props.Document}
-                                                removeDocument={undefined}
+                                                removeDocument={this.removeDocument}
                                                 parentActive={returnTrue}
                                                 onClick={this.layoutDoc.playOnClick ? this.labelScript : undefined}
                                                 ignoreAutoHeight={false}
@@ -776,7 +805,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             {this.formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}
                         </div>
                         <div className="total-time">
-                            {this.formatTime(Math.round(NumCast(this.layoutDoc.duration)))}
+                            {this.formatTime(Math.round(NumCast(this.dataDoc.duration)))}
                         </div>
                     </div>
                 </div>
