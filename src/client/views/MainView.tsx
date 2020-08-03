@@ -445,7 +445,6 @@ export class MainView extends React.Component {
     }
 
     @computed get menuPanel() {
-        setTimeout(() => DocListCast((Doc.UserDoc().menuStack as Doc).data).forEach(action(doc => { doc.color = "white"; doc._backgroundColor = ""; })), 0);
         return <div className="mainView-menuPanel">
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
