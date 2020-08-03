@@ -278,9 +278,9 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             <div className="documentButtonBar-button">
                 <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
             </div>
-            {DocumentLinksButton.StartLink ? <div className="documentButtonBar-button">
+            <div className="documentButtonBar-button">
                 <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
-            </div> : null}
+            </div>
             {/* <div className="documentButtonBar-button">
                 {this.templateButton}
             </div>

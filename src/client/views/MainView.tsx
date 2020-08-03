@@ -384,12 +384,26 @@ export class MainView extends React.Component {
 
     @action
     onFlyoutPointerDown = (e: React.PointerEvent) => {
-        this.panelContent = "none";
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
+                if (this.flyoutWidth < 5) {
+                    this.panelContent = "none";
+                    this._lastButton && (this._lastButton.color = "white");
+                    this._lastButton && (this._lastButton._backgroundColor = "");
+                }
                 return false;
-            }), emptyFunction, action(() => this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0));
+            }), emptyFunction, this.openCloseFlyout);
+        }
+    }
+
+    @action
+    openCloseFlyout = () => {
+        this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
+        if (this.flyoutWidth < 15) {
+            this.panelContent = "none";
+            this._lastButton && (this._lastButton.color = "white");
+            this._lastButton && (this._lastButton._backgroundColor = "");
         }
     }
 
@@ -480,8 +494,8 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
-        // this._lastButton && (this._lastButton.color = "white");
-        // this._lastButton && (this._lastButton._backgroundColor = "");
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }

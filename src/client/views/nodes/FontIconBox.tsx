@@ -12,7 +12,6 @@ import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
 import { Tooltip } from '@material-ui/core';
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const FontIconSchema = createSchema({
     icon: "string",
 });
@@ -66,11 +65,12 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const shape = StrCast(this.layoutDoc.iconShape, "round");
         const button = <>
             <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
-                style={{ boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined, }}>
-                {<FontAwesomeIcon className={`menuButton-icon-${shape}`}
-                    icon={StrCast(this.dataDoc.icon, "user") as any} color={color}
-                    size={this.layoutDoc.iconShape === "square" ? "sm" : "lg"} />}
-                {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                style={{ boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined, backgroundColor }}>
+                <div className="menuButton-wrap">
+                    {<FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={StrCast(this.dataDoc.icon, "user") as any} color={color}
+                        size={this.layoutDoc.iconShape === "square" ? "sm" : "lg"} />}
+                    {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                </div>
             </button>
         </>;
         return !this.layoutDoc.toolTip ? button :

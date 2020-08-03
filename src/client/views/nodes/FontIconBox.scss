@@ -1,5 +1,3 @@
-
-
 .fontIconBox-label {
     color: white;
     margin-right: 4px;
@@ -12,30 +10,36 @@
     border-radius: 8px;
     margin-top: -8px;
     padding: 0;
-     width: 100%;
+    width: 100%;
 }
 
 .menuButton-round {
     border-radius: 100%;
+
     .fontIconBox-label {
         margin-left: -10px; // button padding is 10px;
-        bottom:0;
+        bottom: 0;
         position: absolute;
     }
 }
+
 .menuButton-square {
     padding-top: 3px;
     padding-bottom: 3px;
     padding-left: 5px;
+
     .fontIconBox-label {
         border-radius: 0px;
         margin-top: 0px;
         border-radius: "inherit";
     }
 }
-.menuButton, .menuButton-round, .menuButton-square{
+
+.menuButton,
+.menuButton-round,
+.menuButton-square {
     width: 100%;
-    height:100%;
+    height: 100%;
     pointer-events: all;
     touch-action: none;
 
@@ -43,10 +47,10 @@
         touch-action: none;
         border-radius: 8px;
 
-        &:hover {
-            background: rgb(61, 61, 61);
-            cursor: pointer;
-        }
+        // &:hover {
+        //     background: rgb(61, 61, 61);
+        //     cursor: pointer;
+        // }
     }
 
     .menuButton-icon-square {
