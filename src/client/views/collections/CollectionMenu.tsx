@@ -186,12 +186,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
 
     @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
-
-    _stacking_commands = [this._contentCommand, this._templateCommand];
-    _masonry_commands = [this._contentCommand, this._templateCommand];
-    _schema_commands = [this._templateCommand, this._narrativeCommand];
-    _doc_commands = [this._openLinkInCommand, this._onClickCommand];
-    _tree_commands = [];
+    @computed get _stacking_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
+    @computed get _masonry_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
+    @computed get _schema_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._templateCommand, this._narrativeCommand]; }
+    @computed get _doc_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._openLinkInCommand, this._onClickCommand]; }
+    @computed get _tree_commands() { return undefined; }
     private get _buttonizableCommands() {
         switch (this.props.type) {
             default: return this._doc_commands;
@@ -211,7 +210,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @observable private _currentKey: string = "";
 
     componentDidMount = action(() => {
-        this._currentKey = this._currentKey || (this._buttonizableCommands.length ? this._buttonizableCommands[0]?.title : "");
+        this._currentKey = this._currentKey || (this._buttonizableCommands?.length ? this._buttonizableCommands[0]?.title : "");
     });
 
     @undoBatch
@@ -261,7 +260,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
         const docDragData = de.complete.docDragData;
         if (docDragData?.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(docDragData.draggedDocuments || []));
+            this._buttonizableCommands?.filter(c => c.title === this._currentKey).map(c => c.immediate(docDragData.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;
@@ -283,12 +282,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     }
     dragCommandDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, (e, down, delta) => {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c =>
+            this._buttonizableCommands?.filter(c => c.title === this._currentKey).map(c =>
                 DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
                     { target: this.document }, c.params, c.initialize, e.clientX, e.clientY));
             return true;
         }, emptyFunction, () => {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate([]));
+            this._buttonizableCommands?.filter(c => c.title === this._currentKey).map(c => c.immediate([]));
         });
     }
 
@@ -302,7 +301,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <select
                         className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}>
                         <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
-                        {this._buttonizableCommands.map(cmd =>
+                        {this._buttonizableCommands?.map(cmd =>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={cmd.title} value={cmd.title}>{cmd.title}</option>
                         )}
                     </select>
@@ -359,7 +358,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                 <div className="collectionMenu">
                     <div className="collectionViewBaseChrome">
                         {this.notACollection || this.props.type === CollectionViewType.Invalid ? (null) : this.viewModes}
-                        {this.notACollection && Doc.UserDoc().noviceMode ? (null) : this.templateChrome}
+                        {!this._buttonizableCommands ? (null) : this.templateChrome}
                         {Doc.UserDoc().noviceMode ? (null) :
                             <Tooltip title={<div className="dash-tooltip">filter documents to show</div>} placement="bottom">
                                 <div className="collectionViewBaseChrome-viewSpecs" style={{ display: "grid" }}>
