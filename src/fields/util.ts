@@ -10,7 +10,6 @@ import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
-import { addSyntheticLeadingComment } from "typescript";
 
 
 function _readOnlySetter(): never {

@@ -1,5 +1,7 @@
 .mainNotifs-container {
     position:absolute;
+    z-index: 1000;
+    top: 12px;
 
     .mainNotifs-badge {
         position: absolute;
