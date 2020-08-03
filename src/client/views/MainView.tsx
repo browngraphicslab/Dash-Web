@@ -150,7 +150,7 @@ export class MainView extends React.Component {
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
                     if (!this.userDoc) {
-                        runInAction(() => this.flyoutWidth = 0);
+                        runInAction(() => this.closeFlyout());
                         DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action((field: Opt<Field>) =>
                             field instanceof Doc && (CurrentUserUtils.GuestTarget = field)));
                     }
@@ -389,7 +389,10 @@ export class MainView extends React.Component {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
                 return false;
-            }), emptyFunction, action(() => this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0));
+            }), emptyFunction, action(() => {
+                if (this.flyoutWidth < 15) MainView.expandFlyout();
+                else this.closeFlyout();
+            }));
         }
     }
 
@@ -480,8 +483,8 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
-        // this._lastButton && (this._lastButton.color = "white");
-        // this._lastButton && (this._lastButton._backgroundColor = "");
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }
