@@ -512,18 +512,18 @@ export class CurrentUserUtils {
 
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
-            const buttons = CurrentUserUtils.menuBtnDescriptions();
-            const menuBtns = buttons.map(({ title, icon, click }) => Docs.Create.FontIconDocument({
-                icon,
-                iconShape: "square",
-                title,
-                _backgroundColor: "black",
-                stayInCollection: true,
-                childDropAction: "same",
-                _width: 60,
-                _height: 60,
-                onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
-            }));
+            const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
+                Docs.Create.FontIconDocument({
+                    icon,
+                    iconShape: "square",
+                    title,
+                    _backgroundColor: "black",
+                    stayInCollection: true,
+                    childDropAction: "same",
+                    _width: 60,
+                    _height: 60,
+                    onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
+                }));
             const userDoc = menuBtns[menuBtns.length - 1];
             userDoc.target = doc;
             userDoc.hidden = ComputedField.MakeFunction("self.target.noviceMode");
@@ -537,6 +537,15 @@ export class CurrentUserUtils {
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled",
             }));
         }
+        // this resets all sidebar buttons to being deactivated
+        PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
+            stack && PromiseValue(stack.data).then(btns => {
+                DocListCastAsync(btns).then(bts => bts?.forEach(btn => {
+                    btn.color = "white";
+                    btn._backgroundColor = "";
+                }));
+            })
+        });
         return doc.menuStack as Doc;
     }
 
