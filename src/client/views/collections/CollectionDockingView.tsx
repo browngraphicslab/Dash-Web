@@ -1,9 +1,8 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, Lambda, observable, reaction, runInAction, trace } from "mobx";
+import { action, computed, Lambda, observable, reaction, runInAction, trace, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
-import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { DateField } from '../../../fields/DateField';
 import { Doc, DocListCast, Field, Opt, DataSym } from "../../../fields/Doc";
@@ -31,6 +30,8 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { listSpec } from '../../../fields/Schema';
 import { clamp } from 'lodash';
+import { InteractionUtils } from '../../util/InteractionUtils';
+import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -464,6 +465,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
         }
+        if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
+            return;
+        } else {
+            e.stopPropagation();
+        }
     }
 
     updateDataField = async (json: string) => {
@@ -505,7 +511,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
             const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             if (doc instanceof Doc) {
-                //tab.titleElement[0].outerHTML = `<input class='lm_title' style="background:black" value='${doc.title}' />`;
                 tab.titleElement[0].onclick = (e: any) => tab.titleElement[0].focus();
                 tab.titleElement[0].onchange = (e: any) => {
                     tab.titleElement[0].size = e.currentTarget.value.length + 1;
@@ -520,6 +525,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 gearSpan.style.paddingLeft = "0px";
                 gearSpan.style.paddingRight = "12px";
                 const stack = tab.contentItem.parent;
+                tab.element[0].onpointerdown = (e: any) => {
+                    const view = DocumentManager.Instance.getDocumentView(doc);
+                    view && SelectionManager.SelectDoc(view, false);
+                };
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
                     if (!this._isPointerDown || !SnappingManager.GetIsDragging()) return;
@@ -674,9 +683,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
     @observable private _isActive: boolean = false;
+    _tabReaction: IReactionDisposer | undefined;
 
     get _stack(): any {
         return (this.props as any).glContainer.parent.parent;
+    }
+    get _tab(): any {
+        const tab = (this.props as any).glContainer.tab.element[0] as HTMLElement;
+        return tab.getElementsByClassName("lm_title")?.[0];
     }
     constructor(props: any) {
         super(props);
@@ -738,9 +752,16 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
+        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, "white") }),
+            (data) => {
+                const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
+                this._tab.style.backgroundColor = selected ? data.color : "";
+            }
+        );
     }
 
     componentWillUnmount() {
+        this._tabReaction?.();
         this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.off("tab", this.onActiveContentItemChanged);
     }
@@ -749,6 +770,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     private onActiveContentItemChanged() {
         if (this.props.glContainer.tab) {
             this._isActive = this.props.glContainer.tab.isActive;
+            setTimeout(() => {
+                const dv = this._document && DocumentManager.Instance.getFirstDocumentView(this._document);
+                dv && SelectionManager.SelectDoc(dv, false);
+            });
             !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
         }
     }

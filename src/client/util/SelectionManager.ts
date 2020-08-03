@@ -12,6 +12,7 @@ export namespace SelectionManager {
 
         @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
+
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
 
@@ -32,6 +33,7 @@ export namespace SelectionManager {
         }
         @action
         DeselectDoc(docView: DocumentView): void {
+
             if (manager.SelectedDocuments.get(docView)) {
                 manager.SelectedDocuments.delete(docView);
                 docView.props.whenActiveChanged(false);
@@ -40,6 +42,7 @@ export namespace SelectionManager {
         }
         @action
         DeselectAll(): void {
+
             Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments.clear();
             Doc.UserDoc().activeSelection = new List<Doc>([]);

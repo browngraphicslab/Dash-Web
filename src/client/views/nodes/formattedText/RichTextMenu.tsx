@@ -77,7 +77,8 @@ export default class RichTextMenu extends AntimodeMenu {
         super(props);
         RichTextMenu.Instance = this;
         this._canFade = false;
-        this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
+        //this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
+        this.Pinned = true;
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
@@ -546,7 +547,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     indentParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
-        let headin = false;
+        const heading = false;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
             if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
@@ -556,7 +557,7 @@ export default class RichTextMenu extends AntimodeMenu {
             }
             return true;
         });
-        !headin && dispatch?.(tr);
+        !heading && dispatch?.(tr);
         return true;
     }
 
@@ -622,8 +623,11 @@ export default class RichTextMenu extends AntimodeMenu {
             label = "No marks are currently stored";
         }
 
+        //onPointerDown={onBrushClick}
+
         const button = <Tooltip title={<div className="dash-tooltip">style brush</div>} placement="bottom">
-            <button className="antimodeMenu-button" onPointerDown={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+
+            <button className="antimodeMenu-button" style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
                 <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
             </button>
         </Tooltip>;
@@ -636,7 +640,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -695,8 +699,9 @@ export default class RichTextMenu extends AntimodeMenu {
             self.TextView.EditorView!.focus();
         }
 
+        // onPointerDown={onColorClick}
         const button = <Tooltip title={<div className="dash-tooltip">set font color</div>} placement="bottom">
-            <button className="antimodeMenu-button color-preview-button" onPointerDown={onColorClick}>
+            <button className="antimodeMenu-button color-preview-button">
                 <FontAwesomeIcon icon="palette" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeFontColor }}></div>
             </button>
@@ -717,7 +722,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"color dropdown"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"color dropdown"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -749,8 +754,9 @@ export default class RichTextMenu extends AntimodeMenu {
             UndoManager.RunInBatch(() => self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch), "rt highlighter");
         }
 
+        //onPointerDown={onHighlightClick}
         const button = <Tooltip title={<div className="dash-tooltip">set highlight color</div>} placement="bottom">
-            <button className="antimodeMenu-button color-preview-button" key="highilghter-button" onPointerDown={onHighlightClick}>
+            <button className="antimodeMenu-button color-preview-button" key="highilghter-button" >
                 <FontAwesomeIcon icon="highlighter" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeHighlightColor }}></div>
             </button>
@@ -771,7 +777,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"highlighter"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"highlighter"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -794,7 +800,9 @@ export default class RichTextMenu extends AntimodeMenu {
         const link = this.currentLink ? this.currentLink : "";
 
         const button = <Tooltip title={<div className="dash-tooltip">set hyperlink</div>} placement="bottom">
-            <div><FontAwesomeIcon icon="link" size="lg" /> </div>
+            <button className="antimodeMenu-button color-preview-button">
+                <FontAwesomeIcon icon="link" size="lg" />
+            </button>
         </Tooltip>;
 
         const dropdownContent =
@@ -806,7 +814,8 @@ export default class RichTextMenu extends AntimodeMenu {
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
 
-        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />;
+        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent}
+            openDropdownOnButton={true} link={true} />;
     }
 
     async getTextLinkTargetTitle() {
@@ -938,16 +947,22 @@ export default class RichTextMenu extends AntimodeMenu {
     render() {
         TraceMobx();
         const row1 = <div className="antimodeMenu-row" key="row 1" style={{ display: this.collapsed ? "none" : undefined }}>{[
-            !this.collapsed ? this.getDragger() : (null),
-            !this.Pinned ? (null) : <div key="frag1"> {[
-                this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
-                this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
-                this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
-                this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
-                this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
-                this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
-                <div className="richTextMenu-divider" key="divider" />
-            ]}</div>,
+            //!this.collapsed ? this.getDragger() : (null),
+            // !this.Pinned ? (null) : <div key="frag1"> {[
+            //     this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            //     this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            //     this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            //     this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            //     this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            //     this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+            //     <div className="richTextMenu-divider" key="divider" />
+            // ]}</div>,
+            this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
@@ -975,16 +990,16 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
                 <div className="richTextMenu-divider" key="divider 5" />,]}
             </div>
-            <div key="collapser">
-                {/* <div key="collapser">
+            {/* <div key="collapser">
+                {<div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
                         <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />
                     </button>
-                </div> */}
+                </div> }
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
-            </div>
+            </div> */}
         </div>;
 
         return (
@@ -1000,6 +1015,7 @@ interface ButtonDropdownProps {
     button: JSX.Element;
     dropdownContent: JSX.Element;
     openDropdownOnButton?: boolean;
+    link?: boolean;
 }
 
 @observer
@@ -1042,18 +1058,10 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
     render() {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
-                {this.props.openDropdownOnButton ?
-                    <button className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
-                        {this.props.button}
-                        <FontAwesomeIcon icon="caret-down" size="sm" />
-                    </button> :
-                    <>
-                        {this.props.button}
-                        <button className="dropdown-button antimodeMenu-button" key="antimodebutton" onPointerDown={this.onDropdownClick}>
-                            <FontAwesomeIcon icon="caret-down" size="sm" />
-                        </button>
-                    </>}
-
+                <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
+                    {this.props.button}
+                    <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
+                </div>
                 {this.showDropdown ? this.props.dropdownContent : (null)}
             </div>
         );

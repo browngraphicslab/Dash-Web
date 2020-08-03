@@ -148,7 +148,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    changeTitleMode = () => this._showTitleDropdown = !this._showTitleDropdown;
+    changeTitleMode = () => this._showTitleDropdown = !this._showTitleDropdown
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
@@ -208,7 +208,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }}>
                 {col.heading}</div>;
 
-            const sortIcon = col.desc === undefined ? "circle" : col.desc === true ? "caret-down" : "caret-up";
+            const sortIcon = col.desc === undefined ? "caret-right" : col.desc === true ? "caret-down" : "caret-up";
 
             const header =
                 <div //className="collectionSchemaView-header"
@@ -224,12 +224,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         {keysDropdown}
                     </div>
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ paddingRight: "6px", display: "inline" }}>
+                        style={{ paddingRight: "6px", marginLeft: "4px", display: "inline" }}>
                         <FontAwesomeIcon icon={sortIcon} size="sm" />
                     </div>
                     <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
                         style={{ float: "right", paddingRight: "6px" }}>
-                        <FontAwesomeIcon icon={"compass"} size="sm" />
+                        <FontAwesomeIcon icon={"cog"} size="sm" />
                     </div>
                 </div>;
 

@@ -146,11 +146,11 @@ export default class SharingManager extends React.Component<{}> {
      * @param group 
      * @param permission 
      */
-    setInternalGroupSharing = (group: Doc, permission: string) => {
+    setInternalGroupSharing = (group: Doc, permission: string, targetDoc?: Doc) => {
         const members: string[] = JSON.parse(StrCast(group.members));
         const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-        const target = this.targetDoc!;
+        const target = targetDoc || this.targetDoc!;
         const ACL = `ACL-${StrCast(group.groupName)}`;
 
         target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
@@ -173,6 +173,12 @@ export default class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
+    }
+
+    shareFromPropertiesSidebar = (shareWith: string, permission: SharingPermissions, target: Doc) => {
+        const user = this.users.find(({ user: { email } }) => email === (shareWith === "Me" ? Doc.CurrentUserEmail : shareWith));
+        if (user) this.setInternalSharing(user, permission, target);
+        else this.setInternalGroupSharing(GroupManager.Instance.getGroup(shareWith)!, permission, target);
     }
 
     /**
@@ -209,9 +215,9 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
-    setInternalSharing = (recipient: ValidatedUser, permission: string) => {
+    setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
         const { user, notificationDoc } = recipient;
-        const target = this.targetDoc!;
+        const target = targetDoc || this.targetDoc!;
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
 

@@ -23,7 +23,7 @@ export class MainViewNotifs extends React.Component {
         const notifsRef = React.createRef<HTMLDivElement>();
         const dragNotifs = action(() => MainViewNotifs.NotifsCol!);
         return <div className="mainNotifs-container" ref={notifsRef}>
-            <button className="mainNotifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}
+            <button className="mainNotifs-badge" style={{ display: length > 0 ? "initial" : "none" }}
                 onClick={this.openNotifsCol} onPointerDown={MainViewNotifs.NotifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
                 {length}
             </button>

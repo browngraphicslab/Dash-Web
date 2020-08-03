@@ -94,6 +94,8 @@ export interface DocumentViewProps {
     layoutKey?: string;
     radialMenu?: String[];
     display?: string;
+    relative?: boolean;
+    scriptContext?: any;
 }
 
 @observer
@@ -287,7 +289,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = action((e: React.MouseEvent | React.PointerEvent) => {
-        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick &&
+        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && this.props.renderDepth >= 0 &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
@@ -319,10 +321,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
+                    scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     shiftKey: e.shiftKey
                 }, console.log);
-                if (this.props.Document !== Doc.UserDoc()["dockedBtn-undo"] && this.props.Document !== Doc.UserDoc()["dockedBtn-redo"]) {
+                if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
@@ -584,6 +587,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+
+    @undoBatch
+    noOnClick = (): void => {
+        this.Document.ignoreClick = false;
+        this.Document.isLinkButton = false;
+    }
+
+    @undoBatch
+    toggleDetail = (): void => {
+        this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`);
+    }
+
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (this.props.Document === Doc.UserDoc().activeWorkspace) {
@@ -661,6 +676,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
+    onCopy = () => {
+        const alias = Doc.MakeAlias(this.props.Document);
+        alias.x = NumCast(this.props.Document.x) + NumCast(this.props.Document._width);
+        alias.y = NumCast(this.props.Document.y) + 30;
+        this.props.addDocument?.(alias);
+    }
+
+    @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (!(e instanceof Touch)) {
@@ -704,14 +727,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "window-restore" });
+        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "concierge-bell" });
-        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "concierge-bell" });
-        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "snowflake" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
-        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "hand-point-right" });
+        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
+        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
+        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
+        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
+        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
+        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
 
         const funcs: ContextMenuProps[] = [];
         if (this.layoutDoc.onDragStart) {
@@ -724,6 +747,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const more = cm.findByDescription("More...");
         const moreItems = more && "subitems" in more ? more.subitems : [];
         moreItems.push({ description: "Download document", icon: "download", event: async () => Doc.Zip(this.props.Document) });
+        moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "users" });
+        //moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+        moreItems.push({ description: "Create an Alias", event: () => this.onCopy(), icon: "copy" });
         if (!Doc.UserDoc().noviceMode) {
             moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
             moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -735,16 +761,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
         }
+        //GetEffectiveAcl(this.props.Document) === AclEdit && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
+
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
         (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) && moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        moreItems.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
+
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
 
         const help = cm.findByDescription("Help...");
         const helpItems: ContextMenuProps[] = help && "subitems" in help ? help.subitems : [];
+        !Doc.UserDoc().novice && helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         helpItems.push({ description: "Text Shortcuts Ctrl+/", event: () => this.props.addDocTab(Docs.Create.PdfDocument(Utils.prepend("/assets/cheat-sheet.pdf"), { _width: 300, _height: 300 }), "onRight"), icon: "keyboard" });
-        helpItems.push({ description: "Show Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         helpItems.push({ description: "Print Document in Console", event: () => console.log(this.props.Document), icon: "hand-point-right" });
         cm.addItem({ description: "Help...", noexpand: true, subitems: helpItems, icon: "question" });
 
@@ -786,8 +814,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed.struct get linkOffset() { return [-15, 0]; }
     @computed get contents() {
+        const pos = this.props.relative ? "relative " : "absolute";
         TraceMobx();
-        return (<div style={{ position: "absolute", width: "100%", height: "100%" }}>
+        return (<div style={{ width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
                 ContainingCollectionView={this.props.ContainingCollectionView}
@@ -823,6 +852,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ChromeHeight={this.chromeHeight}
                 isSelected={this.isSelected}
                 select={this.select}
+                scriptContext={this.props.scriptContext}
                 onClick={this.onClickFunc}
                 layoutKey={this.finalLayoutKey} />
             {this.layoutDoc.hideAllLinks ? (null) : this.allAnchors}
@@ -860,7 +890,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.rootDoc.type === DocumentType.LINK ||
             this.props.dontRegisterView ? (null) : // view that are not registered
             DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
-                <DocumentView {...this.props} key={i + 1}
+                <div className="documentView-anchorCont" key={i + 1}> <DocumentView {...this.props}
                     Document={d}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
@@ -873,12 +903,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     pointerEvents={false}
                     LayoutTemplate={undefined}
                     LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)}
-                />);
+                /></div >);
     }
     @computed get innards() {
         TraceMobx();
+        const pos = this.props.relative ? "relative" : undefined;
         if (this.props.treeViewDoc && !this.props.LayoutTemplateString?.includes("LinkAnchorBox")) {  // this happens when the document is a tree view label (but not an anchor dot)
-            return <div className="documentView-treeView" style={{ maxWidth: this.props.PanelWidth() || undefined }}>
+            return <div className="documentView-treeView" style={{
+                maxWidth: this.props.PanelWidth() || undefined,
+                position: pos
+            }}>
                 {StrCast(this.props.Document.title)}
                 {this.allAnchors}
             </div>;
@@ -1004,7 +1038,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: finalColor,
                 opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
-                fontSize: Cast(this.Document._fontSize, "string", null)
+                fontSize: Cast(this.Document._fontSize, "string", null),
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}

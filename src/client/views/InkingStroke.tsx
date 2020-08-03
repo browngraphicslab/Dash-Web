@@ -178,7 +178,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     if (cm) {
                         !Doc.UserDoc().noviceMode && cm.addItem({ description: "Recognize Writing", event: this.analyzeStrokes, icon: "paint-brush" });
                         cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
-                        cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
+                        //cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
                     }
                 }}
             ><defs>
