@@ -87,8 +87,7 @@ export default class CollectionMenu extends AntimodeMenu {
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
         const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
-            <button className="antimodeMenu-button" key="properties"
-                onPointerDown={this.toggleProperties}>
+            <button className="antimodeMenu-button" key="properties" onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
             </button>
         </Tooltip>;
@@ -372,7 +371,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) :
                             <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
                                 <button className={"antimodeMenu-button"} key="float"
-                                    style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                                    style={{ backgroundColor: this.props.docView.layoutDoc.z ? "121212" : undefined, borderRight: "1px solid gray" }}
                                     onClick={() => DocumentView.FloatDoc(this.props.docView)}>
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
@@ -451,10 +450,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
 
     private _palette = ["#D0021B", "#F5A623", "#F8E71C", "#8B572A", "#7ED321", "#417505", "#9013FE", "#4A90E2", "#50E3C2", "#B8E986", "#000000", "#4A4A4A", "#9B9B9B", "#FFFFFF", ""];
     private _width = ["1", "5", "10", "100"];
-    // private _draw = ["⎯", "→", "↔︎", "∿", "↝", "↭", "ロ", "O", "∆"];
-    // private _head = ["", "", "arrow", "", "", "arrow", "", "", ""];
-    // private _end = ["", "arrow", "arrow", "", "arrow", "arrow", "", "", ""];
-    // private _shape = ["line", "line", "line", "", "", "", "rectangle", "circle", "triangle"];
     private _dotsize = [10, 20, 30, 40];
     private _draw = ["∿", "⎯", "→", "↔︎", "ロ", "O"];
     private _head = ["", "", "", "arrow", "", ""];
@@ -524,12 +519,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         });
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
-                <Tooltip title={<div className="dash-tooltip" key={icon}> {this._title[i]}</div>} placement="bottom">
+                <Tooltip key={icon} title={<div className="dash-tooltip">{this._title[i]}</div>} placement="bottom">
                     <button className="antimodeMenu-button" onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
                         style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
-                        {/* {this._draw[i]} */}
                         <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
-
                     </button>
                 </Tooltip>)}
         </div>;
@@ -594,53 +587,55 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     render() {
-        return !this.props.docView.layoutDoc ? (null) : <div className="collectionFreeFormMenu-cont">
-            {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) : <Tooltip title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
-                <div key="map" className="backKeyframe" onClick={this.miniMap}>
-                    <FontAwesomeIcon icon={"map"} size={"lg"} />
-                </div>
-            </Tooltip>
-            }
-            {!!!this.isText ? <Tooltip title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
-                <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
-                    <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                </div>
-            </Tooltip> : null}
-            {!!!this.isText ? <Tooltip title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
-                <div key="num" className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
-                    onClick={action(() => this.document.editing = !this.document.editing)} >
-                    {NumCast(this.document.currentFrame)}
-                </div>
-            </Tooltip> : null}
-            {!!!this.isText ? <Tooltip title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
-                <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
-                    <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                </div>
-            </Tooltip> : null}
+        return !this.props.docView.layoutDoc ? (null) :
+            <div className="collectionFreeFormMenu-cont">
+                {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) :
+                    <Tooltip key="map" title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
+                        <div className="backKeyframe" onClick={this.miniMap}>
+                            <FontAwesomeIcon icon={"map"} size={"lg"} />
+                        </div>
+                    </Tooltip>
+                }
+                {!this.isText ? <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
+                    <div className="backKeyframe" onClick={this.prevKeyframe}>
+                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                    </div>
+                </Tooltip> : null}
+                {!this.isText ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
+                    <div className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
+                        onClick={action(() => this.document.editing = !this.document.editing)} >
+                        {NumCast(this.document.currentFrame)}
+                    </div>
+                </Tooltip> : null}
+                {!this.isText ? <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
+                    <div className="fwdKeyframe" onClick={this.nextKeyframe}>
+                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                    </div>
+                </Tooltip> : null}
 
-            {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText ? (null) :
-                <Tooltip title={<div className="dash-tooltip">Use Hypothesis</div>} placement="bottom">
-                    <button className={"antimodeMenu-button"} key="hypothesis"
-                        style={{
-                            backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
-                            borderRight: "1px solid gray"
-                        }}
-                        onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
-                        <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
-                    </button>
-                </Tooltip>
-            }
-            {(!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating) && !this.isText ?
-                <>
-                    {this.drawButtons}
-                    {this.widthPicker}
-                    {this.colorPicker}
-                    {this.fillPicker}
-                </> :
-                (null)
-            }
-            {this.isText ? <RichTextMenu key="rich" /> : null}
-        </div>;
+                {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText ? (null) :
+                    <Tooltip key="hypothesis" title={<div className="dash-tooltip">Use Hypothesis</div>} placement="bottom">
+                        <button className={"antimodeMenu-button"} key="hypothesis"
+                            style={{
+                                backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
+                                borderRight: "1px solid gray"
+                            }}
+                            onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
+                            <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
+                        </button>
+                    </Tooltip>
+                }
+                {(!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating) && !this.isText ?
+                    <>
+                        {this.drawButtons}
+                        {this.widthPicker}
+                        {this.colorPicker}
+                        {this.fillPicker}
+                    </> :
+                    (null)
+                }
+                {this.isText ? <RichTextMenu key="rich" /> : null}
+            </div>;
     }
 }
 @observer

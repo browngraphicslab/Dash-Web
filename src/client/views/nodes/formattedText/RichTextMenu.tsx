@@ -800,7 +800,9 @@ export default class RichTextMenu extends AntimodeMenu {
         const link = this.currentLink ? this.currentLink : "";
 
         const button = <Tooltip title={<div className="dash-tooltip">set hyperlink</div>} placement="bottom">
-            <div style={{ marginTop: 8 }}><FontAwesomeIcon icon="link" size="lg" /> </div>
+            <button className="antimodeMenu-button color-preview-button">
+                <FontAwesomeIcon icon="link" size="lg" />
+            </button>
         </Tooltip>;
 
         const dropdownContent =
@@ -1056,10 +1058,10 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
     render() {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
-                <button className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
+                <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
                     {this.props.button}
-                    <div style={{ marginTop: this.props.link ? "4.5" : "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
-                </button>
+                    <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
+                </div>
                 {this.showDropdown ? this.props.dropdownContent : (null)}
             </div>
         );
