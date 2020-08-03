@@ -48,6 +48,8 @@ export class CurrentUserUtils {
     @observable public static closedStack: Doc | undefined;
     @observable public static searchStack: Doc | undefined;
 
+    @observable public static propertiesWidth: number = 0;
+
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
         if (doc["template-button-query"] === undefined) {
@@ -938,6 +940,8 @@ export class CurrentUserUtils {
         doc.activeDash = StrCast(doc.activeDash, "0");
         doc.fontSize = StrCast(doc.fontSize, "12pt");
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
+        doc.fontColor = StrCast(doc.fontColor, "black");
+        doc.fontHighlight = StrCast(doc.fontHighlight, "");
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);

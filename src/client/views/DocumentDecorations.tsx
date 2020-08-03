@@ -26,6 +26,7 @@ import { Tooltip } from '@material-ui/core';
 import { GetEffectiveAcl } from '../../fields/util';
 import { DocumentIcon } from './nodes/DocumentIcon';
 import { render } from 'react-dom';
+import { createLessThan } from 'typescript';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -156,8 +157,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length) {
-                const next = Array.from(child.children).find(c => typeof (c.className) !== "string");
-                if (typeof (next?.className) === "string" && next?.className.includes("documentView-node")) break;
+                const next = Array.from(child.children).find(c => typeof (c.className) === "string");
+                if (next?.className.includes("documentView-node")) break;
                 if (next) child = next;
                 else break;
             }
@@ -618,9 +619,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 </div>}
             </> :
             <>
-                {/* {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="bars" />
-                </div></Tooltip>} */}
+                {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
+                    <FontAwesomeIcon size="lg" icon="cog" />
+                </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
                     <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
                 </div>
