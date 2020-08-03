@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocCastAsync, WidthSym } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
@@ -62,6 +62,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
         this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
     }
+
+
 
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
@@ -275,13 +277,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 console.log(collectionDocView);
                 collectionDocView.props.addDocTab(srcContext, "inPlace");
             }
-        } else if (srcContext) {
-            console.log("Case 2: srcContext - not open and collection containing this document exists, so open collection that contains it and then await zooming in on document");
-            this.props.addDocTab(srcContext, "onRight");
-        } else if (!srcContext) {
-            console.log("Case 3: !srcContext - no collection containing this document, therefore open document itself on right");
-            this.props.addDocTab(targetDoc, "onRight");
         }
+        // else if (srcContext) {
+        //     console.log("Case 2: srcContext - not open and collection containing this document exists, so open collection that contains it and then await zooming in on document");
+        //     this.props.addDocTab(srcContext, "onRight");
+        // } else if (!srcContext) {
+        //     console.log("Case 3: !srcContext - no collection containing this document, therefore open document itself on right");
+        //     this.props.addDocTab(targetDoc, "onRight");
+        // }
         this.updateCurrentPresentation();
         const docToJump = curDoc;
         const willZoom = false;
@@ -484,7 +487,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get listOfSelected() {
         const list = this._selectedArray.map((doc: Doc, index: any) => {
             const activeItem = Cast(doc, Doc, null);
-            const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+            const targetDoc = Cast(activeItem.presentationTargetDoc!, Doc, null);
             return (
                 <div className="selectedList-items">{index + 1}.  {targetDoc.title}</div>
             );
@@ -497,32 +500,28 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     selectElement = (doc: Doc) => {
         // this._selectedArray = [];
         this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
-        const view = DocumentManager.Instance.getDocumentView(doc);
-        view && SelectionManager.SelectDoc(view, false);
         // this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
         // console.log(this._selectedArray);
     }
 
     //Command click
     @action
-    multiSelect = (doc: Doc, ref: HTMLElement) => {
+    multiSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
         this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
         this._eleArray.push(ref);
-        const view = DocumentManager.Instance.getDocumentView(doc);
-        view && SelectionManager.SelectDoc(view, true);
+        this._dragArray.push(drag);
     }
 
     //Shift click
     @action
-    shiftSelect = (doc: Doc, ref: HTMLElement) => {
+    shiftSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
         this._selectedArray = [];
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         if (activeItem) {
             for (let i = Math.min(this.itemIndex, this.childDocs.indexOf(doc)); i <= Math.max(this.itemIndex, this.childDocs.indexOf(doc)); i++) {
                 this._selectedArray.push(this.childDocs[i]);
                 this._eleArray.push(ref);
-                const view = DocumentManager.Instance.getDocumentView(doc);
-                view && SelectionManager.SelectDoc(view, true);
+                this._dragArray.push(drag);
             }
         }
     }
@@ -788,25 +787,31 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className={`presBox-dropdownOption ${activeItem.presMovement === 'Switch' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('switch')}>Switch</div>
                             </div>
                         </div>
+                        <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === 'Pan' || activeItem.presMovement === 'Zoom' ? "inline-flex" : "none" }}>
+                            <div className="presBox-subheading" >Transition Speed</div>
+                            <div className="ribbon-property"> {transitionSpeed} s </div>
+                        </div>
                         <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed} className={`toolbar-slider ${activeItem.presMovement === 'Pan' || activeItem.presMovement === 'Zoom' ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
                         <div className={`slider-headers ${activeItem.presMovement === 'Pan' || activeItem.presMovement === 'Zoom' ? "" : "none"}`}>
-                            <div className={`slider-value ${activeItem.presZoomButton || activeItem.presNavButton ? "" : "none"}`} style={{ left: transitionThumbLocation + '%' }}>{transitionSpeed}s</div>
-                            <div className="slider-text">Slow</div>
-                            <div className="slider-text"></div>
                             <div className="slider-text">Fast</div>
+                            <div className="slider-text">Medium</div>
+                            <div className="slider-text">Slow</div>
                         </div>
                     </div>
                     <div className="ribbon-box">
-                        Visibility
+                        Visibility {"&"} Duration
                         <div className="ribbon-doubleButton">
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton}>HB</div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton}>HA</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide before presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideTillShownButton ? "active" : ""}`} onClick={() => activeItem.presHideTillShownButton = !activeItem.presHideTillShownButton}>Hide before</div></Tooltip>
+                            <Tooltip title={<><div className="dash-tooltip">{"Hide after presented"}</div></>}><div className={`ribbon-button ${activeItem.presHideAfterButton ? "active" : ""}`} onClick={() => activeItem.presHideAfterButton = !activeItem.presHideAfterButton}>Hide after</div></Tooltip>
+                        </div>
+                        <div className="ribbon-doubleButton" >
+                            <div className="presBox-subheading">Slide Duration</div>
+                            <div className="ribbon-property"> {duration} s </div>
                         </div>
                         <input type="range" step="0.1" min="0.1" max="10" value={duration} style={{ transform: 'rotate(0deg)' }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
                         <div className={"slider-headers"}>
-                            <div className={"slider-value"} style={{ left: durationThumbLocation + '%' }}>{duration}s</div>
                             <div className="slider-text">Short</div>
-                            <div className="slider-text"></div>
+                            <div className="slider-text">Medium</div>
                             <div className="slider-text">Long</div>
                         </div>
                     </div>
@@ -826,19 +831,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Roll'}>Roll</div>
                             </div>
                         </div>
-                        <div className="effectDirection" style={{ display: effect === 'None' ? "none" : "grid" }}>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'top'}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'bottom'}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
-                            <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%" }} onClick={() => targetDoc.presEffectDirection = false}></div></Tooltip>
+                        <div className="presBox-subheading" style={{ display: effect === 'None' ? "none" : "block" }}>Effect direction</div>
+                        <div className="presBox-reactiveGrid" style={{ display: effect === 'None' ? "none" : "grid", width: 40 }}>
+                            <div className="effectDirection" style={{ display: "grid", width: 40 }}>
+                                <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
+                                <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>
+                                <Tooltip title={<><div className="dash-tooltip">{"Enter from top"}</div></>}><div style={{ gridColumn: 2, gridRow: 1, justifySelf: 'center', color: targetDoc.presEffectDirection === "top" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'top'}><FontAwesomeIcon icon={"angle-down"} /></div></Tooltip>
+                                <Tooltip title={<><div className="dash-tooltip">{"Enter from bottom"}</div></>}><div style={{ gridColumn: 2, gridRow: 3, justifySelf: 'center', color: targetDoc.presEffectDirection === "bottom" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'bottom'}><FontAwesomeIcon icon={"angle-up"} /></div></Tooltip>
+                                <Tooltip title={<><div className="dash-tooltip">{"Enter from center"}</div></>}><div style={{ gridColumn: 2, gridRow: 2, width: 10, height: 10, alignSelf: 'center', justifySelf: 'center', border: targetDoc.presEffectDirection ? "solid 2px black" : "solid 2px #5a9edd", borderRadius: "100%" }} onClick={() => targetDoc.presEffectDirection = false}></div></Tooltip>
+                            </div>
+                            <div className="ribbon-property">
+                                {this.effectDirection}
+                            </div>
                         </div>
-                    </div>
-                    <div className="ribbon-final-box">
-                        {this._selectedArray.length} selected
-                        <div className="selectedList">
-                            {this.listOfSelected}
-                        </div>
+
                     </div>
                     <div className="ribbon-final-box">
                         <div className={this._selectedArray.length === 0 ? "ribbon-final-button" : "ribbon-final-button-hidden"} onClick={() => this.applyTo(this._selectedArray)}>
@@ -851,6 +857,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </div>
             );
         }
+    }
+
+    @computed get effectDirection(): string {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        let effect = '';
+        switch (targetDoc.presEffectDirection) {
+            case 'left': effect = "Enter from left"; break;
+            case 'right': effect = "Enter from right"; break;
+            case 'top': effect = "Enter from top"; break;
+            case 'bottom': effect = "Enter from bottom"; break;
+            default: effect = "Enter from center"; break;
+        }
+        return effect;
     }
 
     applyTo = (array: Doc[]) => {
@@ -870,67 +890,201 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     public inputRef = React.createRef<HTMLInputElement>();
 
 
-    createNewSlide = (title: string, type: string) => {
-        let doc = null;
-        if (type === "text") {
-            doc = Docs.Create.TextDocument("", { _nativeWidth: 400, _width: 400, title: title });
-            const data = Cast(this.rootDoc.data, listSpec(Doc));
-            if (data) data.push(doc);
-        } else {
-            doc = Docs.Create.FreeformDocument([], { _nativeWidth: 400, _width: 400, title: title });
-            const data = Cast(this.rootDoc.data, listSpec(Doc));
-            if (data) data.push(doc);
+
+    @computed get optionsDropdown() {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        if (activeItem && targetDoc) {
+            return (
+                <div>
+                    <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                        <div className="ribbon-box">
+                            {this.stringType} options
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.VID ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Child documents</div>
+                                <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "flex" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
+                            </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div>
+                            </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
+                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
+                            </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.PDF ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll progressivize</div>
+                                <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
+                            </div>
+                        </div>
+                    </div>
+                </div >
+            );
         }
     }
 
-    @computed get newDocumentDropdown() {
-        let type = "";
-        let title = "";
+    @computed get newDocumentToolbarDropdown() {
         return (
             <div>
-                <div className={`presBox-ribbon ${this.newDocumentTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                <div className={'presBox-toolbar-dropdown'} style={{ display: this.newDocumentTools && this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                    <div className="layout-container" style={{ height: this.openLayouts ? 'max-content' : '75px' }}>
+                        <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'blank' })} />
+                        <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'title' })}>
+                            <div className="title">Title</div>
+                            <div className="subtitle">Subtitle</div>
+                        </div>
+                        <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'header' })}>
+                            <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
+                        </div>
+                        <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'content' })}>
+                            <div className="title" style={{ alignSelf: 'center' }}>Title</div>
+                            <div className="content">Text goes here</div>
+                        </div>
+                        <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'twoColumns' })}>
+                            <div className="title" style={{ alignSelf: 'center', gridColumn: '1/3' }}>Title</div>
+                            <div className="content" style={{ gridColumn: 1, gridRow: 2 }}>Column one text</div>
+                            <div className="content" style={{ gridColumn: 2, gridRow: 2 }}>Column two text</div>
+                        </div>
+                    </div>
+                    <div className="open-layout" onClick={() => runInAction(() => { this.openLayouts = !this.openLayouts })}>
+                        <FontAwesomeIcon style={{ transition: 'all 0.3s', transform: this.openLayouts ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"caret-down"} size={"lg"} />
+                    </div>
+                </div>
+            </div >
+        );
+    }
+
+    @observable openLayouts: boolean = false;
+    @observable addFreeform: boolean = true;
+    @observable layout: string = "";
+    @observable title: string = "";
+
+    @computed get newDocumentDropdown() {
+        return (
+            <div>
+                <div className={"presBox-ribbon"} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                     <div className="ribbon-box">
                         Slide Title: <br></br>
                         {/* <div className="dropdown-textInput"> */}
                         <input className="ribbon-textInput" placeholder="..." type="text" name="fname" ref={this.inputRef} onChange={(e) => {
                             e.stopPropagation();
-                            title = e.target.value;
+                            runInAction(() => { (this.title = e.target.value) });
                         }}></input>
                         {/* </div> */}
                     </div>
                     <div className="ribbon-box">
                         Choose type:
-                        <div style={{ display: 'block', alignSelf: 'center' }}>
-                            <div title="Text" className={'ribbon-button'} style={{ background: type === 'text' ? "#000000" : "#f6f6f6" }} onClick={action(() => { type = "text"; })}>Text</div>
-                            <div title="Freeform" className={'ribbon-button'} style={{ background: type === 'freeform' ? "#000000" : "#f6f6f6" }} onClick={action(() => { type = "freeform"; })}>Freeform</div>
+                        <div className="ribbon-doubleButton">
+                            <div title="Text" className={'ribbon-button'} style={{ background: this.addFreeform ? "" : "#aedef8" }} onClick={() => runInAction(() => { this.addFreeform = !this.addFreeform })}>Text</div>
+                            <div title="Freeform" className={'ribbon-button'} style={{ background: this.addFreeform ? "#aedef8" : "" }} onClick={() => runInAction(() => { this.addFreeform = !this.addFreeform })}>Freeform</div>
                         </div>
                     </div>
-                    <div className="ribbon-box">
+                    <div className="ribbon-box" style={{ display: this.addFreeform ? "grid" : "none" }}>
                         Preset layouts:
-                        <div className="layout-container">
-                            <div className="layout">
-                                <div className="header">HEADER</div>
-                                <div className="subheader">Content goes here</div>
+                        <div className="layout-container" style={{ height: this.openLayouts ? 'max-content' : '75px' }}>
+                            <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'blank' })} />
+                            <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'title' })}>
+                                <div className="title">Title</div>
+                                <div className="subtitle">Subtitle</div>
                             </div>
-                            <div className="layout">
-                                <div className="header" style={{ gridColumn: 1 / 2, gridRow: 1 }}>HEADER</div>
-                                <div className="subheader" style={{ gridColumn: 1, gridRow: 2 }}>Some content</div>
-                                <div className="subheader" style={{ gridColumn: 2, gridRow: 2 }}>Some more content</div>
+                            <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'header' })}>
+                                <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
                             </div>
-                            <div className="layout">
-                                <div className="header">HEADER</div>
-                                <div className="subheader">Content goes here</div>
+                            <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'content' })}>
+                                <div className="title" style={{ alignSelf: 'center' }}>Title</div>
+                                <div className="content">Text goes here</div>
                             </div>
+                            <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'twoColumns' })}>
+                                <div className="title" style={{ alignSelf: 'center', gridColumn: '1/3' }}>Title</div>
+                                <div className="content" style={{ gridColumn: 1, gridRow: 2 }}>Column one text</div>
+                                <div className="content" style={{ gridColumn: 2, gridRow: 2 }}>Column two text</div>
+                            </div>
+                        </div>
+                        <div className="open-layout" onClick={() => runInAction(() => { this.openLayouts = !this.openLayouts })}>
+                            <FontAwesomeIcon style={{ transition: 'all 0.3s', transform: this.openLayouts ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"caret-down"} size={"lg"} />
                         </div>
                     </div>
                     <div className="ribbon-final-box">
-                        <div className="ribbon-final-button" onClick={() => this.createNewSlide(title, type)}>
+                        <div className={this.title !== "" && (this.addFreeform && this.layout !== "" || !this.addFreeform) ? "ribbon-final-button-hidden" : "ribbon-final-button"} onClick={() => this.createNewSlide(this.layout, this.title, this.addFreeform)}>
                             Create New Slide
                         </div>
                     </div>
                 </div>
             </div >
         );
+    }
+
+    createNewSlide = (layout?: string, title?: string, freeform?: boolean) => {
+        console.log("whats going on?");
+        let doc = undefined;
+        if (freeform && layout) doc = this.createTemplate(layout, title);
+        if (!freeform) doc = Docs.Create.TextDocument("", { _nativeWidth: 400, _width: 225, title: title });
+        const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
+        const data = Cast(presCollection.data, listSpec(Doc));
+        const presData = Cast(this.rootDoc.data, listSpec(Doc));
+        console.log(data);
+        console.log(doc);
+        if (data && doc && presData) {
+            console.log("data and doc");
+            data.push(doc);
+            DockedFrameRenderer.PinDoc(doc, false);
+        }
+    }
+
+    createTemplate = (layout: string, input?: string) => {
+        let doc = undefined;
+        const title = Docs.Create.TextDocument("Click to change title", {
+            title: "Slide title", _width: 380, _height: 60, x: 10, y: 58, _fontSize: "24pt"
+        });
+        const subtitle = Docs.Create.TextDocument("Click to change subtitle", {
+            title: "Slide subtitle", _width: 380, _height: 50, x: 10, y: 118, _fontSize: "16pt"
+        });
+        const header = Docs.Create.TextDocument("Click to change header", {
+            title: "Slide header", _width: 380, _height: 65, x: 10, y: 80, _fontSize: "20pt"
+        });
+        const contentTitle = Docs.Create.TextDocument("Click to change title", {
+            title: "Slide title", _width: 380, _height: 60, x: 10, y: 10, _fontSize: "24pt"
+        });
+        const content = Docs.Create.TextDocument("Click to change texte", {
+            title: "Slide text", _width: 380, _height: 145, x: 10, y: 70, _fontSize: "14pt"
+        });
+        const content1 = Docs.Create.TextDocument("Click to change text", {
+            title: "Column 1", _width: 185, _height: 140, x: 10, y: 80, _fontSize: "14pt"
+        });
+        const content2 = Docs.Create.TextDocument("Click to change text", {
+            title: "Column 2", _width: 185, _height: 140, x: 205, y: 80, _fontSize: "14pt"
+        });
+        switch (layout) {
+            case 'blank':
+                doc = Docs.Create.FreeformDocument([], {
+                    title: input ? input : "Blank slide", _width: 400, _height: 225, _fitToBox: true
+                });
+                break;
+            case 'title':
+                doc = Docs.Create.FreeformDocument([title, subtitle], {
+                    title: input ? input : "Title slide", _width: 400, _height: 225, _fitToBox: true
+                });
+                break;
+            case 'header':
+                doc = Docs.Create.FreeformDocument([header], {
+                    title: input ? input : "Section header", _width: 400, _height: 225, _fitToBox: true
+                });
+                break;
+            case 'content':
+                doc = Docs.Create.FreeformDocument([contentTitle, content], {
+                    title: input ? input : "Title and content", _width: 400, _height: 225, _fitToBox: true
+                });
+                break;
+            case 'twoColumns':
+                doc = Docs.Create.FreeformDocument([contentTitle, content1, content2], {
+                    title: input ? input : "Title and two columns", _width: 400, _height: 225, _fitToBox: true
+                });
+                break;
+            default:
+                break;
+        }
+        return doc;
     }
 
     @computed get playDropdown() {
@@ -1021,6 +1175,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
+    @computed get stringType(): string {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        let type: string = '';
+        switch (targetDoc.type) {
+            case DocumentType.PDF: type = "PDF"; break;
+            case DocumentType.RTF: type = "Text node"; break;
+            case DocumentType.COL: type = "Collection"; break;
+            case DocumentType.AUDIO: type = "Audio"; break;
+            case DocumentType.VID: type = "Video"; break;
+            default: type = "Other node"; break;
+        }
+        return type;
+    }
+
     @computed get progressivizeDropdown() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
@@ -1030,10 +1199,27 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div>
                     <div className={`presBox-ribbon ${this.progressivizeTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
-                            {targetDoc.type} selected
-                            <div className="selectedList" style={{ height: 'max-content' }}>
-                                <div className="selectedList-items">{targetDoc.title}</div>
+                            {this.stringType} selected
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Child documents</div>
+                                <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "flex" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
                             </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div>
+                            </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
+                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
+                            </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.PDF ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll progressivize</div>
+                                <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
+                            </div>
+                        </div>
+                        <div className="ribbon-final-box" style={{ display: activeItem.zoomProgressivize || activeItem.scrollProgressivize || activeItem.presProgressivize || activeItem.textProgressivize ? "inline-flex" : "none" }}>
+                            Frames
                             <div className="ribbon-doubleButton">
                                 <div className="ribbon-frameSelector">
                                     <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc); }}>
@@ -1047,27 +1233,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                                     </div>
                                 </div>
-                                <Tooltip title={<><div className="dash-tooltip">{"Last frame"}</div></>}><div style={{ fontWeight: 600, marginTop: 0, marginLeft: 3 }} className="ribbon-button">{NumCast(targetDoc.lastFrame)}</div></Tooltip>
+                                <Tooltip title={<><div className="dash-tooltip">{"Last frame"}</div></>}><div className="ribbon-property">{NumCast(targetDoc.lastFrame)}</div></Tooltip>
                             </div>
-                        </div>
-                        <div className="ribbon-final-box">
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Child documents</div>
-                                <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "flex" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
-                            </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL || targetDoc.type === "image" ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
-                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
-                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div>
-                            </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
-                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
-                            </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === "pdf" ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll progressivize</div>
-                                <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
-                            </div>
+                            <div className="ribbon-button" style={{ height: 20, backgroundColor: "#5a9edd" }} onClick={() => console.log("play frames")}>Play</div>
                         </div>
                     </div>
                 </div>
@@ -1556,7 +1724,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     </Tooltip>
                     {/* <div className="toolbar-button"><FontAwesomeIcon title={"Portal"} icon={"eye"} onClick={this.toolbarTest} /></div> */}
                     <div className="toolbar-divider" />
-                    <Tooltip title={<><div className="dash-tooltip">{"Transitions"}</div></>}><div className={`toolbar-button ${this.transitionTools ? "active" : ""}`} onClick={this.toggleTransitionTools}>
+                    {/* <Tooltip title={<><div className="dash-tooltip">{"Transitions"}</div></>}><div className={`toolbar-button ${this.transitionTools ? "active" : ""}`} onClick={this.toggleTransitionTools}>
                         <FontAwesomeIcon icon={"rocket"} />
                         <div style={{ display: this.props.PanelWidth() > 430 ? "block" : "none" }} className="toolbar-buttonText">&nbsp; Transitions</div>
                         <FontAwesomeIcon className={`dropdown ${this.transitionTools ? "active" : ""}`} icon={"angle-down"} />
@@ -1567,7 +1735,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <div style={{ display: this.props.PanelWidth() > 430 ? "block" : "none" }} className="toolbar-buttonText">&nbsp; Progressivize</div>
                         <FontAwesomeIcon className={`dropdown ${this.progressivizeTools ? "active" : ""}`} icon={"angle-down"} />
                     </div></Tooltip>
-                    <div className="toolbar-divider" />
+                    <div className="toolbar-divider" /> */}
                     <div className="toolbar-button" style={{ position: 'absolute', right: 23, transform: 'rotate(45deg)', fontSize: 16 }}>
                         <FontAwesomeIcon className={"toolbar-thumbtack"} icon={"thumbtack"} />
                     </div>
@@ -1704,10 +1872,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </div>
             </div>
             <div id="toolbarContainer" className={`presBox-toolbar ${this.layoutDoc.presStatus === "edit" ? "active" : ""}`}> {this.toolbar} </div>
-            {this.newDocumentDropdown}
+            {this.newDocumentToolbarDropdown}
+            {/* {this.newDocumentDropdown}
             {this.moreInfoDropdown}
             {this.transitionDropdown}
-            {this.progressivizeDropdown}
+            {this.progressivizeDropdown} */}
             <div className="presBox-listCont">
                 {/* ref={this.createPresDropTarget}> */}
                 {mode !== CollectionViewType.Invalid ?

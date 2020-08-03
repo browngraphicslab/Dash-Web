@@ -231,6 +231,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         const element = document.elementFromPoint(e.clientX, e.clientY)?.parentElement;
@@ -251,7 +252,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         // let value = this.getValue(this._heading);
         // value = typeof value === "string" ? `"${value}"` : value;
         if (activeItem) {
-            DragManager.StartDocumentDrag(PresBox.Instance._eleArray.map(ele => ele), dragData, e.clientX, e.clientY);
+            DragManager.StartDocumentDrag(PresBox.Instance._dragArray.map(ele => ele), dragData, e.clientX, e.clientY);
             activeItem.dragging = true;
             return true;
         }
@@ -269,15 +270,19 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 ref={this._itemRef}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
                     if (e.ctrlKey || e.metaKey) {
-                        PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!);
+                        PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
                         console.log("cmmd click");
                     } else if (e.shiftKey) {
-                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!);
+                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, , this._dragRef.current!);
                     } else {
-                        this.props.focus(this.rootDoc); e.stopPropagation();
+                        this.props.focus(this.rootDoc);
                         PresBox.Instance._eleArray = [];
                         PresBox.Instance._eleArray.push(this._itemRef.current!);
+                        PresBox.Instance._dragArray = [];
+                        PresBox.Instance._dragArray.push(this._dragRef.current!);
                         console.log("normal click");
                     }
                 }}
@@ -290,7 +295,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onPointerDown={this.headerDown}
             >
                 <>
-                    <div className="presElementBox-number">
+                    <div ref={this._dragRef} className="presElementBox-number">
                         {`${this.indexInPres + 1}.`}
                     </div>
                     <div className="presElementBox-name">
