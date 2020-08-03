@@ -276,7 +276,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
                         console.log("cmmd click");
                     } else if (e.shiftKey) {
-                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, , this._dragRef.current!);
+                        PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
                     } else {
                         this.props.focus(this.rootDoc);
                         PresBox.Instance._eleArray = [];
