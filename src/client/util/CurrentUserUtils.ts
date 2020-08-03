@@ -675,7 +675,7 @@ export class CurrentUserUtils {
 
         if (doc["sidebar-tools"] === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "sidebar-tools", _width: 500, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true
+                title: "sidebar-tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true
             })) as any as Doc;
 
             doc["sidebar-tools"] = toolsStack;
