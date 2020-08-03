@@ -208,12 +208,12 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-        process.stdout.write(`…`)
+        process.stdout.write(`.`);
         Database.Instance.getDocument(id, callback);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
-        console.log(green(`> ${ids.length} fields`));
+        process.stdout.write(`${ids.length}…`);
         Database.Instance.getDocuments(ids, callback);
     }
 
