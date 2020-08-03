@@ -77,8 +77,8 @@ export default class CollectionMenu extends AntimodeMenu {
     }
 
     render() {
-        const button = <Tooltip title={<div className="dash-tooltip">Pin Menu</div>} placement="bottom">
-            <button className="antimodeMenu-button" key="pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
+        const button = <Tooltip title={<div className="dash-tooltip">Pin Menu</div>} key="pin menu" placement="bottom">
+            <button className="antimodeMenu-button" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
                 <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
             </button>
         </Tooltip>;
@@ -86,7 +86,7 @@ export default class CollectionMenu extends AntimodeMenu {
         const propIcon = CurrentUserUtils.propertiesWidth > 0 ? "angle-double-right" : "angle-double-left";
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
-        const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} placement="bottom">
+        const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
             <button className="antimodeMenu-button" key="properties"
                 onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
@@ -524,8 +524,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         });
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
-                <Tooltip title={<div className="dash-tooltip">{this._title[i]}</div>} placement="bottom">
-                    <button className="antimodeMenu-button" key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
+                <Tooltip title={<div className="dash-tooltip" key={icon}> {this._title[i]}</div>} placement="bottom">
+                    <button className="antimodeMenu-button" onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
                         style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
                         {/* {this._draw[i]} */}
                         <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
