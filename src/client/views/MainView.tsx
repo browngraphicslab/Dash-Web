@@ -79,9 +79,8 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
-    @observable public sidebarContent: any = this.userDoc?.["tabs-panelContainer"];
+    @observable public sidebarContent: any = this.userDoc?.["sidebar"];
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;
@@ -316,7 +315,7 @@ export class MainView extends React.Component {
         if (this.panelContent === doc?.title) return "lightgrey";
         if (this.darkScheme) {
             switch (doc?.type) {
-                case DocumentType.MENUICON: return "white";
+                case DocumentType.FONTICON: return "white";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -326,7 +325,7 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc?.type) {
-                case DocumentType.MENUICON: return "black";
+                case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
@@ -389,18 +388,8 @@ export class MainView extends React.Component {
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
-                this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
-                if (this.flyoutWidth === 0) {
-                    CurrentUserUtils.selectedPanel = "none";
-                }
                 return false;
-            }), emptyFunction, action(() => {
-                this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
-                this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
-                if (this.flyoutWidth === 0) {
-                    CurrentUserUtils.selectedPanel = "none";
-                }
-            }));
+            }), emptyFunction, action(() => this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0));
         }
     }
 
@@ -456,7 +445,7 @@ export class MainView extends React.Component {
     }
 
     @computed get menuPanel() {
-
+        setTimeout(() => DocListCast((Doc.UserDoc().menuStack as Doc).data).forEach(action(doc => { doc.color = "white"; doc._backgroundColor = ""; })), 0);
         return <div className="mainView-menuPanel">
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
@@ -470,7 +459,7 @@ export class MainView extends React.Component {
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
                 onClick={undefined}
-                ScreenToLocalTransform={this.mainContainerXf}
+                ScreenToLocalTransform={this.sidebarScreenToLocal}
                 ContentScaling={returnOne}
                 PanelWidth={() => 60}
                 PanelHeight={this.getContentsHeight}
@@ -492,37 +481,38 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
-        CurrentUserUtils.selectedPanel = "none";
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }
 
     get groupManager() { return GroupManager.Instance; }
 
+    _lastButton: Doc | undefined;
     @action @undoBatch
-    selectMenu = (str: string) => {
+    selectMenu = (button: Doc, str: string) => {
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
         if (this.panelContent === str && this.flyoutWidth !== 0) {
-            CurrentUserUtils.selectedPanel = "none";
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
-            this.panelContent = str;
-            CurrentUserUtils.selectedPanel = str;
-            switch (this.panelContent) {
-                case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
-                case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
-                case "Catalog": this.sidebarContent.proto = CurrentUserUtils.catalogStack; break;
-                case "Archive": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
-                case "Settings": this.sidebarContent.proto = SettingsManager.Instance.open(); break;
-                case "Sharing": this.sidebarContent.proto = GroupManager.Instance.open(); break;
+            let panelDoc: Doc | undefined;
+            switch (this.panelContent = str) {
+                case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
+                case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
+                case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
+                case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
+                case "Settings": SettingsManager.Instance.open(); break;
+                case "Sharing": GroupManager.Instance.open(); break;
+                case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
-            if (str === "Settings" || str === "Sharing" || str === "Help" || str === "Import") {
-                CurrentUserUtils.selectedPanel = "none";
-                this.panelContent = "none";
-                this.flyoutWidth = 0;
-            } else {
+            this.sidebarContent.proto = panelDoc;
+            if (panelDoc) {
                 MainView.expandFlyout();
-            }
+                button._backgroundColor = "lightgrey";
+                button.color = "black";
+                this._lastButton = button;
+            } else this.flyoutWidth = 0;
         }
         return true;
     }
@@ -613,7 +603,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
-        MainView.Instance.sidebarButtonsDoc._columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
+
     });
 
     @computed get expandButton() {
@@ -642,6 +632,7 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
+                    backgroundColor={this.defaultBackgroundColors}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}

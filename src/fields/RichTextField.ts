@@ -20,7 +20,7 @@ export class RichTextField extends ObjectField {
     }
 
     Empty() {
-        return !(this.Text || this.Data.toString().includes("dashField"));
+        return !(this.Text || this.Data.toString().includes("dashField") || this.Data.toString().includes("align"));
     }
 
     [Copy]() {

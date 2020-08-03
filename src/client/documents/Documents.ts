@@ -151,7 +151,7 @@ export interface DocumentOptions {
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
-    menuIcon?: boolean; // if the font icon box is in the menu
+    iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
