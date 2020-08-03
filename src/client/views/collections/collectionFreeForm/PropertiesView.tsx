@@ -711,12 +711,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @undoBatch @action
     changeDash = () => {
-        const dash = this.dashdStk;
-        if (dash === "2") {
-            this.dashdStk = "0";
-        } else {
-            this.dashdStk = "2";
-        }
+        this.dashdStk = this.dashdStk === "2" ? "0" : "2";
     }
 
     @computed get appearanceEditor() {
@@ -769,9 +764,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>
-                {this.openActions ? <div className="propertiesView-settings-content">
-                    <PropertiesButtons />
-                </div> : null}
+                {!this.openActions ? (null) :
+                    <div className="propertiesView-settings-content">
+                        <PropertiesButtons />
+                    </div>}
             </div>
             <div className="propertiesView-sharing">
                 <div className="propertiesView-sharing-title"
@@ -782,24 +778,27 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>
-                {this.openSharing ? <div className="propertiesView-sharing-content">
-                    {this.sharingTable}
-                </div> : null}
+                {!this.openSharing ? (null) :
+                    <div className="propertiesView-sharing-content">
+                        {this.sharingTable}
+                    </div>}
             </div>
 
-            {this.isInk ? <div className="propertiesView-appearance">
-                <div className="propertiesView-appearance-title"
-                    onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
-                    style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
-                    Appearance
-                    <div className="propertiesView-appearance-title-icon">
-                        <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
+            {!this.isInk ? (null) :
+                <div className="propertiesView-appearance">
+                    <div className="propertiesView-appearance-title"
+                        onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
+                        style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
+                        Appearance
+                        <div className="propertiesView-appearance-title-icon">
+                            <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
+                        </div>
                     </div>
-                </div>
-                {this.openAppearance ? <div className="propertiesView-appearance-content">
-                    {this.appearanceEditor}
-                </div> : null}
-            </div> : null}
+                    {!this.openAppearance ? (null) :
+                        <div className="propertiesView-appearance-content">
+                            {this.appearanceEditor}
+                        </div>}
+                </div>}
 
             {this.isInk ? <div className="propertiesView-transform">
                 <div className="propertiesView-transform-title"
@@ -830,18 +829,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {this.fieldsCheckbox}
                     <div className="propertiesView-fields-checkbox-text">Layout</div>
                 </div> : null}
-                {this.openFields ?
+                {!this.openFields ? (null) :
                     <div className="propertiesView-fields-content">
                         {novice ? this.noviceFields : this.expandedField}
-                    </div> : null}
+                    </div>}
             </div>
             <div className="propertiesView-layout">
                 <div className="propertiesView-layout-title"
                     onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}
                     style={{ backgroundColor: this.openLayout ? "black" : "" }}>
                     Layout
-                    <div className="propertiesView-layout-title-icon"
-                        onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
+                    <div className="propertiesView-layout-title-icon" onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
                         <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
                 </div>

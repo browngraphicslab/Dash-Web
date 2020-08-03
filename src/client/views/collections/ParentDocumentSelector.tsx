@@ -129,7 +129,7 @@ export class DockingViewButtonSelector extends React.Component<{ views: () => Do
                 this.props.views()[0]?.select(false);
             }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
-                <FontAwesomeIcon icon={"cog"} size={"sm"} />
+                <FontAwesomeIcon icon={"arrows-alt"} size={"sm"} />
             </Flyout>
         </span>;
     }
