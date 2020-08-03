@@ -92,7 +92,6 @@ export default class GroupManager extends React.Component<{}> {
                 const members: string[] = JSON.parse(StrCast(group.members));
                 if (members.includes(Doc.CurrentUserEmail)) this.currentUserGroups.push(StrCast(group.groupName));
             });
-
             setGroups(this.currentUserGroups);
         });
     }
@@ -322,6 +321,7 @@ export default class GroupManager extends React.Component<{}> {
                     className="group-input"
                     ref={this.inputRef}
                     onKeyDown={this.handleKeyDown}
+                    autoFocus
                     type="text"
                     placeholder="Group name"
                     onChange={action(() => this.buttonColour = this.inputRef.current?.value ? "black" : "#979797")} />

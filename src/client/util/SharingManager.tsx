@@ -1,7 +1,7 @@
 import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocListCastAsync, AclAdmin, DataSym, AclPrivate } from "../../fields/Doc";
+import { Doc, Opt, AclAdmin, AclPrivate, DocListCast } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { Cast, StrCast } from "../../fields/Types";
 import * as RequestPromise from "request-promise";
@@ -156,13 +156,11 @@ export default class SharingManager extends React.Component<{}> {
         target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
 
         // if documents have been shared, add the target to that list if it doesn't already exist, otherwise create a new list with the target
-        group.docsShared ? DocListCastAsync(group.docsShared).then(resolved => Doc.IndexOf(target, resolved!) === -1 && (group.docsShared as List<Doc>).push(target)) : group.docsShared = new List<Doc>([target]);
+        group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
 
         users.forEach(({ notificationDoc }) => {
-            DocListCastAsync(notificationDoc[storage]).then(resolved => {
-                if (permission !== SharingPermissions.None) Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target); // add the target to the notificationDoc if it hasn't already been added
-                else Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target); // remove the target from the list if it already exists
-            });
+            if (permission !== SharingPermissions.None) Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target); // add the target to the notificationDoc if it hasn't already been added
+            else Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target); // remove the target from the list if it already exists
         });
     }
 
@@ -174,13 +172,7 @@ export default class SharingManager extends React.Component<{}> {
     shareWithAddedMember = (group: Doc, emailId: string) => {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
-        if (group.docsShared) {
-            DocListCastAsync(group.docsShared).then(docsShared => {
-                docsShared?.forEach(doc => {
-                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc)); // add the doc if it isn't already in the list
-                });
-            });
-        }
+        if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
     }
 
     /**
@@ -192,10 +184,8 @@ export default class SharingManager extends React.Component<{}> {
         const user: ValidatedUser = this.users.find(({ user: { email } }) => email === emailId)!;
 
         if (group.docsShared) {
-            DocListCastAsync(group.docsShared).then(docsShared => {
-                docsShared?.forEach(doc => {
-                    DocListCastAsync(user.notificationDoc[storage]).then(resolved => Doc.IndexOf(doc, resolved!) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc)); // remove the doc only if it is in the list
-                });
+            DocListCast(group.docsShared).forEach(doc => {
+                Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(user.notificationDoc, storage, doc); // remove the doc only if it is in the list
             });
         }
     }
@@ -206,18 +196,15 @@ export default class SharingManager extends React.Component<{}> {
      */
     removeGroup = (group: Doc) => {
         if (group.docsShared) {
-            DocListCastAsync(group.docsShared).then(resolved => {
-                resolved?.forEach(doc => {
-                    const ACL = `ACL-${StrCast(group.groupName)}`;
+            DocListCast(group.docsShared).forEach(doc => {
+                const ACL = `ACL-${StrCast(group.groupName)}`;
 
-                    distributeAcls(ACL, SharingPermissions.None, doc);
+                distributeAcls(ACL, SharingPermissions.None, doc);
 
-                    const members: string[] = JSON.parse(StrCast(group.members));
-                    const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
+                const members: string[] = JSON.parse(StrCast(group.members));
+                const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
-                    users.forEach(({ notificationDoc }) => Doc.RemoveDocFromList(notificationDoc, storage, doc));
-                });
-
+                users.forEach(({ notificationDoc }) => Doc.RemoveDocFromList(notificationDoc, storage, doc));
             });
         }
     }
@@ -231,14 +218,10 @@ export default class SharingManager extends React.Component<{}> {
         target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
 
         if (permission !== SharingPermissions.None) {
-            DocListCastAsync(notificationDoc[storage]).then(resolved => {
-                Doc.IndexOf(target, resolved!) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
-            });
+            Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
         }
         else {
-            DocListCastAsync(notificationDoc[storage]).then(resolved => {
-                Doc.IndexOf(target, resolved!) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
-            });
+            Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
         }
     }
 
