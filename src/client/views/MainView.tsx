@@ -481,6 +481,8 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
+        // this._lastButton && (this._lastButton.color = "white");
+        // this._lastButton && (this._lastButton._backgroundColor = "");
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }
