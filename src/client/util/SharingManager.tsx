@@ -354,9 +354,9 @@ export default class SharingManager extends React.Component<{}> {
     private get sharingInterface() {
         const groupList = GroupManager.Instance?.getAllGroups() || [];
 
-        const sortedUsers = this.users.sort(this.sortUsers)
+        const sortedUsers = this.users.slice().sort(this.sortUsers)
             .map(({ user: { email } }) => ({ label: email, value: indType + email }));
-        const sortedGroups = groupList.sort(this.sortGroups)
+        const sortedGroups = groupList.slice().sort(this.sortGroups)
             .map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
 
         const options: GroupedOptions[] = [];

@@ -187,7 +187,7 @@ export class EditableView extends React.Component<EditableProps> {
                     {this.renderEditor()}
                 </div> : this.renderEditor();
         } else {
-            this.props.autosuggestProps?.resetValue();
+            setTimeout(() => this.props.autosuggestProps?.resetValue(), 0);
             return (this.props.contents instanceof ObjectField ? (null) :
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     ref={this._ref}

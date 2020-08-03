@@ -184,11 +184,15 @@ export default class RichTextMenu extends AntimodeMenu {
         const active = this.getActiveFontStylesOnSelection();
         const activeFamilies = active.activeFamilies;
         const activeSizes = active.activeSizes;
+        const activeColors = active.activeColors;
+        const activeHighlights = active.activeHighlights;
 
         this.activeListType = this.getActiveListStyle();
         this.activeAlignment = this.getActiveAlignment();
         this.activeFontFamily = !activeFamilies.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
+        this.activeFontColor = !activeColors.length ? "black" : activeColors.length === 1 ? String(activeColors[0]) : "...";
+        this.activeHighlightColor = !activeHighlights.length ? "" : activeHighlights.length === 1 ? String(activeHighlights[0]) : "...";
 
         // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
@@ -249,10 +253,12 @@ export default class RichTextMenu extends AntimodeMenu {
 
     // finds font sizes and families in selection
     getActiveFontStylesOnSelection() {
-        if (!this.view) return { activeFamilies: [], activeSizes: [] };
+        if (!this.view) return { activeFamilies: [], activeSizes: [], activeColors: [], activeHighlights: [] };
 
         const activeFamilies: string[] = [];
         const activeSizes: string[] = [];
+        const activeColors: string[] = [];
+        const activeHighlights: string[] = [];
         if (this.TextView.props.isSelected(true)) {
             const state = this.view.state;
             const pos = this.view.state.selection.$from;
@@ -260,15 +266,20 @@ export default class RichTextMenu extends AntimodeMenu {
             if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
                 ref_node.marks.forEach(m => {
                     m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family);
+                    m.type === state.schema.marks.pFontColor && activeColors.push(m.attrs.color);
                     m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "pt");
+                    m.type === state.schema.marks.marker && activeHighlights.push(String(m.attrs.highlight));
                 });
             }
             !activeFamilies.length && (activeFamilies.push(StrCast(this.TextView.layoutDoc._fontFamily, StrCast(Doc.UserDoc().fontFamily))));
             !activeSizes.length && (activeSizes.push(StrCast(this.TextView.layoutDoc._fontSize, StrCast(Doc.UserDoc().fontSize))));
+            !activeColors.length && (activeSizes.push(StrCast(this.TextView.layoutDoc.color, StrCast(Doc.UserDoc().fontColor))));
         }
         !activeFamilies.length && (activeFamilies.push(StrCast(Doc.UserDoc().fontFamily)));
         !activeSizes.length && (activeSizes.push(StrCast(Doc.UserDoc().fontSize)));
-        return { activeFamilies, activeSizes };
+        !activeColors.length && (activeColors.push(StrCast(Doc.UserDoc().fontColor, "black")));
+        !activeHighlights.length && (activeHighlights.push(StrCast(Doc.UserDoc().fontHighlight, "")));
+        return { activeFamilies, activeSizes, activeColors, activeHighlights };
     }
 
     getMarksInSelection(state: EditorState<any>) {
@@ -425,10 +436,16 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
+        if ((this.view?.state.selection.$from.pos || 0) < 2) {
+            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize;
+        }
         this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch, true);
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
+        if ((this.view?.state.selection.$from.pos || 0) < 2) {
+            this.TextView.layoutDoc._fontFamily = mark.attrs.family;
+        }
         this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch, true);
     }
 
@@ -615,7 +632,7 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="dropdown">
                 <p>{label}</p>
                 <button onPointerDown={this.clearBrush}>Clear brush</button>
-                <input placeholder="-brush name-" ref={this._brushNameRef} onKeyPress={this.onBrushNameKeyPress}></input>
+                <input placeholder="-brush name-" ref={this._brushNameRef} onKeyPress={this.onBrushNameKeyPress} />
             </div>;
 
         return (
@@ -876,10 +893,11 @@ export default class RichTextMenu extends AntimodeMenu {
         if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
             ref_node = pos.nodeBefore;
         }
-        else if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-            ref_node = pos.nodeAfter;
+        if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+            if (!pos.nodeBefore || this.view.state.selection.$from.pos !== this.view.state.selection.$to.pos)
+                ref_node = pos.nodeAfter;
         }
-        else if (pos.pos > 0) {
+        if (!ref_node && pos.pos > 0) {
             let skip = false;
             for (let i: number = pos.pos - 1; i > 0; i--) {
                 this.view.state.doc.nodesBetween(i, pos.pos, (node: ProsNode) => {

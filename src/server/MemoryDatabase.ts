@@ -1,6 +1,6 @@
-import { IDatabase, DocumentsCollection } from './IDatabase';
-import { Transferable } from './Message';
 import * as mongodb from 'mongodb';
+import { DocumentsCollection, IDatabase } from './IDatabase';
+import { Transferable } from './Message';
 
 export class MemoryDatabase implements IDatabase {
 
