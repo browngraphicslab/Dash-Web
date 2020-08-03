@@ -543,6 +543,27 @@
     }
 }
 
+.propertiesView-presSelected {
+    border-top: solid 1px darkgrey;
+    width: 100%;
+    padding-top: 5px;
+    font-family: Roboto;
+    font-weight: 500;
+    display: inline-flex;
+
+    .propertiesView-selectedList {
+        border-left: solid 1px darkgrey;
+        margin-left: 10px;
+        padding-left: 5px;
+
+        .selectedList-items {
+            font-size: 12;
+            font-weight: 300;
+            margin-top: 1;
+        }
+    }
+}
+
 .widthAndDash {
 
     .width {
@@ -615,27 +636,6 @@
         .dashed-input {
             margin-left: 6px;
             margin-top: 2px;
-        }
-    }
-
-    .propertiesView-presSelected {
-        border-top: solid 1px darkgrey;
-        width: 100%;
-        padding-top: 5px;
-        font-family: Roboto;
-        font-weight: 500;
-        display: inline-flex;
-
-        .propertiesView-selectedList {
-            border-left: solid 1px darkgrey;
-            margin-left: 10px;
-            padding-left: 5px;
-
-            .selectedList-items {
-                font-size: 12;
-                font-weight: 300;
-                margin-top: 1;
-            }
         }
     }
 }

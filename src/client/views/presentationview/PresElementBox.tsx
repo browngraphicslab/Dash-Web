@@ -278,7 +278,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     } else if (e.shiftKey) {
                         PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
                     } else {
-                        this.props.focus(this.rootDoc);
+                        PresBox.Instance.selectElement(this.rootDoc);
                         PresBox.Instance._eleArray = [];
                         PresBox.Instance._eleArray.push(this._itemRef.current!);
                         PresBox.Instance._dragArray = [];

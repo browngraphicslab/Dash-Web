@@ -832,7 +832,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </div>
                         <div className="presBox-subheading" style={{ display: effect === 'None' ? "none" : "block" }}>Effect direction</div>
-                        <div className="presBox-reactiveGrid" style={{ display: effect === 'None' ? "none" : "grid", width: 40 }}>
+                        <div className="presBox-reactiveGrid" style={{ display: effect === 'None' ? "none" : "grid" }}>
                             <div className="effectDirection" style={{ display: "grid", width: 40 }}>
                                 <Tooltip title={<><div className="dash-tooltip">{"Enter from left"}</div></>}><div style={{ gridColumn: 1, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "left" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'left'}><FontAwesomeIcon icon={"angle-right"} /></div></Tooltip>
                                 <Tooltip title={<><div className="dash-tooltip">{"Enter from right"}</div></>}><div style={{ gridColumn: 3, gridRow: 2, justifySelf: 'center', color: targetDoc.presEffectDirection === "right" ? "#5a9edd" : "black" }} onClick={() => targetDoc.presEffectDirection = 'right'}><FontAwesomeIcon icon={"angle-left"} /></div></Tooltip>

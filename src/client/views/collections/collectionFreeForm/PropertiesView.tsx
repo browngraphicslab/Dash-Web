@@ -47,9 +47,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else { console.log(undefined); return undefined; }
+        } else if (PresBox.Instance._selectedArray.length >= 1) {
+            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        } else { return undefined; }
     }
-    @computed get isPres() { return this.selectedDoc?.type === DocumentType.PRES }
+    @computed get isPres(): boolean {
+        if (this.selectedDoc?.type === DocumentType.PRES) return true;
+        return false;
+    }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
@@ -748,10 +753,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     render() {
 
         if (!this.selectedDoc) {
-            return <div className="propertiesView" style={{ width: this.props.width }}>
-                <div className="propertiesView-title" style={{ width: this.props.width, paddingLeft: 6 }}>
-                    No Document Selected
-            </div> </div>;
+            console.log("!selectedDoc")
+            if (this.isPres === false) {
+                console.log("!isPres")
+                return <div className="propertiesView" style={{ width: this.props.width }}>
+                    <div className="propertiesView-title" style={{ width: this.props.width, paddingLeft: 6 }}>
+                        No Document Selected
+                </div> </div>;
+            }
         }
 
         const novice = Doc.UserDoc().noviceMode;
