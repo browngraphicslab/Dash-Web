@@ -91,8 +91,7 @@ export class MainView extends React.Component {
         } else { return undefined; }
     }
 
-    @observable _propertiesWidth: number = 0;
-    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, this._propertiesWidth));
+    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth));
 
     @computed get propertiesIcon() {
         if (this.propertiesWidth() < 10) {
@@ -141,6 +140,9 @@ export class MainView extends React.Component {
         MainView.Instance = this;
         this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
+
+        CurrentUserUtils.propertiesWidth = 0;
+
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== "/home") {
             const pathname = window.location.pathname.substr(1).split("/");
@@ -172,7 +174,7 @@ export class MainView extends React.Component {
             fa.faFillDrip, fa.faLink, fa.faUnlink, fa.faBold, fa.faItalic, fa.faChevronLeft, fa.faUnderline, fa.faStrikethrough, fa.faSuperscript, fa.faSubscript,
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
-            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH);
+            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -376,9 +378,9 @@ export class MainView extends React.Component {
     @action
     onPropertiesPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._propertiesWidth = this._panelWidth - e.clientX;
+            CurrentUserUtils.propertiesWidth = this._panelWidth - e.clientX;
             return false;
-        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
+        }), returnFalse, action(() => CurrentUserUtils.propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
     }
 
     @action
@@ -419,7 +421,7 @@ export class MainView extends React.Component {
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
                 {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
-                    <FontAwesomeIcon icon="times" color="black" size="sm" />
+                    <FontAwesomeIcon icon="times" color="black" size="lg" />
                 </div> : null}
 
                 <DocumentView
@@ -527,7 +529,7 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeProperties = () => {
-        this._propertiesWidth = 0;
+        CurrentUserUtils.propertiesWidth = 0;
     }
 
     @computed get propertiesView() {
@@ -553,7 +555,7 @@ export class MainView extends React.Component {
                 <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
                     {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                         onPointerDown={this.onFlyoutPointerDown}
-                        style={{ backgroundColor: this.defaultBackgroundColors(undefined) }}>
+                        style={{ backgroundColor: 'lightgrey' }}>
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -576,7 +578,7 @@ export class MainView extends React.Component {
                 {this.dockingContent}
                 {this.showProperties ? (null) :
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
-                        style={{ right: rightFlyout, top: "45%" }}>
+                        style={{ right: rightFlyout, top: "50%" }}>
                         <div className="mainView-propertiesDragger-icon">
                             <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
                     </div>

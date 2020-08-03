@@ -49,6 +49,7 @@ export class CurrentUserUtils {
     @observable public static searchStack: any | undefined;
 
     @observable public static selectedPanel: string = "none";
+    @observable public static propertiesWidth: number = 0;
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {

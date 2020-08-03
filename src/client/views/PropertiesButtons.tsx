@@ -29,6 +29,7 @@ import { ImageField } from '../../fields/URLField';
 import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
+import { InkField } from '../../fields/InkField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -524,6 +525,32 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    @undoBatch
+    @action
+    private makeMask = () => {
+        if (this.selectedDoc) {
+            this.selectedDoc._backgroundColor = "rgba(0,0,0,0.7)";
+            this.selectedDoc.mixBlendMode = "hard-light";
+            this.selectedDoc.color = "#9b9b9bff";
+            this.selectedDoc.stayInCollection = true;
+            this.selectedDoc.isInkMask = true;
+        }
+    }
+
+    @computed
+    get maskButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">Make Mask</div></>}>
+            <div className={"propertiesButtons-linkButton-empty"}
+                onPointerDown={this.makeMask}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    color="white" icon="paint-brush" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
+
     // @computed
     // get importButton() {
     //     const targetDoc = this.selectedDoc;
@@ -549,6 +576,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
+        const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
 
@@ -571,39 +599,40 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.downloadButton}
             </div>
-        </div>
-            <div className="propertiesButtons">
-                <div className="propertiesButtons-button">
-                    {this.deleteButton}
-                </div>
-                <div className="propertiesButtons-button">
-                    {this.onClickButton}
-                </div>
-                <div className="propertiesButtons-button">
-                    {this.sharingButton}
-                </div>
-                <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
-                    {this.considerGoogleDocsPush}
-                </div>
-                <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
-                    {this.considerGoogleDocsPull}
-                </div>
-                <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
-                    {this.googlePhotosButton}
-                </div>
-                {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
+            <div className="propertiesButtons-button">
+                {this.deleteButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.onClickButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.sharingButton}
+            </div>
+            <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
+                {this.considerGoogleDocsPush}
+            </div>
+            <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
+                {this.considerGoogleDocsPull}
+            </div>
+            <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
+                {this.googlePhotosButton}
+            </div>
+            {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
                     {this.importButton}
                 </div> */}
 
-                <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
-                    {this.clustersButton}
-                </div>
-
-                <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
-                    {this.fitContentButton}
-                </div>
-
+            <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+                {this.clustersButton}
             </div>
+
+            <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+                {this.fitContentButton}
+            </div>
+
+            <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
+                {this.maskButton}
+            </div>
+        </div>
         </div>;
     }
 }

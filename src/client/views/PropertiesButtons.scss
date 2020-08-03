@@ -45,13 +45,13 @@ $linkGap : 3px;
 }
 
 .propertiesButtons {
-    margin-top: $linkGap;
+    margin-top: 3px;
     grid-column: 1/4;
-    width: max-content;
+    width: 100%;
     height: auto;
     display: flex;
     flex-direction: row;
-    overflow-x: visible;
+    flex-wrap: wrap;
 }
 
 .onClickFlyout-editScript {
@@ -69,6 +69,7 @@ $linkGap : 3px;
     width: 25px;
     border-radius: 5px;
     margin-right: 18px;
+    margin-bottom: 8px;
 }
 
 .propertiesButtons-linker {

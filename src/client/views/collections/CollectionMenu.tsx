@@ -30,6 +30,8 @@ import { RichTextField } from "../../../fields/RichTextField";
 import { ScriptField } from "../../../fields/ScriptField";
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { DocUtils } from "../../documents/Documents";
+import { Tooltip } from "@material-ui/core";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -65,16 +67,38 @@ export default class CollectionMenu extends AntimodeMenu {
         }
     }
 
+    @action
+    toggleProperties = () => {
+        if (CurrentUserUtils.propertiesWidth > 0) {
+            CurrentUserUtils.propertiesWidth = 0;
+        } else {
+            CurrentUserUtils.propertiesWidth = 250;
+        }
+    }
+
     render() {
-        const button = <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
-            <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
-        </button>;
+        const button = <Tooltip title={<div className="dash-tooltip">Pin Menu</div>} placement="bottom">
+            <button className="antimodeMenu-button" key="pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: "#121721" }}>
+                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
+            </button>
+        </Tooltip>;
+
+        const propIcon = CurrentUserUtils.propertiesWidth > 0 ? "angle-double-right" : "angle-double-left";
+        const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
+
+        const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} placement="bottom">
+            <button className="antimodeMenu-button" key="properties"
+                onPointerDown={this.toggleProperties}>
+                <FontAwesomeIcon icon={propIcon} size="lg" />
+            </button>
+        </Tooltip>;
 
         return this.getElement(!this.SelectedCollection ? [button] :
             [<CollectionViewBaseChrome key="chrome"
                 docView={this.SelectedCollection}
                 fieldKey={Doc.LayoutFieldKey(this.SelectedCollection?.props.Document)}
                 type={StrCast(this.SelectedCollection?.props.Document._viewType, CollectionViewType.Invalid) as CollectionViewType} />,
+                prop,
                 button]);
     }
 }
@@ -271,43 +295,47 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed get templateChrome() {
         return <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
-            <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
-                <button className={"antimodeMenu-button"} >
-                    <FontAwesomeIcon icon="bullseye" size="lg" />
-                </button>
-                <select
-                    className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}>
-                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
-                    {this._buttonizableCommands.map(cmd =>
-                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={cmd.title} value={cmd.title}>{cmd.title}</option>
-                    )}
-                </select>
-            </div>
+            <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
+                <div className="commandEntry-outerDiv" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
+                    <button className={"antimodeMenu-button"} >
+                        <FontAwesomeIcon icon="bullseye" size="lg" />
+                    </button>
+                    <select
+                        className="collectionViewBaseChrome-cmdPicker" onPointerDown={stopPropagation} onChange={this.commandChanged} value={this._currentKey}>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={"empty"} value={""} />
+                        {this._buttonizableCommands.map(cmd =>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} key={cmd.title} value={cmd.title}>{cmd.title}</option>
+                        )}
+                    </select>
+                </div>
+            </Tooltip>
         </div>;
     }
 
     @computed get viewModes() {
         return <div className="collectionViewBaseChrome-viewModes" >
-            <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
-                <button className={"antimodeMenu-button"}>
-                    <FontAwesomeIcon icon="bullseye" size="lg" />
-                </button>
-                <select
-                    className="collectionViewBaseChrome-viewPicker"
-                    onPointerDown={stopPropagation}
-                    onChange={this.viewChanged}
-                    value={StrCast(this.props.type)}>
-                    {Object.values(CollectionViewType).map(type => [CollectionViewType.Invalid, CollectionViewType.Docking].includes(type) ? (null) : (
-                        <option
-                            key={Utils.GenerateGuid()}
-                            className="collectionViewBaseChrome-viewOption"
-                            onPointerDown={stopPropagation}
-                            value={type}>
-                            {type[0].toUpperCase() + type.substring(1)}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <Tooltip title={<div className="dash-tooltip">drop document to apply or drag to create button</div>} placement="bottom">
+                <div className="commandEntry-outerDiv" ref={this._viewRef} onPointerDown={this.dragViewDown}>
+                    <button className={"antimodeMenu-button"}>
+                        <FontAwesomeIcon icon="bullseye" size="lg" />
+                    </button>
+                    <select
+                        className="collectionViewBaseChrome-viewPicker"
+                        onPointerDown={stopPropagation}
+                        onChange={this.viewChanged}
+                        value={StrCast(this.props.type)}>
+                        {Object.values(CollectionViewType).map(type => [CollectionViewType.Invalid, CollectionViewType.Docking].includes(type) ? (null) : (
+                            <option
+                                key={Utils.GenerateGuid()}
+                                className="collectionViewBaseChrome-viewOption"
+                                onPointerDown={stopPropagation}
+                                value={type}>
+                                {type[0].toUpperCase() + type.substring(1)}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </Tooltip>
         </div>;
     }
 
@@ -332,18 +360,23 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                         {this.props.type === CollectionViewType.Invalid ||
                             this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.viewModes}
                         {this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.templateChrome}
-                        {Doc.UserDoc().noviceMode ? (null) : <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
-                            <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
-                                <FontAwesomeIcon icon="filter" size="lg" />
-                            </button>
-                        </div>}
+                        {Doc.UserDoc().noviceMode ? (null) :
+                            <Tooltip title={<div className="dash-tooltip">filter documents to show</div>} placement="bottom">
+                                <div className="collectionViewBaseChrome-viewSpecs" style={{ display: "grid" }}>
+                                    <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
+                                        <FontAwesomeIcon icon="filter" size="lg" />
+                                    </button>
+                                </div>
+                            </Tooltip>}
 
-                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) : <button className={"antimodeMenu-button"} key="float"
-                            style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
-                            title="Toggle Overlay Layer"
-                            onClick={() => DocumentView.FloatDoc(this.props.docView)}>
-                            <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
-                        </button>}
+                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) :
+                            <Tooltip title={<div className="dash-tooltip">Toggle Overlay Layer</div>} placement="bottom">
+                                <button className={"antimodeMenu-button"} key="float"
+                                    style={{ backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined, borderRight: "1px solid gray" }}
+                                    onClick={() => DocumentView.FloatDoc(this.props.docView)}>
+                                    <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
+                                </button>
+                            </Tooltip>}
                     </div>
                     {this.subChrome}
                 </div>
@@ -491,22 +524,26 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         });
         return <div className="btn-draw" key="draw">
             {this._draw.map((icon, i) =>
-                <button className="antimodeMenu-button" title={this._title[i]} key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
-                    style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
-                    {/* {this._draw[i]} */}
-                    <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
+                <Tooltip title={<div className="dash-tooltip">{this._title[i]}</div>} placement="bottom">
+                    <button className="antimodeMenu-button" key={icon} onPointerDown={() => func(i, false)} onDoubleClick={() => func(i, true)}
+                        style={{ backgroundColor: i === this._selected ? "121212" : "", fontSize: "20" }}>
+                        {/* {this._draw[i]} */}
+                        <FontAwesomeIcon icon={this._faName[i] as IconProp} size="sm" />
 
-                </button>)}
+                    </button>
+                </Tooltip>)}
         </div>;
     }
 
     toggleButton = (key: string, value: boolean, setter: () => {}, icon: FontAwesomeIconProps["icon"], ele: JSX.Element | null) => {
-        return <button className="antimodeMenu-button" key={key} title={key}
-            onPointerDown={action(e => setter())}
-            style={{ backgroundColor: value ? "121212" : "" }}>
-            <FontAwesomeIcon icon={icon} size="lg" />
-            {ele}
-        </button>;
+        return <Tooltip title={<div className="dash-tooltip">{key}</div>} placement="bottom">
+            <button className="antimodeMenu-button" key={key}
+                onPointerDown={action(e => setter())}
+                style={{ backgroundColor: value ? "121212" : "" }}>
+                <FontAwesomeIcon icon={icon} size="lg" />
+                {ele}
+            </button>
+        </Tooltip>;
     }
 
     @computed get widthPicker() {
@@ -515,11 +552,13 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             <div className="btn2-group" key="width">
                 {widthPicker}
                 {this._width.map((wid, i) =>
-                    <button className="antimodeMenu-button" key={wid} title="change width"
-                        onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
-                        style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001, fontSize: this._dotsize[i], padding: 0, textAlign: "center" }}>
-                        •
-                    </button>)}
+                    <Tooltip title={<div className="dash-tooltip">change width</div>} placement="bottom">
+                        <button className="antimodeMenu-button" key={wid}
+                            onPointerDown={action(() => { SetActiveInkWidth(wid); this._widthBtn = false; this.editProperties(wid, "width"); })}
+                            style={{ backgroundColor: this._widthBtn ? "121212" : "", zIndex: 1001, fontSize: this._dotsize[i], padding: 0, textAlign: "center" }}>
+                            •
+                    </button>
+                    </Tooltip>)}
             </div>;
     }
 
@@ -554,43 +593,42 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
 
-    @computed get formatPane() {
-        // return <button className="antimodeMenu-button" key="format" title="toggle foramatting pane"
-        //     onPointerDown={action(e => FormatShapePane.Instance.Pinned = !FormatShapePane.Instance.Pinned)}
-        //     style={{ backgroundColor: this._fillBtn ? "121212" : "" }}>
-        //     <FontAwesomeIcon icon="angle-double-right" size="lg" />
-        // </button>;
-        return null;
-    }
-
     render() {
         return !this.props.docView.layoutDoc ? (null) : <div className="collectionFreeFormMenu-cont">
-            {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) :
-                <div key="map" title="mini map" className="backKeyframe" onClick={this.miniMap}>
+            {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) : <Tooltip title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
+                <div key="map" className="backKeyframe" onClick={this.miniMap}>
                     <FontAwesomeIcon icon={"map"} size={"lg"} />
                 </div>
+            </Tooltip>
             }
-            {!!!this.isText ? <div key="back" title="back frame" className="backKeyframe" onClick={this.prevKeyframe}>
-                <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-            </div> : null}
-            {!!!this.isText ? <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
-                onClick={action(() => this.document.editing = !this.document.editing)} >
-                {NumCast(this.document.currentFrame)}
-            </div> : null}
-            {!!!this.isText ? <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={this.nextKeyframe}>
-                <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-            </div> : null}
+            {!!!this.isText ? <Tooltip title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
+                <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
+                    <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                </div>
+            </Tooltip> : null}
+            {!!!this.isText ? <Tooltip title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
+                <div key="num" className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
+                    onClick={action(() => this.document.editing = !this.document.editing)} >
+                    {NumCast(this.document.currentFrame)}
+                </div>
+            </Tooltip> : null}
+            {!!!this.isText ? <Tooltip title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
+                <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
+                    <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                </div>
+            </Tooltip> : null}
 
             {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText ? (null) :
-                <button className={"antimodeMenu-button"} key="hypothesis"
-                    style={{
-                        backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
-                        borderRight: "1px solid gray"
-                    }}
-                    title="Use Hypothesis"
-                    onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
-                    <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
-                </button>
+                <Tooltip title={<div className="dash-tooltip">Use Hypothesis</div>} placement="bottom">
+                    <button className={"antimodeMenu-button"} key="hypothesis"
+                        style={{
+                            backgroundColor: !this.props.docView.layoutDoc.isAnnotating ? "121212" : undefined,
+                            borderRight: "1px solid gray"
+                        }}
+                        onClick={() => this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating}>
+                        <FontAwesomeIcon icon={["fab", "hire-a-helper"]} size={"lg"} />
+                    </button>
+                </Tooltip>
             }
             {(!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating) && !this.isText ?
                 <>
@@ -598,7 +636,6 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     {this.widthPicker}
                     {this.colorPicker}
                     {this.fillPicker}
-                    {this.formatPane}
                 </> :
                 (null)
             }
