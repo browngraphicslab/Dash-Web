@@ -42,13 +42,11 @@ export class CurrentUserUtils {
     @observable public static libraryBtn: any | undefined;
     @observable public static searchBtn: any | undefined;
 
-    @observable public static toolsStack: any | undefined;
-    @observable public static workspaceStack: any | undefined;
-    @observable public static catalogStack: any | undefined;
-    @observable public static closedStack: any | undefined;
-    @observable public static searchStack: any | undefined;
-
-    @observable public static selectedPanel: string = "none";
+    @observable public static toolsStack: Doc | undefined;
+    @observable public static workspaceStack: Doc | undefined;
+    @observable public static catalogStack: Doc | undefined;
+    @observable public static closedStack: Doc | undefined;
+    @observable public static searchStack: Doc | undefined;
 
     // sets up the default User Templates - slideView, queryView, descriptionView
     static setupUserTemplateButtons(doc: Doc) {
@@ -441,7 +439,7 @@ export class CurrentUserUtils {
             { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
             { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
             { toolTip: "Drag a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
-            { toolTip: "Drag a comparison box", title: "Comp", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
+            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
             { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
             //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc },
@@ -477,7 +475,7 @@ export class CurrentUserUtils {
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
-            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
+            _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
             icon,
             title,
             toolTip,
@@ -508,14 +506,14 @@ export class CurrentUserUtils {
         title: string, icon: string, click: string,
     }[] {
         return [
-            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu("Workspace")' },
-            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu("Catalog")' },
-            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu("Archive")' },
-            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu("Import")' },
-            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu("Sharing")' },
-            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu("Tools")' },
-            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu("Help")' },
-            { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu("Settings")' },
+            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu(self, "Workspace")' },
+            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu(self, "Catalog")' },
+            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu(self, "Archive")' },
+            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu(self, "Import")' },
+            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
+            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu(self, "Tools")' },
+            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu(self, "Help")' },
+            { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu(self, "Settings")' },
         ];
     }
 
@@ -524,10 +522,11 @@ export class CurrentUserUtils {
             const buttons = CurrentUserUtils.menuBtnDescriptions();
             const menuBtns = buttons.map(({ title, icon, click }) => Docs.Create.FontIconDocument({
                 icon,
-                menuIcon: true,
+                iconShape: "square",
                 title,
                 _backgroundColor: "black",
                 stayInCollection: true,
+                childDropAction: "same",
                 _width: 60,
                 _height: 60,
                 onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
@@ -535,6 +534,7 @@ export class CurrentUserUtils {
 
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
+                dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
                 _backgroundColor: "black",
                 _gridGap: 0,
                 _yMargin: 0,
@@ -678,7 +678,7 @@ export class CurrentUserUtils {
             CurrentUserUtils.toolsStack = toolsStack;
 
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", _fontSize: "10pt",
+                _width: 35, _height: 25, title: "Tools", _fontSize: "10pt", color: "black",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: toolsStack,
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
@@ -773,7 +773,7 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same",
+                _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same", color: "black",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: libraryStack,
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
@@ -792,7 +792,7 @@ export class CurrentUserUtils {
         doc["tabs-button-search"] = undefined;
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", _fontSize: "10pt",
+                _width: 50, _height: 25, title: "Search", _fontSize: "10pt", color: "black",
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
                 searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),

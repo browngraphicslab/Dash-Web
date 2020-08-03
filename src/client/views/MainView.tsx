@@ -314,7 +314,7 @@ export class MainView extends React.Component {
         if (this.panelContent === doc?.title) return "lightgrey";
         if (this.darkScheme) {
             switch (doc?.type) {
-                case DocumentType.MENUICON: return "white";
+                case DocumentType.FONTICON: return "white";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -324,7 +324,7 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc?.type) {
-                case DocumentType.MENUICON: return "black";
+                case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
@@ -388,16 +388,10 @@ export class MainView extends React.Component {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
                 this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
-                if (this.flyoutWidth === 0) {
-                    CurrentUserUtils.selectedPanel = "none";
-                }
                 return false;
             }), emptyFunction, action(() => {
                 this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
                 this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
-                if (this.flyoutWidth === 0) {
-                    CurrentUserUtils.selectedPanel = "none";
-                }
             }));
         }
     }
@@ -454,7 +448,7 @@ export class MainView extends React.Component {
     }
 
     @computed get menuPanel() {
-
+        setTimeout(() => DocListCast((Doc.UserDoc().menuStack as Doc).data).forEach(action(doc => { doc.color = "white"; doc._backgroundColor = ""; })), 0);
         return <div className="mainView-menuPanel">
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
@@ -468,7 +462,7 @@ export class MainView extends React.Component {
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
                 onClick={undefined}
-                ScreenToLocalTransform={this.mainContainerXf}
+                ScreenToLocalTransform={this.sidebarScreenToLocal}
                 ContentScaling={returnOne}
                 PanelWidth={() => 60}
                 PanelHeight={this.getContentsHeight}
@@ -490,37 +484,37 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
-        CurrentUserUtils.selectedPanel = "none";
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }
 
     get groupManager() { return GroupManager.Instance; }
 
+    _lastButton: Doc | undefined;
     @action @undoBatch
-    selectMenu = (str: string) => {
+    selectMenu = (button: Doc, str: string) => {
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
         if (this.panelContent === str && this.flyoutWidth !== 0) {
-            CurrentUserUtils.selectedPanel = "none";
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
-            this.panelContent = str;
-            CurrentUserUtils.selectedPanel = str;
-            switch (this.panelContent) {
-                case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
-                case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
-                case "Catalog": this.sidebarContent.proto = CurrentUserUtils.catalogStack; break;
-                case "Archive": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
-                case "Settings": this.sidebarContent.proto = SettingsManager.Instance.open(); break;
-                case "Sharing": this.sidebarContent.proto = GroupManager.Instance.open(); break;
+            let panelDoc: Doc | undefined;
+            switch (this.panelContent = str) {
+                case "Tools": panelDoc = CurrentUserUtils.toolsStack; break;
+                case "Workspace": panelDoc = CurrentUserUtils.workspaceStack; break;
+                case "Catalog": panelDoc = CurrentUserUtils.catalogStack; break;
+                case "Archive": panelDoc = CurrentUserUtils.closedStack; break;
+                case "Settings": SettingsManager.Instance.open(); break;
+                case "Sharing": GroupManager.Instance.open(); break;
             }
-            if (str === "Settings" || str === "Sharing" || str === "Help" || str === "Import") {
-                CurrentUserUtils.selectedPanel = "none";
-                this.panelContent = "none";
-                this.flyoutWidth = 0;
-            } else {
+            this.sidebarContent.proto = panelDoc;
+            if (panelDoc) {
                 MainView.expandFlyout();
-            }
+                button._backgroundColor = "lightgrey";
+                button.color = "black";
+                this._lastButton = button;
+            } else this.flyoutWidth = 0;
         }
         return true;
     }
@@ -640,6 +634,7 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
+                    backgroundColor={this.defaultBackgroundColors}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}

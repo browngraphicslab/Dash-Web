@@ -331,7 +331,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                     <div className="collectionViewBaseChrome">
                         {this.props.type === CollectionViewType.Invalid ||
                             this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.viewModes}
-                        {this.props.type === CollectionViewType.Docking || this.isText ? (null) : this.templateChrome}
+                        {this.props.type === CollectionViewType.Docking || (this.isText && Doc.UserDoc().noviceMode) ? (null) : this.templateChrome}
                         {Doc.UserDoc().noviceMode ? (null) : <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: "grid" }}>
                             <button className={"antimodeMenu-button"} onClick={this.toggleViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="lg" />
