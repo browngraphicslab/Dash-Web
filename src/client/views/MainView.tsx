@@ -415,10 +415,10 @@ export class MainView extends React.Component {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
-                {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
+                {/* {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
                     <FontAwesomeIcon icon="times" color="black" size="lg" />
-                </div> : null}
+                </div> : null} */}
 
                 <DocumentView
                     Document={this.sidebarContent}
