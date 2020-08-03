@@ -124,6 +124,7 @@ export default class GroupManager extends React.Component<{}> {
         this.currentGroup = undefined;
         // this.users = [];
         this.createGroupModalOpen = false;
+        TaskCompletionBox.taskCompleted = false;
     }
 
     /**
@@ -136,7 +137,6 @@ export default class GroupManager extends React.Component<{}> {
     /**
      * @returns a list of all group documents.
      */
-    // private ?
     getAllGroups(): Doc[] {
         const groupDoc = this.GroupManagerDoc;
         return groupDoc ? DocListCast(groupDoc.data) : [];
@@ -146,7 +146,6 @@ export default class GroupManager extends React.Component<{}> {
      * @returns a group document based on the group name.
      * @param groupName 
      */
-    // private?
     getGroup(groupName: string): Doc | undefined {
         const groupDoc = this.getAllGroups().find(group => group.groupName === groupName);
         return groupDoc;
@@ -213,8 +212,6 @@ export default class GroupManager extends React.Component<{}> {
     deleteGroup(group: Doc): boolean {
         if (group) {
             if (this.GroupManagerDoc && this.hasEditAccess(group)) {
-                // TODO look at this later
-                // SharingManager.Instance.setInternalGroupSharing(group, "Not Shared");
                 Doc.RemoveDocFromList(this.GroupManagerDoc, "data", group);
                 SharingManager.Instance.removeGroup(group);
                 const members: string[] = JSON.parse(StrCast(group.members));
@@ -315,7 +312,9 @@ export default class GroupManager extends React.Component<{}> {
             <div className="group-create">
                 <div className="group-heading" style={{ marginBottom: 0 }}>
                     <p><b>New Group</b></p>
-                    <div className={"close-button"} onClick={action(() => this.createGroupModalOpen = false)}>
+                    <div className={"close-button"} onClick={action(() => {
+                        this.createGroupModalOpen = false; TaskCompletionBox.taskCompleted = false;
+                    })}>
                         <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
                     </div>
                 </div>
@@ -367,7 +366,7 @@ export default class GroupManager extends React.Component<{}> {
                 interactive={true}
                 contents={contents}
                 dialogueBoxStyle={{ width: "90%", height: "70%" }}
-                closeOnExternalClick={action(() => this.createGroupModalOpen = false)}
+                closeOnExternalClick={action(() => { this.createGroupModalOpen = false; TaskCompletionBox.taskCompleted = false; })}
             />
         );
     }

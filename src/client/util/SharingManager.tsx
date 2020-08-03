@@ -94,7 +94,7 @@ export default class SharingManager extends React.Component<{}> {
     public close = action(() => {
         this.isOpen = false;
         this.selectedUsers = null; // resets the list of users and seleected users (in the react-select component)
-
+        TaskCompletionBox.taskCompleted = false;
         setTimeout(action(() => {
             // this.copied = false;
             DictationOverlay.Instance.hasActiveModal = false;
