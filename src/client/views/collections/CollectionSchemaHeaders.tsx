@@ -430,7 +430,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
 
     render() {
-        console.log(this.props.docs);
         return (
             <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
                 {this._key === this._searchTerm.slice(0, this._key.length) ?

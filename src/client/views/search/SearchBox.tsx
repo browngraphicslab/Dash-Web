@@ -188,11 +188,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this.layoutDoc._searchString = e.target.value;
-        console.log(e.target.value);
         this.newsearchstring = e.target.value;
 
 
         if (e.target.value === "") {
+            console.log(this._results);
+            this._results.forEach(result => {
+                Doc.UnBrushDoc(result[0]);
+            });
+
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
             if (this.currentSelectedCollection !== undefined) {
                 this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
@@ -202,15 +206,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
             console.log("CLOSE");
             runInAction(() => { this.open = false });
+            this._openNoResults = false;
+            this._results = [];
+            this._resultsSet.clear();
+            this._visibleElements = [];
+            this._numTotalResults = -1;
+            this._endIndex = -1;
+            this._curRequest = undefined;
+            this._maxSearchIndex = 0;
         }
-        this._openNoResults = false;
-        this._results = [];
-        this._resultsSet.clear();
-        this._visibleElements = [];
-        this._numTotalResults = -1;
-        this._endIndex = -1;
-        this._curRequest = undefined;
-        this._maxSearchIndex = 0;
     }
 
     enter = (e: React.KeyboardEvent) => {
@@ -383,14 +387,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             let newarray: Doc[] = [];
 
             while (docs.length > 0) {
-                console.log("iteration");
                 newarray = [];
                 docs.forEach((d) => {
-                    console.log(d);
                     if (d.data != undefined) {
                         let newdocs = DocListCast(d.data);
                         newdocs.forEach((newdoc) => {
-                            console.log(newdoc);
                             newarray.push(newdoc);
 
                         });
@@ -419,6 +420,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._results = found;
             this.docsforfilter = docsforFilter;
             if (this.filter === true) {
+                console.log(docsforFilter);
                 selectedCollection.props.Document._searchDocs = new List<Doc>(docsforFilter);
             }
             this._numTotalResults = found.length;
@@ -498,6 +500,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.new_buckets = {};
         const query = StrCast(this.layoutDoc._searchString);
         this.getFinalQuery(query);
+        this._results.forEach(result => {
+            Doc.UnBrushDoc(result[0]);
+        });
         this._results = [];
         this._resultsSet.clear();
         this._isSearch = [];
@@ -675,7 +680,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     closeSearch = () => {
-        this.closeResults();
+        //this.closeResults();
         this._searchbarOpen = false;
     }
 
@@ -752,7 +757,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             highlights.forEach((item) => headers.add(item));
                             this._visibleDocuments[i] = result[0];
                             this._isSearch[i] = "search";
-                            console.log(result[0]);
+                            Doc.BrushDoc(result[0]);
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                             this.children++;
                         }
@@ -769,6 +774,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             if (i < this._visibleDocuments.length) {
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";
+                                Doc.BrushDoc(result[0]);
                                 Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                                 this.children++;
                             }
@@ -1117,7 +1123,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                         this.submitSearch();
                                                     })
                                                 }} />
-                                            Workspace
+                                            Database
                                     </label>
                                         </div>
                                     </div>

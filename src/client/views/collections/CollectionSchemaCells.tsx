@@ -247,12 +247,12 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (StrCast(this.props.Document._searchString) !== "") {
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
             let term = "";
-            if (cfield!==undefined){
-                if (cfield.Text!==undefined){
+            if (cfield !== undefined) {
+                if (cfield.Text !== undefined) {
                     term = cfield.Text;
                 }
-                else if (StrCast(cfield)){
-                    term= StrCast(cfield);
+                else if (StrCast(cfield)) {
+                    term = StrCast(cfield);
                 }
                 else {
                     term = String(NumCast(cfield));
@@ -261,8 +261,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             let search = StrCast(this.props.Document._searchString)
             let start = term.indexOf(search) as number;
             let tally = 0;
-            if (start!==-1){
-            positions.push(start);
+            if (start !== -1) {
+                positions.push(start);
             }
             while (start < contents.length && start !== -1) {
                 term = term.slice(start + search.length + 1);
@@ -275,7 +275,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             }
         }
         return (
-            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
+                ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
@@ -294,21 +295,21 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 // if (type === "number" && (contents === 0 || contents === "0")) {
                                 //     return "0";
                                 // } else {
-                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                    if (cfield!==undefined){
-                                    if (cfield.Text!==undefined){
-                                        return(cfield.Text);
+                                const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                if (cfield !== undefined) {
+                                    if (cfield.Text !== undefined) {
+                                        return (cfield.Text);
                                     }
-                                    else if (StrCast(cfield)){
+                                    else if (StrCast(cfield)) {
                                         return StrCast(cfield);
                                     }
                                     else {
                                         return String(NumCast(cfield));
                                     }
                                 }
-                                    // console.log(cfield.Text);
-                                    // console.log(StrCast(cfield));
-                                    // return StrCast(cfield);
+                                // console.log(cfield.Text);
+                                // console.log(StrCast(cfield));
+                                // return StrCast(cfield);
                                 // }
 
                             }}
