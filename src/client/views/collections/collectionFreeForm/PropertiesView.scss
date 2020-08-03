@@ -1,0 +1,644 @@
+.propertiesView {
+
+    background-color: rgb(205, 205, 205);
+    height: 100%;
+    font-family: "Noto Sans";
+    cursor: auto;
+
+    overflow-x: visible;
+    overflow-y: visible;
+
+    .propertiesView-title {
+        background-color: rgb(159, 159, 159);
+        text-align: center;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        display: flex;
+        font-size: 18px;
+        font-weight: bold;
+        justify-content: center;
+
+        .propertiesView-title-icon {
+            width: 20px;
+            height: 20px;
+            padding-left: 38px;
+            margin-top: -5px;
+            right: 19;
+            position: absolute;
+
+            &:hover {
+                color: grey;
+                cursor: pointer;
+            }
+
+        }
+
+    }
+
+    .propertiesView-name {
+        border-bottom: 1px solid black;
+        padding: 8.5px;
+        font-size: 12.5px;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    .propertiesView-settings {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+        font-size: 12.5px;
+        font-weight: bold;
+
+        .propertiesView-settings-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-settings-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-settings-content {
+            margin-left: 12px;
+            padding-bottom: 10px;
+            padding-top: 8px;
+        }
+
+    }
+
+    .propertiesView-sharing {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-sharing-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-sharing-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-sharing-content {
+            font-size: 10px;
+            padding: 10px;
+            margin-left: 5px;
+        }
+    }
+
+    .propertiesView-appearance {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-appearance-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-appearance-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-appearance-content {
+            font-size: 10px;
+            padding: 10px;
+            margin-left: 5px;
+        }
+    }
+
+    .propertiesView-transform {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-transform-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-transform-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-transform-content {
+            font-size: 10px;
+            padding: 10px;
+            margin-left: 5px;
+        }
+    }
+
+    .notify-button {
+        padding: 2px;
+        width: 12px;
+        height: 12px;
+        background-color: black;
+        border-radius: 10px;
+        padding-left: 2px;
+        padding-right: 2px;
+        margin-top: 2px;
+        margin-left: 3px;
+
+        .notify-button-icon {
+            width: 6px;
+            height: 6.5px;
+            margin-left: .5px;
+        }
+
+        &:hover {
+            background-color: rgb(158, 158, 158);
+            cursor: pointer;
+        }
+    }
+
+    .expansion-button-icon {
+        width: 11px;
+        height: 11px;
+        color: black;
+        margin-left: 27px;
+
+        &:hover {
+            color: rgb(131, 131, 131);
+            cursor: pointer;
+        }
+    }
+
+    .propertiesView-sharingTable {
+
+        border: 1px solid black;
+        padding: 5px;
+        border-radius: 6px;
+        /* width: 170px; */
+        margin-right: 10px;
+        background-color: #ececec;
+        max-height: 130px;
+        overflow-y: scroll;
+
+        .propertiesView-sharingTable-item {
+
+            display: flex;
+            padding: 3px;
+            align-items: center;
+            border-bottom: 0.5px solid grey;
+
+            &:hover .propertiesView-sharingTable-item-name {
+                overflow-x: unset;
+                white-space: unset;
+                overflow-wrap: break-word;
+            }
+
+            .propertiesView-sharingTable-item-name {
+                font-weight: bold;
+                width: 95px;
+                overflow-x: hidden;
+                display: inline-block;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .propertiesView-sharingTable-item-permission {
+                display: flex;
+                right: 34;
+                float: right;
+                position: absolute;
+
+                .permissions-select {
+                    z-index: 1;
+                    border: none;
+                    background-color: inherit;
+                    width: 75px;
+                    //text-align: justify; // for Edge
+                    //text-align-last: end;
+
+                    &:hover {
+                        cursor: pointer;
+                    }
+                }
+            }
+
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+
+    .propertiesView-fields {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-fields-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-fields-title-name {
+                font-size: 12.5px;
+                font-weight: bold;
+                white-space: nowrap;
+                width: 35px;
+                display: flex;
+            }
+
+            .propertiesView-fields-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-fields-checkbox {
+            float: right;
+            height: 20px;
+            margin-top: -9px;
+
+            .propertiesView-fields-checkbox-text {
+                font-size: 7px;
+                margin-top: -10px;
+                margin-left: 6px;
+            }
+        }
+
+        .propertiesView-fields-content {
+            font-size: 10px;
+            margin-left: 2px;
+            padding: 10px;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+
+    .field {
+        display: flex;
+        font-size: 7px;
+        background-color: #e8e8e8;
+        padding-right: 3px;
+        border: 0.5px solid grey;
+        border-radius: 5px;
+        padding-left: 3px;
+    }
+
+    .uneditable-field {
+        display: flex;
+        overflow-y: visible;
+        margin-bottom: 2px;
+
+        &:hover {
+            cursor: auto;
+        }
+    }
+
+    .propertiesView-layout {
+
+        .propertiesView-layout-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-layout-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-layout-content {
+            overflow: hidden;
+            padding: 10px;
+        }
+
+    }
+}
+
+.inking-button {
+
+    display: flex;
+
+    .inking-button-points {
+        background-color: #333333;
+        padding: 7px;
+        border-radius: 7px;
+        margin-right: 32px;
+        width: 32;
+        height: 32;
+        padding-top: 9px;
+        margin-left: 18px;
+
+        &:hover {
+            background: rgb(131, 131, 131);
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+    }
+
+    .inking-button-lock {
+        background-color: #333333;
+        padding: 7px;
+        border-radius: 7px;
+        margin-right: 32px;
+        width: 32;
+        height: 32;
+        padding-top: 9px;
+        padding-left: 10px;
+
+        &:hover {
+            background: rgb(131, 131, 131);
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+    }
+
+    .inking-button-rotate {
+        background-color: #333333;
+        padding: 7px;
+        border-radius: 7px;
+        width: 32;
+        height: 32;
+        padding-top: 9px;
+        padding-left: 10px;
+
+        &:hover {
+            background: rgb(131, 131, 131);
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+    }
+}
+
+.inputBox-duo {
+    display: flex;
+}
+
+.inputBox {
+
+    margin-top: 10px;
+    display: flex;
+    height: 19px;
+    margin-right: 15px;
+
+    .inputBox-title {
+        font-size: 12px;
+        padding-right: 5px;
+    }
+
+    .inputBox-input {
+        font-size: 10px;
+        width: 50px;
+        margin-right: 1px;
+        border-radius: 3px;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    .inputBox-button {
+
+        .inputBox-button-up {
+            background-color: #333333;
+            height: 9px;
+            padding-left: 3px;
+            padding-right: 3px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            border-radius: 1.5px;
+
+            &:hover {
+                background: rgb(131, 131, 131);
+                transform: scale(1.05);
+                cursor: pointer;
+            }
+        }
+
+        .inputBox-button-down {
+            background-color: #333333;
+            height: 9px;
+            padding-left: 3px;
+            padding-right: 3px;
+            padding-top: 1px;
+            padding-bottom: 1px;
+            border-radius: 1.5px;
+
+            &:hover {
+                background: rgb(131, 131, 131);
+                transform: scale(1.05);
+                cursor: pointer;
+            }
+        }
+
+    }
+}
+
+.color-palette {
+    width: 160px;
+    height: 360;
+}
+
+.strokeAndFill {
+    display: flex;
+    margin-top: 10px;
+
+    .fill {
+        margin-right: 40px;
+        display: flex;
+        padding-bottom: 7px;
+        margin-left: 35px;
+
+        .fill-title {
+            font-size: 12px;
+            margin-right: 2px;
+        }
+
+        .fill-button {
+            padding-top: 2px;
+            margin-top: -1px;
+        }
+    }
+
+    .stroke {
+        display: flex;
+
+        .stroke-title {
+            font-size: 12px;
+        }
+
+        .stroke-button {
+            padding-top: 2px;
+            margin-left: 2px;
+            margin-top: -1px;
+        }
+    }
+}
+
+.widthAndDash {
+
+    .width {
+        .width-top {
+            display: flex;
+
+            .width-title {
+                font-size: 12;
+                margin-right: 20px;
+                margin-left: 35px;
+                text-align: center;
+            }
+
+            .width-input {
+                margin-right: 30px;
+                margin-top: -10px;
+            }
+        }
+
+        .width-range {
+            margin-right: 1px;
+            margin-bottom: 6;
+        }
+    }
+
+    .arrows {
+
+        display: flex;
+        margin-bottom: 3px;
+
+        .arrows-head {
+
+            display: flex;
+            margin-right: 35px;
+
+            .arrows-head-title {
+                font-size: 10;
+            }
+
+            .arrows-head-input {
+                margin-left: 6px;
+                margin-top: 2px;
+            }
+        }
+
+        .arrows-tail {
+            display: flex;
+
+            .arrows-tail-title {
+                font-size: 10;
+            }
+
+            .arrows-tail-input {
+                margin-left: 6px;
+                margin-top: 2px;
+            }
+        }
+    }
+
+    .dashed {
+
+        display: flex;
+        margin-left: 74px;
+        margin-bottom: 6px;
+
+        .dashed-title {
+            font-size: 10;
+        }
+
+        .dashed-input {
+            margin-left: 6px;
+            margin-top: 2px;
+        }
+    }
+}

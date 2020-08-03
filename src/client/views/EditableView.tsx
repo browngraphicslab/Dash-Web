@@ -187,11 +187,11 @@ export class EditableView extends React.Component<EditableProps> {
                     {this.renderEditor()}
                 </div> : this.renderEditor();
         } else {
-            this.props.autosuggestProps?.resetValue();
+            setTimeout(() => this.props.autosuggestProps?.resetValue(), 0);
             return (this.props.contents instanceof ObjectField ? (null) :
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     ref={this._ref}
-                    style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
+                    style={{ display: this.props.display, minHeight: "17px", whiteSpace: "nowrap", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick} placeholder={this.props.placeholder}>
                     <span style={{
                         fontStyle: this.props.fontStyle, fontSize: this.props.fontSize,

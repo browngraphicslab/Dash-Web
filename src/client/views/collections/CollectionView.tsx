@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, getPlaygroundMode, distributeAcls, SharingPermissions } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, SharingPermissions } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -78,6 +78,7 @@ export interface CollectionViewCustomProps {
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
     childOpacity?: () => number;
+    hideFilter?: true;
 }
 
 export interface CollectionRenderProps {
@@ -142,20 +143,20 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const effectiveAcl = GetEffectiveAcl(this.props.Document);
 
         if (added.length) {
-            if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
+            if (effectiveAcl === AclPrivate || effectiveAcl === AclReadonly) {
                 return false;
             }
             else {
-                if (this.props.Document[AclSym]) {
-                    // change so it only adds if more restrictive
-                    added.forEach(d => {
-                        // const dataDoc = d[DataSym];
-                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                            distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
-                        }
-                        // dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
-                    });
-                }
+                // if (this.props.Document[AclSym]) {
+                //     // change so it only adds if more restrictive
+                //     added.forEach(d => {
+                //         // const dataDoc = d[DataSym];
+                //         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                //             // key.substring(4).replace("_", ".") !== Doc.CurrentUserEmail && distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                //             distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                //         }
+                //     });
+                // }
 
                 if (effectiveAcl === AclAddonly) {
                     added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
@@ -179,7 +180,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         doc.context = this.props.Document;
                     });
                     added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-                    targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                    // targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                    (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
                     targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 }
             }
@@ -189,14 +191,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const effectiveAcl = GetEffectiveAcl(this.props.Document);
-        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin || getPlaygroundMode()) {
+        const collectionEffectiveAcl = GetEffectiveAcl(this.props.Document);
+        const docEffectiveAcl = GetEffectiveAcl(doc);
+        // you can remove the document if you either have Admin/Edit access to the collection or to the specific document
+        if (collectionEffectiveAcl === AclEdit || collectionEffectiveAcl === AclAdmin || docEffectiveAcl === AclAdmin || docEffectiveAcl === AclEdit) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-            const result = value.filter(v => !docs.includes(v));
-            if (result.length !== value.length) {
-                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+            const toRemove = value.filter(v => docs.includes(v));
+            if (toRemove.length !== 0) {
+                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc));
                 return true;
             }
         }
@@ -306,7 +310,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
             const options = cm.findByDescription("Options...");
             const optionItems = options && "subitems" in options ? options.subitems : [];
-            optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            !Doc.UserDoc().noviceMode ? optionItems.splice(0, 0, { description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" }) : null;
             if (this.props.Document.childLayout instanceof Doc) {
                 optionItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
@@ -335,7 +339,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     icon: "edit",
                     event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
 
             if (!Doc.UserDoc().noviceMode) {
                 const more = cm.findByDescription("More...");
@@ -365,7 +369,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
     set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
-    bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
+    bodyPanelWidth = () => this.props.PanelWidth();
     facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
 
     @computed get dataDoc() {
@@ -487,6 +491,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return false;
         }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0), false);
     }
+
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
@@ -556,6 +561,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </div>
             </div>;
     }
+
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
@@ -585,11 +591,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {(!this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
+            {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
                 <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
                     style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
             }
-            {this.facetWidth() < 10 ? (null) : this.filterView}
+            {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);
     }
 }

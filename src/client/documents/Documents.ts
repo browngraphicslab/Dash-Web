@@ -92,6 +92,7 @@ export interface DocumentOptions {
     type?: string;
     title?: string;
     label?: string;
+    hidden?: boolean;
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
@@ -151,6 +152,7 @@ export interface DocumentOptions {
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
+    iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
@@ -166,6 +168,7 @@ export interface DocumentOptions {
     clipboard?: Doc;
     UseCors?: boolean;
     icon?: string;
+    target?: Doc; // available for use in scripts as the primary target document
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
@@ -300,6 +303,10 @@ export namespace Docs {
                 layout: { view: FontIconBox, dataField: defaultDataKey },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
             }],
+            // [DocumentType.RECOMMENDATION, {
+            //     layout: { view: RecommendationsBox, dataField: defaultDataKey },
+            //     options: { _width: 200, _height: 200 },
+            // }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: defaultDataKey }
             }],
@@ -1024,6 +1031,7 @@ export namespace DocUtils {
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
                     if (newDoc) {
+                        newDoc.author = Doc.CurrentUserEmail;
                         newDoc.x = x;
                         newDoc.y = y;
                         docAdder(newDoc);

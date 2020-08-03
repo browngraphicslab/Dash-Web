@@ -436,7 +436,7 @@ export class MobileInterface extends React.Component {
     // DocButton that uses UndoManager and handles the opacity change if CanUndo is true
     @computed get undo() {
         if (this.mainContainer && this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
-            this._activeDoc !== Doc.UserDoc().rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+            this._activeDoc !== Doc.UserDoc()["sidebar-sharing"] && this._activeDoc.title !== "WORKSPACES") {
             return (
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanUndo() ? "1" : "0.4", }}
@@ -454,7 +454,7 @@ export class MobileInterface extends React.Component {
     // DocButton that uses UndoManager and handles the opacity change if CanRedo is true
     @computed get redo() {
         if (this.mainContainer && this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
-            this._activeDoc !== Doc.UserDoc().rightSidebarCollection && this._activeDoc.title !== "WORKSPACES") {
+            this._activeDoc !== Doc.UserDoc()["sidebar-sharing"] && this._activeDoc.title !== "WORKSPACES") {
             return (
                 <div className="docButton"
                     style={{ backgroundColor: "black", color: "white", fontSize: "60", opacity: UndoManager.CanRedo() ? "1" : "0.4", }}
@@ -605,7 +605,7 @@ export class MobileInterface extends React.Component {
 
     // Returns the image upload pop up
     @computed get uploadImage() {
-        const doc = !this._homeMenu ? this._activeDoc : Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        const doc = !this._homeMenu ? this._activeDoc : Cast(Doc.UserDoc()["sidebar-sharing"], Doc) as Doc;
         return <Uploader Document={doc} />;
     }
 
@@ -628,7 +628,7 @@ export class MobileInterface extends React.Component {
      */
     @action
     switchToMobileUploads = () => {
-        const mobileUpload = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        const mobileUpload = Cast(Doc.UserDoc()["sidebar-sharing"], Doc) as Doc;
         this.switchCurrentView(mobileUpload);
         this._homeMenu = false;
     }

@@ -7,7 +7,7 @@
     height: 300px;
 
     button {
-        background: $lighter-alt-accent;
+        background: #315a96;
         outline: none;
         border-radius: 5px;
         border: 0px;
@@ -29,8 +29,12 @@
     button {
         width: 100%;
         align-self: center;
-        background: $darker-alt-accent;
+        background: #252b33;
         margin-top: 4px;
+
+        &:hover {
+            background: $main-accent;
+        }
     }
 
     .delete-button {
@@ -102,11 +106,12 @@
     }
 
     h1 {
-        color: $dark-color;
+        color: #121721;
         text-transform: uppercase;
         letter-spacing: 2px;
-        font-size: 120%;
+        font-size: 19;
         margin-top: 0;
+        font-weight: bold;
     }
 
     .container {
@@ -151,7 +156,7 @@
     .settings-interface button {
         width: 100%;
         font-size: 30px;
-        background: #b2cef8;
+        background: #315a96;
     }
 
     .settings-interface .settings-heading {

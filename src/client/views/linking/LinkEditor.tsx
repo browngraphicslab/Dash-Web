@@ -1,20 +1,16 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, computed, toJS } from "mobx";
+import { Tooltip } from "@material-ui/core";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt } from "../../../fields/Doc";
-import { StrCast, DateCast } from "../../../fields/Types";
+import { Doc } from "../../../fields/Doc";
+import { DateCast, StrCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
+import { undoBatch } from "../../util/UndoManager";
 import './LinkEditor.scss';
 import React = require("react");
-import { DocumentView } from "../nodes/DocumentView";
-import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
-import { EditableView } from "../EditableView";
-import { RefObject } from "react";
-import { Tooltip } from "@material-ui/core";
-import { undoBatch } from "../../util/UndoManager";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -296,21 +292,18 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
 
-    @undoBatch
-    @action
+    @undoBatch @action
     deleteLink = (): void => {
         LinkManager.Instance.deleteLink(this.props.linkDoc);
         this.props.showLinks();
     }
 
-    @action
+    @undoBatch @action
     setDescripValue = (value: string) => {
         if (LinkManager.currentLink) {
             LinkManager.currentLink.description = value;
             this.buttonColor = "rgb(62, 133, 55)";
-            setTimeout(action(() => {
-                this.buttonColor = "black";
-            }), 750);
+            setTimeout(action(() => this.buttonColor = "black"), 750);
             return true;
         }
     }
@@ -362,7 +355,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this.openDropdown = !this.openDropdown;
     }
 
-    @action
+    @undoBatch @action
     changeFollowBehavior = (follow: string) => {
         this.openDropdown = false;
         Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;

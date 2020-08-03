@@ -77,7 +77,8 @@ export default class RichTextMenu extends AntimodeMenu {
         super(props);
         RichTextMenu.Instance = this;
         this._canFade = false;
-        this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
+        //this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
+        this.Pinned = true;
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
@@ -184,11 +185,15 @@ export default class RichTextMenu extends AntimodeMenu {
         const active = this.getActiveFontStylesOnSelection();
         const activeFamilies = active.activeFamilies;
         const activeSizes = active.activeSizes;
+        const activeColors = active.activeColors;
+        const activeHighlights = active.activeHighlights;
 
         this.activeListType = this.getActiveListStyle();
         this.activeAlignment = this.getActiveAlignment();
         this.activeFontFamily = !activeFamilies.length ? "Arial" : activeFamilies.length === 1 ? String(activeFamilies[0]) : "various";
         this.activeFontSize = !activeSizes.length ? "13pt" : activeSizes.length === 1 ? String(activeSizes[0]) : "...";
+        this.activeFontColor = !activeColors.length ? "black" : activeColors.length === 1 ? String(activeColors[0]) : "...";
+        this.activeHighlightColor = !activeHighlights.length ? "" : activeHighlights.length === 1 ? String(activeHighlights[0]) : "...";
 
         // update link in current selection
         const targetTitle = await this.getTextLinkTargetTitle();
@@ -223,7 +228,7 @@ export default class RichTextMenu extends AntimodeMenu {
         if (this.view && this.TextView.props.isSelected(true)) {
             const path = (this.view.state.selection.$from as any).path;
             for (let i = path.length - 3; i < path.length && i >= 0; i -= 3) {
-                if (path[i]?.type === this.view.state.schema.nodes.paragraph) {
+                if (path[i]?.type === this.view.state.schema.nodes.paragraph || path[i]?.type === this.view.state.schema.nodes.heading) {
                     return path[i].attrs.align || "left";
                 }
             }
@@ -249,10 +254,12 @@ export default class RichTextMenu extends AntimodeMenu {
 
     // finds font sizes and families in selection
     getActiveFontStylesOnSelection() {
-        if (!this.view) return { activeFamilies: [], activeSizes: [] };
+        if (!this.view) return { activeFamilies: [], activeSizes: [], activeColors: [], activeHighlights: [] };
 
         const activeFamilies: string[] = [];
         const activeSizes: string[] = [];
+        const activeColors: string[] = [];
+        const activeHighlights: string[] = [];
         if (this.TextView.props.isSelected(true)) {
             const state = this.view.state;
             const pos = this.view.state.selection.$from;
@@ -260,15 +267,20 @@ export default class RichTextMenu extends AntimodeMenu {
             if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
                 ref_node.marks.forEach(m => {
                     m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family);
+                    m.type === state.schema.marks.pFontColor && activeColors.push(m.attrs.color);
                     m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "pt");
+                    m.type === state.schema.marks.marker && activeHighlights.push(String(m.attrs.highlight));
                 });
             }
             !activeFamilies.length && (activeFamilies.push(StrCast(this.TextView.layoutDoc._fontFamily, StrCast(Doc.UserDoc().fontFamily))));
             !activeSizes.length && (activeSizes.push(StrCast(this.TextView.layoutDoc._fontSize, StrCast(Doc.UserDoc().fontSize))));
+            !activeColors.length && (activeSizes.push(StrCast(this.TextView.layoutDoc.color, StrCast(Doc.UserDoc().fontColor))));
         }
         !activeFamilies.length && (activeFamilies.push(StrCast(Doc.UserDoc().fontFamily)));
         !activeSizes.length && (activeSizes.push(StrCast(Doc.UserDoc().fontSize)));
-        return { activeFamilies, activeSizes };
+        !activeColors.length && (activeColors.push(StrCast(Doc.UserDoc().fontColor, "black")));
+        !activeHighlights.length && (activeHighlights.push(StrCast(Doc.UserDoc().fontHighlight, "")));
+        return { activeFamilies, activeSizes, activeColors, activeHighlights };
     }
 
     getMarksInSelection(state: EditorState<any>) {
@@ -425,10 +437,16 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     changeFontSize = (mark: Mark, view: EditorView) => {
+        if ((this.view?.state.selection.$from.pos || 0) < 2) {
+            this.TextView.layoutDoc._fontSize = mark.attrs.fontSize;
+        }
         this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch, true);
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
+        if ((this.view?.state.selection.$from.pos || 0) < 2) {
+            this.TextView.layoutDoc._fontFamily = mark.attrs.family;
+        }
         this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch, true);
     }
 
@@ -490,7 +508,7 @@ export default class RichTextMenu extends AntimodeMenu {
     alignParagraphs(state: EditorState<any>, align: "left" | "right" | "center", dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, align }, node.marks);
                 return false;
             }
@@ -503,7 +521,7 @@ export default class RichTextMenu extends AntimodeMenu {
     insetParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const inset = (node.attrs.inset ? Number(node.attrs.inset) : 0) + 10;
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
                 return false;
@@ -516,7 +534,7 @@ export default class RichTextMenu extends AntimodeMenu {
     outsetParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const inset = Math.max(0, (node.attrs.inset ? Number(node.attrs.inset) : 0) - 10);
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, inset }, node.marks);
                 return false;
@@ -529,8 +547,9 @@ export default class RichTextMenu extends AntimodeMenu {
 
     indentParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
+        const heading = false;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
                 const indent = !nodeval ? 25 : nodeval < 0 ? 0 : nodeval + 25;
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
@@ -538,14 +557,14 @@ export default class RichTextMenu extends AntimodeMenu {
             }
             return true;
         });
-        dispatch?.(tr);
+        !heading && dispatch?.(tr);
         return true;
     }
 
     hangingIndentParagraph(state: EditorState<any>, dispatch: any) {
         var tr = state.tr;
         state.doc.nodesBetween(state.selection.from, state.selection.to, (node, pos, parent, index) => {
-            if (node.type === schema.nodes.paragraph) {
+            if (node.type === schema.nodes.paragraph || node.type === schema.nodes.heading) {
                 const nodeval = node.attrs.indent ? Number(node.attrs.indent) : undefined;
                 const indent = !nodeval ? -25 : nodeval > 0 ? 0 : nodeval - 10;
                 tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, indent }, node.marks);
@@ -604,8 +623,11 @@ export default class RichTextMenu extends AntimodeMenu {
             label = "No marks are currently stored";
         }
 
+        //onPointerDown={onBrushClick}
+
         const button = <Tooltip title={<div className="dash-tooltip">style brush</div>} placement="bottom">
-            <button className="antimodeMenu-button" onPointerDown={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+
+            <button className="antimodeMenu-button" style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
                 <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
             </button>
         </Tooltip>;
@@ -614,11 +636,11 @@ export default class RichTextMenu extends AntimodeMenu {
             <div className="dropdown">
                 <p>{label}</p>
                 <button onPointerDown={this.clearBrush}>Clear brush</button>
-                <input placeholder="-brush name-" ref={this._brushNameRef} onKeyPress={this.onBrushNameKeyPress}></input>
+                <input placeholder="-brush name-" ref={this._brushNameRef} onKeyPress={this.onBrushNameKeyPress} />
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"brush dropdown"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -677,8 +699,9 @@ export default class RichTextMenu extends AntimodeMenu {
             self.TextView.EditorView!.focus();
         }
 
+        // onPointerDown={onColorClick}
         const button = <Tooltip title={<div className="dash-tooltip">set font color</div>} placement="bottom">
-            <button className="antimodeMenu-button color-preview-button" onPointerDown={onColorClick}>
+            <button className="antimodeMenu-button color-preview-button">
                 <FontAwesomeIcon icon="palette" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeFontColor }}></div>
             </button>
@@ -699,7 +722,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"color dropdown"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"color dropdown"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -731,8 +754,9 @@ export default class RichTextMenu extends AntimodeMenu {
             UndoManager.RunInBatch(() => self.view && self.insertHighlight(self.activeHighlightColor, self.view.state, self.view.dispatch), "rt highlighter");
         }
 
+        //onPointerDown={onHighlightClick}
         const button = <Tooltip title={<div className="dash-tooltip">set highlight color</div>} placement="bottom">
-            <button className="antimodeMenu-button color-preview-button" key="highilghter-button" onPointerDown={onHighlightClick}>
+            <button className="antimodeMenu-button color-preview-button" key="highilghter-button" >
                 <FontAwesomeIcon icon="highlighter" size="lg" />
                 <div className="color-preview" style={{ backgroundColor: this.activeHighlightColor }}></div>
             </button>
@@ -753,7 +777,7 @@ export default class RichTextMenu extends AntimodeMenu {
             </div>;
 
         return (
-            <ButtonDropdown view={this.view} key={"highlighter"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown view={this.view} key={"highlighter"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />
         );
     }
 
@@ -776,7 +800,9 @@ export default class RichTextMenu extends AntimodeMenu {
         const link = this.currentLink ? this.currentLink : "";
 
         const button = <Tooltip title={<div className="dash-tooltip">set hyperlink</div>} placement="bottom">
-            <div><FontAwesomeIcon icon="link" size="lg" /> </div>
+            <button className="antimodeMenu-button color-preview-button">
+                <FontAwesomeIcon icon="link" size="lg" />
+            </button>
         </Tooltip>;
 
         const dropdownContent =
@@ -788,7 +814,8 @@ export default class RichTextMenu extends AntimodeMenu {
                 <button className="remove-button" onPointerDown={e => this.deleteLink()}>Remove link</button>
             </div>;
 
-        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent} openDropdownOnButton={true} />;
+        return <ButtonDropdown view={this.view} key={"link button"} button={button} dropdownContent={dropdownContent}
+            openDropdownOnButton={true} link={true} />;
     }
 
     async getTextLinkTargetTitle() {
@@ -827,6 +854,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     // TODO: should check for valid URL
+    @undoBatch
     makeLinkToURL = (target: string, lcoation: string) => {
         ((this.view as any)?.TextView as FormattedTextBox).makeLinkToSelection("", target, "onRight", "", target);
     }
@@ -874,10 +902,11 @@ export default class RichTextMenu extends AntimodeMenu {
         if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
             ref_node = pos.nodeBefore;
         }
-        else if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-            ref_node = pos.nodeAfter;
+        if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+            if (!pos.nodeBefore || this.view.state.selection.$from.pos !== this.view.state.selection.$to.pos)
+                ref_node = pos.nodeAfter;
         }
-        else if (pos.pos > 0) {
+        if (!ref_node && pos.pos > 0) {
             let skip = false;
             for (let i: number = pos.pos - 1; i > 0; i--) {
                 this.view.state.doc.nodesBetween(i, pos.pos, (node: ProsNode) => {
@@ -918,16 +947,22 @@ export default class RichTextMenu extends AntimodeMenu {
     render() {
         TraceMobx();
         const row1 = <div className="antimodeMenu-row" key="row 1" style={{ display: this.collapsed ? "none" : undefined }}>{[
-            !this.collapsed ? this.getDragger() : (null),
-            !this.Pinned ? (null) : <div key="frag1"> {[
-                this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
-                this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
-                this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
-                this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
-                this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
-                this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
-                <div className="richTextMenu-divider" key="divider" />
-            ]}</div>,
+            //!this.collapsed ? this.getDragger() : (null),
+            // !this.Pinned ? (null) : <div key="frag1"> {[
+            //     this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            //     this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            //     this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            //     this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            //     this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            //     this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
+            //     <div className="richTextMenu-divider" key="divider" />
+            // ]}</div>,
+            this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
+            this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
+            this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
+            this.createButton("strikethrough", "Strikethrough", this.strikethroughActive, toggleMark(schema.marks.strikethrough)),
+            this.createButton("superscript", "Superscript", this.superscriptActive, toggleMark(schema.marks.superscript)),
+            this.createButton("subscript", "Subscript", this.subscriptActive, toggleMark(schema.marks.subscript)),
             this.createColorButton(),
             this.createHighlighterButton(),
             this.createLinkButton(),
@@ -955,16 +990,16 @@ export default class RichTextMenu extends AntimodeMenu {
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),
                 <div className="richTextMenu-divider" key="divider 5" />,]}
             </div>
-            <div key="collapser">
-                {/* <div key="collapser">
+            {/* <div key="collapser">
+                {<div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
                         <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />
                     </button>
-                </div> */}
+                </div> }
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
-            </div>
+            </div> */}
         </div>;
 
         return (
@@ -980,6 +1015,7 @@ interface ButtonDropdownProps {
     button: JSX.Element;
     dropdownContent: JSX.Element;
     openDropdownOnButton?: boolean;
+    link?: boolean;
 }
 
 @observer
@@ -1022,18 +1058,10 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
     render() {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
-                {this.props.openDropdownOnButton ?
-                    <button className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
-                        {this.props.button}
-                        <FontAwesomeIcon icon="caret-down" size="sm" />
-                    </button> :
-                    <>
-                        {this.props.button}
-                        <button className="dropdown-button antimodeMenu-button" key="antimodebutton" onPointerDown={this.onDropdownClick}>
-                            <FontAwesomeIcon icon="caret-down" size="sm" />
-                        </button>
-                    </>}
-
+                <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
+                    {this.props.button}
+                    <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
+                </div>
                 {this.showDropdown ? this.props.dropdownContent : (null)}
             </div>
         );

@@ -409,7 +409,7 @@ export namespace Doc {
     // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
     export function GetProto(doc: Doc): Doc {
         if (doc instanceof Promise) {
-            console.log("GetProto: error: got Promise insead of Doc");
+            console.log("GetProto: warning: got Promise insead of Doc");
         }
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
@@ -508,6 +508,10 @@ export namespace Doc {
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
+
+        if (!doc.aliases) doc.aliases = new List<Doc>([alias]);
+        else Doc.AddDocToList(doc, "aliases", alias);
+
         return alias;
     }
 
@@ -524,10 +528,10 @@ export namespace Doc {
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
             const copyObjectField = async (field: ObjectField) => {
-                const list = await Cast(doc[key], listSpec(Doc));
+                const list = Cast(doc[key], listSpec(Doc));
                 const docs = list && (await DocListCastAsync(list))?.filter(d => d instanceof Doc);
                 if (docs !== undefined && docs.length) {
-                    const clones = await Promise.all(docs.map(async d => await Doc.makeClone(d as Doc, cloneMap, rtfs, exclusions, dontCreate)));
+                    const clones = await Promise.all(docs.map(async d => Doc.makeClone(d, cloneMap, rtfs, exclusions, dontCreate)));
                     !dontCreate && assignKey(new List<Doc>(clones));
                 } else if (doc[key] instanceof Doc) {
                     assignKey(key.includes("layout[") ? undefined : key.startsWith("layout") ? doc[key] as Doc : await Doc.makeClone(doc[key] as Doc, cloneMap, rtfs, exclusions, dontCreate)); // reference documents except copy documents that are expanded teplate fields 
@@ -621,7 +625,7 @@ export namespace Doc {
         Array.from(map.entries()).forEach(f => docs[f[0]] = f[1]);
         const docString = JSON.stringify({ id: doc[Id], docs }, replacer);
 
-        var zip = new JSZip();
+        const zip = new JSZip();
 
         zip.file("doc.json", docString);
 

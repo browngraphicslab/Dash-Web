@@ -112,10 +112,10 @@ export class PreviewCursor extends React.Component<{}> {
                 } else if (e.clipboardData.items.length) {
                     const batch = UndoManager.StartBatch("collection view drop");
                     const files: File[] = [];
-                    for (let i = 0; i < e.clipboardData.items.length; i++) {
-                        const file = e.clipboardData.items[i].getAsFile();
+                    Array.from(e.clipboardData.items).forEach(item => {
+                        const file = item.getAsFile();
                         file && files.push(file);
-                    }
+                    });
                     const generatedDocuments = await DocUtils.uploadFilesToDocs(files, { x: newPoint[0], y: newPoint[1] });
                     generatedDocuments.forEach(PreviewCursor._addDocument);
                     batch.end();
