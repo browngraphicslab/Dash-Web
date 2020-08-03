@@ -12,7 +12,7 @@ import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
 import { DragManager } from "./DragManager";
 import { Scripting } from "./Scripting";
-import { CollectionViewType } from "../views/collections/CollectionView";
+import { CollectionViewType, CollectionView } from "../views/collections/CollectionView";
 import { makeTemplate } from "./DropConverter";
 import { RichTextField } from "../../fields/RichTextField";
 import { PrefetchProxy } from "../../fields/Proxy";
@@ -37,16 +37,6 @@ export class CurrentUserUtils {
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestWorkspace: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
-
-    @observable public static toolsBtn: any | undefined;
-    @observable public static libraryBtn: any | undefined;
-    @observable public static searchBtn: any | undefined;
-
-    @observable public static toolsStack: Doc | undefined;
-    @observable public static workspaceStack: Doc | undefined;
-    @observable public static catalogStack: Doc | undefined;
-    @observable public static closedStack: Doc | undefined;
-    @observable public static searchStack: Doc | undefined;
 
     @observable public static propertiesWidth: number = 0;
 
@@ -516,6 +506,7 @@ export class CurrentUserUtils {
             { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu(self, "Tools")' },
             { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu(self, "Help")' },
             { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu(self, "Settings")' },
+            { title: "User Doc", icon: "address-card", click: 'scriptContext.selectMenu(self, "UserDoc")' },
         ];
     }
 
@@ -533,6 +524,9 @@ export class CurrentUserUtils {
                 _height: 60,
                 onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
             }));
+            const userDoc = menuBtns[menuBtns.length - 1];
+            userDoc.target = doc;
+            userDoc.hidden = ComputedField.MakeFunction("self.target.noviceMode");
 
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
@@ -645,10 +639,6 @@ export class CurrentUserUtils {
         return Cast(userDoc.thumbDoc, Doc);
     }
 
-    static setupLibrary(userDoc: Doc) {
-        return CurrentUserUtils.setupWorkspaces(userDoc);
-    }
-
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
     // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
     static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
@@ -672,29 +662,13 @@ export class CurrentUserUtils {
             doc.myColorPicker = new PrefetchProxy(color);
         }
 
-        if (doc["tabs-button-tools"] === undefined) {
+        if (doc["sidebar-tools"] === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                _width: 500, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, title: "tools stack", forceActive: true
+                title: "sidebar-tools", _width: 500, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true
             })) as any as Doc;
 
-            CurrentUserUtils.toolsStack = toolsStack;
-
-            doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", _fontSize: "10pt", color: "black",
-                letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: toolsStack,
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: toolsStack,
-                removeDropProperties: new List<string>(["lockedPosition"]),
-                stayInCollection: true,
-                hideFilterView: true,
-                targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
-            }));
+            doc["sidebar-tools"] = toolsStack;
         }
-        (doc["tabs-button-tools"] as any as Doc).sourcePanel; // prefetch sourcePanel
-
-        return doc["tabs-button-tools"] as any as Doc;
     }
 
     static setupWorkspaces(doc: Doc) {
@@ -705,20 +679,21 @@ export class CurrentUserUtils {
                 title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true,
             }));
         }
-        const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
-        (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
-        (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
+        if (doc["sidebar-workspaces"] === undefined) {
+            const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
+            (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
+            (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
 
-        const workspaces = doc.myWorkspaces as Doc;
+            const workspaces = doc.myWorkspaces as Doc;
 
-        CurrentUserUtils.workspaceStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
-            title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
-            lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
-        })) as any as Doc;
-
-        return doc.myWorkspaces as Doc;
+            doc["sidebar-workspaces"] = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
+        }
     }
+
     static setupCatalog(doc: Doc) {
         doc.myCatalog === undefined;
         if (doc.myCatalog === undefined) {
@@ -728,15 +703,16 @@ export class CurrentUserUtils {
             }));
         }
 
-        const catalog = doc.myCatalog as Doc;
+        if (doc["sidebar-catalog"] === undefined) {
+            const catalog = doc.myCatalog as Doc;
 
-        CurrentUserUtils.catalogStack = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
-            title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
-            lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
-        })) as any as Doc;
-
-        return doc.myCatalog as Doc;
+            doc["sidebar-catalog"] = new PrefetchProxy(Docs.Create.TreeDocument([catalog], {
+                title: "sidebar-catalog",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
+        }
     }
     static setupRecentlyClosed(doc: Doc) {
         // setup Recently Closed library item
@@ -748,90 +724,51 @@ export class CurrentUserUtils {
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
         PromiseValue(Cast(doc.myRecentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
-        const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-        (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-        (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        if (doc["sidebar-recentlyClosed"] === undefined) {
+            const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
+            (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
 
-        const recentlyClosed = doc.myRecentlyClosed as Doc;
+            const recentlyClosed = doc.myRecentlyClosed as Doc;
 
-        CurrentUserUtils.closedStack = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
-            title: " ", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
-            treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
-            lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
-        })) as any as Doc;
-
-        return doc.myRecentlyClosed as Doc;
+            doc["sidebar-recentlyClosed"] = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
+                title: "sidebar-recentlyClosed",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
+            })) as any as Doc;
+        }
     }
-    // setup the Library button which will display the library panel.  This panel includes a collection of workspaces, documents, and recently closed views
-    static setupLibraryPanel(doc: Doc, sidebarContainer: Doc) {
-        const workspaces = CurrentUserUtils.setupWorkspaces(doc);
-        const documents = CurrentUserUtils.setupCatalog(doc);
-        const recentlyClosed = CurrentUserUtils.setupRecentlyClosed(doc);
-
-        if (doc["tabs-button-library"] === undefined) {
-            const libraryStack = new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+    static setupUserDoc(doc: Doc) {
+        if (doc["sidebar-userDoc"] === undefined) {
+            doc.treeViewOpen = true;
+            doc.treeViewExpandedView = "fields";
+            doc["sidebar-userDoc"] = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "sidebar-userDoc",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
-            doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", _fontSize: "10pt", targetDropAction: "same", color: "black",
-                letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: libraryStack,
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                dragFactory: libraryStack,
-                removeDropProperties: new List<string>(["lockedPosition"]),
-                stayInCollection: true,
-                targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
-            }));
         }
-        return doc["tabs-button-library"] as Doc;
-    }
-
-    // setup the Search button which will display the search panel.
-    static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
-        doc["tabs-button-search"] = undefined;
-        if (doc["tabs-button-search"] === undefined) {
-            doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", _fontSize: "10pt", color: "black",
-                letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
-                searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
-                targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                lockedPosition: true,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
-            }));
-            CurrentUserUtils.searchStack = new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc;
-        }
-        return doc["tabs-button-search"] as any as Doc;
     }
 
     static setupSidebarContainer(doc: Doc) {
-        if (doc["tabs-panelContainer"] === undefined) {
+        if (doc["sidebar"] === undefined) {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
             sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
-            doc["tabs-panelContainer"] = new PrefetchProxy(sidebarContainer);
+            doc["sidebar"] = new PrefetchProxy(sidebarContainer);
         }
-        return doc["tabs-panelContainer"] as Doc;
+        return doc["sidebar"] as Doc;
     }
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
         const sidebarContainer = CurrentUserUtils.setupSidebarContainer(doc);
-        CurrentUserUtils.toolsBtn = await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
-        CurrentUserUtils.libraryBtn = CurrentUserUtils.setupLibraryPanel(doc, sidebarContainer);
-        CurrentUserUtils.searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
-
-        // Finally, setup the list of buttons to display in the sidebar
-        if (doc["tabs-buttons"] === undefined) {
-            doc["tabs-buttons"] = new PrefetchProxy(Docs.Create.StackingDocument([CurrentUserUtils.libraryBtn, CurrentUserUtils.searchBtn, CurrentUserUtils.toolsBtn], {
-                _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", _columnsHideIfEmpty: true, ignoreClick: true, _chromeStatus: "view-mode",
-                title: "sidebar btn row stack", backgroundColor: "dimGray",
-            }));
-            (CurrentUserUtils.toolsBtn.onClick as ScriptField).script.run({ this: CurrentUserUtils.toolsBtn });
-        }
+        await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
+        CurrentUserUtils.setupWorkspaces(doc);
+        CurrentUserUtils.setupCatalog(doc);
+        CurrentUserUtils.setupRecentlyClosed(doc);
+        CurrentUserUtils.setupUserDoc(doc);
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
