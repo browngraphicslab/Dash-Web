@@ -11,7 +11,7 @@ import { ContextMenu } from '../ContextMenu';
 import './LinkMenuItem.scss';
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
-import { setupMoveUpEvents, emptyFunction, Utils } from '../../../Utils';
+import { setupMoveUpEvents, emptyFunction, Utils, simulateMouseClick } from '../../../Utils';
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
@@ -20,6 +20,7 @@ import { Id } from '../../../fields/FieldSymbols';
 import { Tooltip } from '@material-ui/core';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { undoBatch } from '../../util/UndoManager';
+import { WebField } from '../../../fields/URLField';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
@@ -156,7 +157,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         const linkDoc = this.props.linkDoc;
 
         if (linkDoc.followLinkLocation === "openExternal" && this.props.destinationDoc.type === DocumentType.WEB) {
-            window.open(Hypothesis.makeAnnotationUrl(StrCast(linkDoc.annotationId), StrCast(linkDoc.annotationUri)), '_blank');
+            window.open(`${StrCast(linkDoc.annotationUri)}#annotations:${StrCast(linkDoc.annotationId)}`, '_blank');
             return;
         }
 
@@ -244,7 +245,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                                     <FontAwesomeIcon className="destination-icon" icon={destinationIcon} size="sm" /></div>
                                 <p className="linkMenu-destination-title"
                                     onPointerDown={this.followDefault}>
-                                    {this.props.linkDoc.linksToAnnotation ? "Annotation in" : ""} {title}
+                                    {this.props.linkDoc.linksToAnnotation && Cast(this.props.destinationDoc.data, WebField)?.url.href === this.props.linkDoc.annotationUri ? "Annotation in" : ""} {title}
                                 </p>
                             </div>
                             {this.props.linkDoc.description !== "" ? <p className="linkMenu-description">

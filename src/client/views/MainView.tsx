@@ -104,47 +104,7 @@ export class MainView extends React.Component {
                 }
             });
         });
-        document.addEventListener("linkAnnotationToDash", async (e: any) => {  // listen for event from Hypothes.is plugin to link an annotation to Dash
-            const annotationId = e.detail.id;
-            const annotationUri = e.detail.uri;
-            const sourceDoc = await Hypothesis.getSourceWebDoc(annotationUri);
-            console.log("sourceDoc: ", sourceDoc.title);
-
-            if (!DocumentLinksButton.StartLink) { // starts link only if there are none already started (else, a listener in DocumentLinksButton will handle link completion)
-                runInAction(() => {
-                    DocumentLinksButton.AnnotationId = annotationId;
-                    DocumentLinksButton.AnnotationUri = annotationUri;
-                    DocumentLinksButton.StartLink = sourceDoc;
-                });
-            } else { // if a link's already started in Dash, send event to DocumentLinksButton tofinish the link to the annotation
-                document.dispatchEvent(new CustomEvent<{ id: string, uri: string, sourceDoc: Doc }>("completeLinkToAnnotation", {
-                    detail: {
-                        id: annotationId,
-                        uri: annotationUri,
-                        sourceDoc: sourceDoc
-                    },
-                    bubbles: true
-                }));
-            }
-        });
-
-        // reaction(() => SelectionManager.SelectedDocuments(), selected => {
-        //     console.log("selection changed");
-        //     const selectedWebDocs = selected.map(docView => docView.props.Document).filter(doc => doc.type === DocumentType.WEB);
-        //     const urls = selectedWebDocs.map(doc => Cast(doc.data, WebField)?.url.href).filter(url => url !== undefined);
-        //     console.log("urls", urls);
-
-        //     const frame = document.getElementById('hyp_sidebar') as HTMLIFrameElement;
-        //     console.log("contentwindow?", frame.contentDocument);
-        //     if (frame.contentWindow) {
-        //         frame.contentWindow.postMessage("hello sidebar", window.origin);
-        //     }
-
-        //     document.dispatchEvent(new CustomEvent('showAnnotations', {
-        //         detail: urls,
-        //         bubbles: true
-        //     }));
-        // });
+        document.addEventListener("linkAnnotationToDash", Hypothesis.linkListener);
     }
 
     componentWillUnMount() {
@@ -152,6 +112,7 @@ export class MainView extends React.Component {
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
         window.removeEventListener("paste", KeyManager.Instance.paste as any);
+        document.removeEventListener("linkAnnotationToDash", Hypothesis.linkListener);
     }
 
     constructor(props: Readonly<{}>) {

@@ -40,35 +40,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static AnnotationId: string | undefined;
     @observable public static AnnotationUri: string | undefined;
 
-    componentDidMount() {
-        document.addEventListener("completeLinkToAnnotation", this.onLinkFromAnnotation);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener("completeLinkToAnnotation", this.onLinkFromAnnotation);
-    }
-
-    @action
-    onLinkFromAnnotation = async (e: any) => {
-        const annotationId: string = e.detail.id;
-        const annotationUri: string = e.detail.uri;
-        const sourceDoc: Doc = e.detail.sourceDoc;
-
-        // DocumentLinksButton.StartLink && this.props.View.props.Document.type === DocumentType.WEB && console.log(
-        //     sourceDoc.title,
-        //     this.props.View.props.Document.title,
-        //     sourceDoc.data,
-        //     this.props.View.props.Document.data,
-        //     Doc.AreProtosEqual(sourceDoc, this.props.View.props.Document));
-
-        if (Doc.AreProtosEqual(sourceDoc, this.props.View.props.Document) && sourceDoc !== DocumentLinksButton.StartLink) {
-            DocumentLinksButton.AnnotationId = annotationId;
-            DocumentLinksButton.AnnotationUri = annotationUri;
-            this.finishLinkClick(500, 100);
-            console.log("completed link from annotation");
-        }
-    }
-
     @action @undoBatch
     onLinkButtonMoved = (e: PointerEvent) => {
         if (this.props.InMenu && this.props.StartLink) {
@@ -181,15 +152,12 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     setTimeout(action(() => DocumentLinksButton.StartLink!._link = this.props.View._link = undefined), 0);
                     LinkManager.currentLink = linkDoc;
 
-                    // if the link is to a Hypothes.is annotation
-                    if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
-                        // figure out whether the StartLink doc or the current doc is the one to be linked to the annotation (the one NOT containing the annotation)
-                        const toBeLinked: Doc = DocumentLinksButton.AnnotationUri === Cast(DocumentLinksButton.StartLink.data, WebField)?.url.href ?
-                            this.props.View.props.Document : DocumentLinksButton.StartLink;
+                    if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) { // if linking from a Hypothes.is annotation
+                        const targetDoc = this.props.View.props.Document;
                         Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                         Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                         Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
-                        Hypothesis.makeLink(StrCast(toBeLinked.title), Utils.prepend("/doc/" + toBeLinked[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                        Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // edit annotation to add a Dash hyperlink to the linked doc
                     }
 
                     runInAction(() => {
