@@ -4,7 +4,7 @@ import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
+import { emptyFunction, returnFalse, setupMoveUpEvents, emptyPath } from "../../../Utils";
 import { DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
@@ -202,9 +202,15 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     link : links.length}
 
             </div>
-            {DocumentLinksButton.StartLink && this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
-                style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
-                onPointerDown={this.completeLink} onClick={e => this.finishLinkClick(e.screenX, e.screenY)} /> : (null)}
+            {this.props.InMenu && !this.props.StartLink &&
+                DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
+                    style={{
+                        width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
+                        backgroundColor: DocumentLinksButton.StartLink ? "" : "grey",
+                        border: DocumentLinksButton.StartLink ? "" : "none"
+                    }}
+                    onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}
+                    onClick={e => DocumentLinksButton.StartLink ? this.finishLinkClick(e.screenX, e.screenY) : emptyFunction} /> : (null)}
             {DocumentLinksButton.StartLink === this.props.View && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
                 style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
                 onPointerDown={this.clearLinks} onClick={this.clearLinks}
@@ -212,10 +218,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         </div>;
 
         return (!links.length) && !this.props.AlwaysOn ? (null) :
-            this.props.InMenu ?
+            this.props.InMenu && (this.props.StartLink || DocumentLinksButton.StartLink) ?
                 <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                     {linkButton}
-                </Tooltip> : !!!DocumentLinksButton.EditLink ?
+                </Tooltip> : !!!DocumentLinksButton.EditLink && !this.props.InMenu ?
                     <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                         {linkButton}
                     </Tooltip> :

@@ -384,10 +384,14 @@ export class MainView extends React.Component {
 
     @action
     onFlyoutPointerDown = (e: React.PointerEvent) => {
-        this.panelContent = "none";
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
+                if (this.flyoutWidth < 5) {
+                    this.panelContent = "none";
+                    this._lastButton && (this._lastButton.color = "white");
+                    this._lastButton && (this._lastButton._backgroundColor = "");
+                }
                 return false;
             }), emptyFunction, action(() => {
                 if (this.flyoutWidth < 15) MainView.expandFlyout();
