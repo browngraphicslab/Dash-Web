@@ -202,7 +202,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     link : links.length}
 
             </div>
-            {this.props.InMenu && !this.props.StartLink &&
+            {DocumentLinksButton.StartLink && this.props.InMenu && !this.props.StartLink &&
                 DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
                     style={{
                         width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
@@ -218,7 +218,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         </div>;
 
         return (!links.length) && !this.props.AlwaysOn ? (null) :
-            this.props.InMenu && (this.props.StartLink || DocumentLinksButton.StartLink) ?
+            this.props.InMenu ?
                 <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                     {linkButton}
                 </Tooltip> : !!!DocumentLinksButton.EditLink && !this.props.InMenu ?

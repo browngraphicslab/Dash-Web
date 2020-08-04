@@ -92,6 +92,7 @@ export interface DocumentOptions {
     type?: string;
     title?: string;
     label?: string;
+    hidden?: boolean;
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
@@ -167,6 +168,7 @@ export interface DocumentOptions {
     clipboard?: Doc;
     UseCors?: boolean;
     icon?: string;
+    target?: Doc; // available for use in scripts as the primary target document
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
