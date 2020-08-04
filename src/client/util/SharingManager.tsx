@@ -88,7 +88,7 @@ export default class SharingManager extends React.Component<{}> {
             this.isOpen = true;
             this.permissions = SharingPermissions.Edit;
         });
-
+        this.targetDoc!.author === Doc.CurrentUserEmail && !this.targetDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, this.targetDoc!);
     }
 
     public close = action(() => {
@@ -221,7 +221,10 @@ export default class SharingManager extends React.Component<{}> {
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
 
-        target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
+
+        if (target.author === Doc.CurrentUserEmail) {
+            distributeAcls(ACL, permission as SharingPermissions, target);
+        }
 
         if (permission !== SharingPermissions.None) {
             Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);

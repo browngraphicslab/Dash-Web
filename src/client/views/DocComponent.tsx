@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym, DocListCastAsync, DocListCast } from '../../fields/Doc';
+import { Doc, Opt, DataSym, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym, DocListCastAsync, DocListCast, AclAdmin } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
@@ -7,7 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl, SharingPermissions } from '../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -96,7 +96,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             [AclPrivate, SharingPermissions.None],
             [AclReadonly, SharingPermissions.View],
             [AclAddonly, SharingPermissions.Add],
-            [AclEdit, SharingPermissions.Edit]
+            [AclEdit, SharingPermissions.Edit],
+            [AclAdmin, SharingPermissions.Admin]
         ]);
 
         lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
@@ -156,10 +157,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                 else {
                     if (this.props.Document[AclSym]) {
                         added.forEach(d => {
-                            const dataDoc = d[DataSym];
-                            dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                                dataDoc[key] = d[key] = this.AclMap.get(value);
+                                distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                             }
                         });
                     }
