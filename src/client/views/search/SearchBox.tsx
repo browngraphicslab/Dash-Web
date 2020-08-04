@@ -1,49 +1,30 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction, IReactionDisposer, reaction } from 'mobx';
+import * as _ from "lodash";
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
 import { Doc, DocListCast } from '../../../fields/Doc';
+import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from '../../../fields/FieldSymbols';
-import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne, returnEmptyString, returnEmptyFilter } from '../../../Utils';
-import { Docs, DocumentOptions } from '../../documents/Documents';
-import { SetupDrag, DragManager } from '../../util/DragManager';
-import { SearchUtil } from '../../util/SearchUtil';
-import "./SearchBox.scss";
-import { SearchItem } from './SearchItem';
-import { IconBar } from './IconBar';
-import { FieldView, FieldViewProps } from '../nodes/FieldView';
-import { DocumentType } from "../../documents/DocumentTypes";
-import { DocumentView } from '../nodes/DocumentView';
-import { SelectionManager } from '../../util/SelectionManager';
-import { FilterQuery } from 'mongodb';
-import { CollectionLinearView } from '../collections/CollectionLinearView';
-import { CurrentUserUtils } from '../../util/CurrentUserUtils';
-
-import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { ScriptField, ComputedField } from '../../../fields/ScriptField';
-import { PrefetchProxy } from '../../../fields/Proxy';
 import { List } from '../../../fields/List';
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
-import { Transform } from '../../util/Transform';
-import { MainView } from "../MainView";
+import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
+import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
+import { returnFalse, Utils } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
+import { DocumentType } from "../../documents/DocumentTypes";
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { SetupDrag } from '../../util/DragManager';
 import { Scripting, _scriptingGlobals } from '../../util/Scripting';
+import { SearchUtil } from '../../util/SearchUtil';
+import { SelectionManager } from '../../util/SelectionManager';
+import { Transform } from '../../util/Transform';
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { documentSchema } from "../../../fields/documentSchemas";
-import { makeInterface, createSchema } from '../../../fields/Schema';
-import { listSpec } from '../../../fields/Schema';
-import * as _ from "lodash";
-import { checkIfStateModificationsAreAllowed } from 'mobx/lib/internal';
-import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
-import { indexOf } from 'lodash';
-import { protocol } from 'socket.io-client';
-
-
-library.add(faTimes);
+import { DocumentView } from '../nodes/DocumentView';
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
+import "./SearchBox.scss";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export const searchSchema = createSchema({
     id: "string",
@@ -54,7 +35,8 @@ export const searchSchema = createSchema({
 export enum Keys {
     TITLE = "title",
     AUTHOR = "author",
-    DATA = "data"
+    DATA = "data",
+    TEXT = "text"
 }
 
 export interface filterData {
@@ -458,26 +440,24 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this._deletedDocsStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
         }
+        if (this._deletedDocsStatus) {
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TEXT);
+        }
         return finalQuery;
     }
 
     basicFieldFilters(query: string, type: string): string {
-        const oldWords = query.split(" ");
         let mod = "";
-
-        if (type === Keys.AUTHOR) {
-            mod = " author_t:";
-        } if (type === Keys.DATA) {
-            //TODO
-        } if (type === Keys.TITLE) {
-            mod = " title_t:";
+        switch (type) {
+            case Keys.AUTHOR: mod = " author_t:"; break;
+            case Keys.DATA: break; // TODO
+            case Keys.TITLE: mod = " _title_t:"; break;
+            case Keys.TEXT: mod = " text_t:"; break;
         }
 
         const newWords: string[] = [];
-        oldWords.forEach(word => {
-            const newWrd = mod + word;
-            newWords.push(newWrd);
-        });
+        const oldWords = query.split(" ");
+        oldWords.forEach(word => newWords.push(mod + word));
 
         query = newWords.join(" ");
 
@@ -713,7 +693,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        let headers = new Set<string>(["title", "author", "lastModified"]);
+        let headers = new Set<string>(["title", "author", "text", "lastModified"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             if (this.noresults === "") {
                 this.noresults = "No search results :(";
