@@ -1010,7 +1010,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     //Make id layour document
     render() {
         this.props.Document._chromeStatus === "disabled";
-        this.props.Document._searchDoc = true;
         let cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
         let length = 0;
         cols > 5 ? length = 1076 : length = cols * 205 + 51;
