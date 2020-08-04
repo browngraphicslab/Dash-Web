@@ -1034,100 +1034,104 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span> */}
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
-                    <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg" style={{ color: "black", position: "relative", left: 24, padding: 1 }} />
-                    <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
-                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
-                        style={{ paddingLeft: 23, color: "black", width: this._searchbarOpen ? "200px" : "200px" }} />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                        <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
+                            style={{ color: "black", left: 24, padding: 1, position: "relative" }} />
+
+                        <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
+                            className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
+                            style={{ padding: 1, paddingLeft: 20, color: "black", height: 20, width: 200 }} />
+                        <div style={{
+                            height: 25,
+                            paddingLeft: "4px",
+                            paddingRight: "4px",
+                            border: "1px solid gray",
+                            borderRadius: "0.3em",
+                            borderBottom: this.open === false ? "1px solid" : "none",
+                        }}>
+                            <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
+                                <div className="checkbox" style={{ margin: 0 }}>
+                                    <label style={{ fontSize: 12, marginTop: 6 }}>
+                                        <input style={{ marginLeft: -16, marginTop: -1, color: this.scale == false ? "black" : "grey" }} checked={this.filter === true} onChange={() => {
+                                            runInAction(() => {
+                                                if (this.scale === false) {
+                                                    this.filter = !this.filter;
+                                                    if (this.filter === true && this.currentSelectedCollection !== undefined) {
+                                                        this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
+                                                        this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
+                                                        this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
+                                                    }
+                                                    else if (this.filter === false && this.currentSelectedCollection !== undefined) {
+                                                        this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
+                                                        this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                                        this.props.Document.selectedDoc = undefined;
+                                                    }
+                                                }
+                                            })
+                                        }} type="checkbox"></input>
+                                            Filter
+                                        </label>
+                                </div>
+                                <div style={{ display: "contents" }}>
+                                    <div className="radio" style={{ margin: 0 }}>
+                                        <label style={{ fontSize: 12, marginTop: 6 }} >
+                                            <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => {
+                                                runInAction(() => {
+                                                    this.scale = !this.scale;
+                                                    this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                    if (this.currentSelectedCollection !== undefined) {
+                                                        this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                                        this.currentSelectedCollection.props.Document._searchDocs = undefined;
+                                                        this.currentSelectedCollection = undefined;
+                                                    }
+                                                    this.submitSearch();
+                                                })
+                                            }} />
+                                        Collection
+                                    </label>
+                                    </div>
+                                    <div className="radio" style={{ margin: 0 }}>
+                                        <label style={{ fontSize: 12, marginTop: 6 }} >
+                                            <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => {
+                                                runInAction(() => {
+                                                    this.scale = !this.scale;
+                                                    this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                    this.filter = false;
+                                                    if (this.currentSelectedCollection !== undefined) {
+                                                        this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                                        this.currentSelectedCollection.props.Document._searchDocs = undefined;
+                                                        this.currentSelectedCollection = undefined;
+                                                    }
+                                                    this.submitSearch();
+                                                })
+                                            }} />
+                                            DB
+                                    </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
                 </div>
                 <div style={{ zIndex: 20000, color: "black" }}>
                     {this._searchbarOpen === true ?
                         <div style={{ display: "flex", justifyContent: "center", }}>
-                            <div style={{
-                                width: cols > 0 ? length : 253,
-                                height: 25,
-                                borderColor: "#9c9396",
-                                border: "1px solid",
-                                borderRadius: "0.3em",
-                                borderBottom: this.open === false ? "1px solid" : "none",
-                                position: "absolute",
-                                background: "rgb(241, 239, 235)",
-                                top: 29
-                            }}>
-                                <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
-                                    <div className="checkbox" style={{ margin: 0 }}>
-                                        <label style={{ fontSize: 12, marginTop: 6 }}>
-                                            <input style={{ marginLeft: -16, marginTop: -1, color: this.scale == false ? "black" : "grey" }} checked={this.filter === true} onChange={() => {
-                                                runInAction(() => {
-                                                    if (this.scale === false) {
-                                                        this.filter = !this.filter;
-                                                        if (this.filter === true && this.currentSelectedCollection !== undefined) {
-                                                            this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
-                                                            this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
-                                                            this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
-                                                        }
-                                                        else if (this.filter === false && this.currentSelectedCollection !== undefined) {
-                                                            this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
-                                                            this.currentSelectedCollection.props.Document._docFilters = undefined;
-                                                            this.props.Document.selectedDoc = undefined;
-                                                        }
-                                                    }
-                                                })
-                                            }} type="checkbox"></input>
-                                            Filter
-                                        </label>
-                                    </div>
-                                    <div style={{ display: "contents" }}>
-                                        <div className="radio" style={{ margin: 0 }}>
-                                            <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => {
-                                                    runInAction(() => {
-                                                        this.scale = !this.scale;
-                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                        if (this.currentSelectedCollection !== undefined) {
-                                                            this.currentSelectedCollection.props.Document._docFilters = undefined;
-                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                            this.currentSelectedCollection = undefined;
-                                                        }
-                                                        this.submitSearch();
-                                                    })
-                                                }} />
-                                        Current collection
-                                    </label>
-                                        </div>
-                                        <div className="radio" style={{ margin: 0 }}>
-                                            <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => {
-                                                    runInAction(() => {
-                                                        this.scale = !this.scale;
-                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                        this.filter = false;
-                                                        if (this.currentSelectedCollection !== undefined) {
-                                                            this.currentSelectedCollection.props.Document._docFilters = undefined;
-                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                            this.currentSelectedCollection = undefined;
-                                                        }
-                                                        this.submitSearch();
-                                                    })
-                                                }} />
-                                            Database
-                                    </label>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            {this.noresults === "" ? <div style={{ display: this.open === true ? "contents" : "none" }}> <CollectionView {...this.props}
-                                Document={this.props.Document}
-                                moveDocument={returnFalse}
-                                removeDocument={returnFalse}
-                                PanelHeight={this.open === true ? () => height : () => 0}
-                                PanelWidth={this.open === true ? () => length : () => 0}
-                                PanelPosition={"absolute"}
-                                overflow={cols > 5 || rows > 8 ? true : false}
-                                focus={this.selectElement}
-                                ScreenToLocalTransform={Transform.Identity}
-                            /></div> : <div style={{ display: "flex", justifyContent: "center" }}><div style={{ height: 200, top: 54, width: 250, position: "absolute", backgroundColor: "rgb(241, 239, 235)", display: "flex", justifyContent: "center", alignItems: "center", border: "black 1px solid", }}>
-                                <div>{this.noresults}</div>
-                            </div></div>}
+                            {this.noresults === "" ? <div style={{ display: this.open === true ? "flex" : "none", overflow: "auto", }}>
+                                <CollectionView {...this.props}
+                                    Document={this.props.Document}
+                                    moveDocument={returnFalse}
+                                    removeDocument={returnFalse}
+                                    PanelHeight={this.open === true ? () => height : () => 0}
+                                    PanelWidth={this.open === true ? () => length : () => 0}
+                                    overflow={cols > 5 || rows > 8 ? true : false}
+                                    focus={this.selectElement}
+                                    ScreenToLocalTransform={Transform.Identity}
+                                />
+                            </div> :
+                                <div style={{ display: "flex", justifyContent: "center" }}><div style={{ height: 200, top: 54, minWidth: 400, position: "absolute", backgroundColor: "rgb(241, 239, 235)", display: "flex", justifyContent: "center", alignItems: "center", border: "black 1px solid", }}>
+                                    <div>{this.noresults}</div>
+                                </div></div>}
                         </div> : undefined}
                 </div>
 

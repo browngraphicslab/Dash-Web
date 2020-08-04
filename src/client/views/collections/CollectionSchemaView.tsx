@@ -631,7 +631,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             style={{
                 overflow: this.props.overflow === true ? "auto" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
-                width: this.props.PanelWidth() || "100%", height: this.props.PanelPosition === "absolute" ? this.props.PanelHeight() : this.props.PanelHeight() || "100%", top: this.props.PanelPosition === "absolute" ? 52 : 0, position: this.props.PanelPosition || "relative",
+                width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
                 style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
