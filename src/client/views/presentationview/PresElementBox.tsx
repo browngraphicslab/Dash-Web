@@ -251,10 +251,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
         // let value = this.getValue(this._heading);
         // value = typeof value === "string" ? `"${value}"` : value;
-        PresBox.Instance._dragArray.map(ele => {
-            ele.style.backgroundColor = "#d5dce2";
-            ele.style.borderRadius = '5px';
-        });
         if (activeItem) {
             DragManager.StartDocumentDrag(PresBox.Instance._dragArray.map(ele => ele), dragData, e.clientX, e.clientY);
             activeItem.dragging = true;
@@ -276,26 +272,21 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
+                    // Command/ control click
                     if (e.ctrlKey || e.metaKey) {
                         PresBox.Instance.multiSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
-                        console.log("cmmd click");
+                        // Shift click
                     } else if (e.shiftKey) {
                         PresBox.Instance.shiftSelect(this.rootDoc, this._itemRef.current!, this._dragRef.current!);
+                        // Regular click
                     } else {
-                        PresBox.Instance.selectElement(this.rootDoc);
+                        this.props.focus(this.rootDoc);
                         PresBox.Instance._eleArray = [];
                         PresBox.Instance._eleArray.push(this._itemRef.current!);
                         PresBox.Instance._dragArray = [];
                         PresBox.Instance._dragArray.push(this._dragRef.current!);
-                        console.log("normal click");
                     }
                 }}
-                // onClick={e => {
-                //     if (this.props.active(true)) {
-                //         e.stopPropagation();
-                //         e.preventDefault();
-                //     }
-                // }}
                 onPointerDown={this.headerDown}
             >
                 <>

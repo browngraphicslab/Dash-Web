@@ -21,6 +21,7 @@ import { Docs, DocUtils } from "../../documents/Documents";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Networking } from "../../Network";
 import { LinkAnchorBox } from "./LinkAnchorBox";
+import { signedCookie } from "cookie-parser";
 
 // testing testing 
 
@@ -43,7 +44,7 @@ const AudioDocument = makeInterface(documentSchema, audioSchema);
 export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
-
+    static Instance: AudioBox;
     _linkPlayDisposer: IReactionDisposer | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
     _scrubbingDisposer: IReactionDisposer | undefined;
@@ -51,12 +52,14 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     _recorder: any;
     _recordStart = 0;
     _stream: MediaStream | undefined;
-
+    constructor(props: any) {
+        super(props);
+        AudioBox.Instance = this;
+    }
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
-
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
     async slideTemplate() { return (await Cast((await Cast(Doc.UserDoc().slidesBtn, Doc) as Doc).dragFactory, Doc) as Doc); }
 
