@@ -358,13 +358,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @computed get editableTitle() {
-        return <EditableView
+        return <div className="editable-title"><EditableView
             key="editableView"
             contents={StrCast(this.selectedDoc?.title)}
             height={25}
             fontSize={14}
             GetValue={() => StrCast(this.selectedDoc?.title)}
-            SetValue={this.setTitle} />;
+            SetValue={this.setTitle} /> </div>;
     }
 
     @undoBatch

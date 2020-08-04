@@ -181,7 +181,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
         const linkButton = <div ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
             <div className={"documentLinksButton"} style={{
-                backgroundColor: this.props.InMenu ? "black" : "",
+                backgroundColor: this.props.InMenu ? "" : "#add8e6",
                 color: this.props.InMenu ? "white" : "black",
                 width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
             }}
@@ -202,8 +202,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     link : links.length}
 
             </div>
-            {DocumentLinksButton.StartLink && this.props.InMenu && !this.props.StartLink &&
-                DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
+            {this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View ?
+                <div className={"documentLinksButton-endLink"}
                     style={{
                         width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
                         backgroundColor: DocumentLinksButton.StartLink ? "" : "grey",
@@ -218,7 +218,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         </div>;
 
         return (!links.length) && !this.props.AlwaysOn ? (null) :
-            this.props.InMenu ?
+            this.props.InMenu && (DocumentLinksButton.StartLink || this.props.StartLink) ?
                 <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                     {linkButton}
                 </Tooltip> : !!!DocumentLinksButton.EditLink && !this.props.InMenu ?

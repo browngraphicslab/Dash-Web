@@ -563,7 +563,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             title={<><div className="dash-tooltip">{this.selectedDoc?._fitToBox ? "Stop Fitting Content" : "Fit Content"}</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
-                    style={{ backgroundColor: this.selectedDoc?._fitToBox ? "#a0a0a0" : "" }}
+                    style={{ backgroundColor: this.selectedDoc?._fitToBox ? "white" : "" }}
                     onPointerDown={this.changeFitToBox}>
                     {<FontAwesomeIcon className="documentdecorations-icon"
                         color={this.selectedDoc?._fitToBox ? "black" : "white"}

@@ -553,7 +553,7 @@ export class MainView extends React.Component {
                 <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
                     {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                         onPointerDown={this.onFlyoutPointerDown}
-                        style={{ backgroundColor: 'lightgrey' }}>
+                        style={{ backgroundColor: '#8c8b8b' }}>
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -561,7 +561,7 @@ export class MainView extends React.Component {
                             top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />
                         <div className="mainview-libraryHandle-icon">
-                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
+                            <FontAwesomeIcon icon="chevron-left" color="white" size="sm" />
                         </div>
                     </div> : null}
                     <div className="mainView-libraryFlyout" style={{
