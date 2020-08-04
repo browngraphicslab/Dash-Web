@@ -5,8 +5,8 @@
     font-family: "Noto Sans";
     cursor: auto;
 
-    overflow-x: visible;
-    overflow-y: visible;
+    overflow-x: hidden;
+    overflow-y: scroll;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);

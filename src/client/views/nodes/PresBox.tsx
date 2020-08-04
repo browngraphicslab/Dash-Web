@@ -900,22 +900,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className={'presBox-ribbon'} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                         <div className="ribbon-box">
                             {this.stringType} options
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.VID ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Child documents</div>
-                                <div className="ribbon-button" style={{ display: activeItem.presProgressivize ? "flex" : "none", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Edit</div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.VID || targetDoc.type === DocumentType.AUDIO ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeChild}>Start automatically</div>
+                                <div className="ribbon-button" style={{ display: "flex", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Start manually</div>
                             </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
-                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
-                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div>
+                            <div className="ribbon-doubleButton" style={{ display: "flex" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Open document</div>
+                                <div className="ribbon-button" style={{ display: "flex", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Open parent collection</div>
                             </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
-                                <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
-                            </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.PDF ? "inline-flex" : "none" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll progressivize</div>
-                                <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.WEB ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" onClick={this.progressivizeText}>Store original website</div>
                             </div>
                         </div>
                     </div>
@@ -928,27 +922,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return (
             <div>
                 <div className={'presBox-toolbar-dropdown'} style={{ display: this.newDocumentTools && this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                    <div className="layout-container" style={{ height: this.openLayouts ? 'max-content' : '75px' }}>
-                        <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'blank' })} />
-                        <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'title' })}>
+                    <div className="layout-container" style={{ height: 'max-content' }}>
+                        <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'blank'; this.createNewSlide(this.layout); })} />
+                        <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'title'; this.createNewSlide(this.layout); })}>
                             <div className="title">Title</div>
                             <div className="subtitle">Subtitle</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'header' })}>
+                        <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'header'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'content' })}>
+                        <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'content'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center' }}>Title</div>
                             <div className="content">Text goes here</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'twoColumns' })}>
+                        <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'twoColumns'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center', gridColumn: '1/3' }}>Title</div>
                             <div className="content" style={{ gridColumn: 1, gridRow: 2 }}>Column one text</div>
                             <div className="content" style={{ gridColumn: 2, gridRow: 2 }}>Column two text</div>
                         </div>
-                    </div>
-                    <div className="open-layout" onClick={() => runInAction(() => { this.openLayouts = !this.openLayouts })}>
-                        <FontAwesomeIcon style={{ transition: 'all 0.3s', transform: this.openLayouts ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"caret-down"} size={"lg"} />
                     </div>
                 </div>
             </div >
@@ -1033,9 +1024,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     createTemplate = (layout: string, input?: string) => {
+        const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        let x = 0;
+        let y = 0;
+        if (activeItem && targetDoc) {
+            x = NumCast(targetDoc._x);
+            y = NumCast(targetDoc._y) + NumCast(targetDoc._height) + 20;
+        }
         let doc = undefined;
         const title = Docs.Create.TextDocument("Click to change title", {
-            title: "Slide title", _width: 380, _height: 60, x: 10, y: 58, _fontSize: "24pt"
+            title: "Slide title", _width: 380, _height: 60, x: 10, y: 58, _fontSize: "24pt",
         });
         const subtitle = Docs.Create.TextDocument("Click to change subtitle", {
             title: "Slide subtitle", _width: 380, _height: 50, x: 10, y: 118, _fontSize: "16pt"
@@ -1058,27 +1057,27 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         switch (layout) {
             case 'blank':
                 doc = Docs.Create.FreeformDocument([], {
-                    title: input ? input : "Blank slide", _width: 400, _height: 225, _fitToBox: true
+                    title: input ? input : "Blank slide", _width: 400, _height: 225, _fitToBox: true, x: x, y: y
                 });
                 break;
             case 'title':
                 doc = Docs.Create.FreeformDocument([title, subtitle], {
-                    title: input ? input : "Title slide", _width: 400, _height: 225, _fitToBox: true
+                    title: input ? input : "Title slide", _width: 400, _height: 225, _fitToBox: true, x: x, y: y
                 });
                 break;
             case 'header':
                 doc = Docs.Create.FreeformDocument([header], {
-                    title: input ? input : "Section header", _width: 400, _height: 225, _fitToBox: true
+                    title: input ? input : "Section header", _width: 400, _height: 225, _fitToBox: true, x: x, y: y
                 });
                 break;
             case 'content':
                 doc = Docs.Create.FreeformDocument([contentTitle, content], {
-                    title: input ? input : "Title and content", _width: 400, _height: 225, _fitToBox: true
+                    title: input ? input : "Title and content", _width: 400, _height: 225, _fitToBox: true, x: x, y: y
                 });
                 break;
             case 'twoColumns':
                 doc = Docs.Create.FreeformDocument([contentTitle, content1, content2], {
-                    title: input ? input : "Title and two columns", _width: 400, _height: 225, _fitToBox: true
+                    title: input ? input : "Title and two columns", _width: 400, _height: 225, _fitToBox: true, x: x, y: y
                 });
                 break;
             default:
@@ -1218,7 +1217,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
                             </div>
                         </div>
-                        <div className="ribbon-final-box" style={{ display: activeItem.zoomProgressivize || activeItem.scrollProgressivize || activeItem.presProgressivize || activeItem.textProgressivize ? "inline-flex" : "none" }}>
+                        <div className="ribbon-final-box" style={{ display: activeItem.zoomProgressivize || activeItem.scrollProgressivize || activeItem.presProgressivize || activeItem.textProgressivize ? "grid" : "none" }}>
                             Frames
                             <div className="ribbon-doubleButton">
                                 <div className="ribbon-frameSelector">

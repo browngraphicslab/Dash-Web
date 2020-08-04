@@ -291,7 +291,7 @@
 
     .ribbon-textInput {
         border-radius: 2px;
-        height: 30px;
+        height: 20px;
         font-size: 11.5;
         font-weight: 100;
         align-self: center;
@@ -363,14 +363,14 @@
 
         .ribbon-final-button {
             position: relative;
-            font-size: 11.5;
+            font-size: 11;
             font-weight: normal;
             letter-spacing: normal;
             display: flex;
             justify-content: center;
             align-items: center;
             margin-bottom: 5px;
-            height: 30px;
+            height: 25px;
             color: white;
             width: 100%;
             max-width: 120;
@@ -382,14 +382,14 @@
 
         .ribbon-final-button-hidden {
             position: relative;
-            font-size: 11.5;
+            font-size: 11;
             font-weight: normal;
             letter-spacing: normal;
             display: flex;
             justify-content: center;
             align-items: center;
             margin-bottom: 5px;
-            height: 30px;
+            height: 25px;
             color: lightgrey;
             width: 100%;
             max-width: 120;
@@ -414,9 +414,9 @@
     }
 
     .ribbon-button {
-        font-size: 11;
+        font-size: 10.5;
         font-weight: 200;
-        height: 30;
+        height: 20;
         background-color: #dedede;
         border: solid 1px black;
         display: flex;

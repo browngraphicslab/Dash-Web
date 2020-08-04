@@ -251,6 +251,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
         // let value = this.getValue(this._heading);
         // value = typeof value === "string" ? `"${value}"` : value;
+        PresBox.Instance._dragArray.map(ele => {
+            ele.style.backgroundColor = "#d5dce2";
+            ele.style.borderRadius = '5px';
+        });
         if (activeItem) {
             DragManager.StartDocumentDrag(PresBox.Instance._dragArray.map(ele => ele), dragData, e.clientX, e.clientY);
             activeItem.dragging = true;
@@ -295,10 +299,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 onPointerDown={this.headerDown}
             >
                 <>
-                    <div ref={this._dragRef} className="presElementBox-number">
+                    <div className="presElementBox-number">
                         {`${this.indexInPres + 1}.`}
                     </div>
-                    <div className="presElementBox-name">
+                    <div ref={this._dragRef} className="presElementBox-name">
                         {`${this.targetDoc?.title}`}
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
