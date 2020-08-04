@@ -329,10 +329,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     }
     @action
     prevAnnotation = () => {
-        console.log(this.Index);
         this.Index = Math.max(this.Index - 1, 0);
-        console.log(this.Index);
-        console.log(this.allAnnotations);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
     }
 

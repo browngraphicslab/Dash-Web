@@ -4,27 +4,26 @@ import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { Resize } from "react-table";
 import "react-table/react-table.css";
-import { Doc, DocCastAsync } from "../../../fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
-import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { Cast, NumCast } from "../../../fields/Types";
+import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import '../DocumentDecorations.scss';
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
-import { SnappingManager } from "../../util/SnappingManager";
-import Measure from "react-measure";
 import { SchemaTable } from "./SchemaTable";
-import { TraceMobx } from "../../../fields/util";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -170,9 +169,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     setColumnSort = (columnField: SchemaHeaderField, descending: boolean | undefined) => {
         const columns = this.columns;
-        columns.forEach(col => {
-            col.setDesc(undefined);
-        })
+        columns.forEach(col => col.setDesc(undefined));
 
         const index = columns.findIndex(c => c.heading === columnField.heading);
         const column = columns[index];
@@ -330,8 +327,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     columns[index] = column;
                     this.columns = columns;
                     if (filter) {
-                        console.log(newKey);
-                        console.log(filter);
                         Doc.setDocFilter(this.props.Document, newKey, filter, "match");
                         if (this.props.Document.selectedDoc !== undefined) {
                             let doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
@@ -462,7 +457,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 this.props.select(false);
             }
         }
-        console.log("yeeeet");
     }
 
     @computed

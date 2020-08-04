@@ -414,9 +414,9 @@ export class CurrentUserUtils {
             doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button" });
         }
         if (doc.emptyDocHolder === undefined) {
-            // doc.emptyDocHolder = Docs.Create.DocumentDocument(
-            //     ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
-            //     { _width: 250, _height: 250, title: "container" });
+            doc.emptyDocHolder = Docs.Create.DocumentDocument(
+                ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
+                { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
             doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
@@ -647,7 +647,7 @@ export class CurrentUserUtils {
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
     // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
-    static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
+    static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
@@ -746,20 +746,7 @@ export class CurrentUserUtils {
         }
     }
 
-    // setup the Search button which will display the search panel.
-    static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
-        if (doc["tabs-button-search"] === undefined) {
-            doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", _fontSize: "10pt",
-                letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: new PrefetchProxy(Docs.Create.SearchDocument({ ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, title: "sidebar search stack", })) as any as Doc,
-                searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
-                targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
-                lockedPosition: true,
-                onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
-            }));
-        }
-    }
+
     static setupUserDoc(doc: Doc) {
         if (doc["sidebar-userDoc"] === undefined) {
             doc.treeViewOpen = true;
@@ -784,15 +771,7 @@ export class CurrentUserUtils {
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
-        const sidebarContainer = CurrentUserUtils.setupSidebarContainer(doc);
-        const toolsBtn = await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
-        const searchBtn = CurrentUserUtils.setupSearchBtnPanel(doc, sidebarContainer);
-        if (doc["search-panel"] === undefined) {
-            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({ _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", })) as any as Doc;
-        }
-
-
-        await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
+        await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupWorkspaces(doc);
         CurrentUserUtils.setupCatalog(doc);
         CurrentUserUtils.setupRecentlyClosed(doc);

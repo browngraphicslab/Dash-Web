@@ -78,14 +78,6 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
 
 
 
-
-
-
-
-
-
-
-
 export interface ColumnMenuProps {
     columnField: SchemaHeaderField;
     // keyValue: string;
@@ -330,8 +322,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
-        //if (this._key !==)
-
         if (e.key === "Enter") {
             const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
             if (keyOptions.length) {

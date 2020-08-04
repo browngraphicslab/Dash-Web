@@ -139,7 +139,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         } else if (field?.url) {
             const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
             if (result) {
-                this.props.Document.text = htmlToText.fromString(result.content);
+                this.dataDoc.text = htmlToText.fromString(result.content);
             }
         }
     }

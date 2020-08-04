@@ -32,7 +32,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DateField } from "../../../fields/DateField";
-import { indexOf } from "lodash";
 const path = require('path');
 
 library.add(faExpand);
@@ -292,9 +291,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             placeholder={"enter value"}
                             bing={() => {
-                                // if (type === "number" && (contents === 0 || contents === "0")) {
-                                //     return "0";
-                                // } else {
                                 const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                 if (cfield !== undefined) {
                                     if (cfield.Text !== undefined) {
@@ -307,11 +303,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                         return String(NumCast(cfield));
                                     }
                                 }
-                                // console.log(cfield.Text);
-                                // console.log(StrCast(cfield));
-                                // return StrCast(cfield);
-                                // }
-
                             }}
                             GetValue={() => {
                                 if (type === "number" && (contents === 0 || contents === "0")) {

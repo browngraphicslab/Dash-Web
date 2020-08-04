@@ -130,10 +130,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
             const searchDocs = DocListCast(this.props.Document._searchDocs);
-            console.log(this.props.Document);
-            console.log(searchDocs);
             if (searchDocs !== undefined && searchDocs.length > 0) {
-                console.log("yes");
                 childDocs = searchDocs;
             }
             const docFilters = this.docFilters();

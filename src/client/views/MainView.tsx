@@ -80,7 +80,6 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
     @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
 
 
@@ -356,38 +355,6 @@ export class MainView extends React.Component {
         }
     }
 
-    // @computed get search() {
-    //     return <DocumentView Document={this.searchDoc!}
-    //         DataDoc={undefined}
-    //         LibraryPath={emptyPath}
-    //         addDocument={undefined}
-    //         addDocTab={this.addDocTabFunc}
-    //         pinToPres={emptyFunction}
-    //         rootSelected={returnTrue}
-    //         onClick={undefined}
-    //         backgroundColor={this.defaultBackgroundColors}
-    //         removeDocument={undefined}
-    //         ScreenToLocalTransform={Transform.Identity}
-    //         ContentScaling={returnOne}
-    //         NativeHeight={returnZero}
-    //         NativeWidth={returnZero}
-    //         PanelWidth={this.getPWidth}
-    //         PanelHeight={this.getPHeight}
-    //         renderDepth={0}
-    //         focus={emptyFunction}
-    //         parentActive={returnTrue}
-    //         whenActiveChanged={emptyFunction}
-    //         bringToFront={emptyFunction}
-    //         docFilters={returnEmptyFilter}
-    //         ContainingCollectionView={undefined}
-    //         ContainingCollectionDoc={undefined}
-    //     />;
-    // }
-
-
-
-
-
     @computed get mainDocView() {
         return <DocumentView
             Document={this.mainContainer!}
@@ -640,45 +607,8 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        //const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const n = (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
-        // return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
-        //     <div>
-        //         <div style={{ height: "32px", width: "100%", backgroundColor: "black" }}>
-        //             {this.search}
-        //         </div>
-        //         <div className="mainView-mainContent" style={{
-        //             color: this.darkScheme ? "rgb(205,205,205)" : "black",
-        //             //change to times 2 for both pinned
-        //             height,
-        //             width: (FormatShapePane.Instance?.Pinned) ? `calc(100% - 200px)` : "100%"
-        //         }} >
-        //             <div style={{ display: "contents", flexDirection: "row", position: "relative" }}>
-        //                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
-        //                     <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown}
-        //                         style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
-        //                         <span title="library View Dragger" style={{
-        //                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
-        //                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
-        //                             position: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "absolute" : "fixed",
-        //                             top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
-        //                         }} />
-        //                     </div>
-        //                     <div className="mainView-libraryFlyout" style={{
-        //                         //transformOrigin: this._flyoutTranslate ? "" : "left center",
-        //                         transition: this._flyoutTranslate ? "" : "width .5s",
-        //                         //transform: `scale(${this._flyoutTranslate ? 1 : 0.8})`,
-        //                         boxShadow: this._flyoutTranslate ? "" : "rgb(156, 147, 150) 0.2vw 0.2vw 0.8vw"
-        //                     }}>
-        //                         {this.flyout}
-        //                         {this.expandButton}
-        //                     </div>
-        //                 </div>
-        //                 {this.dockingContent}
-        //             </div>
-        //         </div>
-        //     </div>);
         const pinned = FormatShapePane.Instance?.Pinned;
         const innerContent = this.mainInnerContent;
         return !this.userDoc ? (null) : (

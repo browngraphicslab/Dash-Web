@@ -4,7 +4,6 @@ import { Doc } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { Utils } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
-import { StringMap } from 'libxmljs';
 
 export namespace SearchUtil {
     export type HighlightingResult = { [id: string]: { [key: string]: string[] } };
