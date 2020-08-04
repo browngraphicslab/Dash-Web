@@ -48,7 +48,7 @@ export interface FieldViewProps {
     ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    PanelPosition: string;
+    PanelPosition?: string;
     overflow?: boolean;
     NativeHeight: () => number;
     NativeWidth: () => number;

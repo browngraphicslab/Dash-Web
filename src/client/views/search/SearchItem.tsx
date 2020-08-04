@@ -143,13 +143,13 @@ const SearchDocument = makeInterface(documentSchema);
 
 @observer
 export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchema>(SearchDocument) {
-    
+
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchItem, fieldKey); }
 
-    constructor(props:any){
+    constructor(props: any) {
         super(props);
         //this.rootDoc._viewType= CollectionViewType.Stacking;
-        this.props.Document._height=46;
+        this.props.Document._height = 46;
         if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
             // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
@@ -175,44 +175,46 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     private _oldHeight: number = 46;
 
     componentDidMount() {
-        let parent: Doc |undefined = undefined;
+        let parent: Doc | undefined = undefined;
         let height = 0;
-        if (this.rootDoc.parent){
+        if (this.rootDoc.parent) {
             parent = Cast(this.rootDoc.parent, Doc, null);
-            if (parent!== undefined){
-            height=(NumCast(parent._height));
+            if (parent !== undefined) {
+                height = (NumCast(parent._height));
             }
         }
 
         this._reactionDisposer2 = reaction(
             () => this._useIcons,
-            el=> { 
-                if (this.rootDoc.parent){
+            el => {
+                if (this.rootDoc.parent) {
                     parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
-                    height=(NumCast(parent._height));
+                    height = (NumCast(parent._height));
                 };
                 console.log(height);
                 console.log(this._oldHeight);
-            setTimeout(() =>{this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null;
-                parent!==undefined? this._mainRef.current?.getBoundingClientRect()? parent._height= -this._oldHeight + height +this._mainRef.current?.getBoundingClientRect().height : null: null;
-                this._mainRef.current?.getBoundingClientRect()?  this._oldHeight= this._mainRef.current?.getBoundingClientRect().height : null;
-                // this._oldHeight 55? this._oldHeight =55:null;
-            }, 1);
-        }
+                setTimeout(() => {
+                    this._mainRef.current?.getBoundingClientRect() ? this.props.Document._height = this._mainRef.current?.getBoundingClientRect().height : null;
+                    parent !== undefined ? this._mainRef.current?.getBoundingClientRect() ? parent._height = -this._oldHeight + height + this._mainRef.current?.getBoundingClientRect().height : null : null;
+                    this._mainRef.current?.getBoundingClientRect() ? this._oldHeight = this._mainRef.current?.getBoundingClientRect().height : null;
+                    // this._oldHeight 55? this._oldHeight =55:null;
+                }, 1);
+            }
         );
 
         this._reactionDisposer3 = reaction(
             () => this._displayLines,
-            el=> { 
-                if (this.rootDoc.parent){
+            el => {
+                if (this.rootDoc.parent) {
                     parent = Cast(this.rootDoc.parent, Doc, null) as Doc;
-                    height=(NumCast(parent._height));
+                    height = (NumCast(parent._height));
                 };
-            setTimeout(() =>{this._mainRef.current?.getBoundingClientRect()? this.props.Document._height= this._mainRef.current?.getBoundingClientRect().height : null;
-                parent!==undefined? this._mainRef.current?.getBoundingClientRect()? parent._height= -this._oldHeight + height +this._mainRef.current?.getBoundingClientRect().height : null: null;
-                this._mainRef.current?.getBoundingClientRect()?  this._oldHeight= this._mainRef.current?.getBoundingClientRect().height : null;
-            }, 1);
-        }
+                setTimeout(() => {
+                    this._mainRef.current?.getBoundingClientRect() ? this.props.Document._height = this._mainRef.current?.getBoundingClientRect().height : null;
+                    parent !== undefined ? this._mainRef.current?.getBoundingClientRect() ? parent._height = -this._oldHeight + height + this._mainRef.current?.getBoundingClientRect().height : null : null;
+                    this._mainRef.current?.getBoundingClientRect() ? this._oldHeight = this._mainRef.current?.getBoundingClientRect().height : null;
+                }, 1);
+            }
         );
 
         Doc.SetSearchQuery(this.query);
@@ -225,14 +227,14 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     }
 
-    
+
 
     private _reactionDisposer2?: IReactionDisposer;
     private _reactionDisposer3?: IReactionDisposer;
 
 
-    
-    @computed get highlightPos(){return NumCast(this.rootDoc.searchIndex)}
+
+    @computed get highlightPos() { return NumCast(this.rootDoc.searchIndex) }
 
     @action
     public DocumentIcon() {
@@ -286,9 +288,9 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         return <div><div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
         </div>
-        <div className="searchItem-label">{this.rootDoc.type ? this.rootDoc.type : "Other"}</div>
+            <div className="searchItem-label">{this.rootDoc.type ? this.rootDoc.type : "Other"}</div>
         </div>
-        ;
+            ;
     }
 
     collectionRef = React.createRef<HTMLDivElement>();
@@ -304,8 +306,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
         this.rootDoc!.searchMatch = false;
         setTimeout(() => this.rootDoc!.searchMatch = true, 0);
-        this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
-        this.length=NumCast(this.rootDoc!.length);
+        this.rootDoc.searchIndex = NumCast(this.rootDoc.searchIndex);
+        this.length = NumCast(this.rootDoc!.length);
     }
 
     @action
@@ -317,12 +319,12 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
         this.rootDoc!.searchMatch2 = false;
         setTimeout(() => this.rootDoc!.searchMatch2 = true, 0);
-        this.rootDoc.searchIndex=NumCast(this.rootDoc.searchIndex);
+        this.rootDoc.searchIndex = NumCast(this.rootDoc.searchIndex);
 
-        this.length=NumCast(this.rootDoc!.length);
+        this.length = NumCast(this.rootDoc!.length);
     }
 
-    @observable length:number|undefined = 0;
+    @observable length: number | undefined = 0;
 
     highlightDoc = (e: React.PointerEvent) => {
         if (this.rootDoc!.type === DocumentType.LINK) {
@@ -402,9 +404,9 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     // @computed get targetDoc() { return this.searchElementDoc?.targetDoc as Doc; }
 
     @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
-    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate: undefined;
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate : undefined;
     getTransform = () => {
-    return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
+        return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     }
     panelHeight = () => {
         return this.props.PanelHeight();
@@ -413,60 +415,60 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         //this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.layoutDoc._itemIndex));
     }
 
-    newsearch(){
-       runInAction(()=>{
-        if (StrCast(this.rootDoc.bucketfield)!=="results"){
-        SearchBox.Instance._icons=[StrCast(this.rootDoc.bucketfield)];
-        SearchBox.Instance._icons=SearchBox.Instance._icons;
-        }
-        else{
-            SearchBox.Instance._icons=SearchBox.Instance._allIcons;
-        }
-        SearchBox.Instance.expandedBucket= true;
-        SearchBox.Instance.submitSearch();
-       }) 
+    newsearch() {
+        runInAction(() => {
+            if (StrCast(this.rootDoc.bucketfield) !== "results") {
+                SearchBox.Instance._icons = [StrCast(this.rootDoc.bucketfield)];
+                SearchBox.Instance._icons = SearchBox.Instance._icons;
+            }
+            else {
+                SearchBox.Instance._icons = SearchBox.Instance._allIcons;
+            }
+            SearchBox.Instance.submitSearch();
+        })
     }
-    
+
     @action
-    returnLines(){
-        if ((Cast(this.rootDoc.lines, listSpec("string")))!.length>1){
-        if (!this._displayLines) {
-            console.log(Cast(this.rootDoc.lines, listSpec("string")));
-            return <div style={{width: 10}}
-            onPointerDown={action(() => {
-                this._displayLines = !this._displayLines;
-                //this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
-            })}
-            //onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
-             >
-            {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div style={{overflow:"visible"}}id={i.toString()} className="searchItem-highlighting">{l}</div>)}
-            </div>;;
+    returnLines() {
+        if ((Cast(this.rootDoc.lines, listSpec("string")))!.length > 1) {
+            if (!this._displayLines) {
+                console.log(Cast(this.rootDoc.lines, listSpec("string")));
+                return <div style={{ width: 10 }}
+                    onPointerDown={action(() => {
+                        this._displayLines = !this._displayLines;
+                        //this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
+                    })}
+                //onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
+                >
+                    {Cast(this.rootDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div style={{ overflow: "visible" }} id={i.toString()} className="searchItem-highlighting">{l}</div>)}
+                </div>;;
+            }
         }
     }
-    }
-    
+
     //this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); 
 
     @observable _displayLines: boolean = true;
 
-    returnButtons(){
+    returnButtons() {
         return <div>
-        <div onClick={action(() => { this.rootDoc!.type === DocumentType.PDF? this._displayLines = !this._displayLines : null; 
-        })}> 
-        {this.rootDoc!.type === DocumentType.PDF?"Expand Lines": null}
-        {NumCast(this.rootDoc!.length)>1?`Instance ${NumCast(this.rootDoc.searchIndex)===0? NumCast(this.rootDoc.length):NumCast(this.rootDoc.searchIndex) } of ${NumCast(this.rootDoc.length)}`: null}
-             <button onClick={this.nextHighlight} style={{padding:2, position:"absolute", left:77}}>
-                        <FontAwesomeIcon icon="arrow-up" size="sm"  /> 
-                        </button>
-                        <button onClick={this.nextHighlight2} style={{padding:2, position:"absolute", left:87}}>                    
-                        <FontAwesomeIcon icon="arrow-down" size="sm"  />
-                        </button>
-        </div>
-        <div>
-        <div style={{background: "lightgrey"}}>
-            {this.returnLines()}
-        </div>
-        </div>
+            <div onClick={action(() => {
+                this.rootDoc!.type === DocumentType.PDF ? this._displayLines = !this._displayLines : null;
+            })}>
+                {this.rootDoc!.type === DocumentType.PDF ? "Expand Lines" : null}
+                {NumCast(this.rootDoc!.length) > 1 ? `Instance ${NumCast(this.rootDoc.searchIndex) === 0 ? NumCast(this.rootDoc.length) : NumCast(this.rootDoc.searchIndex)} of ${NumCast(this.rootDoc.length)}` : null}
+                <button onClick={this.nextHighlight} style={{ padding: 2, position: "absolute", left: 77 }}>
+                    <FontAwesomeIcon icon="arrow-up" size="sm" />
+                </button>
+                <button onClick={this.nextHighlight2} style={{ padding: 2, position: "absolute", left: 87 }}>
+                    <FontAwesomeIcon icon="arrow-down" size="sm" />
+                </button>
+            </div>
+            <div>
+                <div style={{ background: "lightgrey" }}>
+                    {this.returnLines()}
+                </div>
+            </div>
         </div>
     }
 
@@ -476,79 +478,79 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     render() {
         const doc1 = Cast(this.rootDoc!.anchor1, Doc);
         const doc2 = Cast(this.rootDoc!.anchor2, Doc);
-        if (StrCast(this.rootDoc.bucketfield)==="webs"){
-            this.props.Document._viewType=CollectionViewType.Stacking;  
-            this.props.Document._chromeStatus='disabled';
-            this.props.Document._height=this.rootDoc._height;
+        if (StrCast(this.rootDoc.bucketfield) === "webs") {
+            this.props.Document._viewType = CollectionViewType.Stacking;
+            this.props.Document._chromeStatus = 'disabled';
+            this.props.Document._height = this.rootDoc._height;
             return <div>
-            <CollectionView {...this.props}
-            Document={this.props.Document}
-            PanelHeight={this.panelHeight}
-            whenActiveChanged={emptyFunction}
-            onClick={undefined}
-            moveDocument={returnFalse}
-            childLayoutTemplate={undefined}
-            addDocument={undefined}
-            removeDocument={returnFalse}
-            focus={this.selectElement}
-            ScreenToLocalTransform={this.getTransform} />
+                <CollectionView {...this.props}
+                    Document={this.props.Document}
+                    PanelHeight={this.panelHeight}
+                    whenActiveChanged={emptyFunction}
+                    onClick={undefined}
+                    moveDocument={returnFalse}
+                    childLayoutTemplate={undefined}
+                    addDocument={undefined}
+                    removeDocument={returnFalse}
+                    focus={this.selectElement}
+                    ScreenToLocalTransform={this.getTransform} />
             </div>
         }
-        if (this.rootDoc.isBucket === true){
-            this.props.Document._viewType=CollectionViewType.Stacking;  
-            this.props.Document._chromeStatus='disabled';
-            this.props.Document._height=this.rootDoc._height;
+        if (this.rootDoc.isBucket === true) {
+            this.props.Document._viewType = CollectionViewType.Stacking;
+            this.props.Document._chromeStatus = 'disabled';
+            this.props.Document._height = this.rootDoc._height;
 
             return <div>
-            <CollectionView {...this.props}
-            Document={this.props.Document}
-            PanelHeight={this.panelHeight}
-            whenActiveChanged={emptyFunction}
-            onClick={undefined}
-            moveDocument={returnFalse}
-            childLayoutTemplate={this.childLayoutTemplate}
-            addDocument={undefined}
-            removeDocument={returnFalse}
-            focus={this.selectElement}
-            ScreenToLocalTransform={this.getTransform} />
-            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, marginBottom:-2, paddingTop:2,fontFamily:"Arial, sans-serif"}}>See all {StrCast(this.rootDoc.bucketfield)}...
+                <CollectionView {...this.props}
+                    Document={this.props.Document}
+                    PanelHeight={this.panelHeight}
+                    whenActiveChanged={emptyFunction}
+                    onClick={undefined}
+                    moveDocument={returnFalse}
+                    childLayoutTemplate={this.childLayoutTemplate}
+                    addDocument={undefined}
+                    removeDocument={returnFalse}
+                    focus={this.selectElement}
+                    ScreenToLocalTransform={this.getTransform} />
+                <button onClick={() => this.newsearch()} className="bucket-expand" style={{ transform: "none", fontSize: "100%", textTransform: "none", background: "lightgray", color: "black", bottom: 8, marginBottom: -2, paddingTop: 2, fontFamily: "Arial, sans-serif" }}>See all {StrCast(this.rootDoc.bucketfield)}...
             </button>
             </div>
         }
-        else if (this.rootDoc.isBucket === false){
-            this.props.Document._chromeStatus='disabled';
-            return      <div className="searchItem">
+        else if (this.rootDoc.isBucket === false) {
+            this.props.Document._chromeStatus = 'disabled';
+            return <div className="searchItem">
                 <div className="searchItem-body" >
-                <div className="searchItem-title-container">
-                <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>No Search Results</div>
-                </div>
+                    <div className="searchItem-title-container">
+                        <div className="searchItem-title" style={{ height: "10px", overflow: "hidden", textOverflow: "ellipsis" }}>No Search Results</div>
+                    </div>
                 </div>
             </div>
         }
         else {
-        return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-            <div ref={this._mainRef} className="searchItem"  onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
-                <div className="searchItem-body" onClick={this.onClick}>
-                    <div className="searchItem-title-container">
-                        <div className="searchItem-title" style={{height:"10px", overflow:"hidden", textOverflow:"ellipsis"}}>{StrCast(this.rootDoc.title)}</div>
-                        <div className="searchItem-highlighting">
-                        {this.rootDoc.highlighting? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "":null}</div>
-                        <div className={`icon-${this._displayLines ? "q" : "a"}`}>
-                        {NumCast(this.rootDoc.length) > 1 || this.rootDoc!.type === DocumentType.PDF?this.returnButtons(): null} 
+            return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
+                <div ref={this._mainRef} className="searchItem" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
+                    <div className="searchItem-body" onClick={this.onClick}>
+                        <div className="searchItem-title-container">
+                            <div className="searchItem-title" style={{ height: "10px", overflow: "hidden", textOverflow: "ellipsis" }}>{StrCast(this.rootDoc.title)}</div>
+                            <div className="searchItem-highlighting">
+                                {this.rootDoc.highlighting ? StrCast(this.rootDoc.highlighting).length ? "Matched fields:" + StrCast(this.rootDoc.highlighting) : Cast(this.rootDoc.lines, listSpec("string"))!.length ? Cast(this.rootDoc.lines, listSpec("string"))![0] : "" : null}</div>
+                            <div className={`icon-${this._displayLines ? "q" : "a"}`}>
+                                {NumCast(this.rootDoc.length) > 1 || this.rootDoc!.type === DocumentType.PDF ? this.returnButtons() : null}
+                            </div>
                         </div>
-                        </div>
-                </div>
-                <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
-                    <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
-                        <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
                     </div>
-                </div>
-                {/* <div className="searchItem-context" title="Drag as document">
+                    <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
+                        <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
+                            <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
+                        </div>
+                    </div>
+                    {/* <div className="searchItem-context" title="Drag as document">
                     {(doc1 instanceof Doc && doc2 instanceof Doc) && this.rootDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
                         this.contextButton}
                 </div> */}
-            </div>
-        </div>;
+                </div>
+            </div>;
         }
     }
 } 
