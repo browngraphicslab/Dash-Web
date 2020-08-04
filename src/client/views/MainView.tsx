@@ -485,7 +485,7 @@ export class MainView extends React.Component {
     }
 
 
-    @action @undoBatch
+    @action
     closeFlyout = () => {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
@@ -496,7 +496,7 @@ export class MainView extends React.Component {
     get groupManager() { return GroupManager.Instance; }
 
     _lastButton: Doc | undefined;
-    @action @undoBatch
+    @action
     selectMenu = (button: Doc, str: string) => {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
@@ -525,7 +525,7 @@ export class MainView extends React.Component {
         return true;
     }
 
-    @action @undoBatch
+    @action
     closeProperties = () => {
         CurrentUserUtils.propertiesWidth = 0;
     }
