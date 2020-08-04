@@ -346,15 +346,22 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
-                this.addDocument(Docs.Create.WebDocument(uriList, {
-                    ...options,
-                    title: uriList,
-                    _width: 400,
-                    _height: 315,
-                    _nativeWidth: 850,
-                    _nativeHeight: 962,
-                    UseCors: true
-                }));
+                const existingWebDoc = await Hypothesis.findWebDoc(uriList);
+
+                if (existingWebDoc) {
+                    this.addDocument(Doc.MakeAlias(existingWebDoc));
+                } else {
+                    const cleanedUri = uriList.split("#annotations:")[0]; // clean hypothes.is URLs that scroll directly to an annotation
+                    this.addDocument(Docs.Create.WebDocument(uriList, {
+                        ...options,
+                        title: cleanedUri,
+                        _width: 400,
+                        // _height: 315,
+                        _nativeWidth: 850,
+                        _nativeHeight: 962,
+                        UseCors: true
+                    }));
+                }
                 return;
             }
 
@@ -437,4 +444,5 @@ import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
+import { Hypothesis } from "../../apis/hypothesis/HypothesisUtils";
 

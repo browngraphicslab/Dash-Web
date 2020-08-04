@@ -2,11 +2,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { emptyFunction, setupMoveUpEvents, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { TraceMobx } from "../../../fields/util";
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -18,7 +18,6 @@ import { Id } from "../../../fields/FieldSymbols";
 import { TaskCompletionBox } from "./TaskCompletedBox";
 import React = require("react");
 import './DocumentLinksButton.scss';
-import { WebField } from "../../../fields/URLField";
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -39,6 +38,9 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @observable public static StartLink: Doc | undefined;
     @observable public static AnnotationId: string | undefined;
     @observable public static AnnotationUri: string | undefined;
+
+    @observable public static invisibleWebDoc: Opt<Doc>;
+    public static invisibleWebRef = React.createRef<HTMLDivElement>();
 
     @action @undoBatch
     onLinkButtonMoved = (e: PointerEvent) => {
@@ -114,12 +116,12 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     const targetDoc = this.props.View.props.Document;
                     const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
 
-                    // TODO: Not currently possible to drag to complete links to annotations
+                    // currently possible to drag to complete links to annotations
                     if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
                         Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                         Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                         Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
-                        Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // update and link placeholder annotation
+                        Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId, sourceDoc); // update and link placeholder annotation
                     }
 
                     LinkManager.currentLink = linkDoc;
@@ -163,7 +165,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                     Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                     Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
-                    Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId); // edit annotation to add a Dash hyperlink to the linked doc
+                    Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId, DocumentLinksButton.StartLink); // edit annotation to add a Dash hyperlink to the linked doc
                 }
 
                 if (linkDoc) {

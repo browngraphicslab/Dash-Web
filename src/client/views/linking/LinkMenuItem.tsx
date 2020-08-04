@@ -1,9 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
-import { action, observable } from 'mobx';
+import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from '../../../fields/Doc';
+import { Doc, DocListCast, Opt } from '../../../fields/Doc';
 import { Cast, StrCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
@@ -151,7 +151,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     @action.bound
-    async followDefault() {
+    followDefault() {
         DocumentLinksButton.EditLink = undefined;
         LinkDocPreview.LinkInfo = undefined;
         const linkDoc = this.props.linkDoc;
@@ -167,7 +167,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
         }
 
-        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId));
+        linkDoc.linksToAnnotation && Hypothesis.scrollToAnnotation(StrCast(this.props.linkDoc.annotationId), this.props.destinationDoc);
     }
 
     @undoBatch
@@ -176,8 +176,11 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(StrCast(this.props.linkDoc.annotationId), Utils.prepend("/doc/" + this.props.sourceDoc[Id])); // delete hyperlink in annotation
         this.props.linkDoc.linksToAnnotation && console.log("annotationId", this.props.linkDoc.annotationId);
         LinkManager.Instance.deleteLink(this.props.linkDoc);
-        LinkDocPreview.LinkInfo = undefined;
-        DocumentLinksButton.EditLink = undefined;
+
+        runInAction(() => {
+            LinkDocPreview.LinkInfo = undefined;
+            DocumentLinksButton.EditLink = undefined;
+        });
     }
 
     @undoBatch
