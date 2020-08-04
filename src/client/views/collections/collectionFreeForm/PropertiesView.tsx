@@ -27,8 +27,6 @@ import { ColorState, SketchPicker } from "react-color";
 import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
 import { discovery_v1 } from "googleapis";
-import { PresBox } from "../../nodes/PresBox";
-import { DocumentManager } from "../../../util/DocumentManager";
 
 
 interface PropertiesViewProps {
@@ -47,13 +45,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance._selectedArray.length >= 1) {
-            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         } else { return undefined; }
-    }
-    @computed get isPres(): boolean {
-        if (this.selectedDoc?.type === DocumentType.PRES) return true;
-        return false;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
@@ -66,13 +58,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openLayout: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
-    //Pres Trails booleans:
-    @observable openAddSlide: boolean = true;
-    @observable openPresentationTools: boolean = true;
-    @observable openPresTransitions: boolean = true;
-    @observable openPresProgressivize: boolean = true;
-    @observable openSlideOptions: boolean = true;
-
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
@@ -220,7 +205,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
-
+    @undoBatch
     setKeyValue = (value: string) => {
         if (this.selectedDoc && this.dataDoc) {
             const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
@@ -281,9 +266,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
+    @undoBatch
+    changePermissions = (e: any, user: string) => {
+        SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
+    }
+
     getPermissionsSelect(user: string) {
         return <select className="permissions-select"
-            onChange={e => SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!)}>
+            onChange={e => this.changePermissions(e, user)}>
             {Object.values(SharingPermissions).map(permission => {
                 return (
                     <option key={permission} value={permission} selected={this.selectedDoc![`ACL-${user.replace(".", "_")}`] === permission}>
@@ -359,6 +349,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         />;
     }
 
+    @undoBatch
     @action
     toggleCheckbox = () => {
         this.layoutFields = !this.layoutFields;
@@ -374,6 +365,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             SetValue={this.setTitle} />;
     }
 
+    @undoBatch
     @action
     setTitle = (value: string) => {
         if (this.dataDoc) {
@@ -383,13 +375,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
         return false;
     }
-
-
-
-
-
-
-
 
 
     @undoBatch
@@ -726,12 +711,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @undoBatch @action
     changeDash = () => {
-        const dash = this.dashdStk;
-        if (dash === "2") {
-            this.dashdStk = "0";
-        } else {
-            this.dashdStk = "2";
-        }
+        this.dashdStk = this.dashdStk === "2" ? "0" : "2";
     }
 
     @computed get appearanceEditor() {
@@ -753,210 +733,118 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     render() {
 
         if (!this.selectedDoc) {
-            console.log("!selectedDoc")
-            if (this.isPres === false) {
-                console.log("!isPres")
-                return <div className="propertiesView" style={{ width: this.props.width }}>
-                    <div className="propertiesView-title" style={{ width: this.props.width, paddingLeft: 6 }}>
-                        No Document Selected
-                </div> </div>;
-            }
+            return <div className="propertiesView" style={{ width: this.props.width }}>
+                <div className="propertiesView-title" style={{ width: this.props.width }}>
+                    No Document Selected
+                <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
+                        <FontAwesomeIcon icon="times" color="black" size="xs" />
+                    </div>
+                </div>
+            </div>;
         }
 
         const novice = Doc.UserDoc().noviceMode;
 
-
-        if (this.selectedDoc && !this.isPres) {
-            return <div className="propertiesView" style={{ width: this.props.width }} >
-                <div className="propertiesView-title" style={{ width: this.props.width }}>
-                    Properties
+        return <div className="propertiesView" style={{ width: this.props.width }} >
+            <div className="propertiesView-title" style={{ width: this.props.width }}>
+                Properties
                 <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                        <FontAwesomeIcon icon="times" color="black" size="sm" />
-                    </div>
+                    <FontAwesomeIcon icon="times" color="black" size="sm" />
                 </div>
-                <div className="propertiesView-name">
-                    {this.editableTitle}
-                </div>
-                <div className="propertiesView-settings">
-                    <div className="propertiesView-settings-title"
-                        onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}
-                        style={{ backgroundColor: this.openActions ? "black" : "" }}>
-                        Actions
+            </div>
+            <div className="propertiesView-name">
+                {this.editableTitle}
+            </div>
+            <div className="propertiesView-settings">
+                <div className="propertiesView-settings-title"
+                    onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}
+                    style={{ backgroundColor: this.openActions ? "black" : "" }}>
+                    Actions
                     <div className="propertiesView-settings-title-icon">
-                            <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
+                        <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    {this.openActions ? <div className="propertiesView-settings-content">
+                </div>
+                {!this.openActions ? (null) :
+                    <div className="propertiesView-settings-content">
                         <PropertiesButtons />
-                    </div> : null}
-                </div>
-                <div className="propertiesView-sharing">
-                    <div className="propertiesView-sharing-title"
-                        onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
-                        style={{ backgroundColor: this.openSharing ? "black" : "" }}>
-                        Sharing {"&"} Permissions
+                    </div>}
+            </div>
+            <div className="propertiesView-sharing">
+                <div className="propertiesView-sharing-title"
+                    onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
+                    style={{ backgroundColor: this.openSharing ? "black" : "" }}>
+                    Sharing {"&"} Permissions
                     <div className="propertiesView-sharing-title-icon">
-                            <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
+                        <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    {this.openSharing ? <div className="propertiesView-sharing-content">
-                        {this.sharingTable}
-                    </div> : null}
                 </div>
+                {!this.openSharing ? (null) :
+                    <div className="propertiesView-sharing-content">
+                        {this.sharingTable}
+                    </div>}
+            </div>
 
-
-
-
-                {this.isInk ? <div className="propertiesView-appearance">
+            {!this.isInk ? (null) :
+                <div className="propertiesView-appearance">
                     <div className="propertiesView-appearance-title"
                         onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
                         style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
                         Appearance
-                    <div className="propertiesView-appearance-title-icon">
+                        <div className="propertiesView-appearance-title-icon">
                             <FontAwesomeIcon icon={this.openAppearance ? "caret-down" : "caret-right"} size="lg" color="white" />
                         </div>
                     </div>
-                    {this.openAppearance ? <div className="propertiesView-appearance-content">
-                        {this.appearanceEditor}
-                    </div> : null}
-                </div> : null}
+                    {!this.openAppearance ? (null) :
+                        <div className="propertiesView-appearance-content">
+                            {this.appearanceEditor}
+                        </div>}
+                </div>}
 
-                {this.isInk ? <div className="propertiesView-transform">
-                    <div className="propertiesView-transform-title"
-                        onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}
-                        style={{ backgroundColor: this.openTransform ? "black" : "" }}>
-                        Transform
+            {this.isInk ? <div className="propertiesView-transform">
+                <div className="propertiesView-transform-title"
+                    onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}
+                    style={{ backgroundColor: this.openTransform ? "black" : "" }}>
+                    Transform
                     <div className="propertiesView-transform-title-icon">
-                            <FontAwesomeIcon icon={this.openTransform ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
+                        <FontAwesomeIcon icon={this.openTransform ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    {this.openTransform ? <div className="propertiesView-transform-content">
-                        {this.transformEditor}
-                    </div> : null}
+                </div>
+                {this.openTransform ? <div className="propertiesView-transform-content">
+                    {this.transformEditor}
                 </div> : null}
+            </div> : null}
 
-
-
-
-
-                <div className="propertiesView-fields">
-                    <div className="propertiesView-fields-title"
-                        onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
-                        style={{ backgroundColor: this.openFields ? "black" : "" }}>
-                        <div className="propertiesView-fields-title-name">
-                            Fields {"&"} Tags
+            <div className="propertiesView-fields">
+                <div className="propertiesView-fields-title"
+                    onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
+                    style={{ backgroundColor: this.openFields ? "black" : "" }}>
+                    <div className="propertiesView-fields-title-name">
+                        Fields {"&"} Tags
                         <div className="propertiesView-fields-title-icon">
-                                <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                    </div>
-                    {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">
-                        {this.fieldsCheckbox}
-                        <div className="propertiesView-fields-checkbox-text">Layout</div>
-                    </div> : null}
-                    {this.openFields ?
-                        <div className="propertiesView-fields-content">
-                            {novice ? this.noviceFields : this.expandedField}
-                        </div> : null}
-                </div>
-                <div className="propertiesView-layout">
-                    <div className="propertiesView-layout-title"
-                        onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}
-                        style={{ backgroundColor: this.openLayout ? "black" : "" }}>
-                        Layout
-                    <div className="propertiesView-layout-title-icon"
-                            onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
-                            <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
-                    </div>
-                    {this.openLayout ? <div className="propertiesView-layout-content">{this.layoutPreview}</div> : null}
-                </div>
-            </div>;
-        }
-
-        if (this.isPres) {
-            return <div className="propertiesView" style={{ width: this.props.width }} >
-                <div className="propertiesView-title" style={{ width: this.props.width }}>
-                    Presentation Toolbar
-                <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                        <FontAwesomeIcon icon="times" color="black" size="sm" />
-                    </div>
-                </div>
-                <div className="propertiesView-name">
-                    {this.editableTitle}
-                    <div className="propertiesView-presSelected">
-                        {PresBox.Instance._selectedArray.length} selected
-                        <div className="propertiesView-selectedList">
-                            {PresBox.Instance.listOfSelected}
+                            <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
                         </div>
                     </div>
                 </div>
-                <div className="propertiesView-settings">
-                    <div className="propertiesView-settings-title"
-                        onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
-                        style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
-                        &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
-                    <div className="propertiesView-settings-title-icon">
-                            <FontAwesomeIcon icon={this.openAddSlide ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
+                {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">
+                    {this.fieldsCheckbox}
+                    <div className="propertiesView-fields-checkbox-text">Layout</div>
+                </div> : null}
+                {!this.openFields ? (null) :
+                    <div className="propertiesView-fields-content">
+                        {novice ? this.noviceFields : this.expandedField}
+                    </div>}
+            </div>
+            <div className="propertiesView-layout">
+                <div className="propertiesView-layout-title"
+                    onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}
+                    style={{ backgroundColor: this.openLayout ? "black" : "" }}>
+                    Layout
+                    <div className="propertiesView-layout-title-icon" onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
+                        <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
                     </div>
-                    {this.openAddSlide ? <div className="propertiesView-settings-content">
-                        {PresBox.Instance.newDocumentDropdown}
-                    </div> : null}
                 </div>
-                <div className="propertiesView-sharing">
-                    <div className="propertiesView-sharing-title"
-                        onPointerDown={() => runInAction(() => { this.openPresTransitions = !this.openPresTransitions; })}
-                        style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
-                        &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
-                    <div className="propertiesView-sharing-title-icon">
-                            <FontAwesomeIcon icon={this.openPresTransitions ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
-                    </div>
-                    {this.openPresTransitions ? <div className="propertiesView-sharing-content">
-                        {PresBox.Instance.transitionDropdown}
-                    </div> : null}
-                </div>
-                <div className="propertiesView-sharing">
-                    <div className="propertiesView-sharing-title"
-                        onPointerDown={() => runInAction(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
-                        style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
-                        &nbsp; <FontAwesomeIcon icon={"tasks"} /> &nbsp; Progressivize
-                    <div className="propertiesView-sharing-title-icon">
-                            <FontAwesomeIcon icon={this.openPresProgressivize ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
-                    </div>
-                    {this.openPresProgressivize ? <div className="propertiesView-sharing-content">
-                        {PresBox.Instance.progressivizeDropdown}
-                    </div> : null}
-                </div>
-                <div className="propertiesView-sharing">
-                    <div className="propertiesView-sharing-title"
-                        onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
-                        style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                        <FontAwesomeIcon icon={"cog"} /> &nbsp; Slide options
-                    <div className="propertiesView-sharing-title-icon">
-                            <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
-                    </div>
-                    {this.openSlideOptions ? <div className="propertiesView-sharing-content">
-                        {PresBox.Instance.optionsDropdown}
-                    </div> : null}
-                </div>
-                <div className="propertiesView-sharing">
-                    <div className="propertiesView-sharing-title"
-                        onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
-                        style={{ backgroundColor: this.openSharing ? "black" : "" }}>
-                        Sharing {"&"} Permissions
-                    <div className="propertiesView-sharing-title-icon">
-                            <FontAwesomeIcon icon={this.openSharing ? "caret-down" : "caret-right"} size="lg" color="white" />
-                        </div>
-                    </div>
-                    {this.openSharing ? <div className="propertiesView-sharing-content">
-                        {this.sharingTable}
-                    </div> : null}
-                </div>
-            </div>;
-        }
+                {this.openLayout ? <div className="propertiesView-layout-content">{this.layoutPreview}</div> : null}
+            </div>
+        </div>;
     }
-} 
+}
