@@ -26,7 +26,7 @@ body {
     height: 100%;
     border-radius: inherit;
     position: inherit;
-   // background: inherit;
+    // background: inherit;
 }
 
 p {
@@ -37,7 +37,7 @@ p {
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     height: 8px;
-    width:  8px;
+    width: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -47,7 +47,7 @@ p {
 
 // button stuff
 button {
-    background: $dark-color;
+    background: black;
     outline: none;
     border: 0px;
     color: $light-color;

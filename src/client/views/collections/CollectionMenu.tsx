@@ -236,7 +236,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed get subChrome() {
         switch (this.props.type) {
-            default:
+            default: return (null)
             case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);
@@ -586,12 +586,14 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
 
+    @observable viewType = this.selectedDoc?._viewType;
+
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
                 {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) :
                     <Tooltip key="map" title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
-                        <div className="backKeyframe" onClick={this.miniMap}>
+                        <div className="backKeyframe" onClick={this.miniMap} style={{ marginRight: "5px" }}>
                             <FontAwesomeIcon icon={"map"} size={"lg"} />
                         </div>
                     </Tooltip>

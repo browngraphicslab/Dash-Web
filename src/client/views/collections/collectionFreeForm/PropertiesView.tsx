@@ -238,7 +238,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
                     backgroundColor={() => "lightgrey"}
-                    fitToBox={false}
+                    fitToBox={true}
                     FreezeDimensions={true}
                     NativeWidth={layoutDoc.type ===
                         StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : returnZero}
