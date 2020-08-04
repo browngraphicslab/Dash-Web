@@ -1039,7 +1039,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             style={{ color: "black", padding: 1, left: 35, position: "relative" }} />
 
                         <FontAwesomeIcon icon={"filter"} size="lg"
-                            style={{ right: 20, padding: 1, left: 250, position: "relative", backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
+                            style={{ cursor:"default", right: 20, padding: 1, left: 250, position: "relative", backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
                             onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
                             onClick={action(() => {
                                 this.filter = !this.filter && !this.scale;
