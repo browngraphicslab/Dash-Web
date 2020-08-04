@@ -112,9 +112,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
+            let rawdocs: (Doc | Promise<Doc>)[] = DocListCast(this.props.Document._searchDocs);
 
-            let rawdocs: (Doc | Promise<Doc>)[] = [];
-            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+            if (rawdocs.length !== 0) {
+            } else if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
             } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
                 rawdocs = Cast(this.dataField, listSpec(Doc), null);
@@ -127,16 +128,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
-
-            const searchDocs = DocListCast(this.props.Document._searchDocs);
-            if (searchDocs !== undefined && searchDocs.length > 0) {
-                childDocs = searchDocs;
-            }
-            const docFilters = this.docFilters();
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
-            return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, docFilters, docRangeFilters, viewSpecScript);
+            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 
         @action
@@ -442,4 +436,5 @@ import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
+import { raw } from "serializr";
 

@@ -241,7 +241,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //         <FontAwesomeIcon icon="expand" size="sm" />
         //     </div>
         // );   
-        trace();
         let positions = [];
         if (StrCast(this.props.Document._searchString) !== "") {
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));

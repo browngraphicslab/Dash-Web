@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit } from '@fortawesome/free-regular-svg-icons';
 import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
@@ -59,8 +57,6 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
         }
     }
 
-
-
     @observable backColor = "unset";
 
     @observable clicked = false;
@@ -75,9 +71,9 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
-                    color: StrCast(this.layoutDoc.color),
                     backgroundColor: this.backColor,
-                    fontSize: NumCast(this.layoutDoc.fontSize) || "inherit",
+                    color: StrCast(this.layoutDoc.color, "inherit"),
+                    fontSize: StrCast(this.layoutDoc._fontSize) || "inherit",
                     fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
                     textTransform: StrCast(this.layoutDoc.textTransform) as any,
