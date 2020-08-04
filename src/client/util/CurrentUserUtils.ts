@@ -509,6 +509,14 @@ export class CurrentUserUtils {
         ];
     }
 
+    static setupSearchPanel(doc: Doc) {
+        if (doc["search-panel"] === undefined) {
+            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({
+                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true,
+                childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack",
+            })) as any as Doc;
+        }
+    }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
             const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
@@ -897,14 +905,12 @@ export class CurrentUserUtils {
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
-        if (doc["search-panel"] === undefined) {
-            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({ _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", })) as any as Doc;
-        }
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
+        this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered
