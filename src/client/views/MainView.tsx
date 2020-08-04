@@ -305,7 +305,7 @@ export class MainView extends React.Component {
         }
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            const col = this.userDoc && await Cast(this.userDoc.rightSidebarCollection, Doc);
+            const col = this.userDoc && await Cast(this.userDoc["sidebar-sharing"], Doc);
             col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
         }, 100);
         return true;
@@ -530,7 +530,7 @@ export class MainView extends React.Component {
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
-                case "Sharing": GroupManager.Instance.open(); break;
+                case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
                 case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
             this.sidebarContent.proto = panelDoc;
@@ -580,7 +580,8 @@ export class MainView extends React.Component {
                             top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />
                         <div className="mainview-libraryHandle-icon">
-                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" /> </div>
+                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
+                        </div>
                     </div> : null}
                     <div className="mainView-libraryFlyout" style={{
                         //transformOrigin: this._flyoutTranslate ? "" : "left center",
@@ -593,6 +594,7 @@ export class MainView extends React.Component {
                     </div>
                 </div>
                 {this.dockingContent}
+                <MainViewNotifs />
                 {this.showProperties ? (null) :
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
                         style={{ right: rightFlyout, top: "50%" }}>
@@ -650,7 +652,6 @@ export class MainView extends React.Component {
         if (dockedBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ height: !dockedBtns.linearViewIsExpanded ? "42px" : undefined }} >
-                <MainViewNotifs />
                 <CollectionLinearView
                     Document={dockedBtns}
                     DataDoc={undefined}

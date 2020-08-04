@@ -45,13 +45,12 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
-    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout); }
+    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get xMargin() { return NumCast(this.props.Document._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
     @computed get yMargin() { return Math.max(this.props.Document._showTitle && !this.props.Document._showTitleHover ? 30 : 0, NumCast(this.props.Document._yMargin, 0)); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.props.Document._gridGap, 10); }
-    @computed get searchDoc() { return BoolCast(this.props.Document._searchDoc, false); }
-
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
+    @computed get searchDoc() { return BoolCast(this.props.Document._searchDoc, false); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.layoutDoc._chromeStatus !== 'view-mode' && this.layoutDoc._chromeStatus !== 'disabled')); }
     @computed get columnWidth() {

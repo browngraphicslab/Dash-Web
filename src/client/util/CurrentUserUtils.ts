@@ -248,6 +248,8 @@ export class CurrentUserUtils {
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
+                hidden: ComputedField.MakeFunction("self.target.noviceMode") as any,
+                target: doc,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
@@ -495,11 +497,11 @@ export class CurrentUserUtils {
         title: string, icon: string, click: string,
     }[] {
         return [
+            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
             { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu(self, "Workspace")' },
             { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu(self, "Catalog")' },
             { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu(self, "Archive")' },
             { title: "Import", icon: "upload", click: 'scriptContext.selectMenu(self, "Import")' },
-            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
             { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu(self, "Tools")' },
             { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu(self, "Help")' },
             { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu(self, "Settings")' },
@@ -670,7 +672,7 @@ export class CurrentUserUtils {
 
         if (doc["sidebar-tools"] === undefined) {
             const toolsStack = new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
-                title: "sidebar-tools", _width: 500, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true
+                title: "sidebar-tools", _width: 500, _yMargin: 20, lockedPosition: true, _chromeStatus: "disabled", hideFilterView: true, forceActive: true
             })) as any as Doc;
 
             doc["sidebar-tools"] = toolsStack;
@@ -824,8 +826,8 @@ export class CurrentUserUtils {
 
     // Right sidebar is where mobile uploads are contained
     static setupRightSidebar(doc: Doc) {
-        if (doc.rightSidebarCollection === undefined) {
-            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
+        if (doc["sidebar-sharing"] === undefined) {
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
         }
     }
 
