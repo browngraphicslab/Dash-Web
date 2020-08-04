@@ -372,6 +372,9 @@ export namespace DocServer {
                         } else if (cached instanceof Promise) {
                             proms.push(cached as any);
                         }
+                    } else if (field) {
+                        proms.push(_cache[field.id] as any);
+                        fieldMap[field.id] = field;
                     }
                 }
             });
