@@ -778,6 +778,7 @@ export class CurrentUserUtils {
         CurrentUserUtils.setupCatalog(doc);
         CurrentUserUtils.setupRecentlyClosed(doc);
         CurrentUserUtils.setupUserDoc(doc);
+        this.setupSidebarContainer(doc);
     }
 
     static blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
@@ -825,9 +826,9 @@ export class CurrentUserUtils {
     }
 
     // Right sidebar is where mobile uploads are contained
-    static setupRightSidebar(doc: Doc) {
+    static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Sharing Sidebar" }));
         }
     }
 
@@ -901,7 +902,7 @@ export class CurrentUserUtils {
         }
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
-        this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
