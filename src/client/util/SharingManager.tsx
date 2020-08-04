@@ -114,7 +114,7 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     /**
-     * Populates the list of validated users (this.users) by adding registered users which have a rightSidebarCollection.
+     * Populates the list of validated users (this.users) by adding registered users which have a sidebar-sharing.
      */
     populateUsers = async () => {
         runInAction(() => this.users = []);
@@ -125,7 +125,7 @@ export default class SharingManager extends React.Component<{}> {
             if (isCandidate) {
                 const userDocument = await DocServer.GetRefField(user.userDocumentId);
                 if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
+                    const notificationDoc = await Cast(userDocument["sidebar-sharing"], Doc);
                     runInAction(() => {
                         if (notificationDoc instanceof Doc) {
                             this.users.push({ user, notificationDoc });

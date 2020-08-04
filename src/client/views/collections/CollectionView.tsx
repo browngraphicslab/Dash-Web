@@ -339,7 +339,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     icon: "edit",
                     event: () => Doc.GetProto(this.props.Document)[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
                 }));
-            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
 
             if (!Doc.UserDoc().noviceMode) {
                 const more = cm.findByDescription("More...");

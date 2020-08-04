@@ -78,9 +78,6 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
 
     render() {
         TraceMobx();
-        if (this.props.Document.title === "Archive") {
-            console.log("");
-        }
         return (<div className="contentFittingDocumentView" style={{
             width: Math.abs(this.centeringYOffset) > 0.001 ? "auto" : this.props.PanelWidth(),
             height: Math.abs(this.centeringOffset) > 0.0001 ? "auto" : this.props.PanelHeight(),

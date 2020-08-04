@@ -79,9 +79,8 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
-    @observable public sidebarContent: any = this.userDoc?.["tabs-panelContainer"];
+    @observable public sidebarContent: any = this.userDoc?.["sidebar"];
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;
@@ -91,8 +90,7 @@ export class MainView extends React.Component {
         } else { return undefined; }
     }
 
-    @observable _propertiesWidth: number = 0;
-    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, this._propertiesWidth));
+    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth));
 
     @computed get propertiesIcon() {
         if (this.propertiesWidth() < 10) {
@@ -141,6 +139,9 @@ export class MainView extends React.Component {
         MainView.Instance = this;
         this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
+
+        CurrentUserUtils.propertiesWidth = 0;
+
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== "/home") {
             const pathname = window.location.pathname.substr(1).split("/");
@@ -149,7 +150,7 @@ export class MainView extends React.Component {
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
                     if (!this.userDoc) {
-                        runInAction(() => this.flyoutWidth = 0);
+                        runInAction(() => this.closeFlyout());
                         DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action((field: Opt<Field>) =>
                             field instanceof Doc && (CurrentUserUtils.GuestTarget = field)));
                     }
@@ -172,7 +173,7 @@ export class MainView extends React.Component {
             fa.faFillDrip, fa.faLink, fa.faUnlink, fa.faBold, fa.faItalic, fa.faChevronLeft, fa.faUnderline, fa.faStrikethrough, fa.faSuperscript, fa.faSubscript,
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
-            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH);
+            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft);
         //Pres trail icons (just for the sake of merging)
         library.add(fa.faAngleUp, fa.faAngleDown, fa.faPlayCircle, fa.faClock,
             fa.faRocket, fa.faExchangeAlt, faBuffer);
@@ -290,7 +291,7 @@ export class MainView extends React.Component {
         }
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            const col = this.userDoc && await Cast(this.userDoc.rightSidebarCollection, Doc);
+            const col = this.userDoc && await Cast(this.userDoc["sidebar-sharing"], Doc);
             col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
         }, 100);
         return true;
@@ -317,7 +318,7 @@ export class MainView extends React.Component {
         if (this.panelContent === doc?.title) return "lightgrey";
         if (this.darkScheme) {
             switch (doc?.type) {
-                case DocumentType.MENUICON: return "white";
+                case DocumentType.FONTICON: return "white";
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -327,7 +328,7 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc?.type) {
-                case DocumentType.MENUICON: return "black";
+                case DocumentType.FONTICON: return "black";
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
@@ -379,28 +380,25 @@ export class MainView extends React.Component {
     @action
     onPropertiesPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
-            this._propertiesWidth = this._panelWidth - e.clientX;
+            CurrentUserUtils.propertiesWidth = this._panelWidth - e.clientX;
             return false;
-        }), returnFalse, action(() => this._propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
+        }), returnFalse, action(() => CurrentUserUtils.propertiesWidth = this.propertiesWidth() < 15 ? Math.min(this._panelWidth - 50, 250) : 0), false);
     }
 
     @action
     onFlyoutPointerDown = (e: React.PointerEvent) => {
-        this.panelContent = "none";
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
                 this.flyoutWidth = Math.max(e.clientX, 0);
-                this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30;
-                if (this.flyoutWidth === 0) {
-                    CurrentUserUtils.selectedPanel = "none";
+                if (this.flyoutWidth < 5) {
+                    this.panelContent = "none";
+                    this._lastButton && (this._lastButton.color = "white");
+                    this._lastButton && (this._lastButton._backgroundColor = "");
                 }
                 return false;
             }), emptyFunction, action(() => {
-                this.flyoutWidth = this.flyoutWidth < 15 ? 250 : 0;
-                this.flyoutWidth && (this.sidebarButtonsDoc._columnWidth = this.flyoutWidth / 3 - 30);
-                if (this.flyoutWidth === 0) {
-                    CurrentUserUtils.selectedPanel = "none";
-                }
+                if (this.flyoutWidth < 15) MainView.expandFlyout();
+                else this.closeFlyout();
             }));
         }
     }
@@ -422,7 +420,7 @@ export class MainView extends React.Component {
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
                 {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
-                    <FontAwesomeIcon icon="times" color="black" size="sm" />
+                    <FontAwesomeIcon icon="times" color="black" size="lg" />
                 </div> : null}
 
                 <DocumentView
@@ -457,7 +455,6 @@ export class MainView extends React.Component {
     }
 
     @computed get menuPanel() {
-
         return <div className="mainView-menuPanel">
             <DocumentView
                 Document={Doc.UserDoc().menuStack as Doc}
@@ -471,7 +468,7 @@ export class MainView extends React.Component {
                 rootSelected={returnTrue}
                 removeDocument={returnFalse}
                 onClick={undefined}
-                ScreenToLocalTransform={this.mainContainerXf}
+                ScreenToLocalTransform={this.sidebarScreenToLocal}
                 ContentScaling={returnOne}
                 PanelWidth={() => 60}
                 PanelHeight={this.getContentsHeight}
@@ -493,44 +490,47 @@ export class MainView extends React.Component {
 
     @action @undoBatch
     closeFlyout = () => {
-        CurrentUserUtils.selectedPanel = "none";
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
         this.panelContent = "none";
         this.flyoutWidth = 0;
     }
 
     get groupManager() { return GroupManager.Instance; }
 
+    _lastButton: Doc | undefined;
     @action @undoBatch
-    selectMenu = (str: string) => {
+    selectMenu = (button: Doc, str: string) => {
+        this._lastButton && (this._lastButton.color = "white");
+        this._lastButton && (this._lastButton._backgroundColor = "");
         if (this.panelContent === str && this.flyoutWidth !== 0) {
-            CurrentUserUtils.selectedPanel = "none";
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
-            this.panelContent = str;
-            CurrentUserUtils.selectedPanel = str;
-            switch (this.panelContent) {
-                case "Tools": this.sidebarContent.proto = CurrentUserUtils.toolsStack; break;
-                case "Workspace": this.sidebarContent.proto = CurrentUserUtils.workspaceStack; break;
-                case "Catalog": this.sidebarContent.proto = CurrentUserUtils.catalogStack; break;
-                case "Archive": this.sidebarContent.proto = CurrentUserUtils.closedStack; break;
-                case "Settings": this.sidebarContent.proto = SettingsManager.Instance.open(); break;
-                case "Sharing": this.sidebarContent.proto = GroupManager.Instance.open(); break;
+            let panelDoc: Doc | undefined;
+            switch (this.panelContent = str) {
+                case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
+                case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
+                case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
+                case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
+                case "Settings": SettingsManager.Instance.open(); break;
+                case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
+                case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
-            if (str === "Settings" || str === "Sharing" || str === "Help" || str === "Import") {
-                CurrentUserUtils.selectedPanel = "none";
-                this.panelContent = "none";
-                this.flyoutWidth = 0;
-            } else {
+            this.sidebarContent.proto = panelDoc;
+            if (panelDoc) {
                 MainView.expandFlyout();
-            }
+                button._backgroundColor = "lightgrey";
+                button.color = "black";
+                this._lastButton = button;
+            } else this.flyoutWidth = 0;
         }
         return true;
     }
 
     @action @undoBatch
     closeProperties = () => {
-        this._propertiesWidth = 0;
+        CurrentUserUtils.propertiesWidth = 0;
     }
 
     @computed get propertiesView() {
@@ -556,7 +556,7 @@ export class MainView extends React.Component {
                 <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
                     {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                         onPointerDown={this.onFlyoutPointerDown}
-                        style={{ backgroundColor: this.defaultBackgroundColors(undefined) }}>
+                        style={{ backgroundColor: 'lightgrey' }}>
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -564,7 +564,8 @@ export class MainView extends React.Component {
                             top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />
                         <div className="mainview-libraryHandle-icon">
-                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" /> </div>
+                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
+                        </div>
                     </div> : null}
                     <div className="mainView-libraryFlyout" style={{
                         //transformOrigin: this._flyoutTranslate ? "" : "left center",
@@ -577,9 +578,10 @@ export class MainView extends React.Component {
                     </div>
                 </div>
                 {this.dockingContent}
+                <MainViewNotifs />
                 {this.showProperties ? (null) :
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
-                        style={{ right: rightFlyout, top: "45%" }}>
+                        style={{ right: rightFlyout, top: "50%" }}>
                         <div className="mainView-propertiesDragger-icon">
                             <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
                     </div>
@@ -614,7 +616,7 @@ export class MainView extends React.Component {
     public static expandFlyout = action(() => {
         MainView.Instance._flyoutTranslate = true;
         MainView.Instance.flyoutWidth = (MainView.Instance.flyoutWidth || 250);
-        MainView.Instance.sidebarButtonsDoc._columnWidth = MainView.Instance.flyoutWidth / 3 - 30;
+
     });
 
     @computed get expandButton() {
@@ -635,7 +637,6 @@ export class MainView extends React.Component {
         if (dockedBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ height: !dockedBtns.linearViewIsExpanded ? "42px" : undefined }} >
-                <MainViewNotifs />
                 <CollectionLinearView
                     Document={dockedBtns}
                     DataDoc={undefined}
@@ -643,6 +644,7 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
+                    backgroundColor={this.defaultBackgroundColors}
                     rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}

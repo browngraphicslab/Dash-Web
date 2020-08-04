@@ -29,6 +29,7 @@ import { ImageField } from '../../fields/URLField';
 import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
+import { InkField } from '../../fields/InkField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -208,7 +209,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="propertiesButtons-linker"
-                style={{ backgroundColor: isPinned ? "white" : "rgb(37, 43, 51)", color: isPinned ? "black" : "white" }}
+                style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white" }}
                 onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
@@ -238,6 +239,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
     }
+    @undoBatch
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.selectedDocumentView!;
@@ -273,12 +275,17 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 </div></Tooltip>;
     }
 
+    @undoBatch
     onCopy = () => {
         if (this.selectedDoc && this.selectedDocumentView) {
-            const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
-            copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
-            copy.y = NumCast(this.selectedDoc.y) + 30;
-            this.selectedDocumentView.props.addDocument?.(copy);
+            // const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
+            // copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            // copy.y = NumCast(this.selectedDoc.y) + 30;
+            // this.selectedDocumentView.props.addDocument?.(copy);
+            const alias = Doc.MakeAlias(this.selectedDoc);
+            alias.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            alias.y = NumCast(this.selectedDoc.y) + 30;
+            this.selectedDocumentView.props.addDocument?.(alias);
         }
     }
 
@@ -295,7 +302,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
-    @action
+    @action @undoBatch
     onLock = () => {
         this.selectedDocumentView?.toggleLockPosition();
     }
@@ -337,13 +344,17 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">{"Delete Document"}</div></>}>
             <div className={"propertiesButtons-linkButton-empty"}
-                onPointerDown={() => {
-                    this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
-                }}>
+                onPointerDown={this.deleteDocument}>
                 {<FontAwesomeIcon className="propertiesButtons-icon"
                     icon="trash-alt" size="sm" />}
             </div>
         </Tooltip>;
+    }
+
+    @undoBatch
+    @action
+    deleteDocument = () => {
+        this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
     }
 
     @computed
@@ -380,6 +391,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         }
     }
 
+    @undoBatch
     @action
     handleOptionChange = (e: any) => {
         const value = e.target.value;
@@ -513,6 +525,49 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
+    @undoBatch
+    @action
+    private makeMask = () => {
+        if (this.selectedDoc) {
+            this.selectedDoc._backgroundColor = "rgba(0,0,0,0.7)";
+            this.selectedDoc.mixBlendMode = "hard-light";
+            this.selectedDoc.color = "#9b9b9bff";
+            this.selectedDoc.stayInCollection = true;
+            this.selectedDoc.isInkMask = true;
+        }
+    }
+
+    @computed
+    get maskButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip
+            title={<><div className="dash-tooltip">Make Mask</div></>}>
+            <div className={"propertiesButtons-linkButton-empty"}
+                onPointerDown={this.makeMask}>
+                {<FontAwesomeIcon className="documentdecorations-icon"
+                    color="white" icon="paint-brush" size="sm" />}
+            </div>
+        </Tooltip>;
+    }
+
+    @computed
+    get contextButton() {
+        if (this.selectedDoc) {
+            return <Tooltip title={<><div className="dash-tooltip">Show Context</div></>}>
+                <div className={"propertiesButtons-linkButton-empty"}>
+                    <ParentDocSelector Document={this.selectedDoc} addDocTab={(doc, where) => {
+                        where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
+                            this.selectedDocumentView?.props.addDocTab(doc, "onRight");
+                        return true;
+                    }} />
+                </div>
+            </Tooltip>;
+        } else {
+            return false;
+        }
+
+    }
+
     // @computed
     // get importButton() {
     //     const targetDoc = this.selectedDoc;
@@ -538,6 +593,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         const isImage = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof ImageField;
+        const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
 
@@ -560,39 +616,43 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.downloadButton}
             </div>
-        </div>
-            <div className="propertiesButtons">
-                <div className="propertiesButtons-button">
-                    {this.deleteButton}
-                </div>
-                <div className="propertiesButtons-button">
-                    {this.onClickButton}
-                </div>
-                <div className="propertiesButtons-button">
-                    {this.sharingButton}
-                </div>
-                <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
-                    {this.considerGoogleDocsPush}
-                </div>
-                <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
-                    {this.considerGoogleDocsPull}
-                </div>
-                <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
-                    {this.googlePhotosButton}
-                </div>
-                {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
+            <div className="propertiesButtons-button">
+                {this.deleteButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.onClickButton}
+            </div>
+            {/* <div className="propertiesButtons-button">
+                {this.contextButton}
+            </div> */}
+            <div className="propertiesButtons-button">
+                {this.sharingButton}
+            </div>
+            <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
+                {this.considerGoogleDocsPush}
+            </div>
+            <div className="propertiesButtons-button" style={{ display: !considerPull ? "none" : "" }}>
+                {this.considerGoogleDocsPull}
+            </div>
+            <div className="propertiesButtons-button" style={{ display: !isImage ? "none" : "" }}>
+                {this.googlePhotosButton}
+            </div>
+            {/* <div className="propertiesButtons-button" style={{ display: !isCollection ? "none" : "" }}>
                     {this.importButton}
                 </div> */}
 
-                <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
-                    {this.clustersButton}
-                </div>
-
-                <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
-                    {this.fitContentButton}
-                </div>
-
+            <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+                {this.clustersButton}
             </div>
+
+            <div className="propertiesButtons-button" style={{ display: !isFreeForm ? "none" : "" }}>
+                {this.fitContentButton}
+            </div>
+
+            <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
+                {this.maskButton}
+            </div>
+        </div>
         </div>;
     }
 }

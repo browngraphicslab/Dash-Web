@@ -185,13 +185,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
-            ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
-                const dropaction = docDragData.dropAction || docDragData.userDropAction;
-                if (dropaction && dropaction !== "move") {
-                    added = this.addDocument(docDragData.droppedDocuments);
-                } else if (docDragData.moveDocument) {
+                const dropAction = docDragData.dropAction || docDragData.userDropAction;
+                if ((!dropAction || dropAction === "move") && docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
@@ -201,6 +198,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
                     } else added = res;
                 } else {
+                    ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
                 added && e.stopPropagation();

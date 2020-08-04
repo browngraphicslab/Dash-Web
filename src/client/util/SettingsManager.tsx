@@ -136,7 +136,7 @@ export default class SettingsManager extends React.Component<{}> {
                             {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
                             {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
                             <button onClick={this.dispatchRequest}>submit</button>
-                            <a href="/forgotPassword">forgot password?</a>
+                            <a style={{ marginLeft: 65, marginTop: -20 }} href="/forgotPassword">forgot password?</a>
 
                         </div>
                         : undefined}

@@ -93,6 +93,7 @@ export interface DocumentOptions {
     type?: string;
     title?: string;
     label?: string;
+    hidden?: boolean;
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
@@ -157,7 +158,7 @@ export interface DocumentOptions {
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
-    menuIcon?: boolean; // if the font icon box is in the menu
+    iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
@@ -173,6 +174,7 @@ export interface DocumentOptions {
     clipboard?: Doc;
     UseCors?: boolean;
     icon?: string;
+    target?: Doc; // available for use in scripts as the primary target document
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query

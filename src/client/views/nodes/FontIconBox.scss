@@ -1,77 +1,62 @@
-.fontIconBox-outerDiv {
+.fontIconBox-label {
+    color: white;
+    margin-right: 4px;
+    margin-top: 1px;
+    position: relative;
+    text-align: center;
+    font-size: 7px;
+    letter-spacing: normal;
+    background-color: inherit;
+    border-radius: 8px;
+    margin-top: -8px;
+    padding: 0;
+    width: 100%;
+}
+
+.menuButton-round {
+    border-radius: 100%;
+
+    .fontIconBox-label {
+        margin-left: -10px; // button padding is 10px;
+        bottom: 0;
+        position: absolute;
+    }
+}
+
+.menuButton-square {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-left: 5px;
+
+    .fontIconBox-label {
+        border-radius: 0px;
+        margin-top: 0px;
+        border-radius: "inherit";
+    }
+}
+
+.menuButton,
+.menuButton-round,
+.menuButton-square {
     width: 100%;
     height: 100%;
     pointer-events: all;
     touch-action: none;
-    border-radius: inherit;
-    background: black;
-    border-radius: 100%;
-    transform-origin: top left;
-
-    .fontIconBox-label {
-        background: gray;
-        color: white;
-        border-radius: 8px;
-        width: 100%;
-        position: absolute;
-        text-align: center;
-        font-size: 8px;
-        //margin-top:4px;
-        letter-spacing: normal;
-        left: 0;
-        overflow: hidden;
-    }
-
-    svg {
-        width: 95% !important;
-        height: 95%;
-    }
-}
-
-.menuButton {
-    //padding: 7px;
-    padding-left: 5px;
-    width: 100%;
-    width: 60px;
-    height: 70px;
-    padding-top: 3px;
-    padding-bottom: 3px;
 
     .menuButton-wrap {
-        width: 45px;
-        /* padding: 5px; */
         touch-action: none;
-        background: black;
-        transform-origin: top left;
-        /* margin-bottom: 5px; */
-        margin-top: 5px;
-        margin-right: 25px;
         border-radius: 8px;
 
-        &:hover {
-            background: rgb(61, 61, 61);
-            cursor: pointer;
-        }
+        // &:hover {
+        //     background: rgb(61, 61, 61);
+        //     cursor: pointer;
+        // }
     }
 
-    .menuButton-label {
-        color: white;
-        margin-right: 4px;
-        border-radius: 8px;
-        width: 42px;
-        position: relative;
-        text-align: center;
-        font-size: 7px;
-        margin-top: 1px;
-        letter-spacing: normal;
-        padding: 3px;
-        background-color: inherit;
-    }
-
-    .menuButton-icon {
+    .menuButton-icon-square {
         width: auto;
         height: 32px;
-        padding: 5px;
+        padding: 4px;
     }
 
     svg {

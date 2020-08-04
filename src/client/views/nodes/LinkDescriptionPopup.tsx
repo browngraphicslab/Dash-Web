@@ -19,12 +19,15 @@ export class LinkDescriptionPopup extends React.Component<{}> {
 
     @action
     descriptionChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-        LinkManager.currentLink && (LinkManager.currentLink.description = e.currentTarget.value);
+        this.description = e.currentTarget.value;
     }
 
     @action
-    onDismiss = () => {
+    onDismiss = (add: boolean) => {
         LinkDescriptionPopup.descriptionPopup = false;
+        if (add) {
+            LinkManager.currentLink && (LinkManager.currentLink.description = this.description);
+        }
     }
 
     @action
@@ -50,15 +53,16 @@ export class LinkDescriptionPopup extends React.Component<{}> {
                 left: LinkDescriptionPopup.popupX ? LinkDescriptionPopup.popupX : 700,
                 top: LinkDescriptionPopup.popupY ? LinkDescriptionPopup.popupY : 350,
             }}>
-            <input className="linkDescriptionPopup-input" onKeyPress={e => e.key === "Enter" && this.onDismiss()}
+            <input className="linkDescriptionPopup-input"
+                onKeyPress={e => e.key === "Enter" && this.onDismiss(true)}
                 placeholder={"(optional) enter link label..."}
                 onChange={(e) => this.descriptionChanged(e)}>
             </input>
             <div className="linkDescriptionPopup-btn">
                 <div className="linkDescriptionPopup-btn-dismiss"
-                    onPointerDown={this.onDismiss}> Dismiss </div>
+                    onPointerDown={e => this.onDismiss(false)}> Dismiss </div>
                 <div className="linkDescriptionPopup-btn-add"
-                    onPointerDown={this.onDismiss}> Add </div>
+                    onPointerDown={e => this.onDismiss(true)}> Add </div>
             </div>
         </div>;
     }
