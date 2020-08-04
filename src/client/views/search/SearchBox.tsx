@@ -54,7 +54,7 @@ const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
 @observer
 export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDocument>(SearchBoxDocument) {
 
-    @computed get _searchString() { return this.layoutDoc.searchQuery; }
+    get _searchString() { return this.layoutDoc.searchQuery; }
     @computed set _searchString(value) { this.layoutDoc.searchQuery = (value); }
     @observable private _resultsOpen: boolean = false;
     @observable _searchbarOpen: boolean = false;
@@ -681,7 +681,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
         //const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this._resultsRef.current.getBoundingClientRect().height / itemHght)));
         const endIndex = 30;
-        this._endIndex = endIndex === -1 ? 12 : endIndex;
+        //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
         let headers = new Set<string>(["title", "author", "text", "lastModified"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
