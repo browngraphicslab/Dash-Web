@@ -894,6 +894,9 @@ export class CurrentUserUtils {
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
+        if (doc["search-panel"] === undefined) {
+            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({ _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", })) as any as Doc;
+        }
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing

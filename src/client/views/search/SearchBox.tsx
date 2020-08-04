@@ -1036,11 +1036,28 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
                     <div style={{ display: "flex", alignItems: "center" }}>
                         <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
-                            style={{ color: "black", left: 24, padding: 1, position: "relative" }} />
+                            style={{ color: "black", padding: 1, left: 35, position: "relative" }} />
 
+                        <FontAwesomeIcon icon={"filter"} size="lg"
+                            style={{ right: 20, padding: 1, left: 250, position: "relative", backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
+                            onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
+                            onClick={action(() => {
+                                this.filter = !this.filter && !this.scale;
+                                if (this.filter === true && this.currentSelectedCollection !== undefined) {
+                                    this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
+                                    this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
+                                    this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
+                                }
+                                else if (this.filter === false && this.currentSelectedCollection !== undefined) {
+                                    this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
+                                    this.currentSelectedCollection.props.Document._docFilters = undefined;
+                                    this.props.Document.selectedDoc = undefined;
+                                }
+                            }
+                            )} />
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
-                            style={{ padding: 1, paddingLeft: 20, color: "black", height: 20, width: 200 }} />
+                            style={{ padding: 1, paddingLeft: 20, paddingRight: 20, color: "black", height: 20, width: 250 }} />
                         <div style={{
                             height: 25,
                             paddingLeft: "4px",
@@ -1050,28 +1067,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             borderBottom: this.open === false ? "1px solid" : "none",
                         }}>
                             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
-                                <div className="checkbox" style={{ margin: 0 }}>
-                                    <label style={{ fontSize: 12, marginTop: 6 }}>
-                                        <input style={{ marginLeft: -16, marginTop: -1, color: this.scale == false ? "black" : "grey" }} checked={this.filter === true} onChange={() => {
-                                            runInAction(() => {
-                                                if (this.scale === false) {
-                                                    this.filter = !this.filter;
-                                                    if (this.filter === true && this.currentSelectedCollection !== undefined) {
-                                                        this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
-                                                        this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
-                                                        this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
-                                                    }
-                                                    else if (this.filter === false && this.currentSelectedCollection !== undefined) {
-                                                        this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
-                                                        this.currentSelectedCollection.props.Document._docFilters = undefined;
-                                                        this.props.Document.selectedDoc = undefined;
-                                                    }
-                                                }
-                                            })
-                                        }} type="checkbox"></input>
-                                            Filter
-                                        </label>
-                                </div>
                                 <div style={{ display: "contents" }}>
                                     <div className="radio" style={{ margin: 0 }}>
                                         <label style={{ fontSize: 12, marginTop: 6 }} >
