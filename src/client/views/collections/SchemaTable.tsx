@@ -11,22 +11,22 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaDateCell, CollectionSchemaButtons } from "./CollectionSchemaCells";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { emptyFunction, returnZero, returnOne, returnFalse, returnEmptyFilter, emptyPath } from "../../../Utils";
-import { TouchScrollableMenuItem } from "../TouchScrollableMenu";
 
 
 enum ColumnType {
@@ -160,7 +160,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === "x", false)) {
+        if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
             columns.push(
                 {
                     expander: true,
