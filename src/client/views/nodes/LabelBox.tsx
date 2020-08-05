@@ -70,7 +70,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
         const missingParams = params?.filter(p => !this.paramsDoc[p]);
         params?.map(p => DocListCast(this.paramsDoc[p])); // bcz: really hacky form of prefetching ... 
         return (
-            <div className="labelBox-outerDiv" onClick={() => runInAction(() => { this.clicked = !this.clicked; this.clicked ? this.backColor = StrCast(this.layoutDoc.hovercolor) : this.backColor = "unset" })} onMouseLeave={() => runInAction(() => { !this.clicked ? this.backColor = "unset" : null })}
+            <div className="labelBox-outerDiv" onClick={() => runInAction(() => { this.clicked = !this.clicked; this.clicked ? this.backColor = StrCast(this.layoutDoc.hovercolor) : this.backColor = "unset"; })} onMouseLeave={() => runInAction(() => { !this.clicked ? this.backColor = "unset" : null; })}
                 onMouseOver={() => runInAction(() => { this.backColor = StrCast(this.layoutDoc.hovercolor); })} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
                 <div className="labelBox-mainButton" style={{

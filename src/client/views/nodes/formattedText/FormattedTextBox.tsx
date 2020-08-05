@@ -309,7 +309,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
 
-            console.log(this._searchIndex, length);
             if (this._searchIndex > 1) {
                 this._searchIndex += -2;
             }

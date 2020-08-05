@@ -543,7 +543,7 @@ export class CurrentUserUtils {
                     btn.color = "white";
                     btn._backgroundColor = "";
                 }));
-            })
+            });
         });
         return doc.menuStack as Doc;
     }
@@ -759,16 +759,6 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same"
             })) as any as Doc;
         }
-    }
-
-    static setupSidebarContainer(doc: Doc) {
-        if (doc["sidebar"] === undefined) {
-            const sidebarContainer = new Doc();
-            sidebarContainer._chromeStatus = "disabled";
-            sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
-            doc["sidebar"] = new PrefetchProxy(sidebarContainer);
-        }
-        return doc["sidebar"] as Doc;
     }
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar

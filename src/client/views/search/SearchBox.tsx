@@ -39,14 +39,6 @@ export enum Keys {
     TEXT = "text"
 }
 
-export interface filterData {
-    deletedDocsStatus: boolean;
-    authorFieldStatus: boolean;
-    titleFieldStatus: boolean;
-    basicWordStatus: boolean;
-    icons: string[];
-}
-
 type SearchBoxDocument = makeInterface<[typeof documentSchema, typeof searchSchema]>;
 const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
 
@@ -89,55 +81,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable private newAssign: boolean = true;
 
     constructor(props: any) {
-
         super(props);
         SearchBox.Instance = this;
-        if (!_scriptingGlobals.hasOwnProperty("handleNodeChange")) {
-            Scripting.addGlobal(this.handleNodeChange);
-        }
-        if (!_scriptingGlobals.hasOwnProperty("handleKeyChange")) {
-            Scripting.addGlobal(this.handleKeyChange);
-        }
-        if (!_scriptingGlobals.hasOwnProperty("handleWordQueryChange")) {
-            Scripting.addGlobal(this.handleWordQueryChange);
-        }
-        if (!_scriptingGlobals.hasOwnProperty("updateIcon")) {
-            Scripting.addGlobal(this.updateIcon);
-        }
-        if (!_scriptingGlobals.hasOwnProperty("updateTitleStatus")) {
-            Scripting.addGlobal(this.updateTitleStatus);
-        }
-        if (!_scriptingGlobals.hasOwnProperty("updateAuthorStatus")) {
-            Scripting.addGlobal(this.updateAuthorStatus);
-        }
-        if (!_scriptingGlobals.hasOwnProperty("updateDeletedStatus")) {
-            Scripting.addGlobal(this.updateDeletedStatus);
-        }
-
-
         this.resultsScrolled = this.resultsScrolled.bind(this);
 
-        // new PrefetchProxy(Docs.Create.SearchItemBoxDocument({
-        //     title: "search item template",
-        //     backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
-        // }));
-
-
-        // if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
-        //     Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
-        //     // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
-        //     // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
-        //     // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
-        //     // stored on each pres element.  
-        //     (this.searchItemTemplate as Doc).lookupField = ScriptField.MakeFunction("lookupSearchBoxField(container, field, data)",
-        //         { field: "string", data: Doc.name, container: Doc.name });
-        // }
     }
     @observable setupButtons = false;
     componentDidMount = () => {
-        if (this.setupButtons == false) {
+        if (this.setupButtons === false) {
 
-            runInAction(() => this.setupButtons == true);
+            runInAction(() => this.setupButtons = true);
         }
         if (this.inputRef.current) {
             this.inputRef.current.focus();
@@ -163,7 +116,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
     @action
-    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc)
+    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc);
 
 
     @observable newsearchstring: string = "";
@@ -203,9 +156,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     enter = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             this.layoutDoc._searchString = this.newsearchstring;
-            // if (this._icons !== this._allIcons) {
-            //     runInAction(() => { this.expandedBucket = false });
-            // }
+
             if (StrCast(this.layoutDoc._searchString) !== "") {
                 console.log("OPEN");
                 runInAction(() => { this.open = true });
@@ -213,11 +164,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             else {
                 console.log("CLOSE");
                 runInAction(() => { this.open = false });
-
             }
             this.submitSearch();
-
-
         }
     }
 
@@ -365,46 +313,58 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 this.props.Document.selectedDoc = selectedCollection.props.Document;
             }
             let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
-            let found: [Doc, string[], string[]][] = [];
-            let docsforFilter: Doc[] = []
+            const found: [Doc, string[], string[]][] = [];
+            const docsforFilter: Doc[] = []
             let newarray: Doc[] = [];
 
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
-                    if (d.data != undefined) {
+                    if (d.data !== undefined) {
                         let newdocs = DocListCast(d.data);
                         newdocs.forEach((newdoc) => {
                             newarray.push(newdoc);
 
                         });
                     }
-
-
-                    let hlights: string[] = [];
-
+                    const hlights: string[] = [];
                     const protos = Doc.GetAllPrototypes(d);
-                    let proto = protos[protos.length - 1];
                     protos.forEach(proto => {
                         Object.keys(proto).forEach(key => {
-                            // console.log(key, d[key]);
                             if (StrCast(d[key]).includes(query) && !hlights.includes(key)) {
                                 hlights.push(key);
                             }
-                        })
+                        });
                     });
                     if (hlights.length > 0) {
                         found.push([d, hlights, []]);
                         docsforFilter.push(d);
-                    };
+                    }
                 });
                 docs = newarray;
             }
             this._results = found;
             this.docsforfilter = docsforFilter;
             if (this.filter === true) {
-                console.log(docsforFilter);
                 selectedCollection.props.Document._searchDocs = new List<Doc>(docsforFilter);
+                docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
+                while (docs.length > 0) {
+                    console.log("HIT");
+                    newarray = [];
+                    docs.forEach((d) => {
+                        if (d.data !== undefined) {
+                            console.log(d._searchDocs);
+                            d._searchDocs = new List<Doc>(docsforFilter);
+                            console.log(d);
+                            console.log(d._searchDocs);
+                            let newdocs = DocListCast(d.data);
+                            newdocs.forEach((newdoc) => {
+                                newarray.push(newdoc);
+                            });
+                        }
+                    });
+                    docs = newarray;
+                }
             }
             this._numTotalResults = found.length;
         }
@@ -468,7 +428,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async (reset?: boolean) => {
-        this.checkIcons();
         if (reset) {
             this.layoutDoc._searchString = "";
         }
@@ -644,13 +603,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 y += 300;
             }
         }
-        const filter: filterData = {
-            deletedDocsStatus: this._deletedDocsStatus,
-            authorFieldStatus: this._authorFieldStatus,
-            titleFieldStatus: this._titleFieldStatus,
-            basicWordStatus: this._basicWordStatus,
-            icons: this._icons,
-        }
         return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString), searchQuery: StrCast(this.layoutDoc._searchString) });
     }
 
@@ -693,7 +645,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        let headers = new Set<string>(["title", "author", "text", "lastModified"]);
+        const headers = new Set<string>(["title", "author", "lastModified", "text"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             if (this.noresults === "") {
                 this.noresults = "No search results :(";
@@ -734,7 +686,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            let lines = new List<string>(result[2]);
+                            const lines = new List<string>(result[2]);
                             console.log(lines);
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
@@ -751,7 +703,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         result = this._results[i];
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            let lines = new List<string>(result[2]);
+                            const lines = new List<string>(result[2]);
                             highlights.forEach((item) => headers.add(item));
                             console.log(lines);
                             result[0].lines = lines;
@@ -769,9 +721,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
         }
-        let schemaheaders: SchemaHeaderField[] = [];
+        const schemaheaders: SchemaHeaderField[] = [];
         this.headerscale = headers.size;
-        headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")))
+        headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")));
         this.headercount = schemaheaders.length;
         this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
         if (this._maxSearchIndex >= this._numTotalResults) {
@@ -784,8 +736,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable headerscale: number = 0;
 
     findCommonElements(arr2: string[]) {
-        let arr1 = ["layout", "data"];
-        return arr1.some(item => arr2.includes(item))
+        const arr1 = ["layout", "data"];
+        return arr1.some(item => arr2.includes(item));
     }
 
     @computed
@@ -794,209 +746,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @computed
     get resultHeight() { return this._numTotalResults * 70; }
 
-    //if true, any keywords can be used. if false, all keywords are required.
-    @action.bound
-    handleWordQueryChange = async () => {
-        this._collectionStatus = !this._collectionStatus;
-        if (this._collectionStatus) {
-            let doc = await Cast(this.props.Document.keywords, Doc)
-            doc!.backgroundColor = "grey";
-
-        }
-        else {
-            let doc = await Cast(this.props.Document.keywords, Doc)
-            doc!.backgroundColor = "black";
-        }
-    }
-
-    @action.bound
-    handleNodeChange = async () => {
-        this._nodeStatus = !this._nodeStatus;
-
-        if (this._nodeStatus) {
-            this.expandSection(`node${this.props.Document[Id]}`);
-            let doc = await Cast(this.props.Document.nodes, Doc)
-            doc!.backgroundColor = "grey";
-
-        }
-        else {
-            this.collapseSection(`node${this.props.Document[Id]}`);
-            let doc = await Cast(this.props.Document.nodes, Doc)
-            doc!.backgroundColor = "black";
-        }
-    }
-
-    @action.bound
-    handleKeyChange = async () => {
-        this._keyStatus = !this._keyStatus;
-        if (this._keyStatus) {
-            this.expandSection(`key${this.props.Document[Id]}`);
-            let doc = await Cast(this.props.Document.keys, Doc)
-            doc!.backgroundColor = "grey";
-        }
-        else {
-            this.collapseSection(`key${this.props.Document[Id]}`);
-            let doc = await Cast(this.props.Document.keys, Doc)
-            doc!.backgroundColor = "black";
-        }
-    }
-
-    @action.bound
-    handleFilterChange = () => {
-        this._filterOpen = !this._filterOpen;
-        if (this._filterOpen) {
-            this.expandSection(`filterhead${this.props.Document[Id]}`);
-            document.getElementById(`filterhead${this.props.Document[Id]}`)!.style.padding = "5";
-            console.log(this.props.Document[Id])
-        }
-        else {
-            this.collapseSection(`filterhead${this.props.Document[Id]}`);
-
-
-        }
-    }
-
-    @computed
-    get menuHeight() {
-        return document.getElementById("hi")?.clientHeight;
-    }
-
-
-    collapseSection(thing: string) {
-        const id = this.props.Document[Id];
-        const element = document.getElementById(thing)!;
-        // get the height of the element's inner content, regardless of its actual size
-        const sectionHeight = element.scrollHeight;
-
-        // temporarily disable all css transitions
-        const elementTransition = element.style.transition;
-        element.style.transition = '';
-
-        // on the next frame (as soon as the previous style change has taken effect),
-        // explicitly set the element's height to its current pixel height, so we 
-        // aren't transitioning out of 'auto'
-        requestAnimationFrame(function () {
-            element.style.height = sectionHeight + 'px';
-            element.style.transition = elementTransition;
-
-            // on the next frame (as soon as the previous style change has taken effect),
-            // have the element transition to height: 0
-            requestAnimationFrame(function () {
-                element.style.height = 0 + 'px';
-                thing === `filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
-            });
-        });
-
-        // mark the section as "currently collapsed"
-        element.setAttribute('data-collapsed', 'true');
-    }
-
-    expandSection(thing: string) {
-        const element = document.getElementById(thing)!;
-        // get the height of the element's inner content, regardless of its actual size
-        const sectionHeight = element.scrollHeight;
-
-        // have the element transition to the height of its inner content
-        element.style.height = sectionHeight + 'px';
-
-        // when the next css transition finishes (which should be the one we just triggered)
-        element.addEventListener('transitionend', function handler(e) {
-            // remove this event listener so it only gets triggered once
-            element.removeEventListener('transitionend', handler);
-
-            // remove "height" from the element's inline styles, so it can return to its initial value
-            element.style.height = "auto";
-            //element.style.height = undefined;
-        });
-
-        // mark the section as "currently not collapsed"
-        element.setAttribute('data-collapsed', 'false');
-
-    }
-
-    autoset(thing: string) {
-        const element = document.getElementById(thing)!;
-        element.removeEventListener('transitionend', function (e) { });
-
-        // remove "height" from the element's inline styles, so it can return to its initial value
-        element.style.height = "auto";
-        //element.style.height = undefined;
-    }
-
-    @action.bound
-    updateTitleStatus = async () => {
-        this._titleFieldStatus = !this._titleFieldStatus;
-        if (this._titleFieldStatus) {
-            let doc = await Cast(this.props.Document.title, Doc)
-            doc!.backgroundColor = "grey";
-        }
-        else {
-            let doc = await Cast(this.props.Document.title, Doc)
-            doc!.backgroundColor = "black";
-        }
-    }
-
-    @action.bound
-    updateAuthorStatus = async () => {
-        this._authorFieldStatus = !this._authorFieldStatus;
-        if (this._authorFieldStatus) {
-            let doc = await Cast(this.props.Document.author, Doc)
-            doc!.backgroundColor = "grey";
-        }
-        else {
-            let doc = await Cast(this.props.Document.author, Doc)
-            doc!.backgroundColor = "black";
-        }
-    }
-
-    @action.bound
-    updateDeletedStatus = async () => {
-        this._deletedDocsStatus = !this._deletedDocsStatus;
-        if (this._deletedDocsStatus) {
-            let doc = await Cast(this.props.Document.deleted, Doc)
-            doc!.backgroundColor = "grey";
-        }
-        else {
-            let doc = await Cast(this.props.Document.deleted, Doc)
-            doc!.backgroundColor = "black";
-        }
-    }
-
     addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
     remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
     moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
-
-    @action.bound
-    updateIcon = async (icon: string) => {
-        if (this._icons.includes(icon)) {
-            _.pull(this._icons, icon);
-            let cap = icon.charAt(0).toUpperCase() + icon.slice(1)
-            console.log(cap);
-            let doc = await Cast(this.props.Document[cap], Doc)
-            doc!.backgroundColor = "black";
-        }
-        else {
-            this._icons.push(icon);
-            let cap = icon.charAt(0).toUpperCase() + icon.slice(1)
-            let doc = await Cast(this.props.Document[cap], Doc)
-            doc!.backgroundColor = "grey";
-        }
-    }
-
-    @action.bound
-    checkIcons = async () => {
-        for (let i = 0; i < this._allIcons.length; i++) {
-
-            let cap = this._allIcons[i].charAt(0).toUpperCase() + this._allIcons[i].slice(1)
-            let doc = await Cast(this.props.Document[cap], Doc)
-            if (this._icons.includes(this._allIcons[i])) {
-                doc!.backgroundColor = "grey";
-            }
-            else {
-                doc!.backgroundColor = "black";
-            }
-        }
-    }
 
     @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
 
@@ -1016,16 +768,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @observable filter = false;
 
-
     //Make id layour document
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
-        let cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
+        const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
         let length = 0;
         cols > 5 ? length = 1076 : length = cols * 205 + 51;
         let height = 0;
-        let rows = this.children;
+        const rows = this.children;
         rows > 8 ? height = 31 + 31 * 8 : height = 31 * rows + 31;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
@@ -1045,10 +796,52 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 this.filter = !this.filter && !this.scale;
                                 if (this.filter === true && this.currentSelectedCollection !== undefined) {
                                     this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
+                                    let newarray: Doc[] = [];
+                                    let docs: Doc[] = [];
+                                    docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                    while (docs.length > 0) {
+                                        console.log("HIT");
+                                        newarray = [];
+                                        docs.forEach((d) => {
+                                            if (d.data !== undefined) {
+                                                console.log(d._searchDocs);
+                                                d._searchDocs = new List<Doc>(this.docsforfilter);
+                                                console.log(d);
+                                                console.log(d._searchDocs);
+                                                let newdocs = DocListCast(d.data);
+                                                newdocs.forEach((newdoc) => {
+                                                    newarray.push(newdoc);
+                                                });
+                                            }
+                                        });
+                                        docs = newarray;
+                                    }
+
                                     this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
                                     this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
                                 }
                                 else if (this.filter === false && this.currentSelectedCollection !== undefined) {
+                                    let newarray: Doc[] = [];
+                                    let docs: Doc[] = [];
+                                    docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                    while (docs.length > 0) {
+                                        console.log("HIT");
+                                        newarray = [];
+                                        docs.forEach((d) => {
+                                            if (d.data !== undefined) {
+                                                console.log(d._searchDocs);
+                                                d._searchDocs = new List<Doc>();
+                                                console.log(d);
+                                                console.log(d._searchDocs);
+                                                let newdocs = DocListCast(d.data);
+                                                newdocs.forEach((newdoc) => {
+                                                    newarray.push(newdoc);
+                                                });
+                                            }
+                                        });
+                                        docs = newarray;
+                                    }
+
                                     this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
                                     this.currentSelectedCollection.props.Document._docFilters = undefined;
                                     this.props.Document.selectedDoc = undefined;
@@ -1075,12 +868,32 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                     this.scale = !this.scale;
                                                     this.dataDoc[this.fieldKey] = new List<Doc>([]);
                                                     if (this.currentSelectedCollection !== undefined) {
+                                                        let newarray: Doc[] = [];
+                                                        let docs: Doc[] = [];
+                                                        docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                                        while (docs.length > 0) {
+                                                            console.log("HIT");
+                                                            newarray = [];
+                                                            docs.forEach((d) => {
+                                                                if (d.data !== undefined) {
+                                                                    console.log(d._searchDocs);
+                                                                    d._searchDocs = new List<Doc>();
+                                                                    console.log(d);
+                                                                    console.log(d._searchDocs);
+                                                                    let newdocs = DocListCast(d.data);
+                                                                    newdocs.forEach((newdoc) => {
+                                                                        newarray.push(newdoc);
+                                                                    });
+                                                                }
+                                                            });
+                                                            docs = newarray;
+                                                        }
                                                         this.currentSelectedCollection.props.Document._docFilters = undefined;
                                                         this.currentSelectedCollection.props.Document._searchDocs = undefined;
                                                         this.currentSelectedCollection = undefined;
                                                     }
                                                     this.submitSearch();
-                                                })
+                                                });
                                             }} />
                                         Collection
                                     </label>
@@ -1093,12 +906,32 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                     this.dataDoc[this.fieldKey] = new List<Doc>([]);
                                                     this.filter = false;
                                                     if (this.currentSelectedCollection !== undefined) {
+                                                        let newarray: Doc[] = [];
+                                                        let docs: Doc[] = [];
+                                                        docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                                        while (docs.length > 0) {
+                                                            console.log("HIT");
+                                                            newarray = [];
+                                                            docs.forEach((d) => {
+                                                                if (d.data !== undefined) {
+                                                                    console.log(d._searchDocs);
+                                                                    d._searchDocs = new List<Doc>();
+                                                                    console.log(d);
+                                                                    console.log(d._searchDocs);
+                                                                    let newdocs = DocListCast(d.data);
+                                                                    newdocs.forEach((newdoc) => {
+                                                                        newarray.push(newdoc);
+                                                                    });
+                                                                }
+                                                            });
+                                                            docs = newarray;
+                                                        }
                                                         this.currentSelectedCollection.props.Document._docFilters = undefined;
                                                         this.currentSelectedCollection.props.Document._searchDocs = undefined;
                                                         this.currentSelectedCollection = undefined;
                                                     }
                                                     this.submitSearch();
-                                                })
+                                                });
                                             }} />
                                             DB
                                     </label>
@@ -1140,13 +973,3 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         );
     }
 }
-
-Scripting.addGlobal(function lookupSearchBoxField(container: Doc, field: string, data: Doc) {
-    // if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
-    // if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Schema ? 50 : 46;
-    // if (field === 'presStatus') return container.presStatus;
-    // if (field === '_itemIndex') return container._itemIndex;
-    if (field == "query") return container._searchString;
-    return undefined;
-});
-

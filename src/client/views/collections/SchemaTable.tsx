@@ -19,7 +19,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaDateCell } from "./CollectionSchemaCells";
+import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaDateCell, CollectionSchemaButtons } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
@@ -160,7 +160,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === "collection", false)) {
+        if (this.childDocs.reduce((found, doc) => found || doc.type === "nnnnn", false)) {
             columns.push(
                 {
                     expander: true,
@@ -283,12 +283,34 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             Header: <CollectionSchemaAddColumnHeader createColumn={this.createColumn} />,
             accessor: (doc: Doc) => 0,
             id: "add",
-            Cell: (rowProps: CellInfo) => <div> <button onClick={(e) => this.nextHighlight(e, this.props.Document)} style={{ padding: 2, left: 77 }}>
-                <FontAwesomeIcon icon="arrow-up" size="sm" />
-            </button>
-                <button onClick={(e) => this.nextHighlight2(e, this.props.Document)} style={{ padding: 2, left: 87 }}>
-                    <FontAwesomeIcon icon="arrow-down" size="sm" />
-                </button></div>,
+            Cell: (rowProps: CellInfo) => {
+                const rowIndex = rowProps.index;
+                const columnIndex = this.props.columns.map(c => c.heading).indexOf(rowProps.column.id!);
+                const isFocused = focusedRow === rowIndex && focusedCol === columnIndex && tableIsFocused;
+                const props: CellProps = {
+                    row: rowIndex,
+                    col: columnIndex,
+                    rowProps: rowProps,
+                    isFocused: isFocused,
+                    changeFocusedCellByIndex: this.changeFocusedCellByIndex,
+                    CollectionView: this.props.CollectionView,
+                    ContainingCollection: this.props.ContainingCollectionView,
+                    Document: this.props.Document,
+                    fieldKey: this.props.fieldKey,
+                    renderDepth: this.props.renderDepth,
+                    addDocTab: this.props.addDocTab,
+                    pinToPres: this.props.pinToPres,
+                    moveDocument: this.props.moveDocument,
+                    setIsEditing: this.setCellIsEditing,
+                    isEditable: isEditable,
+                    setPreviewDoc: this.props.setPreviewDoc,
+                    setComputed: this.setComputed,
+                    getField: this.getField,
+                    showDoc: this.showDoc,
+                };
+
+                return <CollectionSchemaButtons {...props} />;
+            },
             width: 28,
             resizable: false
         });
@@ -301,16 +323,17 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     nextHighlight = (e: React.MouseEvent, doc: Doc) => {
         e.preventDefault();
         e.stopPropagation();
-
         doc.searchMatch = false;
+        console.log(doc.searchMatch);
         setTimeout(() => doc.searchMatch = true, 0);
+        console.log(doc.searchMatch);
+
         doc.searchIndex = NumCast(doc.searchIndex);
     }
 
     @action
-    nextHighlight2 = (e: React.MouseEvent, doc: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
+    nextHighlight2 = (doc: Doc) => {
+
         doc.searchMatch2 = false;
         setTimeout(() => doc.searchMatch2 = true, 0);
         doc.searchIndex = NumCast(doc.searchIndex);

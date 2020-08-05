@@ -302,7 +302,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @action
     onSelect = (key: string): void => {
         if (key.slice(0, this._key.length) === this._key && this._key !== key) {
-            let filter = key.slice(this._key.length - key.length);
+            const filter = key.slice(this._key.length - key.length);
             this.props.onSelect(this._key, this._key, this.props.addNew, filter);
         }
         else {
@@ -395,12 +395,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
         if (!this._isOpen) return <></>;
-
         const keyOptions: string[] = [];
-        console.log(this._searchTerm.slice(this._key.length))
-        let temp = this._searchTerm.slice(this._key.length);
+        const temp = this._searchTerm.slice(this._key.length);
         this.props.docs?.forEach((doc) => {
-            let key = StrCast(doc[this._key]);
+            const key = StrCast(doc[this._key]);
             if (keyOptions.includes(key) === false && key.includes(temp)) {
                 keyOptions.push(key);
             }

@@ -22,8 +22,7 @@ import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { UndoManager } from "../util/UndoManager";
 import { DocumentType } from "./DocumentTypes";
-import { SearchItem } from "../views/search/SearchItem";
-import { SearchBox, filterData } from "../views/search/SearchBox";
+import { SearchBox } from "../views/search/SearchBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
@@ -48,7 +47,6 @@ import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
 import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
@@ -191,8 +189,7 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
-    searchQuery?: string, // for quersyBox
-    filterQuery?: filterData,
+    searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
     border?: string; //for searchbox
     hovercolor?: string;
@@ -315,9 +312,6 @@ export namespace Docs {
             }],
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: defaultDataKey }
-            }],
-            [DocumentType.SEARCHITEM, {
-                layout: { view: SearchItem, dataField: defaultDataKey }
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
@@ -801,10 +795,6 @@ export namespace Docs {
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
-        }
-
-        export function SearchItemBoxDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SEARCHITEM), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {

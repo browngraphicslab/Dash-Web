@@ -130,9 +130,60 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
             const searchDocs = DocListCast(this.props.Document._searchDocs);
+            // if (searchDocs !== undefined && searchDocs.length > 0) {
+            //     let newdocs: Doc[] = [];
+            //     childDocs.forEach((el) => {
+            //         searchDocs.includes(el) ? newdocs.push(el) : undefined;
+            //     });
+            //     childDocs = newdocs;
+            // }
+
+            let docsforFilter: Doc[] = childDocs;
             if (searchDocs !== undefined && searchDocs.length > 0) {
-                childDocs = searchDocs;
+                docsforFilter = [];
+                // let newdocs: Doc[] = [];
+                // let newarray: Doc[] = [];
+                //while (childDocs.length > 0) {
+                //newarray = [];
+                childDocs.forEach((d) => {
+                    if (d.data !== undefined) {
+                        console.log(d);
+                        let newdocs = DocListCast(d.data);
+                        if (newdocs.length > 0) {
+                            let vibecheck = false;
+
+                            let newarray: Doc[] = [];
+
+                            while (newdocs.length > 0) {
+                                newarray = [];
+                                newdocs.forEach((t) => {
+                                    if (d.data !== undefined) {
+                                        let newdocs = DocListCast(t.data);
+                                        newdocs.forEach((newdoc) => {
+                                            newarray.push(newdoc);
+                                        });
+                                    }
+                                    if (searchDocs.includes(t)) {
+                                        vibecheck = true;
+                                    }
+                                });
+                                newdocs = newarray;
+                            }
+                            if (vibecheck === true) {
+                                docsforFilter.push(d);
+                            }
+                        }
+                    }
+                    if (searchDocs.includes(d)) {
+                        docsforFilter.push(d);
+                    }
+                });
+                //childDocs = newarray;
+                //}
             }
+            childDocs = docsforFilter;
+
+
             const docFilters = this.docFilters();
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
