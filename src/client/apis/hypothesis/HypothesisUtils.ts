@@ -17,15 +17,16 @@ import { DocumentView } from "../../views/nodes/DocumentView";
 
 export namespace Hypothesis {
 
+    // Retrieve a WebDocument with the given url exists, create and return a new 
     export const getSourceWebDoc = async (uri: string) => {
         const result = await findWebDoc(uri);
-        return result || Docs.Create.WebDocument(uri, { _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true }); // create and return a new Web doc with given uri if no matching docs are found
+        console.log(result ? "existing doc found" : "existing doc NOT found");
+        return result || Docs.Create.WebDocument(uri, { title: uri, _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true }); // create and return a new Web doc with given uri if no matching docs are found
     };
 
-    // Search for a web Doc whose url field matches the given uri, return undefined if not found
+    // Search for a WebDocument whose url field matches the given uri, return undefined if not found
     export const findWebDoc = async (uri: string) => {
         const currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
-        currentDoc && console.log(Cast(currentDoc.data, WebField)?.url.href === uri, uri, Cast(currentDoc.data, WebField)?.url.href);
         if (currentDoc && Cast(currentDoc.data, WebField)?.url.href === uri) return currentDoc; // always check first whether the current doc is the source, only resort to Search otherwise
 
         const results: Doc[] = [];
@@ -37,8 +38,6 @@ export namespace Hypothesis {
             filteredDocs.forEach(doc => console.log("web docs:", doc.title, Cast(doc.data, WebField)?.url.href));
             filteredDocs.forEach(doc => { uri === Cast(doc.data, WebField)?.url.href && results.push(doc); }); // TODO check history? imperfect matches?
         }));
-
-        results.forEach(doc => console.log(doc.title, StrCast(doc.data)));
 
         return results.length ? results[0] : undefined;
     };
@@ -111,7 +110,7 @@ export namespace Hypothesis {
     // listen for event from Hypothes.is plugin to link an annotation to Dash
     export const linkListener = async (e: any) => {
         const annotationId: string = e.detail.id;
-        const annotationUri: string = e.detail.uri;
+        const annotationUri: string = StrCast(e.detail.uri).split("#annotations:")[0]; // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
         const sourceDoc: Doc = await getSourceWebDoc(annotationUri);
 
         if (!DocumentLinksButton.StartLink) { // start link if there were none already started 
