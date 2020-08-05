@@ -177,6 +177,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
+        console.log(columns);
 
         const cols = this.props.columns.map(col => {
 
@@ -314,6 +315,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             width: 28,
             resizable: false
         });
+        console.log(columns);
         return columns;
     }
 
@@ -493,7 +495,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed
     get reactTable() {
         const children = this.childDocs;
-        const hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         const expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         const expanded = {};
         //@ts-ignore
@@ -515,8 +516,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             resized={this.resized}
             NoDataComponent={() => null}
             onResizedChange={this.props.onResizedChange}
-            SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
-                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}
 
         />;
     }

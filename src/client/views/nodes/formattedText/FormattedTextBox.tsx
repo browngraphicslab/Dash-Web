@@ -330,30 +330,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
-    public highlightSearchTermsAlt = (terms: string[]) => {
-        if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
-
-            const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
-            const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
-            const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
-            const length = res[0].length;
-            let tr = this._editorView.state.tr;
-            const flattened: TextSelection[] = [];
-            res.map(r => r.map(h => flattened.push(h)));
-
-            const lastSel = Math.min(flattened.length - 1, this._searchIndex);
-            flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
-            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-            this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
-
-
-            const index = this._searchIndex;
-
-            Doc.GetProto(this.dataDoc).searchIndex = index;
-        }
-    }
-
-
     public unhighlightSearchTerms = () => {
         if (window.screen.width < 600) null;
         else if (this._editorView && (this._editorView as any).docView) {
