@@ -582,6 +582,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         style={{ backgroundColor: this._colorBtn ? "121212" : "", zIndex: 1001 }}>
                         {/* <FontAwesomeIcon icon="pen-nib" size="lg" /> */}
                         <div className="color-previewII" style={{ backgroundColor: color }} />
+                        {color === "" ? <p style={{ fontSize: 45, color: "red", marginTop: -16, marginLeft: -5, position: "fixed" }}>☒</p> : ""}
+
                     </button>)}
             </div>;
     }
@@ -595,7 +597,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     <button className="antimodeMenu-button" key={color}
                         onPointerDown={action(() => { this.changeColor(color, "fill"); this._fillBtn = false; this.editProperties(color, "fill"); })}
                         style={{ backgroundColor: this._fillBtn ? "121212" : "", zIndex: 1001 }}>
-                        <div className="color-previewII" style={{ backgroundColor: color }}></div>
+                        <div className="color-previewII" style={{ backgroundColor: color }}>
+                            {color === "" ? <p style={{ fontSize: 45, color: "red", marginTop: -16, marginLeft: -5, position: "fixed" }}>☒</p> : ""}
+                        </div>
                     </button>)}
 
             </div>;

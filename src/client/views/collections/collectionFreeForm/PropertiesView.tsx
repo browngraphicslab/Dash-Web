@@ -22,7 +22,7 @@ import { DocumentType } from "../../../documents/DocumentTypes";
 import FormatShapePane from "./FormatShapePane";
 import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
 import { InkField } from "../../../../fields/InkField";
-import { undoBatch } from "../../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from "react-color";
 import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
@@ -42,6 +42,7 @@ interface PropertiesViewProps {
 
 @observer
 export class PropertiesView extends React.Component<PropertiesViewProps> {
+    private _widthUndo?: UndoManager.Batch;
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
@@ -63,6 +64,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openTransform: boolean = true;
 
     @observable inActions: boolean = false;
+    @observable _controlBtn: boolean = false;
+    @observable _lock: boolean = false;
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
@@ -428,20 +431,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
-    @observable _controlBtn: boolean = false;
-    @observable _lock: boolean = false;
+
 
     @computed
     get controlPointsButton() {
         return <div className="inking-button">
             <Tooltip title={<><div className="dash-tooltip">{"Edit points"}</div></>}>
-                <div className="inking-button-points" onPointerDown={action(() => this._controlBtn = !this._controlBtn)} style={{ backgroundColor: this._controlBtn ? "black" : "" }}>
+                <div className="inking-button-points" onPointerDown={action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn)} style={{ backgroundColor: FormatShapePane.Instance._controlBtn ? "black" : "" }}>
                     <FontAwesomeIcon icon="bezier-curve" color="white" size="lg" />
                 </div>
             </Tooltip>
-            <Tooltip title={<><div className="dash-tooltip">{this._lock ? "Unlock points" : "Lock points"}</div></>}>
-                <div className="inking-button-lock" onPointerDown={action(() => this._lock = !this._lock)} >
-                    <FontAwesomeIcon icon={this._lock ? "unlock" : "lock"} color="white" size="lg" />
+            <Tooltip title={<><div className="dash-tooltip">{FormatShapePane.Instance._lock ? "Unlock ratio" : "Lock ratio"}</div></>}>
+                <div className="inking-button-lock" onPointerDown={action(() => FormatShapePane.Instance._lock = !FormatShapePane.Instance._lock)} >
+                    <FontAwesomeIcon icon={FormatShapePane.Instance._lock ? "lock" : "unlock"} color="white" size="lg" />
                 </div>
             </Tooltip>
             <Tooltip title={<><div className="dash-tooltip">{"Rotate 90˚"}</div></>}>
@@ -496,12 +498,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oldX = NumCast(this.selectedDoc?.x);
                 const oldY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._width = oldWidth + (dirs === "up" ? 10 : - 10));
-                this._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
+                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) / oldWidth * NumCast(this.selectedDoc?._height)));
                 const doc = this.selectedDoc;
                 if (doc?.type === DocumentType.INK && doc.x && doc.y && doc._height && doc._width) {
-                    console.log(doc.x, doc.y, doc._height, doc._width);
                     const ink = Cast(doc.data, InkField)?.inkData;
-                    console.log(ink);
                     if (ink) {
                         const newPoints: { X: number, Y: number }[] = [];
                         for (var j = 0; j < ink.length; j++) {
@@ -520,12 +520,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 const oX = NumCast(this.selectedDoc?.x);
                 const oY = NumCast(this.selectedDoc?.y);
                 this.selectedDoc && (this.selectedDoc._height = oHeight + (dirs === "up" ? 10 : - 10));
-                this._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
+                FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) / oHeight * NumCast(this.selectedDoc?._width)));
                 const docu = this.selectedDoc;
                 if (docu?.type === DocumentType.INK && docu.x && docu.y && docu._height && docu._width) {
-                    console.log(docu.x, docu.y, docu._height, docu._width);
                     const ink = Cast(docu.data, InkField)?.inkData;
-                    console.log(ink);
                     if (ink) {
                         const newPoints: { X: number, Y: number }[] = [];
                         for (var j = 0; j < ink.length; j++) {
@@ -560,17 +558,18 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set shapeWid(value) {
         const oldWidth = NumCast(this.selectedDoc?._width);
         this.selectedDoc && (this.selectedDoc._width = Number(value));
-        this._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
+        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._height = (NumCast(this.selectedDoc?._width) * NumCast(this.selectedDoc?._height)) / oldWidth);
     }
     set shapeHgt(value) {
         const oldHeight = NumCast(this.selectedDoc?._height);
         this.selectedDoc && (this.selectedDoc._height = Number(value));
-        this._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
+        FormatShapePane.Instance._lock && this.selectedDoc && (this.selectedDoc._width = (NumCast(this.selectedDoc?._height) * NumCast(this.selectedDoc?._width)) / oldHeight);
     }
 
-    @computed get hgtInput() { return this.inputBoxDuo("hgt", this.shapeHgt, (val: string) => this.shapeHgt = val, "H:", "wid", this.shapeWid, (val: string) => this.shapeWid = val, "W:"); }
-    @computed get XpsInput() { return this.inputBoxDuo("Xps", this.shapeXps, (val: string) => this.shapeXps = val, "X:", "Yps", this.shapeYps, (val: string) => this.shapeYps = val, "Y:"); }
-    @computed get rotInput() { return this.inputBoxDuo("rot", this.shapeRot, (val: string) => { this.rotate(Number(val) - Number(this.shapeRot)); this.shapeRot = val; return true; }, "∠:", "rot", this.shapeRot, (val: string) => this.shapeRot = val, ""); }
+    @computed get hgtInput() { return this.inputBoxDuo("hgt", this.shapeHgt, (val: string) => { if (!isNaN(Number(val))) { this.shapeHgt = val; } return true; }, "H:", "wid", this.shapeWid, (val: string) => { if (!isNaN(Number(val))) { this.shapeWid = val; } return true; }, "W:"); }
+    @computed get XpsInput() { return this.inputBoxDuo("Xps", this.shapeXps, (val: string) => { if (val !== "0" && !isNaN(Number(val))) { this.shapeXps = val; } return true; }, "X:", "Yps", this.shapeYps, (val: string) => { if (val !== "0" && !isNaN(Number(val))) { this.shapeYps = val; } return true; }, "Y:"); }
+    @computed get rotInput() { return this.inputBoxDuo("rot", this.shapeRot, (val: string) => { if (!isNaN(Number(val))) { this.rotate(Number(val) - Number(this.shapeRot)); this.shapeRot = val; } return true; }, "∠:", "rot", this.shapeRot, (val: string) => { if (!isNaN(Number(val))) { this.rotate(Number(val) - Number(this.shapeRot)); this.shapeRot = val; } return true; }, ""); }
+
 
     @observable private _fillBtn = false;
     @observable private _lineBtn = false;
@@ -691,7 +690,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>
                 <input className="width-range" type="range"
                     defaultValue={Number(this.widthStk)} min={1} max={100}
-                    onChange={undoBatch(action((e) => this.widthStk = e.target.value))} />
+                    onChange={(action((e) => this.widthStk = e.target.value))}
+                    onMouseDown={(e) => { this._widthUndo = UndoManager.StartBatch("width undo");; }}
+                    onMouseUp={(e) => { this._widthUndo?.end(); this._widthUndo = undefined; }}
+                />
             </div>
 
             <div className="arrows">
@@ -709,7 +711,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>
             </div>
             <div className="dashed">
-                <div className="dashed-title">Dash:</div>
+                <div className="dashed-title">Dashed Line:</div>
                 <input key="markHead" className="dashed-input"
                     type="checkbox" checked={this.dashdStk === "2"}
                     onChange={this.changeDash} />
