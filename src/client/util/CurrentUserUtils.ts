@@ -769,8 +769,19 @@ export class CurrentUserUtils {
         }
     }
 
+    static setupSidebarContainer(doc: Doc) {
+        if (doc["sidebar"] === undefined) {
+            const sidebarContainer = new Doc();
+            sidebarContainer._chromeStatus = "disabled";
+            sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
+            doc["sidebar"] = new PrefetchProxy(sidebarContainer);
+        }
+        return doc["sidebar"] as Doc;
+    }
+
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
+        CurrentUserUtils.setupSidebarContainer(doc);
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupWorkspaces(doc);
         CurrentUserUtils.setupCatalog(doc);
