@@ -90,6 +90,16 @@
         padding-left: 2px;
         background: black;
 
+        .audiobox-dictation {
+            position: absolute;
+            width: 30px;
+            height: 100%;
+            align-items: center;
+            display: inherit;
+            background: dimgray;
+            left: 0px;
+        }
+
         .audiobox-player {
             margin-top: auto;
             margin-bottom: auto;
@@ -108,11 +118,15 @@
                 height: 25px;
                 padding: 2px;
                 border-radius: 50%;
-                background-color: dimgrey;
+                background-color: black;
+                color: white;
             }
 
             .audiobox-playhead:hover {
-                background-color: white;
+                // background-color:  black;
+                // border-radius: 5px;
+                background-color: grey;
+                color: lightgrey;
             }
 
             .audiobox-dictation {
@@ -285,16 +299,16 @@
 
             .current-time {
                 position: absolute;
-                font-size: 12;
-                top: calc(100% - 10px);
+                font-size: 8;
+                top: calc(100% - 8px);
                 left: 30px;
                 color: white;
             }
 
             .total-time {
                 position: absolute;
-                top: calc(100% - 10px);
-                font-size: 12;
+                top: calc(100% - 8px);
+                font-size: 8;
                 right: 2px;
                 color: white;
             }

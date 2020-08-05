@@ -74,7 +74,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _amount: number = 1;
     _markers: Array<any> = [];
     _first: boolean = false;
-    _buckets: Array<number> = new Array();
+    _buckets: Array<number> = new Array<number>();
     _count: Array<any> = [];
 
     private _isPointerDown = false;
@@ -133,24 +133,45 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
-                // if (sel) {
-                //     DocListCast(sel.links).map((l, i) => {
-                //         let la1 = l.anchor1 as Doc;
-                //         let la2 = l.anchor2 as Doc;
-                //         let linkTime = NumCast(l.anchor2_timecode);
-                //         if (Doc.AreProtosEqual(la1, this.dataDoc)) {
-                //             la1 = l.anchor2 as Doc;
-                //             la2 = l.anchor1 as Doc;
-                //             linkTime = NumCast(l.anchor1_timecode);
-                //         }
-                //         console.log(linkTime);
-                //         if (linkTime) {
-                //             this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(linkTime);
-                //         }
-                //     });
-                // }
-                this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
-                this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
+                let link;
+                if (sel) {
+                    DocListCast(sel.links).map((l, i) => {
+                        let la1 = l.anchor1 as Doc;
+                        let la2 = l.anchor2 as Doc;
+                        let linkTime = NumCast(l.anchor2_timecode);
+                        let endTime;
+                        if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                            la1 = l.anchor2 as Doc;
+                            la2 = l.anchor1 as Doc;
+                            linkTime = NumCast(l.anchor1_timecode);
+                        }
+                        if (la2.audioStart) {
+                            linkTime = NumCast(la2.audioStart);
+                        }
+
+                        if (la1.audioStart) {
+                            linkTime = NumCast(la1.audioStart);
+                        }
+
+                        if (la1.audioEnd) {
+                            endTime = NumCast(la1.audioEnd);
+                        }
+
+                        if (la2.audioEnd) {
+                            endTime = NumCast(la2.audioEnd);
+                        }
+
+                        console.log(linkTime);
+                        if (linkTime) {
+                            link = true;
+                            this.layoutDoc.playOnSelect && this.recordingStart && sel && !Doc.AreProtosEqual(sel, this.props.Document) && endTime ? this.playFrom(linkTime, endTime) : this.playFrom(linkTime);
+                        }
+                    });
+                }
+                if (!link) {
+                    this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
+                    this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
+                }
             });
         this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
     }
@@ -302,6 +323,38 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const path = (field instanceof AudioField) ? field.url.href : "";
         return path === nullAudio ? "" : path;
     }
+
+    // @action
+    // buckets = () => {
+    //     let audioCtx = new (window.AudioContext)();
+    //     const buckets: number[] = [];
+
+    //     axios({ url: this.path, responseType: "arraybuffer" })
+    //         .then(response => runInAction(() => {
+    //             let audioData = response.data;
+
+    //             audioCtx.decodeAudioData(audioData, buffer => {
+    //                 let decodedAudioData = buffer.getChannelData(0);
+    //                 const NUMBER_OF_BUCKETS = 100;
+    //                 let bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
+
+    //                 for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
+    //                     let startingPoint = i * bucketDataSize;
+    //                     let endingPoint = i * bucketDataSize + bucketDataSize;
+    //                     let max = 0;
+    //                     for (let j = startingPoint; j < endingPoint; j++) {
+    //                         if (decodedAudioData[j] > max) {
+    //                             max = decodedAudioData[j];
+    //                         }
+    //                     }
+    //                     let size = Math.abs(max);
+    //                     buckets.push(size / 2);
+    //                 }
+
+    //             });
+    //             return buckets
+    //         }));
+    // }
 
     @action
     buckets = async () => {
@@ -555,7 +608,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         if (this._first) {
             this._first = false;
             this.markers();
-            console.log(this._count);
         }
 
 
@@ -672,10 +724,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             </button>}
                 </div> :
                 <div className="audiobox-controls" onClick={this.layoutDoc.playOnSelect ? this.onPlay : undefined}>
-                    <div className="background">
-                    </div>
+                    <div className="audiobox-dictation"></div>
                     <div className="audiobox-player" >
-                        <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
+                        <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
                         {/* <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "darkgrey" : "" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                         <div className="audiobox-playhead" onClick={this.onRepeat}><FontAwesomeIcon style={{ width: "100%", background: this._repeat ? "darkgrey" : "" }} icon="redo-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div> */}
                         <div className="audiobox-timeline" id="timeline" onClick={e => { e.stopPropagation(); e.preventDefault(); }} onDoubleClick={e => this.change}
@@ -711,6 +762,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     pos={this.layoutDoc.currentTimecode}
                                     duration={this.dataDoc.duration}
                                     peaks={this._buckets.length === 100 ? this._buckets : undefined}
+
                                     progressColor={"#0000ff"} />
                             </div>
                             {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
