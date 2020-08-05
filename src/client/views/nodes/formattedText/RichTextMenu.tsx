@@ -274,7 +274,7 @@ export default class RichTextMenu extends AntimodeMenu {
             }
             !activeFamilies.length && (activeFamilies.push(StrCast(this.TextView.layoutDoc._fontFamily, StrCast(Doc.UserDoc().fontFamily))));
             !activeSizes.length && (activeSizes.push(StrCast(this.TextView.layoutDoc._fontSize, StrCast(Doc.UserDoc().fontSize))));
-            !activeColors.length && (activeSizes.push(StrCast(this.TextView.layoutDoc.color, StrCast(Doc.UserDoc().fontColor))));
+            !activeColors.length && (activeColors.push(StrCast(this.TextView.layoutDoc.color, StrCast(Doc.UserDoc().fontColor))));
         }
         !activeFamilies.length && (activeFamilies.push(StrCast(Doc.UserDoc().fontFamily)));
         !activeSizes.length && (activeSizes.push(StrCast(Doc.UserDoc().fontSize)));

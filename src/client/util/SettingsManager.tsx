@@ -203,7 +203,7 @@ export default class SettingsManager extends React.Component<{}> {
         </div>;
 
         const fontFamilies: string[] = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
-        const fontSizes: number[] = [7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 32, 48, 72];
+        const fontSizes: string[] = ["7pt", "8pt", "9pt", "10pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "32pt", "48pt", "72pt"];
 
         const preferencesContent = <div className="preferences-content">
             <div className="preferences-color">
@@ -222,8 +222,8 @@ export default class SettingsManager extends React.Component<{}> {
                 <select className="size-select"
                     onChange={e => this.changeFontSize(e)}>
                     {fontSizes.map((size) => {
-                        return <option key={size} value={size} selected={NumCast(Doc.UserDoc().fontSize) === size}>
-                            {size + "pt"}
+                        return <option key={size} value={size} selected={StrCast(Doc.UserDoc().fontSize) === size}>
+                            {size}
                         </option>;
                     })}
                 </select>
