@@ -107,6 +107,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         d["w-indexed"] = new List<number>(windexed);
         d["opacity-indexed"] = new List<number>(oindexed);
         d["scroll-indexed"] = new List<number>(scrollIndexed);
+        if (d.appearFrame) {
+            if (d.appearFrame === timecode + 1) {
+                d["text-color"] = "red";
+            } else if (d.appearFrame < timecode + 1) {
+                d["text-color"] = "grey";
+            } else { d["text-color"] = "black"; }
+        } else if (d.appearFrame === 0) {
+            d["text-color"] = "black";
+        }
     }
 
     public static updateScrollframe(doc: Doc, time: number) {
@@ -139,6 +148,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
             yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
+            if (doc.appearFrame) {
+                if (doc.appearFrame === timecode + 1) {
+                    doc["text-color"] = "red";
+                } else if (doc.appearFrame < timecode + 1) {
+                    doc["text-color"] = "grey";
+                } else { doc["text-color"] = "black"; }
+            } else if (doc.appearFrame === 0) {
+                doc["text-color"] = "black";
+            }
             doc.dataTransition = "all 1s";
         });
         setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
@@ -166,7 +184,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
         docs.forEach((doc, i) => {
-            if (!doc.appearFrame) doc.appearFrame = i;
+            if (doc.appearFrame === undefined) doc.appearFrame = i;
             const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);

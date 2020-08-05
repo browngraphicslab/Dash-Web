@@ -754,8 +754,6 @@
     }
 
     .presBox-button {
-        margin-right: 2.5px;
-        margin-left: 2.5px;
         height: 25px;
         border-radius: 5px;
         display: none;
@@ -787,10 +785,62 @@
         min-width: 100px;
         width: 100px;
         position: absolute;
-        right: 8px;
+        right: 10px;
 
         .present-icon {
             margin-right: 7px;
+        }
+    }
+
+        
+    .miniPresOverlay {
+        background-color: #323232;
+        color: white;
+        border-radius: 5px;
+        grid-template-rows: 100%;
+        height: 25;
+        width: 200;
+        justify-content: space-evenly;
+        align-items: center;
+        display: flex;
+        position: absolute;
+        right: 10px;
+
+        .miniPres-button-text {
+            display: flex;
+            height: 20;
+            width: max-content;
+            font-family: Roboto;
+            font-weight: 400;
+            letter-spacing: normal;
+            border-radius: 5px;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-divider {
+            width: 0.5px;
+            height: 80%;
+            border-right: solid 1px #5a5a5a;
+        }
+
+        .miniPres-button {
+            display: flex;
+            height: 20;
+            min-width: 20;
+            border-radius: 100%;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-button:hover {
+            background-color: #5a5a5a;
+        }
+
+        .miniPres-button-text:hover {
+            background-color: #5a5a5a;
         }
     }
 

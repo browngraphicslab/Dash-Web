@@ -45,7 +45,7 @@
 
         .miniPres-button-text {
             display: flex;
-            height: 30;
+            height: 20;
             font-weight: 400;
             min-width: 100%;
             border-radius: 5px;
@@ -55,15 +55,15 @@
         }
 
         .miniPres-divider {
-            width: 1px;
+            width: 0.5px;
             height: 80%;
             border-right: solid 2px #5a5a5a;
         }
 
         .miniPres-button {
             display: flex;
-            height: 30;
-            min-width: 30;
+            height: 20;
+            min-width: 20;
             border-radius: 100%;
             align-items: center;
             justify-content: center;

@@ -871,7 +871,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     renderMiniPres() {
         return <div className="miniPres" style={{
-            width: 400, height: 50, background: '#323232'
+            width: 250, height: 30, background: '#323232'
         }}>
             <div className="miniPresOverlay" >
                 <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>

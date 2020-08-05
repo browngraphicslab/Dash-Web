@@ -129,6 +129,7 @@ export interface DocumentOptions {
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
+    _fontWeight?: number;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -139,6 +140,7 @@ export interface DocumentOptions {
     appearFrame?: number; // the frame in which the document appears
     presTransition?: number; //the time taken for the transition TO a document
     presDuration?: number; //the duration of the slide in presentation view
+    presProgressivize?: boolean;
     // xArray?: number[];
     // yArray?: number[];
     borderRounding?: string;

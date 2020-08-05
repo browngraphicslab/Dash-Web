@@ -865,7 +865,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.isPres) {
             return <div className="propertiesView" style={{ width: this.props.width }} >
                 <div className="propertiesView-title" style={{ width: this.props.width }}>
-                    Presentation Toolbar
+                    Presentation
                 <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
                         <FontAwesomeIcon icon="times" color="black" size="sm" />
                     </div>
@@ -922,7 +922,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-sharing-title"
                         onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
                         style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                        <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
+                        &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
                     <div className="propertiesView-sharing-title-icon">
                             <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                         </div>

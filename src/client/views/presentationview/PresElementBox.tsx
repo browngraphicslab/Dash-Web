@@ -220,7 +220,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         let durationInS: number;
         if (this.targetDoc.presDuration) durationInS = NumCast(this.targetDoc.presDuration) / 1000;
         else durationInS = 2;
-        return "V: " + durationInS + "s";
+        return "D: " + durationInS + "s";
     }
 
     @computed get transition() {
@@ -245,25 +245,61 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
+    headerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        DragManager.docsBeingDragged = [];
+        this._highlightTopRef.current!.style.borderBottom = "0px";
+        this._highlightBottomRef.current!.style.borderBottom = "0px";
+    }
+
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
         // const ele: HTMLElement[] = PresBox.Instance._eleArray.map(doc => doc);
         const activeItem = this.rootDoc;
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
         // let value = this.getValue(this._heading);
         // value = typeof value === "string" ? `"${value}"` : value;
+        let dragItem: HTMLElement[] = [];
+        PresBox.Instance._dragArray.map(ele => {
+            const drag = ele;
+            drag.style.backgroundColor = "#d5dce2";
+            drag.style.borderRadius = '5px';
+            dragItem.push(drag);
+        });
         if (activeItem) {
-            DragManager.StartDocumentDrag(PresBox.Instance._dragArray.map(ele => ele), dragData, e.clientX, e.clientY);
+            DragManager.StartDocumentDrag(dragItem.map(ele => ele), dragData, e.clientX, e.clientY);
             activeItem.dragging = true;
             return true;
         }
         return false;
     }
 
+    private _highlightTopRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _highlightBottomRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+
+    onPointerTop = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (DragManager.docsBeingDragged.length > 0) {
+            this._highlightTopRef.current!.style.borderTop = "solid 2px #5B9FDD";
+        }
+    }
+
+    onPointerBottom = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (DragManager.docsBeingDragged.length > 0) {
+            this._highlightBottomRef.current!.style.borderBottom = "solid 2px #5B9FDD";
+        }
+    }
+
+    onPointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (DragManager.docsBeingDragged.length > 0) {
+            this._highlightBottomRef.current!.style.borderBottom = "0px";
+            this._highlightTopRef.current!.style.borderTop = "0px";
+        }
+    }
 
     render() {
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
-        const className = "presElementBox-item" + (this.itemIndex === this.indexInPres ? " presElementBox-active" : "");
+        const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");
         const pbi = "presElementBox-interaction";
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
@@ -288,6 +324,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     }
                 }}
                 onPointerDown={this.headerDown}
+                onPointerUp={this.headerUp}
             >
                 <>
                     <div className="presElementBox-number">
@@ -297,7 +334,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         {`${this.targetDoc?.title}`}
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{"Duration of visibility"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
                         className="presElementBox-closeIcon"
                         // onPointerDown={e => e.stopPropagation()}
@@ -311,7 +348,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         <FontAwesomeIcon icon={(this.rootDoc.presExpandInlineButton ? "angle-up" : "angle-down")} onPointerDown={e => e.stopPropagation()} />
                     </div></Tooltip>
                 </>
-                <div className="presElementBox-highlight" style={{ display: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "block" : "none" }} />
+                <div ref={this._highlightTopRef} onPointerOver={this.onPointerTop} onPointerLeave={this.onPointerLeave} className="presElementBox-highlightTop" style={{ zIndex: 299, backgroundColor: "rgba(0,0,0,0)" }} />
+                <div ref={this._highlightBottomRef} onPointerOver={this.onPointerBottom} onPointerLeave={this.onPointerLeave} className="presElementBox-highlightBottom" style={{ zIndex: 299, backgroundColor: "rgba(0,0,0,0)" }} />
+                <div className="presElementBox-highlight" style={{ backgroundColor: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "#AEDDF8" : "rgba(0,0,0,0)" }} />
                 <div className="presElementBox-buttons" style={{ display: this.rootDoc.presExpandInlineButton ? "grid" : "none" }}>
                     <button title="Zoom" className={pbi + (this.rootDoc.presZoomButton ? "-selected" : "")} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} onPointerDown={e => e.stopPropagation()} /></button>
                     <button title="Navigate" className={pbi + (this.rootDoc.presNavButton ? "-selected" : "")} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} onPointerDown={e => e.stopPropagation()} /></button>

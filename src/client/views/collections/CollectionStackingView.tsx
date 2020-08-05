@@ -184,7 +184,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (found) {
             const top = found.getBoundingClientRect().top;
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
-            smoothScroll(doc.presTransition ? Number(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
         afterFocus && setTimeout(() => {
             if (afterFocus?.()) { }
@@ -291,20 +291,19 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                 const docs = this.childDocList;
                 if (docs) {
                     newDocs.map((doc, i) => {
+                        console.log(doc.title);
                         if (i === 0) {
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(this.filteredChildren[targInd]);
                             const srcInd = docs.indexOf(doc);
                             docs.splice(srcInd, 1);
                             docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
-                        } else {
+                        } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
                             if (targInd === -1) targInd = docs.length;
-                            else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                            else targInd = docs.indexOf(newDocs[0]) + 1;
                             const srcInd = docs.indexOf(doc);
-                            const firstInd = docs.indexOf(newDocs[0]);
                             docs.splice(srcInd, 1);
-                            // docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
-                            docs.splice(firstInd + 1, 0, doc);
+                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
                         }
                     });
                 }
@@ -312,6 +311,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         }
         return false;
     }
+
     @undoBatch
     @action
     onExternalDrop = async (e: React.DragEvent): Promise<void> => {

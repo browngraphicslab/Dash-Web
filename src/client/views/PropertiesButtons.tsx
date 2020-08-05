@@ -30,6 +30,7 @@ import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
 import { InkField } from '../../fields/InkField';
+import { PresBox } from './nodes/PresBox';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -209,12 +210,43 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="propertiesButtons-linker"
-                style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white" }}
+                style={{ backgroundColor: isPinned ? "" : "white", color: isPinned ? "white" : "black" }}
                 onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
             </div></Tooltip>;
     }
+
+    @computed
+    get pinWithViewButton() {
+        const targetDoc = this.selectedDoc;
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        if (targetDoc) {
+            const x = targetDoc._panX;
+            const y = targetDoc._panY;
+            const scale = targetDoc._viewScale;
+        }
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>}>
+            <div className="propertiesButtons-linker"
+                style={{ backgroundColor: "white", color: "black" }}
+                onClick={e => {
+                    if (targetDoc) {
+                        DockedFrameRenderer.PinDoc(targetDoc, false);
+                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+                        const x = targetDoc._panX;
+                        const y = targetDoc._panY;
+                        const scale = targetDoc._viewScale;
+                        activeDoc.presPinView = true;
+                        activeDoc.presPinViewX = x;
+                        activeDoc.presPinViewY = y;
+                        activeDoc.presPinViewScale = scale;
+                    }
+                }}>
+                <div style={{ position: 'absolute', fontSize: 25, fontWeight: 700, transform: 'translate(42%, -7px)', color: 'rgba(0,0,0,0.2)' }}>V</div>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
+            </div></Tooltip>;
+    }
+
 
     @computed
     get metadataButton() {
@@ -606,6 +638,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             </div> */}
             <div className="propertiesButtons-button">
                 {this.pinButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.pinWithViewButton}
             </div>
             <div className="propertiesButtons-button">
                 {this.copyButton}

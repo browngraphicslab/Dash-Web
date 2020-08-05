@@ -536,6 +536,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
+        appearanceItems.push({ description: "Create progressivized slide...", event: this.progressivizeText, icon: "desktop" });
         cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = cm.findByDescription("Options...");
@@ -545,6 +546,69 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
+    }
+
+    progressivizeText = () => {
+        const list = this.ProseRef?.getElementsByTagName("li");
+        const mainBulletText: string[] = [];
+        const mainBulletList: Doc[] = [];
+        if (list) {
+            const newBullets: Doc[] = this.recursiveProgressivize(1, list);
+            mainBulletList.push.apply(mainBulletList, newBullets);
+        }
+        console.log(mainBulletList.length);
+        const title = Docs.Create.TextDocument(StrCast(this.rootDoc.title), { title: "Title", _width: 800, _height: 70, x: 20, y: -10, _fontSize: '20pt', backgroundColor: "rgba(0,0,0,0)", appearFrame: 0, _fontWeight: 700 });
+        mainBulletList.push(title);
+        const doc = Docs.Create.FreeformDocument(mainBulletList, {
+            title: StrCast(this.rootDoc.title),
+            x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
+            _width: 400, _height: 225, _fitToBox: true,
+        });
+        this.props.addDocument?.(doc);
+    }
+
+    recursiveProgressivize = (nestDepth: number, list: HTMLCollectionOf<HTMLLIElement>, d?: number, y?: number, before?: string): Doc[] => {
+        const mainBulletList: Doc[] = [];
+        let b = d ? d : 0;
+        let yLoc = y ? y : 0;
+        let nestCount = 0;
+        let count: string = before ? before : '';
+        const fontSize: string = (16 - (nestDepth * 2)) + 'pt';
+        const xLoc: number = (nestDepth * 20);
+        const width: number = 390 - xLoc;
+        const height: number = 55 - (nestDepth * 5);
+        for (let i = 0; i < list.length; i++) {
+            const mainBullets: number = Number(list[i].getAttribute("data-bulletstyle"));
+            if (mainBullets === nestDepth) {
+                if (list[i].childElementCount > 1) {
+                    b++;
+                    nestCount++;
+                    count = before ? count + nestCount + "." : nestCount + ".";
+                    yLoc += height;
+                    const text = list[i].getElementsByTagName("p")[0].innerText;
+                    const length = text.length;
+                    console.log(yLoc);
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    mainBulletList.push(bullet1);
+                    const newList = this.recursiveProgressivize(nestDepth + 1, list[i].getElementsByTagName("li"), b, yLoc, count);
+                    mainBulletList.push.apply(mainBulletList, newList);
+                    b += newList.length;
+                    yLoc += newList.length * (55 - ((nestDepth + 1) * 5));
+                } else {
+                    b++;
+                    nestCount++;
+                    count = before ? count + nestCount + "." : nestCount + ".";
+                    yLoc += height;
+                    const text = list[i].innerText;
+                    const length = text.length;
+                    console.log(yLoc);
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    mainBulletList.push(bullet1);
+                }
+            }
+        }
+        console.log("b: " + b);
+        return mainBulletList;
     }
 
     recordDictation = () => {
@@ -1374,6 +1438,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "string", null),
+                        fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                         transition: "opacity 1s"
                     }}
