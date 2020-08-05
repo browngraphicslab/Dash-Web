@@ -103,7 +103,8 @@
 }
 
 .mainView-propertiesDragger {
-    background-color: rgb(140, 139, 139);
+    //background-color: rgb(140, 139, 139);
+    background-color: lightgrey;
     height: 55px;
     width: 17px;
     position: absolute;
@@ -298,6 +299,7 @@
     position: absolute;
     z-index: 2;
     touch-action: none;
+    background-color: lightgrey;
     cursor: grab;
 
     .mainView-libraryHandle-icon {

@@ -267,6 +267,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     bringToFront={returnFalse}
                     ContentScaling={returnOne}
                     dontRegisterView={true}
+                    dropAction={undefined}
                 />
             </div>;
         } else {

@@ -564,7 +564,8 @@ export class MainView extends React.Component {
                 <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
                     {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                         onPointerDown={this.onFlyoutPointerDown}
-                        style={{ backgroundColor: '#8c8b8b' }}>
+                    //style={{ backgroundColor: '#8c8b8b' }}
+                    >
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -572,7 +573,7 @@ export class MainView extends React.Component {
                             top: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "" : "0"
                         }} />
                         <div className="mainview-libraryHandle-icon">
-                            <FontAwesomeIcon icon="chevron-left" color="white" size="sm" />
+                            <FontAwesomeIcon icon="chevron-left" color="black" size="sm" />
                         </div>
                     </div> : null}
                     <div className="mainView-libraryFlyout" style={{
@@ -591,7 +592,7 @@ export class MainView extends React.Component {
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
                         style={{ right: rightFlyout, top: "50%" }}>
                         <div className="mainView-propertiesDragger-icon">
-                            <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
+                            <FontAwesomeIcon icon={this.propertiesIcon} color="black" size="sm" /> </div>
                     </div>
                 }
                 {this.propertiesWidth() < 10 ? (null) :
