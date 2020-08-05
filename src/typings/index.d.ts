@@ -6,8 +6,8 @@ declare module 'cors';
 
 declare module 'webrtc-adapter';
 declare module 'bezier-curve';
-declare module 'fit-curve'
-declare module 'react-audio-waveform'
+declare module 'fit-curve';
+declare module 'react-audio-waveform';
 
 
 declare module '@react-pdf/renderer' {

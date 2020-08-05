@@ -80,6 +80,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     private _isPointerDown = false;
     private _currMarker: any;
 
+    @observable private _height: number = NumCast(this.layoutDoc.height);
+    @observable private _finish: boolean = false;
     @observable private _dragging: boolean = false;
     @observable private _duration = 0;
     @observable private _rect: Array<any> = [];
@@ -686,14 +688,92 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @computed get height() {
         console.log(this.layoutDoc._height);
         if (this.layoutDoc._height) {
-            return 0.8 * this.layoutDoc._height
+            return 0.8 * NumCast(this.layoutDoc._height)
         }
     }
+
+    // waveform() {
+    //     let wavesurfer: any;
+    //     if (WaveSurfer) {
+    //         this.path ?
+    //             wavesurfer = WaveSurfer.create({
+    //                 container: 'waveform',
+    //                 waveColor: "grey",
+    //                 progressColor: "blue"
+    //             })
+    //             :
+    //             wavesurfer = (null);
+    //     } else {
+    //         console.log("hi");
+    //     }
+
+    //     if (wavesurfer) {
+    //         wavesurfer.on('ready', function () {
+    //             wavesurfer.play();
+    //         });
+
+    //         wavesurfer.load(this.path);
+    //         console.log("hi");
+    //     }
+    // }
+
+    @computed get waveform() {
+        return <Waveform
+            color={"blue"}
+            height={this._height}
+            barWidth={0.1}
+            pos={this.layoutDoc.currentTimecode}
+            duration={this.dataDoc.duration}
+            peaks={this._buckets.length === 100 ? this._buckets : undefined}
+            progressColor={"blue"} />;
+    }
+
+    @action
+    update = () => {
+        if (this.layoutDoc._height) {
+            this._height = 0.8 * NumCast(this.layoutDoc._height);
+            console.log(document.getElementById("timeline")?.clientWidth);
+            let width = document.getElementById("timeline")?.clientWidth;
+            let canvas2 = document.getElementsByTagName("canvas")[0];
+            if (canvas2) {
+                let oldWidth = canvas2.width;
+                let oldHeight = canvas2.height;
+                canvas2.style.height = `${this._height}`;
+                canvas2.style.width = `${width}`;
+
+                let ratio1 = oldWidth / window.innerWidth;
+                let ratio2 = oldHeight / window.innerHeight;
+                let context = canvas2.getContext('2d');
+                if (context) {
+                    context.scale(ratio1, ratio2)
+                }
+            }
+
+            let canvas1 = document.getElementsByTagName("canvas")[1];
+            if (canvas1) {
+                let oldWidth = canvas1.width;
+                let oldHeight = canvas1.height;
+                canvas1.style.height = `${this._height}`;
+                canvas1.style.width = `${width}`;
+
+                let ratio1 = oldWidth / window.innerWidth;
+                let ratio2 = oldHeight / window.innerHeight;
+                let context = canvas1.getContext('2d');
+                if (context) {
+                    context.scale(ratio1, ratio2)
+
+                }
+            }
+        }
+    }
+
 
     render() {
         //trace();
         const interactive = this.active() ? "-interactive" : "";
         this.reset();
+        this.update();
+        // this.waveform();
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
                 <div className="audiobox-buttons">
@@ -755,15 +835,17 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             }}>
                             <div className="waveform" id="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px" }}>
                                 {console.log(this.peaks)}
-                                <Waveform
+                                {/* <Waveform
                                     color={"#000000"}
-                                    height={this.height}
+                                    height={this._height}
                                     barWidth={0.1}
                                     pos={this.layoutDoc.currentTimecode}
                                     duration={this.dataDoc.duration}
                                     peaks={this._buckets.length === 100 ? this._buckets : undefined}
 
-                                    progressColor={"#0000ff"} />
+                                    progressColor={"#0000ff"} /> */}
+                                {this.waveform}
+                                {/* {this.waveform} */}
                             </div>
                             {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
                                 // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
