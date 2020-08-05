@@ -18,7 +18,7 @@ import { setGroups } from "../../fields/util";
 import { DocServer } from "../DocServer";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
 
-library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle);
+library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle, fa.faCaretUp, fa.faCaretRight, fa.faCaretDown);
 
 /**
  * Interface for options for the react-select component
@@ -408,7 +408,10 @@ export default class GroupManager extends React.Component<{}> {
                     <div
                         className="sort-groups"
                         onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
-                        Name {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""}
+                        Name {this.groupSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
+                            : this.groupSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
+                                : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />
+                        }
                     </div>
                     <div className="group-body">
                         {groups.map(group =>

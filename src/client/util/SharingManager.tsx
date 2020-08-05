@@ -21,6 +21,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../fields/List";
 import { distributeAcls, SharingPermissions, GetEffectiveAcl } from "../../fields/util";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
+import { library } from "@fortawesome/fontawesome-svg-core";
+
+library.add(fa.faInfoCircle, fa.faCaretUp, fa.faCaretRight, fa.faCaretDown);
+
 
 export interface User {
     email: string;
@@ -215,6 +219,9 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
+    /**
+     * Shares the document with a user.
+     */
     setInternalSharing = (recipient: ValidatedUser, permission: string, targetDoc?: Doc) => {
         const { user, notificationDoc } = recipient;
         const target = targetDoc || this.targetDoc!;
@@ -222,9 +229,7 @@ export default class SharingManager extends React.Component<{}> {
         const ACL = `ACL-${key}`;
 
 
-        if (target.author === Doc.CurrentUserEmail) {
-            distributeAcls(ACL, permission as SharingPermissions, target);
-        }
+        target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
 
         if (permission !== SharingPermissions.None) {
             Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
@@ -258,14 +263,17 @@ export default class SharingManager extends React.Component<{}> {
     //     }
     // });
 
+    /**
+     * Returns the SharingPermissions (Admin, Can Edit etc) access that's used to share
+     */
     private get sharingOptions() {
-        return Object.values(SharingPermissions).map(permission => {
-            return (
-                <option key={permission} value={permission} selected={permission === SharingPermissions.Edit}>
+        return Object.values(SharingPermissions).map(permission =>
+            (
+                <option key={permission} value={permission}>
                     {permission}
                 </option>
-            );
-        });
+            )
+        );
     }
 
     private focusOn = (contents: string) => {
@@ -298,16 +306,25 @@ export default class SharingManager extends React.Component<{}> {
         );
     }
 
+    /**
+     * Handles changes in the users selected in react-select
+     */
     @action
     handleUsersChange = (selectedOptions: any) => {
         this.selectedUsers = selectedOptions as UserOptions[];
     }
 
+    /**
+     * Handles changes in the permission chosen to share with someone with
+     */
     @action
     handlePermissionsChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         this.permissions = event.currentTarget.value as SharingPermissions;
     }
 
+    /**
+     * Calls the relevant method for sharing, displays the popup, and resets the relevant variables.
+     */
     @action
     share = () => {
         if (this.selectedUsers) {
@@ -331,18 +348,27 @@ export default class SharingManager extends React.Component<{}> {
         }
     }
 
+    /**
+     * Sorting algorithm to sort users.
+     */
     sortUsers = (u1: ValidatedUser, u2: ValidatedUser) => {
         const { email: e1 } = u1.user;
         const { email: e2 } = u2.user;
         return e1 < e2 ? -1 : e1 === e2 ? 0 : 1;
     }
 
+    /**
+     * Sorting algorithm to sort groups.
+     */
     sortGroups = (group1: Doc, group2: Doc) => {
         const g1 = StrCast(group1.groupName);
         const g2 = StrCast(group2.groupName);
         return g1 < g2 ? -1 : g1 === g2 ? 0 : 1;
     }
 
+    /**
+     * @returns the main interface of the SharingManager.
+     */
     private get sharingInterface() {
         const groupList = GroupManager.Instance?.getAllGroups() || [];
 
@@ -351,8 +377,8 @@ export default class SharingManager extends React.Component<{}> {
         const sortedGroups = groupList.slice().sort(this.sortGroups)
             .map(({ groupName }) => ({ label: StrCast(groupName), value: groupType + StrCast(groupName) }));
 
+        // the next block handles the users shown (individuals/groups/both)
         const options: GroupedOptions[] = [];
-
         if (GroupManager.Instance) {
             if ((this.showUserOptions && this.showGroupOptions) || (!this.showUserOptions && !this.showGroupOptions)) {
                 options.push({
@@ -383,6 +409,7 @@ export default class SharingManager extends React.Component<{}> {
 
         const effectiveAcl = this.targetDoc ? GetEffectiveAcl(this.targetDoc) : AclPrivate;
 
+        // the list of users shared with
         const userListContents: (JSX.Element | null)[] = users.map(({ user, notificationDoc }) => {
             const userKey = user.email.replace('.', '_');
             const permissions = StrCast(this.targetDoc?.[`ACL-${userKey}`]);
@@ -412,6 +439,7 @@ export default class SharingManager extends React.Component<{}> {
             );
         });
 
+        // the owner of the doc and the current user are placed at the top of the user list.
         userListContents.unshift(
             (
                 <div
@@ -442,6 +470,7 @@ export default class SharingManager extends React.Component<{}> {
                 ) : null
         );
 
+        // the list of groups shared with
         const groupListContents = groups.map(group => {
             const permissions = StrCast(this.targetDoc?.[`ACL-${StrCast(group.groupName)}`]);
 
@@ -467,6 +496,7 @@ export default class SharingManager extends React.Component<{}> {
             );
         });
 
+        // don't display the group list if all groups are null
         const displayGroupList = !groupListContents?.every(group => group === null);
 
         return (
@@ -528,7 +558,7 @@ export default class SharingManager extends React.Component<{}> {
                                     })
                                 }}
                             />
-                            <select className="permissions-select" onChange={this.handlePermissionsChange}>
+                            <select className="permissions-select" onChange={this.handlePermissionsChange} value={this.permissions}>
                                 {this.sharingOptions}
                             </select>
                             <button ref={this.shareDocumentButtonRef} className="share-button" onClick={this.share}>
@@ -546,7 +576,9 @@ export default class SharingManager extends React.Component<{}> {
                             <div
                                 className="user-sort"
                                 onClick={action(() => this.individualSort = this.individualSort === "ascending" ? "descending" : this.individualSort === "descending" ? "none" : "ascending")}>
-                                Individuals {this.individualSort === "ascending" ? "↑" : this.individualSort === "descending" ? "↓" : ""} {/* → */}
+                                Individuals {this.individualSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
+                                    : this.individualSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
+                                        : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />}
                             </div>
                             <div className={"users-list"} style={{ display: "block" }}>{/*200*/}
                                 {userListContents}
@@ -556,7 +588,9 @@ export default class SharingManager extends React.Component<{}> {
                             <div
                                 className="user-sort"
                                 onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
-                                Groups {this.groupSort === "ascending" ? "↑" : this.groupSort === "descending" ? "↓" : ""} {/* → */}
+                                Groups {this.groupSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
+                                    : this.groupSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
+                                        : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />}
 
                             </div>
                             <div className={"groups-list"} style={{ display: !displayGroupList ? "flex" : "block" }}>{/*200*/}
