@@ -50,16 +50,16 @@ export namespace Hypothesis {
 
         var success = false;
         const onSuccess = action(() => {
-            console.log("EDITSUCCESS");
+            console.log("EDIT SUCCESS");
+            success = true;
             clearTimeout(interval);
             DocumentLinksButton.invisibleWebDoc = undefined;
             document.removeEventListener("editSuccess", onSuccess);
-            success = true;
         });
 
-        console.log("SEND addLink");
+        console.log("send addLink");
         const newHyperlink = `[${title}\n](${url})`;
-        const interval = setInterval(() => // keep trying to scroll every 250ms until annotations have loaded and editing is successful
+        const interval = setInterval(() => // keep trying to edit until annotations have loaded and editing is successful
             !success && document.dispatchEvent(new CustomEvent<{ newHyperlink: string, id: string }>("addLink", {
                 detail: { newHyperlink: newHyperlink, id: annotationId },
                 bubbles: true
@@ -70,7 +70,7 @@ export namespace Hypothesis {
                 clearInterval(interval);
                 DocumentLinksButton.invisibleWebDoc = undefined;
             }
-        }), 15000); // give up if no success after 15s
+        }), 12000); // give up if no success after 12s
 
         document.addEventListener("editSuccess", onSuccess);
     };

@@ -824,12 +824,21 @@ export class MainView extends React.Component {
                     </div>;
                 </span>, ele);
 
-                const interval = setInterval(() => {
+                var success = false;
+                const onSuccess = () => {
+                    console.log("EDIT SUCCESS");
+                    success = true;
+                    clearTimeout(interval);
+                    document.removeEventListener("editSuccess", onSuccess);
+                };
+
+                const interval = setInterval(() => { // keep trying to click until annotations have loaded and editing is successful
                     console.log("clicked");
-                    simulateMouseClick(ele, 50, 50, 50, 50);
+                    !success && simulateMouseClick(ele, 50, 50, 50, 50);
                 }, 500);
 
-                setTimeout(() => clearInterval(interval), 10000);
+                setTimeout(() => !success && clearInterval(interval), 10000); // give up if no success after 10s
+                document.addEventListener("editSuccess", onSuccess);
             });
     }
 }
