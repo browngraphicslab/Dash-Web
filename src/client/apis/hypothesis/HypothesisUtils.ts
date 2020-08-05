@@ -27,7 +27,7 @@ export namespace Hypothesis {
     // Search for a WebDocument whose url field matches the given uri, return undefined if not found
     export const findWebDoc = async (uri: string) => {
         const currentDoc = SelectionManager.SelectedDocuments().length && SelectionManager.SelectedDocuments()[0].props.Document;
-        if (currentDoc && Cast(currentDoc.data, WebField)?.url.href === uri) return currentDoc; // always check first whether the current doc is the source, only resort to Search otherwise
+        if (currentDoc && Cast(currentDoc.data, WebField)?.url.href === uri) return currentDoc; // always check first whether the currently selected doc is the annotation's source, only use Search otherwise
 
         const results: Doc[] = [];
         await SearchUtil.Search("web", true).then(action(async (res: SearchUtil.DocSearchResult) => {
@@ -35,11 +35,14 @@ export namespace Hypothesis {
             const filteredDocs = docs.filter(doc =>
                 doc.author === Doc.CurrentUserEmail && doc.type === DocumentType.WEB && doc.data
             );
-            filteredDocs.forEach(doc => console.log("web docs:", doc.title, Cast(doc.data, WebField)?.url.href));
-            filteredDocs.forEach(doc => { uri === Cast(doc.data, WebField)?.url.href && results.push(doc); }); // TODO check history? imperfect matches?
+            filteredDocs.forEach(doc => {
+                console.log("web docs:", doc.title, Cast(doc.data, WebField)?.url.href);
+                uri === Cast(doc.data, WebField)?.url.href && results.push(doc); // TODO check visited sites history? 
+            });
         }));
 
-        return results.length ? results[0] : undefined;
+        const onScreenResults = results.filter(doc => DocumentManager.Instance.getFirstDocumentView(doc));
+        return onScreenResults.length ? onScreenResults[0] : (results.length ? results[0] : undefined); // prioritize results that are currently on the screen
     };
 
     // Ask Hypothes.is client to edit an annotation to add a Dash hyperlink
