@@ -82,8 +82,8 @@ export class MainView extends React.Component {
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
 
-
-    @observable public sidebarContent: any = this.userDoc?.["sidebar"];
+    sidebar: string = "sidebar";
+    @observable public sidebarContent: any = this.userDoc?.[this.sidebar];
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;
@@ -193,8 +193,9 @@ export class MainView extends React.Component {
         }
         if (targets && targets.length && SearchBox.Instance._searchbarOpen) {
             let check = false;
+            const icon = "icon";
             targets.forEach((thing) => {
-                if (thing.className.toString() === "collectionSchemaView-table" || (thing as any)?.dataset["icon"] === "filter" || thing.className.toString() === "beta" || thing.className.toString() === "collectionSchemaView-menuOptions-wrapper") {
+                if (thing.className.toString() === "collectionSchemaView-table" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "beta" || thing.className.toString() === "collectionSchemaView-menuOptions-wrapper") {
                     check = true;
                 }
             });
@@ -731,7 +732,7 @@ export class MainView extends React.Component {
     @computed get search() {
         return <div className="mainView-searchPanel">
             {/* <div style={{ float: "left", marginLeft: "10px" }}>{Doc.CurrentUserEmail}</div> */}
-            <div><DocumentView Document={this.searchDoc!}
+            <div><DocumentView Document={this.searchDoc}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
                 addDocument={undefined}

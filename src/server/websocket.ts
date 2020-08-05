@@ -286,16 +286,16 @@ export namespace WebSocket {
             dynfield = true;
             const val = docfield[key];
             key = key.substring(7);
-            if (key==="_height"){
-                Object.values(suffixMap).forEach(suf => {update[key] = { set: null };});
+            if (key === "_height") {
+                Object.values(suffixMap).forEach(suf => { update[key] = { set: null }; });
             }
             else {
-            Object.values(suffixMap).forEach(suf => {update[key + getSuffix(suf)] = { set: null };});
+                Object.values(suffixMap).forEach(suf => { update[key + getSuffix(suf)] = { set: null }; });
             }
             const term = ToSearchTerm(val);
             if (term !== undefined) {
                 const { suffix, value } = term;
-                if (key==="_height"){
+                if (key === "_height") {
                     update[key] = { set: value };
                 }
                 update[key + suffix] = { set: value };

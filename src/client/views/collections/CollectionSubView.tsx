@@ -151,10 +151,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         console.log(d);
                         let newdocs = DocListCast(d.data);
                         if (newdocs.length > 0) {
-                            let vibecheck = false;
-
+                            let vibecheck: boolean | undefined = undefined;
                             let newarray: Doc[] = [];
-
                             while (newdocs.length > 0) {
                                 newarray = [];
                                 newdocs.forEach((t) => {

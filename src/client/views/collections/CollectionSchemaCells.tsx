@@ -32,6 +32,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DateField } from "../../../fields/DateField";
+import { RichTextField } from "../../../fields/RichTextField";
 const path = require('path');
 
 library.add(faExpand);
@@ -292,8 +293,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             bing={() => {
                                 const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                 if (cfield !== undefined) {
-                                    if (cfield.Text !== undefined) {
-                                        return (cfield.Text);
+                                    console.log(typeof (cfield));
+                                    // if (typeof(cfield)===RichTextField)
+                                    const a = cfield as RichTextField;
+                                    if (a.Text !== undefined) {
+                                        return (a.Text);
                                     }
                                     else if (StrCast(cfield)) {
                                         return StrCast(cfield);
@@ -884,7 +888,8 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
         //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         // };
         const doc = this.props.rowProps.original;
-        let buttons = <div style={{
+        let buttons: JSX.Element | undefined = undefined;
+        buttons = <div style={{
             paddingTop: 8,
             paddingLeft: 3,
         }}><button onClick={() => {

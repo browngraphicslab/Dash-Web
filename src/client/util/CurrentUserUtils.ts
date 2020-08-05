@@ -771,7 +771,6 @@ export class CurrentUserUtils {
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
-        this.setupSidebarContainer(doc);
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupWorkspaces(doc);
         CurrentUserUtils.setupCatalog(doc);
