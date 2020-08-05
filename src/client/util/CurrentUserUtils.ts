@@ -824,7 +824,7 @@ export class CurrentUserUtils {
     // Right sidebar is where mobile uploads are contained
     static setupRightSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias" }));
         }
     }
 

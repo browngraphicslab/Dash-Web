@@ -266,11 +266,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
+    /**
+     * Handles the changing of a user's permissions from the permissions panel.
+     */
     @undoBatch
     changePermissions = (e: any, user: string) => {
         SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
     }
 
+    /**
+     * @returns the options for the permissions dropdown.
+     */
     getPermissionsSelect(user: string) {
         return <select className="permissions-select"
             onChange={e => this.changePermissions(e, user)}>
@@ -283,6 +289,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </select>;
     }
 
+    /**
+     * @returns the notification icon. On clicking, it should notify someone of a document been shared with them.
+     */
     @computed get notifyIcon() {
         return <Tooltip title={<><div className="dash-tooltip">Notify with message</div></>}>
             <div className="notify-button">
@@ -291,6 +300,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </Tooltip>;
     }
 
+    /**
+     * ... next to the owner that opens the main SharingManager interface on click.
+     */
     @computed get expansionIcon() {
         return <Tooltip title={<><div className="dash-tooltip">{"Show more permissions"}</div></>}>
             <div className="expansion-button" onPointerDown={() => {
@@ -303,6 +315,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </Tooltip>;
     }
 
+    /**
+     * @returns a row of the permissions panel
+     */
     sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
         return <div className="propertiesView-sharingTable-item">
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "85px" : "80px" }}> {name} </div>
@@ -314,6 +329,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
+    /**
+     * @returns the sharing and permissiosn panel.
+     */
     @computed get sharingTable() {
         const AclMap = new Map<symbol, string>([
             [AclPrivate, SharingPermissions.None],
@@ -333,6 +351,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
         }
 
+        // shifts the current user and the owner to the top of the doc.
         tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
         if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), effectiveAcl, "Owner"));
 
