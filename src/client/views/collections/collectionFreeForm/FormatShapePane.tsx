@@ -214,14 +214,12 @@ export default class FormatShapePane extends AntimodeMenu {
     @undoBatch
     @action
     control = (xDiff: number, yDiff: number, controlNum: number) => {
-        // console.log(controlNum, ink.length);
         this.selectedInk?.forEach(action(inkView => {
             if (this.selectedInk?.length === 1) {
                 const doc = Document(inkView.rootDoc);
                 if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height && doc.data) {
                     const ink = Cast(doc.data, InkField)?.inkData;
                     if (ink) {
-
 
                         const newPoints: { X: number, Y: number }[] = [];
                         const order = controlNum % 4;
