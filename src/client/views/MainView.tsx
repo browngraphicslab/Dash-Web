@@ -313,6 +313,10 @@ export class MainView extends React.Component {
 
     defaultBackgroundColors = (doc: Opt<Doc>) => {
         if (this.panelContent === doc?.title) return "lightgrey";
+
+        if (doc?.type === DocumentType.COL) {
+            return StrCast(Doc.UserDoc().defaultColor);
+        }
         if (this.darkScheme) {
             switch (doc?.type) {
                 case DocumentType.FONTICON: return "white";

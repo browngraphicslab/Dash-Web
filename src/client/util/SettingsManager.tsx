@@ -1,4 +1,4 @@
-import { observable, runInAction, action } from "mobx";
+import { observable, runInAction, action, computed } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
@@ -15,7 +15,7 @@ import GroupManager from "./GroupManager";
 import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 import { DocServer } from "../DocServer";
-import { BoolCast } from "../../fields/Types";
+import { BoolCast, StrCast, NumCast } from "../../fields/Types";
 import { undoBatch } from "./UndoManager";
 import { ColorState, SketchPicker } from "react-color";
 const higflyout = require("@hig/flyout");
@@ -40,7 +40,7 @@ export default class SettingsManager extends React.Component<{}> {
     private new_confirm_ref = React.createRef<HTMLInputElement>();
 
 
-    @observable private backgroundColor = "white";
+    @computed get backgroundColor() { return Doc.UserDoc().defaultColor; }
 
     public open = action(() => {
         SelectionManager.DeselectAll();
@@ -125,56 +125,24 @@ export default class SettingsManager extends React.Component<{}> {
         }
     }
 
+    @action
+    changeFontFamily = (e: any) => {
+        Doc.UserDoc().fontFamily = e.currentTarget.value;
+    }
+
+    @action
+    changeFontSize = (e: any) => {
+        Doc.UserDoc().fontSize = e.currentTarget.value;
+    }
+
     @action @undoBatch
     switchColor = (color: ColorState) => {
         const val = String(color.hex);
-        this.backgroundColor = val;
+        Doc.UserDoc().defaultColor = val;
         return true;
     }
 
     private get settingsInterface() {
-
-        const oldSettings = <div className={"settings-interface"}>
-            <div className="settings-heading">
-                <h1>Settings</h1>
-                <div className={"close-button"} onClick={this.close}>
-                    <FontAwesomeIcon icon={fa.faTimes} color="black" size={"lg"} />
-                </div>
-            </div>
-            <div className="settings-body">
-                <div className="settings-type">
-                    <button onClick={this.onClick} value="password">reset password</button>
-                    <button onClick={this.noviceToggle} value="data">{`Set ${Doc.UserDoc().noviceMode ? "developer" : "novice"} mode`}</button>
-                    <button onClick={this.togglePlaygroundMode}>{`${this.playgroundMode ? "Disable" : "Enable"} playground mode`}</button>
-                    <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
-                    <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
-                    <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
-                    <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                        {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
-                    </button>
-                </div>
-                {this.settingsContent === "password" ?
-                    <div className="settings-content">
-                        <input placeholder="current password" ref={this.curr_password_ref} />
-                        <input placeholder="new password" ref={this.new_password_ref} />
-                        <input placeholder="confirm new password" ref={this.new_confirm_ref} />
-                        {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
-                        {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
-                        <button onClick={this.dispatchRequest}>submit</button>
-                        <a style={{ marginLeft: 65, marginTop: -20 }} href="/forgotPassword">forgot password?</a>
-
-                    </div>
-                    : undefined}
-                {this.settingsContent === "data" ?
-                    <div className="settings-content">
-                        <p>WARNING: <br />
-                        THIS WILL ERASE ALL YOUR CURRENT DOCUMENTS STORED ON DASH. IF YOU WISH TO PROCEED, CLICK THE BUTTON BELOW.</p>
-                        <button className="delete-button">DELETE</button>
-                    </div>
-                    : undefined}
-            </div>
-
-        </div>;
 
 
         const passwordContent = <div className="password-content">
@@ -220,19 +188,22 @@ export default class SettingsManager extends React.Component<{}> {
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
                 '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
                 '#FFFFFF', '#f1efeb', 'transparent']}
-            color={this.backgroundColor} />;
+            color={StrCast(this.backgroundColor)} />;
 
         const colorFlyout = <div className="colorFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={colorBox}>
                 <div>
-                    <div className="colorFlyout-button" style={{ backgroundColor: this.backgroundColor }}
+                    <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }}
                         onPointerDown={e => e.stopPropagation()} >
-                        <FontAwesomeIcon icon="palette" size="sm" color={this.backgroundColor} />
+                        <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
                     </div>
                 </div>
             </Flyout>
         </div>;
+
+        const fontFamilies: string[] = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
+        const fontSizes: number[] = [7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 32, 48, 72];
 
         const preferencesContent = <div className="preferences-content">
             <div className="preferences-color">
@@ -241,25 +212,20 @@ export default class SettingsManager extends React.Component<{}> {
             <div className="preferences-font">
                 <div className="preferences-font-text">Default Font</div>
                 <select className="font-select"
-                    onChange={e => this.changeMode(e)}>
-                    <option key={"Times New Roman"} value={"Times New Roman"} selected={BoolCast(Doc.UserDoc().noviceMode)}>
-                        Times New Roman
-                    </option>
-                    <option key={"Georgia"} value={"Georgia"} selected={!BoolCast(Doc.UserDoc().noviceMode)}>
-                        Georgia
-                    </option>
-                    <option key={"Georgia"} value={"Georgia"} selected={!BoolCast(Doc.UserDoc().noviceMode)}>
-                        Georgia
-                    </option>
+                    onChange={e => this.changeFontFamily(e)}>
+                    {fontFamilies.map((font) => {
+                        return <option key={font} value={font} selected={StrCast(Doc.UserDoc().fontFamily) === font}>
+                            {font}
+                        </option>;
+                    })}
                 </select>
                 <select className="size-select"
-                    onChange={e => this.changeMode(e)}>
-                    <option key={"5px"} value={"5px"} selected={BoolCast(Doc.UserDoc().noviceMode)}>
-                        5px
-                    </option>
-                    <option key={"8px"} value={"8px"} selected={!BoolCast(Doc.UserDoc().noviceMode)}>
-                        8px
-                    </option>
+                    onChange={e => this.changeFontSize(e)}>
+                    {fontSizes.map((size) => {
+                        return <option key={size} value={size} selected={NumCast(Doc.UserDoc().fontSize) === size}>
+                            {size + "pt"}
+                        </option>;
+                    })}
                 </select>
             </div>
         </div>;
