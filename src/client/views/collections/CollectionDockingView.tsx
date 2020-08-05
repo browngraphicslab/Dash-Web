@@ -795,10 +795,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let scaling = 1;
         if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
             scaling = 1;
-        } else if ((this.layoutDoc?._fitWidth) ||
-            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+        } else if (NumCast(this.layoutDoc!._nativeWidth) && ((this.layoutDoc?._fitWidth) ||
+            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth))) {
             scaling = this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
-        } else {
+        } else if (nativeW && nativeH) {
             // if (this.layoutDoc!.type === DocumentType.PDF || this.layoutDoc!.type === DocumentType.WEB) {
             //     if ((this.layoutDoc?._fitWidth) ||
             //         this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
@@ -809,7 +809,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             // }
             const wscale = this.panelWidth() / nativeW;
             scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
-        }
+        } else scaling = 1;
         return scaling;
     }
 
