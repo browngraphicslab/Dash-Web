@@ -60,6 +60,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { undoBatch } from '../util/UndoManager';
+import { SearchBox } from './search/SearchBox';
 
 @observer
 export class MainView extends React.Component {
@@ -79,8 +80,10 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
+    @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
 
-    @observable public sidebarContent: any = this.userDoc?.["sidebar"];
+    sidebar: string = "sidebar";
+    @observable public sidebarContent: any = this.userDoc?.[this.sidebar];
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;
@@ -188,6 +191,20 @@ export class MainView extends React.Component {
         if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
             TimelineMenu.Instance.closeMenu();
         }
+        if (targets && targets.length && SearchBox.Instance._searchbarOpen) {
+            let check = false;
+            const icon = "icon";
+            targets.forEach((thing) => {
+                if (thing.className.toString() === "collectionSchemaView-table" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "beta" || thing.className.toString() === "collectionSchemaView-menuOptions-wrapper") {
+                    check = true;
+                }
+            });
+            if (check === false) {
+                SearchBox.Instance.closeSearch();
+            }
+        }
+
+
     });
 
     globalPointerUp = () => this.isPointerDown = false;
@@ -347,6 +364,7 @@ export class MainView extends React.Component {
             }
         }
     }
+
     @computed get mainDocView() {
         return <DocumentView
             Document={this.mainContainer!}
@@ -375,6 +393,7 @@ export class MainView extends React.Component {
             renderDepth={-1}
         />;
     }
+
     @computed get dockingContent() {
         TraceMobx();
         const mainContainer = this.mainContainer;
@@ -602,7 +621,6 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        //const n = (RichTextMenu.Instance?.Pinned ? 1 : 0) + (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const n = (CollectionMenu.Instance?.Pinned ? 1 : 0);
         const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
         const pinned = FormatShapePane.Instance?.Pinned;
@@ -725,8 +743,32 @@ export class MainView extends React.Component {
 
     @computed get search() {
         return <div className="mainView-searchPanel">
-            <div style={{ float: "left", marginLeft: "10px" }}>{Doc.CurrentUserEmail}</div>
-            <div>SEARCH GOES HERE</div>
+            {/* <div style={{ float: "left", marginLeft: "10px" }}>{Doc.CurrentUserEmail}</div> */}
+            <div><DocumentView Document={this.searchDoc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={this.addDocTabFunc}
+                pinToPres={emptyFunction}
+                rootSelected={returnTrue}
+                onClick={undefined}
+                backgroundColor={this.defaultBackgroundColors}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                PanelWidth={this.getPWidth}
+                PanelHeight={this.getPHeight}
+                renderDepth={0}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                docFilters={returnEmptyFilter}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+            /></div>
         </div>;
     }
 
@@ -741,7 +783,7 @@ export class MainView extends React.Component {
             <GoogleAuthenticationManager />
             <HypothesisAuthenticationManager />
             <DocumentDecorations />
-            {/* {this.search} */}
+            {this.search}
             <CollectionMenu />
             <FormatShapePane />
             <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>

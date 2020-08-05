@@ -28,7 +28,6 @@ import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../fields/URLField';
 import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
-import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
 import { InkField } from '../../fields/InkField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -128,7 +127,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const targetDoc = this.selectedDoc;
         const published = targetDoc && Doc.GetProto(targetDoc)[GoogleRef] !== undefined;
         const animation = this.isAnimatingPulse ? "shadow-pulse 1s linear infinite" : "none";
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${published ? "Push" : "Publish"} to Google Docs`}</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{`${published ? "Push" : "Publish"} to Google Docs`}</div>} placement="top">
             <div>
                 <div
                     className="propertiesButtons-linker"
@@ -428,7 +427,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     <div className="propertiesButtons-linkFlyout">
                         <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                             content={this.onClickFlyout}>
-                            <div className={"propertiesButtons-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
+                            <div className={"propertiesButtons-linkButton-empty"} onPointerDown={e => e.stopPropagation()} >
                                 {<FontAwesomeIcon className="documentdecorations-icon" icon="mouse-pointer" size="lg" />}
                             </div>
                         </Flyout>

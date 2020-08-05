@@ -45,7 +45,7 @@ export class CurrentUserUtils {
         if (doc["template-button-query"] === undefined) {
             const queryTemplate = Docs.Create.MulticolumnDocument(
                 [
-                    Docs.Create.QueryDocument({ title: "query", _height: 200 }),
+                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200 }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100 })
                 ],
                 { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true }
@@ -415,9 +415,6 @@ export class CurrentUserUtils {
         if (doc.emptyButton === undefined) {
             doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button" });
         }
-        if (doc.emptySearch === undefined) {
-            doc.emptySearch = Docs.Create.QueryDocument({ _width: 200, title: "empty search" });
-        }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
                 ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
@@ -512,6 +509,14 @@ export class CurrentUserUtils {
         ];
     }
 
+    static setupSearchPanel(doc: Doc) {
+        if (doc["search-panel"] === undefined) {
+            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({
+                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true,
+                childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack",
+            })) as any as Doc;
+        }
+    }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
             const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
@@ -546,7 +551,7 @@ export class CurrentUserUtils {
                     btn.color = "white";
                     btn._backgroundColor = "";
                 }));
-            })
+            });
         });
         return doc.menuStack as Doc;
     }
@@ -652,7 +657,7 @@ export class CurrentUserUtils {
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
     // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
-    static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
+    static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
@@ -750,6 +755,8 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
     }
+
+
     static setupUserDoc(doc: Doc) {
         if (doc["sidebar-userDoc"] === undefined) {
             doc.treeViewOpen = true;
@@ -762,20 +769,9 @@ export class CurrentUserUtils {
         }
     }
 
-    static setupSidebarContainer(doc: Doc) {
-        if (doc["sidebar"] === undefined) {
-            const sidebarContainer = new Doc();
-            sidebarContainer._chromeStatus = "disabled";
-            sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
-            doc["sidebar"] = new PrefetchProxy(sidebarContainer);
-        }
-        return doc["sidebar"] as Doc;
-    }
-
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
-        const sidebarContainer = CurrentUserUtils.setupSidebarContainer(doc);
-        await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
+        await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupWorkspaces(doc);
         CurrentUserUtils.setupCatalog(doc);
         CurrentUserUtils.setupRecentlyClosed(doc);
@@ -813,6 +809,11 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
+        if (doc["template-presentation"] === undefined) {
+            doc["template-presentation"] = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
+                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
+            }));
+        }
         if (doc.activePresentation === undefined) {
             doc.activePresentation = Docs.Create.PresDocument(new List<Doc>(), {
                 title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias",
@@ -822,9 +823,9 @@ export class CurrentUserUtils {
     }
 
     // Right sidebar is where mobile uploads are contained
-    static setupRightSidebar(doc: Doc) {
+    static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Sharing Sidebar" }));
         }
     }
 
@@ -897,9 +898,10 @@ export class CurrentUserUtils {
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
-        this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
+        this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered

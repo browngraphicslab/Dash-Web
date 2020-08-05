@@ -106,6 +106,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _scrollTopReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _searchReactionDisposer?: IReactionDisposer;
+    private _searchReactionDisposer2?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
@@ -336,6 +337,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
+        this.Document.searchIndex = this.Index;
+
     }
 
     @action
@@ -403,6 +406,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 phraseSearch: true,
                 query: searchString
             });
+            this.Document.searchIndex = this.Index;
         }
         else if (this._mainCont.current) {
             const executeFind = () => {
@@ -416,7 +420,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             };
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
+            this.Document.searchIndex = this.Index;
         }
+
     }
 
     @action

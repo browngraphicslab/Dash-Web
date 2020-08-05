@@ -4,27 +4,26 @@ import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
+import Measure from "react-measure";
 import { Resize } from "react-table";
 import "react-table/react-table.css";
 import { Doc } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
-import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { Cast, NumCast } from "../../../fields/Types";
+import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
+import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import '../DocumentDecorations.scss';
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
-import { SnappingManager } from "../../util/SnappingManager";
-import Measure from "react-measure";
 import { SchemaTable } from "./SchemaTable";
-import { TraceMobx } from "../../../fields/util";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -170,6 +169,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     setColumnSort = (columnField: SchemaHeaderField, descending: boolean | undefined) => {
         const columns = this.columns;
+        columns.forEach(col => col.setDesc(undefined));
+
         const index = columns.findIndex(c => c.heading === columnField.heading);
         const column = columns[index];
         column.setDesc(descending);
@@ -310,7 +311,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @undoBatch
     @action
-    changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
+    changeColumns = (oldKey: string, newKey: string, addNew: boolean, filter?: string) => {
         const columns = this.columns;
         if (columns === undefined) {
             this.columns = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
@@ -325,6 +326,20 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     column.setHeading(newKey);
                     columns[index] = column;
                     this.columns = columns;
+                    if (filter) {
+                        Doc.setDocFilter(this.props.Document, newKey, filter, "match");
+                        if (this.props.Document.selectedDoc !== undefined) {
+                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
+                            Doc.setDocFilter(doc, newKey, filter, "match");
+                        }
+                    }
+                    else {
+                        this.props.Document._docFilters = undefined;
+                        if (this.props.Document.selectedDoc !== undefined) {
+                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
+                            doc._docFilters = undefined;
+                        }
+                    }
                 }
             }
         }
@@ -591,6 +606,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         }
     }
 
+
+
+    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    }
     render() {
         TraceMobx();
         const menuContent = this.renderMenuContent;
@@ -608,14 +627,15 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 {({ measureRef }) => <div ref={measureRef}> {menuContent} </div>}
             </Measure>
         </div>;
-
         return <div className="collectionSchemaView-container"
             style={{
+                overflow: this.props.overflow === true ? "auto" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
-                width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%"
+                width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
-                style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
+                style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
+                onKeyPress={this.onKeyPress}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
                 onDrop={e => this.onExternalDrop(e, {})}
