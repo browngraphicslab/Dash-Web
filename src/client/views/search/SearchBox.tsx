@@ -299,7 +299,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     searchCollection(query: string) {
         const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
-
+        query = query.toLowerCase();
         if (selectedCollection !== undefined) {
             this.currentSelectedCollection = selectedCollection;
             if (this.filter === true) {
@@ -320,7 +320,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const protos = Doc.GetAllPrototypes(d);
                     protos.forEach(proto => {
                         Object.keys(proto).forEach(key => {
-                            if (StrCast(d[key]).includes(query) && !hlights.includes(key)) {
+                            if (StrCast(d[key]).toLowerCase().includes(query) && !hlights.includes(key)) {
                                 hlights.push(key);
                             }
                         });
@@ -763,9 +763,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar">
-                    {/* <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
-                        <FontAwesomeIcon icon="object-group" size="lg" />
-                    </span> */}
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
                     <div style={{ display: "flex", alignItems: "center" }}>
                         <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"

@@ -243,7 +243,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //     </div>
         // );   
         const positions = [];
-        if (StrCast(this.props.Document._searchString) !== "") {
+        if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
             let term = "";
             if (cfield !== undefined) {
@@ -257,7 +257,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                     term = String(NumCast(cfield));
                 }
             }
-            const search = StrCast(this.props.Document._searchString);
+            term = term.toLowerCase();
+            const search = StrCast(this.props.Document._searchString).toLowerCase();
             let start = term.indexOf(search);
             let tally = 0;
             if (start !== -1) {
