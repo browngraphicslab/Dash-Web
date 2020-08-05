@@ -330,6 +330,16 @@ export class MainView extends React.Component {
 
     defaultBackgroundColors = (doc: Opt<Doc>) => {
         if (this.panelContent === doc?.title) return "lightgrey";
+
+        if (doc?.type === DocumentType.COL) {
+            if (doc.title === "Basic Item Creators" || doc.title === "sidebar-tools"
+                || doc.title === "sidebar-recentlyClosed" || doc.title === "sidebar-catalog"
+                || doc.title === "Mobile Uploads" || doc.title === "COLLECTION_PROTO"
+                || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
+                return "lightgrey";
+            }
+            return StrCast(Doc.UserDoc().defaultColor);
+        }
         if (this.darkScheme) {
             switch (doc?.type) {
                 case DocumentType.FONTICON: return "white";
@@ -434,10 +444,10 @@ export class MainView extends React.Component {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
             <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
-                {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
+                {/* {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
                     <FontAwesomeIcon icon="times" color="black" size="lg" />
-                </div> : null}
+                </div> : null} */}
 
                 <DocumentView
                     Document={this.sidebarContent}
@@ -465,6 +475,7 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     relative={true}
+                    forcedBackgroundColor={() => "lightgrey"}
                 />
             </div>
             {this.docButtons}</div>;
@@ -504,7 +515,7 @@ export class MainView extends React.Component {
     }
 
 
-    @action @undoBatch
+    @action
     closeFlyout = () => {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
@@ -515,7 +526,7 @@ export class MainView extends React.Component {
     get groupManager() { return GroupManager.Instance; }
 
     _lastButton: Doc | undefined;
-    @action @undoBatch
+    @action
     selectMenu = (button: Doc, str: string) => {
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
@@ -544,7 +555,7 @@ export class MainView extends React.Component {
         return true;
     }
 
-    @action @undoBatch
+    @action
     closeProperties = () => {
         CurrentUserUtils.propertiesWidth = 0;
     }
@@ -572,7 +583,8 @@ export class MainView extends React.Component {
                 <div className="mainView-flyoutContainer" style={{ width: this.flyoutWidth }}>
                     {this.flyoutWidth !== 0 ? <div className="mainView-libraryHandle"
                         onPointerDown={this.onFlyoutPointerDown}
-                        style={{ backgroundColor: 'lightgrey' }}>
+                    //style={{ backgroundColor: '#8c8b8b' }}
+                    >
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -599,7 +611,7 @@ export class MainView extends React.Component {
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
                         style={{ right: rightFlyout, top: "50%" }}>
                         <div className="mainView-propertiesDragger-icon">
-                            <FontAwesomeIcon icon={this.propertiesIcon} color="white" size="sm" /> </div>
+                            <FontAwesomeIcon icon={this.propertiesIcon} color="black" size="sm" /> </div>
                     </div>
                 }
                 {this.propertiesWidth() < 10 ? (null) :

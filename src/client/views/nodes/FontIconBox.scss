@@ -15,11 +15,16 @@
 
 .menuButton-round {
     border-radius: 100%;
+    background-color: black;
 
     .fontIconBox-label {
         margin-left: -10px; // button padding is 10px;
         bottom: 0;
         position: absolute;
+    }
+
+    &:hover {
+        background-color: #aaaaa3;
     }
 }
 

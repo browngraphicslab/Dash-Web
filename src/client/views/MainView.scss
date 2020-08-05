@@ -103,7 +103,8 @@
 }
 
 .mainView-propertiesDragger {
-    background-color: rgb(140, 139, 139);
+    //background-color: rgb(140, 139, 139);
+    background-color: lightgrey;
     height: 55px;
     width: 17px;
     position: absolute;
@@ -155,7 +156,7 @@
 .mainView-menuPanel {
 
     width: 60px;
-    background-color: black;
+    background-color: #121721;
     height: 100%;
     //overflow-y: scroll;
     //overflow-x: hidden;
@@ -165,6 +166,7 @@
         padding: 7px;
         padding-left: 7px;
         width: 100%;
+        background: black;
 
         .mainView-menuPanel-button-wrap {
             width: 45px;
@@ -296,6 +298,7 @@
     position: absolute;
     z-index: 2;
     touch-action: none;
+    background-color: lightgrey;
     cursor: grab;
 
     .mainView-libraryHandle-icon {

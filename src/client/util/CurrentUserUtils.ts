@@ -8,7 +8,7 @@ import { Doc, DocListCast, DocListCastAsync, DataSym } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
+import { Cast, PromiseValue, StrCast, NumCast, BoolCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
 import { DragManager } from "./DragManager";
 import { Scripting } from "./Scripting";
@@ -891,6 +891,8 @@ export class CurrentUserUtils {
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
+        doc.defaultColor = StrCast(doc.defaultColor, "white");
+        doc.noviceMode = BoolCast(doc.noviceMode, true);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
