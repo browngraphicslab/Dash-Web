@@ -176,7 +176,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
-                        Creating link from: {DocumentLinksButton.AnnotationId ? "Annotation in" : ""} {DocumentLinksButton.StartLink.title}
+                        Creating link from: {DocumentLinksButton.AnnotationId ? "Annotation in " : " "} {StrCast(DocumentLinksButton.StartLink.title).length < 51 ? DocumentLinksButton.StartLink.title : StrCast(DocumentLinksButton.StartLink.title).slice(0, 50) + '...'}
                     </span>
 
                     <Tooltip title={<><div className="dash-tooltip">{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :

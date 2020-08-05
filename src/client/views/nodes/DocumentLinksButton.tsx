@@ -92,6 +92,8 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @action @undoBatch
     onLinkClick = (e: React.MouseEvent): void => {
         if (this.props.InMenu && this.props.StartLink) {
+            DocumentLinksButton.AnnotationId = undefined;
+            DocumentLinksButton.AnnotationUri = undefined;
             if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                 DocumentLinksButton.StartLink = undefined;
             } else {
@@ -152,6 +154,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
             DocumentLinksButton.StartLink = undefined;
             DocumentLinksButton.AnnotationId = undefined;
+            DocumentLinksButton.AnnotationUri = undefined;
         } else {
             if (!this.props.StartLink && DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
                 const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink }, { doc: this.props.View.props.Document }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
