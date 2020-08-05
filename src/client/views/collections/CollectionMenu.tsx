@@ -668,6 +668,23 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
         const docs = DocListCast(this.document[this.props.fieldKey]);
+
+        if (Doc.UserDoc().noviceMode) {
+            if (docs instanceof Doc) {
+                const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
+                    key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL"));
+                return keys.filter(key => key.toLowerCase().startsWith(value));
+            } else {
+                const keys = new Set<string>();
+                docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
+                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 ||
+                    key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
+                    key.indexOf("lastModified") >= 0 || (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL"));
+                return noviceKeys.filter(key => key.toLowerCase().startsWith(value));
+            }
+        }
+
         if (docs instanceof Doc) {
             return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
         } else {
