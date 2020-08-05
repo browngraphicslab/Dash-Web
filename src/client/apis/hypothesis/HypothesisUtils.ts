@@ -137,13 +137,13 @@ export namespace Hypothesis {
             runInAction(() => {
                 if (linkDoc) {
                     TaskCompletionBox.textDisplayed = "Link Created";
-                    TaskCompletionBox.popupX = screenX;
-                    TaskCompletionBox.popupY = screenY - 133;
+                    TaskCompletionBox.popupX = 60;
+                    TaskCompletionBox.popupY = 60;
                     TaskCompletionBox.taskCompleted = true;
 
                     if (LinkDescriptionPopup.showDescriptions === "ON" || !LinkDescriptionPopup.showDescriptions) {
-                        LinkDescriptionPopup.popupX = screenX;
-                        LinkDescriptionPopup.popupY = screenY - 100;
+                        LinkDescriptionPopup.popupX = 60;
+                        LinkDescriptionPopup.popupY = 93;
                         LinkDescriptionPopup.descriptionPopup = true;
                     }
                     setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
