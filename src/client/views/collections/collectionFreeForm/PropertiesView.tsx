@@ -27,6 +27,9 @@ import { ColorState, SketchPicker } from "react-color";
 import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
 import { discovery_v1 } from "googleapis";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 
 interface PropertiesViewProps {
@@ -582,14 +585,18 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set colorFil(value) { value && (this._lastFill = value); this.selectedDoc && (this.selectedDoc.fillColor = value ? value : undefined); }
     set colorStk(value) { value && (this._lastLine = value); this.selectedDoc && (this.selectedDoc.color = value ? value : undefined); }
 
-    colorButton(value: string, setter: () => {}) {
-        return <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
-            <div className="color-button-preview" style={{
-                backgroundColor: value ?? "121212", width: 15, height: 15,
-                display: value === "" || value === "transparent" ? "none" : ""
-            }} />
-            {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
-        </div>;
+    colorButton(value: string, type: string, setter: () => {}) {
+        return <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+            content={type === "fill" ? this.fillPicker : this.linePicker}>
+            <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
+                <div className="color-button-preview" style={{
+                    backgroundColor: value ?? "121212", width: 15, height: 15,
+                    display: value === "" || value === "transparent" ? "none" : ""
+                }} />
+                {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
+            </div>
+        </Flyout>;
+
     }
 
     @undoBatch
@@ -615,8 +622,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             color={type === "stk" ? this.colorStk : this.colorFil} />;
     }
 
-    @computed get fillButton() { return this.colorButton(this.colorFil, () => { this._fillBtn = !this._fillBtn; this._lineBtn = false; return true; }); }
-    @computed get lineButton() { return this.colorButton(this.colorStk, () => { this._lineBtn = !this._lineBtn; this._fillBtn = false; return true; }); }
+    @computed get fillButton() { return this.colorButton(this.colorFil, "fill", () => { this._fillBtn = !this._fillBtn; this._lineBtn = false; return true; }); }
+    @computed get lineButton() { return this.colorButton(this.colorStk, "line", () => { this._lineBtn = !this._lineBtn; this._fillBtn = false; return true; }); }
 
     @computed get fillPicker() { return this.colorPicker((color: string) => this.colorFil = color, "fil"); }
     @computed get linePicker() { return this.colorPicker((color: string) => this.colorStk = color, "stk"); }
@@ -633,8 +640,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="stroke-button">{this.lineButton}</div>
                 </div>
             </div>
-            {this._fillBtn ? this.fillPicker : ""}
-            {this._lineBtn ? this.linePicker : ""}
+            {/* {this._fillBtn ? this.fillPicker : ""}
+            {this._lineBtn ? this.linePicker : ""} */}
         </div>;
     }
 
