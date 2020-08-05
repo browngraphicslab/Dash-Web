@@ -187,7 +187,6 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
-            //SearchBox.Instance.closeSearch();
         }
         if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
             TimelineMenu.Instance.closeMenu();

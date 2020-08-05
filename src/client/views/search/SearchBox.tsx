@@ -157,13 +157,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (e.key === "Enter") {
             this.layoutDoc._searchString = this.newsearchstring;
 
-            if (StrCast(this.layoutDoc._searchString) !== "") {
-                console.log("OPEN");
-                runInAction(() => { this.open = true });
+            if (StrCast(this.layoutDoc._searchString) !== "" || !this.searchFullDB) {
+                runInAction(() => this.open = true);
             }
             else {
-                console.log("CLOSE");
-                runInAction(() => { this.open = false });
+                runInAction(() => this.open = false);
+
             }
             this.submitSearch();
         }
@@ -304,7 +303,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     docsforfilter: Doc[] = [];
 
     searchCollection(query: string) {
-
         const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
 
         if (selectedCollection !== undefined) {
@@ -320,14 +318,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
-                    if (d.data !== undefined) {
-                        let newdocs = DocListCast(d.data);
-                        newdocs.forEach((newdoc) => {
-                            newarray.push(newdoc);
-
-                        });
+                    if (d.data != undefined) {
+                        newarray.push(...DocListCast(d.data));
                     }
-                    const hlights: string[] = [];
+
+                    let hlights: string[] = [];
+
                     const protos = Doc.GetAllPrototypes(d);
                     protos.forEach(proto => {
                         Object.keys(proto).forEach(key => {
@@ -463,7 +459,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
-            this.scale === true ? await this.getResults(query) : this.searchCollection(query);
+            this.searchFullDB ? await this.getResults(query) : this.searchCollection(query);
             runInAction(() => {
                 this._resultsOpen = true;
                 this._searchbarOpen = true;
@@ -474,7 +470,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    @observable scale = true;
+    @observable searchFullDB = true;
 
     @observable _timeout: any = undefined;
 
@@ -793,7 +789,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             style={{ cursor: "default", right: 20, padding: 1, left: 250, position: "relative", backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
                             onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
                             onClick={action(() => {
-                                this.filter = !this.filter && !this.scale;
+                                this.filter = !this.filter && !this.searchFullDB;
                                 if (this.filter === true && this.currentSelectedCollection !== undefined) {
                                     this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
                                     let newarray: Doc[] = [];
@@ -863,9 +859,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 <div style={{ display: "contents" }}>
                                     <div className="radio" style={{ margin: 0 }}>
                                         <label style={{ fontSize: 12, marginTop: 6 }} >
-                                            <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.scale === false} onChange={() => {
+                                            <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => {
                                                 runInAction(() => {
-                                                    this.scale = !this.scale;
+                                                    this.searchFullDB = !this.searchFullDB;
                                                     this.dataDoc[this.fieldKey] = new List<Doc>([]);
                                                     if (this.currentSelectedCollection !== undefined) {
                                                         let newarray: Doc[] = [];
@@ -900,9 +896,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     </div>
                                     <div className="radio" style={{ margin: 0 }}>
                                         <label style={{ fontSize: 12, marginTop: 6 }} >
-                                            <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.scale === true} onChange={() => {
+                                            <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB} onChange={() => {
                                                 runInAction(() => {
-                                                    this.scale = !this.scale;
+                                                    this.searchFullDB = !this.searchFullDB;
                                                     this.dataDoc[this.fieldKey] = new List<Doc>([]);
                                                     this.filter = false;
                                                     if (this.currentSelectedCollection !== undefined) {
