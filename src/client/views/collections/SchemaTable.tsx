@@ -160,7 +160,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === "nnnnn", false)) {
+        if (this.childDocs.reduce((found, doc) => found || doc.type === "x", false)) {
             columns.push(
                 {
                     expander: true,
@@ -334,8 +334,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @action
     nextHighlight2 = (doc: Doc) => {
 
-        doc.searchMatch2 = false;
-        setTimeout(() => doc.searchMatch2 = true, 0);
+        doc.searchMatchAlt = false;
+        setTimeout(() => doc.searchMatchAlt = true, 0);
         doc.searchIndex = NumCast(doc.searchIndex);
     }
 

@@ -902,8 +902,8 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
             </button>
             <button onClick={() => {
                 {
-                    doc.searchMatch2 = false;
-                    setTimeout(() => doc.searchMatch2 = true, 0);
+                    doc.searchMatchAlt = false;
+                    setTimeout(() => doc.searchMatchAlt = true, 0);
                     doc.searchIndex = NumCast(doc.searchIndex);
                 }
             }} style={{ padding: 2 }}>
