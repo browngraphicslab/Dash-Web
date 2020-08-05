@@ -495,11 +495,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed
     get reactTable() {
         const children = this.childDocs;
+        const hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         const expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         const expanded = {};
         //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
         const rerender = [...this.textWrappedRows]; // TODO: get component to rerender on text wrap change without needign to console.log :((((
+
         return <ReactTable
             style={{ position: "relative" }}
             data={children}
@@ -514,8 +516,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             sorted={this.sorted}
             expanded={expanded}
             resized={this.resized}
-            NoDataComponent={() => null}
             onResizedChange={this.props.onResizedChange}
+            SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
+                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}
 
         />;
     }

@@ -517,6 +517,14 @@ button.add-column {
     padding: 10px 30px;
     background-color: rgb(252, 252, 252);
     width: 100%;
+
+    .rt-thead {
+        display:none;
+    }
+    .collectionSchemaView-table{
+        border: solid 1px;
+        overflow: hidden;
+    }
  
 
     .row-dragger {
@@ -552,7 +560,6 @@ button.add-column {
     text-transform: uppercase;
     cursor: pointer;
     font-size: 10.5px;
-    padding: 10px;
     margin-left: 50px;
     margin-top: 10px;
 }
