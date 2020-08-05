@@ -24,8 +24,7 @@ $linkGap : 3px;
 
     .documentDecorations-rotation {
         pointer-events: auto;
-        // cursor: grabbing;
-        cursor: ns-resize;
+        cursor: alias;
         width: 10px;
         height: 10px;
     }

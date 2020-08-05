@@ -18,6 +18,8 @@ import { Doc } from "../../fields/Doc";
 import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
 import { action } from "mobx";
 import { setupMoveUpEvents } from "../../Utils";
+import { undoBatch, UndoManager } from "../util/UndoManager";
+
 
 library.add(faPaintBrush);
 
@@ -26,7 +28,11 @@ const InkDocument = makeInterface(documentSchema);
 
 @observer
 export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocument>(InkDocument) {
+    private _controlUndo?: UndoManager.Batch;
+
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
+
+
 
     private analyzeStrokes = () => {
         const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
@@ -52,6 +58,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     @action
     onControlDown = (e: React.PointerEvent, i: number): void => {
         setupMoveUpEvents(this, e, this.onControlMove, this.onControlup, (e) => { });
+        this._controlUndo = UndoManager.StartBatch("DocDecs set radius");
         this._prevX = e.clientX;
         this._prevY = e.clientY;
         this._controlNum = i;
@@ -76,6 +83,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this._prevX = 0;
         this._prevY = 0;
         this._controlNum = 0;
+        this._controlUndo?.end();
+        this._controlUndo = undefined;
     }
 
     public static MaskDim = 50000;
@@ -125,18 +134,17 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             }
             handleLine.push({ X1: data[data.length - 2].X, Y1: data[data.length - 2].Y, X2: data[data.length - 1].X, Y2: data[data.length - 1].Y, X3: data[data.length - 1].X, Y3: data[data.length - 1].Y, dot1: data.length - 1, dot2: data.length - 1 });
 
-
         }
-        if (data.length <= 4) {
-            handlePoints = [];
-            handleLine = [];
-            controlPoints = [];
-            for (var i = 0; i < data.length; i++) {
-                controlPoints.push({ X: data[i].X, Y: data[i].Y, I: i });
-            }
+        // if (data.length <= 4) {
+        //     handlePoints = [];
+        //     handleLine = [];
+        //     controlPoints = [];
+        //     for (var i = 0; i < data.length; i++) {
+        //         controlPoints.push({ X: data[i].X, Y: data[i].Y, I: i });
+        //     }
 
-        }
-        const dotsize = String(Math.min(width * scaleX, height * scaleY) / 40);
+        // }
+        const dotsize = String(Math.max(width * scaleX, height * scaleY) / 40);
 
         const controls = controlPoints.map((pts, i) =>
 
