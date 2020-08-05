@@ -329,14 +329,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     if (filter) {
                         Doc.setDocFilter(this.props.Document, newKey, filter, "match");
                         if (this.props.Document.selectedDoc !== undefined) {
-                            let doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
+                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
                             Doc.setDocFilter(doc, newKey, filter, "match");
                         }
                     }
                     else {
                         this.props.Document._docFilters = undefined;
                         if (this.props.Document.selectedDoc !== undefined) {
-                            let doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
+                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
                             doc._docFilters = undefined;
                         }
                     }

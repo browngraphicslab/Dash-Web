@@ -94,7 +94,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         if (this.inputRef.current) {
             this.inputRef.current.focus();
-            runInAction(() => { this._searchbarOpen = true });
+            runInAction(() => { this._searchbarOpen = true; });
         }
         if (this.rootDoc.searchQuery && this.newAssign) {
             const sq = this.rootDoc.searchQuery;
@@ -112,11 +112,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 this.submitSearch();
             });
         }
-    };
+    }
 
 
     @action
-    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc);
+    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc)
 
 
     @observable newsearchstring: string = "";
@@ -127,7 +127,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
         if (e.target.value === "") {
-            console.log(this._results);
             this._results.forEach(result => {
                 Doc.UnBrushDoc(result[0]);
                 result[0].searchMatch = undefined;
@@ -140,8 +139,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 this.props.Document.selectedDoc = undefined;
 
             }
-            console.log("CLOSE");
-            runInAction(() => { this.open = false });
+            runInAction(() => { this.open = false; });
             this._openNoResults = false;
             this._results = [];
             this._resultsSet.clear();
@@ -226,7 +224,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         if (this._collectionStatus) {
             query = this.addCollectionFilter(query);
             query = query.replace(/\s+/g, ' ').trim();
-            console.log(query)
 
         }
         return query;
@@ -253,8 +250,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     addCollectionFilter(query: string): string {
         const collections: Doc[] = this.getCurCollections();
-
-        console.log(collections);
         const oldWords = query.split(" ");
 
         const collectionString: string[] = [];
@@ -312,18 +307,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
             let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
             const found: [Doc, string[], string[]][] = [];
-            const docsforFilter: Doc[] = []
+            const docsforFilter: Doc[] = [];
             let newarray: Doc[] = [];
 
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
-                    if (d.data != undefined) {
+                    if (d.data !== undefined) {
                         newarray.push(...DocListCast(d.data));
                     }
-
-                    let hlights: string[] = [];
-
+                    const hlights: string[] = [];
                     const protos = Doc.GetAllPrototypes(d);
                     protos.forEach(proto => {
                         Object.keys(proto).forEach(key => {
@@ -345,15 +338,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 selectedCollection.props.Document._searchDocs = new List<Doc>(docsforFilter);
                 docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
                 while (docs.length > 0) {
-                    console.log("HIT");
                     newarray = [];
                     docs.forEach((d) => {
                         if (d.data !== undefined) {
-                            console.log(d._searchDocs);
                             d._searchDocs = new List<Doc>(docsforFilter);
-                            console.log(d);
-                            console.log(d._searchDocs);
-                            let newdocs = DocListCast(d.data);
+                            const newdocs = DocListCast(d.data);
                             newdocs.forEach((newdoc) => {
                                 newarray.push(newdoc);
                             });
@@ -449,7 +438,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._visibleElements = [];
         this._visibleDocuments = [];
         if (StrCast(this.props.Document.searchQuery)) {
-            if (this._timeout) { clearTimeout(this._timeout); this._timeout = undefined };
+            if (this._timeout) { clearTimeout(this._timeout); this._timeout = undefined; }
             this._timeout = setTimeout(() => {
                 console.log("Resubmitting search");
             }, 60000);
@@ -526,7 +515,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const highlight = highlights[doc[Id]];
                             const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
-                            console.log(hlights);
                             doc ? console.log(Cast(doc.context, Doc)) : null;
                             if (this.findCommonElements(hlights)) {
                             }
@@ -683,7 +671,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             const lines = new List<string>(result[2]);
-                            console.log(lines);
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             highlights.forEach((item) => headers.add(item));
@@ -701,7 +688,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             const lines = new List<string>(result[2]);
                             highlights.forEach((item) => headers.add(item));
-                            console.log(lines);
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             result[0].searchMatch = true;
@@ -796,15 +782,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     let docs: Doc[] = [];
                                     docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
                                     while (docs.length > 0) {
-                                        console.log("HIT");
                                         newarray = [];
                                         docs.forEach((d) => {
                                             if (d.data !== undefined) {
-                                                console.log(d._searchDocs);
                                                 d._searchDocs = new List<Doc>(this.docsforfilter);
-                                                console.log(d);
-                                                console.log(d._searchDocs);
-                                                let newdocs = DocListCast(d.data);
+                                                const newdocs = DocListCast(d.data);
                                                 newdocs.forEach((newdoc) => {
                                                     newarray.push(newdoc);
                                                 });
@@ -821,15 +803,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     let docs: Doc[] = [];
                                     docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
                                     while (docs.length > 0) {
-                                        console.log("HIT");
                                         newarray = [];
                                         docs.forEach((d) => {
                                             if (d.data !== undefined) {
-                                                console.log(d._searchDocs);
                                                 d._searchDocs = new List<Doc>();
-                                                console.log(d);
-                                                console.log(d._searchDocs);
-                                                let newdocs = DocListCast(d.data);
+                                                const newdocs = DocListCast(d.data);
                                                 newdocs.forEach((newdoc) => {
                                                     newarray.push(newdoc);
                                                 });
@@ -868,15 +846,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                         let docs: Doc[] = [];
                                                         docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
                                                         while (docs.length > 0) {
-                                                            console.log("HIT");
                                                             newarray = [];
                                                             docs.forEach((d) => {
                                                                 if (d.data !== undefined) {
-                                                                    console.log(d._searchDocs);
                                                                     d._searchDocs = new List<Doc>();
-                                                                    console.log(d);
-                                                                    console.log(d._searchDocs);
-                                                                    let newdocs = DocListCast(d.data);
+                                                                    const newdocs = DocListCast(d.data);
                                                                     newdocs.forEach((newdoc) => {
                                                                         newarray.push(newdoc);
                                                                     });
@@ -906,15 +880,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                         let docs: Doc[] = [];
                                                         docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
                                                         while (docs.length > 0) {
-                                                            console.log("HIT");
                                                             newarray = [];
                                                             docs.forEach((d) => {
                                                                 if (d.data !== undefined) {
-                                                                    console.log(d._searchDocs);
                                                                     d._searchDocs = new List<Doc>();
-                                                                    console.log(d);
-                                                                    console.log(d._searchDocs);
-                                                                    let newdocs = DocListCast(d.data);
+                                                                    const newdocs = DocListCast(d.data);
                                                                     newdocs.forEach((newdoc) => {
                                                                         newarray.push(newdoc);
                                                                     });

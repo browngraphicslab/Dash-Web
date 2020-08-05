@@ -159,7 +159,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 newarray = [];
                                 newdocs.forEach((t) => {
                                     if (d.data !== undefined) {
-                                        let newdocs = DocListCast(t.data);
+                                        const newdocs = DocListCast(t.data);
                                         newdocs.forEach((newdoc) => {
                                             newarray.push(newdoc);
                                         });

@@ -187,13 +187,13 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     returnHighlights() {
-        let results = [];
-        let contents = this.props.bing!();
+        const results = [];
+        const contents = this.props.bing!();
 
         if (contents !== undefined) {
             if (this.props.positions !== undefined) {
-                let positions = this.props.positions;
-                let length = this.props.search!.length;
+                const positions = this.props.positions;
+                const length = this.props.search!.length;
 
                 // contents = String(this.props.contents.valueOf());
 
@@ -201,10 +201,10 @@ export class EditableView extends React.Component<EditableProps> {
                 positions.forEach((num, cur) => {
                     results.push(<span style={{ backgroundColor: "#FFFF00", fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : this.props.placeholder?.valueOf()}</span>);
                     let end = 0;
-                    cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
+                    cur === positions.length - 1 ? end = contents!.length : end = positions[cur + 1];
                     results.push(<span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : this.props.placeholder?.valueOf()}</span>);
                 }
-                )
+                );
             }
             return results;
         }

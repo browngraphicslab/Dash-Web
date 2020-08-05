@@ -241,7 +241,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //         <FontAwesomeIcon icon="expand" size="sm" />
         //     </div>
         // );   
-        let positions = [];
+        const positions = [];
         if (StrCast(this.props.Document._searchString) !== "") {
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
             let term = "";
@@ -256,8 +256,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                     term = String(NumCast(cfield));
                 }
             }
-            let search = StrCast(this.props.Document._searchString);
-            let start = term.indexOf(search) as number;
+            const search = StrCast(this.props.Document._searchString);
+            let start = term.indexOf(search);
             let tally = 0;
             if (start !== -1) {
                 positions.push(start);
@@ -883,36 +883,27 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
         //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
         //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         // };
-        let doc = this.props.rowProps.original;
+        const doc = this.props.rowProps.original;
         let buttons = <div style={{
             paddingTop: 8,
             paddingLeft: 3,
         }}><button onClick={() => {
-            console.log(doc);
-            console.log(doc.searchMatch);
             doc.searchMatch = false;
-            console.log(doc.searchMatch);
             setTimeout(() => doc.searchMatch = true, 0);
-            console.log(doc.searchMatch);
             doc.searchIndex = NumCast(doc.searchIndex);
         }} style={{ padding: 2, left: 77 }}>
                 <FontAwesomeIcon icon="arrow-up" size="sm" />
             </button>
             <button onClick={() => {
                 {
-                    console.log(doc);
-                    console.log(doc.searchMatch2);
                     doc.searchMatch2 = false;
-                    console.log(doc.searchMatch2);
                     setTimeout(() => doc.searchMatch2 = true, 0);
-                    console.log(doc.searchMatch2);
                     doc.searchIndex = NumCast(doc.searchIndex);
                 }
             }} style={{ padding: 2 }}>
                 <FontAwesomeIcon icon="arrow-down" size="sm" />
             </button></div>;
         const type = StrCast(doc.type);
-        console.log(StrCast(doc.type));
         if (type === "pdf") {
             buttons = <div><button
                 style={{
@@ -923,19 +914,14 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
                 }}
 
                 onClick={() => {
-                    console.log(doc);
-                    console.log(doc.searchMatch);
                     doc.searchMatch = false;
-                    console.log(doc.searchMatch);
                     setTimeout(() => doc.searchMatch = true, 0);
-                    console.log(doc.searchMatch);
                     doc.searchIndex = NumCast(doc.searchIndex);
                 }}>
                 <FontAwesomeIcon icon="arrow-down" size="sm" />
-            </button></div >
+            </button></div >;
         }
         else if (type !== "rtf") {
-            console.log("sad");
             buttons = undefined;
         }
 
@@ -945,7 +931,6 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
         else {
             buttons = undefined;
         }
-
         return (
             <div> {buttons}</div>
         );
