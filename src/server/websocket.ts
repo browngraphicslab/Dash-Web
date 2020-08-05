@@ -16,6 +16,7 @@ import { DocumentsCollection } from "./IDatabase";
 import { Diff, GestureContent, MessageStore, MobileDocumentUploadContent, MobileInkOverlayContent, Transferable, Types, UpdateMobileInkOverlayPositionContent, YoutubeQueryInput, YoutubeQueryTypes } from "./Message";
 import { Search } from "./Search";
 import { resolvedPorts } from './server_Initialization';
+import { Opt } from "../fields/Doc";
 
 export namespace WebSocket {
 
@@ -31,7 +32,7 @@ export namespace WebSocket {
             if (socketPort) {
                 resolvedPorts.socket = Number(socketPort);
             }
-            let socketEndpoint: Server;
+            let socketEndpoint: Opt<Server>;
             await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolvedPorts.socket, resolve));
             io = sio(socketEndpoint!, SSL.Credentials as any);
         } else {
