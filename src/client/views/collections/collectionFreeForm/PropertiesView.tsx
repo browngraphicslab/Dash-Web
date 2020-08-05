@@ -538,7 +538,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     getField(key: string) {
         //if (this.selectedDoc) {
-        return Field.toString(this.selectedDoc[key] as Field);
+        return Field.toString(this.selectedDoc![key] as Field);
         // } else {
         //     return undefined as Opt<string>;
         // }

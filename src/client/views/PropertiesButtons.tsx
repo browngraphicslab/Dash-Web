@@ -28,7 +28,6 @@ import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../fields/URLField';
 import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
-import { CollectionFreeFormView } from './collections/collectionFreeForm/CollectionFreeFormView';
 import { InkField } from '../../fields/InkField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -128,18 +127,19 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const targetDoc = this.selectedDoc;
         const published = targetDoc && Doc.GetProto(targetDoc)[GoogleRef] !== undefined;
         const animation = this.isAnimatingPulse ? "shadow-pulse 1s linear infinite" : "none";
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{`${published ? "Push" : "Publish"} to Google Docs`}</div></>}>
-            <div
-                className="propertiesButtons-linker"
-                style={{ animation }}
-                onClick={async () => {
-                    await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
-                    !published && runInAction(() => this.isAnimatingPulse = true);
-                    PropertiesButtons.hasPushedHack = false;
-                    targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
-                }}>
-                <FontAwesomeIcon className="documentdecorations-icon" icon={published ? (this.pushIcon as any) : cloud} size={published ? "sm" : "xs"} />
-            </div></Tooltip>;
+        return !targetDoc ? (null) :
+            <Tooltip title={<><div className="dash-tooltip">{`${published ? "Push" : "Publish"} to Google Docs`}</div></>}>
+                <div className="propertiesButtons-linker"
+                    style={{ animation }}
+                    onClick={async () => {
+                        await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
+                        !published && runInAction(() => this.isAnimatingPulse = true);
+                        PropertiesButtons.hasPushedHack = false;
+                        targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
+                    }}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon={published ? (this.pushIcon as any) : cloud} size={published ? "sm" : "xs"} />
+                </div>
+            </Tooltip>;
     }
 
     @computed
@@ -377,7 +377,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed
     get onClickButton() {
         if (this.selectedDoc) {
-            return <Tooltip title={<><div className="dash-tooltip">Choose onClick behavior</div></>}>
+            return <Tooltip title={<div className="dash-tooltip">Choose onClick behavior</div>}>
                 <div className="propertiesButtons-linkFlyout">
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                         content={this.onClickFlyout}>
