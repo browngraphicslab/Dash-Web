@@ -147,9 +147,9 @@ export default class SettingsManager extends React.Component<{}> {
 
         const passwordContent = <div className="password-content">
             <div className="password-content-inputs">
-                <input className="password-inputs" placeholder="current password" ref={this.curr_password_ref} />
-                <input className="password-inputs" placeholder="new password" ref={this.new_password_ref} />
-                <input className="password-inputs" placeholder="confirm new password" ref={this.new_confirm_ref} />
+                <input className="password-inputs" type="password" placeholder="current password" ref={this.curr_password_ref} />
+                <input className="password-inputs" type="password" placeholder="new password" ref={this.new_password_ref} />
+                <input className="password-inputs" type="password" placeholder="confirm new password" ref={this.new_confirm_ref} />
             </div>
             <div className="password-content-buttons">
                 {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
@@ -233,7 +233,9 @@ export default class SettingsManager extends React.Component<{}> {
         return (<div className="settings-interface">
             <div className="settings-top">
                 <div className="settings-title">Settings</div>
-                <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                <div className="settings-username">{Doc.CurrentUserEmail}</div>
+                <button onClick={() => window.location.assign(Utils.prepend("/logout"))}
+                    style={{ right: 35, position: "absolute" }} >
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
                 <div className="close-button" onClick={this.close}>
@@ -268,8 +270,7 @@ export default class SettingsManager extends React.Component<{}> {
                 isDisplayed={this.isOpen}
                 interactive={true}
                 closeOnExternalClick={this.close}
-                width={600}
-                height={340}
+                dialogueBoxStyle={{ width: "600px", height: "340px" }}
             />
         );
     }

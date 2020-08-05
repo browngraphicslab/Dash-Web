@@ -315,6 +315,12 @@ export class MainView extends React.Component {
         if (this.panelContent === doc?.title) return "lightgrey";
 
         if (doc?.type === DocumentType.COL) {
+            if (doc.title === "Basic Item Creators" || doc.title === "sidebar-tools"
+                || doc.title === "sidebar-recentlyClosed" || doc.title === "sidebar-catalog"
+                || doc.title === "Mobile Uploads" || doc.title === "COLLECTION_PROTO"
+                || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
+                return "lightgrey";
+            }
             return StrCast(Doc.UserDoc().defaultColor);
         }
         if (this.darkScheme) {
@@ -450,6 +456,7 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     relative={true}
+                    forcedBackgroundColor={() => "lightgrey"}
                 />
             </div>
             {this.docButtons}</div>;

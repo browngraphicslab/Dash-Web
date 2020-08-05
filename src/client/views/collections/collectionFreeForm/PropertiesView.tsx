@@ -161,7 +161,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
             const rows: JSX.Element[] = [];
             for (const key of Object.keys(ids).slice().sort()) {
-                if ((key[0] === key[0].toUpperCase() && key.substring(0, 3) !== "ACL")
+                if ((key[0] === key[0].toUpperCase() && key.substring(0, 3) !== "ACL" && key !== "UseCors")
                     || key[0] === "#" || key === "author" ||
                     key === "creationDate" || key.indexOf("lastModified") !== -1) {
 
@@ -354,7 +354,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         />;
     }
 
-    @undoBatch
     @action
     toggleCheckbox = () => {
         this.layoutFields = !this.layoutFields;

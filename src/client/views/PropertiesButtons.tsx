@@ -196,6 +196,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         }
                     }}>
                     <FontAwesomeIcon className="documentdecorations-icon" size="lg"
+                        color="black"
                         style={{ WebkitAnimation: animation, MozAnimation: animation }}
                         icon={(() => {
                             switch (this.openHover) {
@@ -207,7 +208,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         })()}
                     />
                 </div>
-                <div className="propertiesButtons-title">Fetch</div>
+                <div className="propertiesButtons-title" style={{ backgroundColor: "white", color: "black" }}>Fetch</div>
             </div>
         </Tooltip>;
     }
@@ -226,7 +227,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     />
                 </div>
 
-                <div className="propertiesButtons-title">{Doc.isDocPinned(targetDoc) ? "Unpin" : "Pin"}</div>
+                <div className="propertiesButtons-title" style={{
+                    backgroundColor: Doc.isDocPinned(targetDoc) ? "white" : "black",
+                    color: Doc.isDocPinned(targetDoc) ? "black" : "white"
+                }}
+                >{Doc.isDocPinned(targetDoc) ? "Unpin" : "Pin"}</div>
             </div>
         </Tooltip>;
     }
@@ -339,11 +344,16 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 "Unlock Position" : "Lock Position"}</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
+                    style={{ backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "" }}
                     onPointerDown={this.onLock} >
                     {<FontAwesomeIcon className="documentdecorations-icon"
+                        color={BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"}
                         icon={BoolCast(this.selectedDoc?.lockedPosition) ? "unlock" : "lock"} size="lg" />}
                 </div>
-                <div className="propertiesButtons-title">Position </div>
+                <div className="propertiesButtons-title" style={{
+                    backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "black",
+                    color: BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"
+                }}>Position </div>
             </div>
         </Tooltip>;
     }
@@ -535,13 +545,16 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             title={<><div className="dash-tooltip">{this.selectedDoc?.useClusters ? "Stop Showing Clusters" : "Show Clusters"}</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
-                    style={{ backgroundColor: this.selectedDoc?.useClusters ? "#a0a0a0" : "" }}
+                    style={{ backgroundColor: this.selectedDoc?.useClusters ? "white" : "" }}
                     onPointerDown={this.changeClusters}>
                     {<FontAwesomeIcon className="documentdecorations-icon"
                         color={this.selectedDoc?.useClusters ? "black" : "white"}
                         icon="braille" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title"> clusters </div>
+                <div className="propertiesButtons-title" style={{
+                    backgroundColor: this.selectedDoc?.useClusters ? "white" : "black",
+                    color: this.selectedDoc?.useClusters ? "black" : "white"
+                }}> clusters </div>
             </div>
         </Tooltip>;
     }
@@ -569,7 +582,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         color={this.selectedDoc?._fitToBox ? "black" : "white"}
                         icon="expand" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title"> {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
+                <div className="propertiesButtons-title" style={{
+                    backgroundColor: this.selectedDoc?._fitToBox ? "white" : "black",
+                    color: this.selectedDoc?._fitToBox ? "black" : "white"
+                }}> {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
             </div>
         </Tooltip>;
     }
