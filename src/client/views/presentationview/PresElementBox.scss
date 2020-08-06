@@ -1,3 +1,7 @@
+$light-blue: #AEDDF8;
+$dark-blue: #5B9FDD;
+$light-background: #ececec;
+
 .presElementBox-item {
     display: grid;
     grid-template-columns: max-content max-content max-content;
@@ -26,7 +30,7 @@
         z-index: -1;
         width: calc(100% + 200px);
         height: calc(100% + 8px);
-        background-color: #AEDDF8;
+        background-color: $light-blue;
     }
 
     .presElementBox-highlightTop {
@@ -69,7 +73,7 @@
 .presElementBox-active {
     color: black;
     border-radius: 6px;
-    border: solid 2px #5B9FDD;
+    border: solid 2px $dark-blue;
 }
 
 .presElementBox-buttons {

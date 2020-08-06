@@ -242,7 +242,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             const y = targetDoc._panY;
             const scale = targetDoc._viewScale;
         }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>}>
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>} placement="top">
             <>
                 <div className="propertiesButtons-linker"
                     style={{ backgroundColor: "black", color: "white" }}
@@ -259,7 +259,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                             activeDoc.presPinViewScale = scale;
                         }
                     }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
                     <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -20px)', color: 'rgba(250,250,250,0.5)' }}>V</div>
                 </div>
                 <div className="propertiesButtons-title" style={{ backgroundColor: "black", color: "white" }}>{"View"}</div>
