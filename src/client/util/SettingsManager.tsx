@@ -257,7 +257,7 @@ export default class SettingsManager extends React.Component<{}> {
                         </option>;
                     })}
                 </select>
-            </div>;
+            </div>
         </div>;
 
         return preferencesContent;

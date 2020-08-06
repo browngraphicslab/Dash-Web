@@ -83,6 +83,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
+    @observable scrolling: boolean = true;
+
     @action
     rtfWidth = () => {
         if (this.selectedDoc) {
@@ -598,19 +600,26 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set colorStk(value) { value && (this._lastLine = value); this.selectedDoc && (this.selectedDoc.color = value ? value : undefined); }
 
     colorButton(value: string, type: string, setter: () => {}) {
-        return <div className="properties-flyout">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={type === "fill" ? this.fillPicker : this.linePicker}>
-                <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
-                    <div className="color-button-preview" style={{
-                        backgroundColor: value ?? "121212", width: 15, height: 15,
-                        display: value === "" || value === "transparent" ? "none" : ""
-                    }} />
-                    {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
-                </div>
-            </Flyout>
+        // return <div className="properties-flyout" onPointerEnter={e => this.changeScrolling(false)}
+        //     onPointerLeave={e => this.changeScrolling(true)}>
+        //     <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+        //         content={type === "fill" ? this.fillPicker : this.linePicker}>
+        return <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
+            <div className="color-button-preview" style={{
+                backgroundColor: value ?? "121212", width: 15, height: 15,
+                display: value === "" || value === "transparent" ? "none" : ""
+            }} />
+            {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14 }}>☒</p> : ""}
         </div>;
+        //     </Flyout>
+        // </div>;
 
+    }
+
+    @action
+    changeScrolling = (scroll: boolean) => {
+        console.log(scroll);
+        this.scrolling = scroll;
     }
 
     @undoBatch
@@ -654,8 +663,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="stroke-button">{this.lineButton}</div>
                 </div>
             </div>
-            {/* {this._fillBtn ? this.fillPicker : ""}
-            {this._lineBtn ? this.linePicker : ""} */}
+            {this._fillBtn ? this.fillPicker : ""}
+            {this._lineBtn ? this.linePicker : ""}
         </div>;
     }
 
@@ -771,7 +780,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
-                    // overflowY: this.inActions ? "visible" : "scroll"
+                    overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
