@@ -51,7 +51,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance._selectedArray.length >= 1) {
+        } else if (PresBox.Instance._selectedArray.length) {
             return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         } else { return undefined; }
     }

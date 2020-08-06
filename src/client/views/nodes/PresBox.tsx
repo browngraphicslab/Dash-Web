@@ -27,7 +27,6 @@ import { CollectionFreeFormViewChrome } from "../collections/CollectionMenu";
 import { actionAsync } from "mobx-utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { AudioBox } from "./AudioBox";
-import { white } from "colors";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -74,7 +73,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
         this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
     }
-
+    @computed get selectedDocumentView() {
+        if (SelectionManager.SelectedDocuments().length) {
+            return SelectionManager.SelectedDocuments()[0];
+        } else if (PresBox.Instance._selectedArray.length) {
+            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        } else { return undefined; }
+    }
+    @computed get isPres(): boolean {
+        if (this.selectedDoc?.type === DocumentType.PRES) {
+            document.addEventListener("keydown", this.keyEvents, true);
+            return true;
+        } else {
+            document.removeEventListener("keydown", this.keyEvents, true);
+            return false;
+        }
+    }
+    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
 
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
@@ -82,14 +97,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
-    }
-
-    onPointerOver = () => {
-        document.addEventListener("keydown", this.keyEvents, true);
-    }
-
-    onPointerLeave = () => {
-        document.removeEventListener("keydown", this.keyEvents, true);
     }
 
     updateCurrentPresentation = () => {
@@ -485,9 +492,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //Command click
     @action
     multiSelect = (doc: Doc, ref: HTMLElement, drag: HTMLElement) => {
-        this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
-        this._eleArray.push(ref);
-        this._dragArray.push(drag);
+        if (!this._selectedArray.includes(doc)) {
+            this._selectedArray.push(this.childDocs[this.childDocs.indexOf(doc)]);
+            this._eleArray.push(ref);
+            this._dragArray.push(drag);
+        }
     }
 
     //Shift click
@@ -1683,10 +1692,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     render() {
+        // calling this method for keyEvents
+        this.isPres;
         // needed to ensure that the childDocs are loaded for looking up fields
         this.childDocs.slice();
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
-        return <div onPointerOver={this.onPointerOver} onPointerLeave={this.onPointerLeave} className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
+        return <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             {this.topPanel}
             {this.toolbar}
             {this.newDocumentToolbarDropdown}
