@@ -82,8 +82,7 @@ export class MainView extends React.Component {
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
 
-    sidebar: string = "sidebar";
-    @observable public sidebarContent: any = this.userDoc?.[this.sidebar];
+    @observable public sidebarContent: any = this.userDoc?.sidebar;
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;
@@ -177,6 +176,9 @@ export class MainView extends React.Component {
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
             fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft);
+        //Pres trail icons (just for the sake of merging)
+        library.add(fa.faAngleUp, fa.faAngleDown, fa.faPlayCircle, fa.faClock,
+            fa.faRocket, fa.faExchangeAlt, faBuffer);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -398,7 +400,7 @@ export class MainView extends React.Component {
         TraceMobx();
         const mainContainer = this.mainContainer;
         const width = this.flyoutWidth + this.propertiesWidth();
-        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
+        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: `calc(100% - 32px)` }}>
             {!mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -443,7 +445,7 @@ export class MainView extends React.Component {
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
-            <div className="mainView-contentArea" style={{ position: "relative", height: `100%`, width: "100%", overflow: "visible" }}>
+            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - 32px)`, width: "100%", overflow: "visible" }}>
                 {/* {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
                     <FontAwesomeIcon icon="times" color="black" size="lg" />
@@ -615,7 +617,7 @@ export class MainView extends React.Component {
                     </div>
                 }
                 {this.propertiesWidth() < 10 ? (null) :
-                    <div style={{ width: this.propertiesWidth() }}> {this.propertiesView} </div>}
+                    <div style={{ width: this.propertiesWidth(), height: "calc(100% - 35px)" }}> {this.propertiesView} </div>}
             </div>
         </>;
     }

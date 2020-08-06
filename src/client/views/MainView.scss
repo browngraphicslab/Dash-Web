@@ -21,7 +21,7 @@
 // add nodes menu. Note that the + button is actually an input label, not an actual button.
 .mainView-docButtons {
     position: absolute;
-    bottom: 20px;
+    bottom: 35px;
     left: calc(100% + 5px);
     z-index: 1;
 }
@@ -157,7 +157,7 @@
 
     width: 60px;
     background-color: #121721;
-    height: 100%;
+    height: calc(100% - 32px);
     //overflow-y: scroll;
     //overflow-x: hidden;
 

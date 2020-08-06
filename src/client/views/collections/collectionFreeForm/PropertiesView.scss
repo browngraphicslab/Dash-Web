@@ -5,8 +5,8 @@
     font-family: "Noto Sans";
     cursor: auto;
 
-    overflow-x: visible;
-    overflow-y: visible;
+    overflow-x: hidden;
+    overflow-y: scroll;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -563,6 +563,27 @@
             padding-top: 2px;
             margin-left: 2px;
             margin-top: -1px;
+        }
+    }
+}
+
+.propertiesView-presSelected {
+    border-top: solid 1px darkgrey;
+    width: 100%;
+    padding-top: 5px;
+    font-family: Roboto;
+    font-weight: 500;
+    display: inline-flex;
+
+    .propertiesView-selectedList {
+        border-left: solid 1px darkgrey;
+        margin-left: 10px;
+        padding-left: 5px;
+
+        .selectedList-items {
+            font-size: 12;
+            font-weight: 300;
+            margin-top: 1;
         }
     }
 }

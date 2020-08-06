@@ -30,6 +30,8 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { listSpec } from '../../../fields/Schema';
 import { clamp } from 'lodash';
+import { PresBox } from '../nodes/PresBox';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
@@ -862,6 +864,27 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return false;
         }), emptyFunction, emptyFunction);
     }
+    getCurrentFrame = (): number => {
+        const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
+        const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
+        return currentFrame;
+    }
+    renderMiniPres() {
+        return <div className="miniPres" style={{
+            width: 250, height: 30, background: '#323232'
+        }}>
+            <div className="miniPresOverlay" >
+                <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
+                <div className="miniPres-button" onClick={() => PresBox.Instance.startOrResetPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
+                <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
+                <div className="miniPres-divider"></div>
+                <div className="miniPres-button-text">Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}</div>
+                {/* <div className="miniPres-button-text">{this.getCurrentFrame}</div> */}
+                <div className="miniPres-divider"></div>
+                <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
+            </div>
+        </div>;
+    }
     renderMiniMap() {
         return <div className="miniMap" style={{
             width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
@@ -944,6 +967,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
             {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
+            {document._viewType === CollectionViewType.Freeform && this._document?.miniPres ? this.renderMiniPres() : (null)}
         </>;
     }
 

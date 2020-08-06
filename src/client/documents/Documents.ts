@@ -33,6 +33,7 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
+import { MenuIconBox } from "../views/nodes/MenuIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
@@ -128,6 +129,7 @@ export interface DocumentOptions {
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
+    _fontWeight?: number;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -135,6 +137,12 @@ export interface DocumentOptions {
     currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
+    appearFrame?: number; // the frame in which the document appears
+    presTransition?: number; //the time taken for the transition TO a document
+    presDuration?: number; //the duration of the slide in presentation view
+    presProgressivize?: boolean;
+    // xArray?: number[];
+    // yArray?: number[];
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;

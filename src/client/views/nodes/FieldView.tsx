@@ -45,6 +45,7 @@ export interface FieldViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
+    presMultiSelect?: (doc: Doc) => void; //added for selecting multiple documents in a presentation
     ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;

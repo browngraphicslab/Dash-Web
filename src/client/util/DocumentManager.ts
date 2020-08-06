@@ -127,6 +127,10 @@ export class DocumentManager {
         CollectionDockingView.AddRightSplit(doc);
         finished?.();
     }
+    // static openInPlace = (doc: Doc, finished?: () => void) => {
+    //     CollectionDockingView.AddTab(doc);
+    //     finished?.();
+    // }
     public jumpToDocument = async (
         targetDoc: Doc,        // document to display
         willZoom: boolean,     // whether to zoom doc to take up most of screen
@@ -176,7 +180,7 @@ export class DocumentManager {
                 const targetDocContextView = getFirstDocView(targetDocContext);
                 targetDocContext._scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
                 if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
-                    targetDocContext._viewTransition = "transform 500ms";
+                    targetDocContext._viewTransition = "transform 10000ms";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
