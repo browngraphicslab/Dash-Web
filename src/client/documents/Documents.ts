@@ -801,10 +801,6 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { hideLinkButton: true, ...(options || {}) });
         }
 
-        export function MenuIconDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.MENUICON), undefined, { hideLinkButton: true, ...(options || {}) });
-        }
-
         export function PresElementBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
         }

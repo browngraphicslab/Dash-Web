@@ -12,6 +12,7 @@ import { NumCast, StrCast, Cast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
 import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -366,7 +367,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
                             {singleColumn ? (null) : this.props.parent.columnDragger}
                         </div>
-                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== 'presentation') ?
+                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== DocumentType.PRES) ?
                             <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                                 style={{ width: style.columnWidth / style.numGroupColumns }}>
                                 <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />

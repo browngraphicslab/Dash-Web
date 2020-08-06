@@ -577,20 +577,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const xLoc: number = (nestDepth * 20);
         const width: number = 390 - xLoc;
         const height: number = 55 - (nestDepth * 5);
-        for (let i = 0; i < list.length; i++) {
-            const mainBullets: number = Number(list[i].getAttribute("data-bulletstyle"));
+        Array.from(list).forEach(listItem => {
+            const mainBullets: number = Number(listItem.getAttribute("data-bulletstyle"));
             if (mainBullets === nestDepth) {
-                if (list[i].childElementCount > 1) {
+                if (listItem.childElementCount > 1) {
                     b++;
                     nestCount++;
                     count = before ? count + nestCount + "." : nestCount + ".";
                     yLoc += height;
-                    const text = list[i].getElementsByTagName("p")[0].innerText;
+                    const text = listItem.getElementsByTagName("p")[0].innerText;
                     const length = text.length;
-                    console.log(yLoc);
                     const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
                     mainBulletList.push(bullet1);
-                    const newList = this.recursiveProgressivize(nestDepth + 1, list[i].getElementsByTagName("li"), b, yLoc, count);
+                    const newList = this.recursiveProgressivize(nestDepth + 1, listItem.getElementsByTagName("li"), b, yLoc, count);
                     mainBulletList.push.apply(mainBulletList, newList);
                     b += newList.length;
                     yLoc += newList.length * (55 - ((nestDepth + 1) * 5));
@@ -599,15 +598,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     nestCount++;
                     count = before ? count + nestCount + "." : nestCount + ".";
                     yLoc += height;
-                    const text = list[i].innerText;
+                    const text = listItem.innerText;
                     const length = text.length;
-                    console.log(yLoc);
                     const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
                     mainBulletList.push(bullet1);
                 }
             }
-        }
-        console.log("b: " + b);
+        });
         return mainBulletList;
     }
 

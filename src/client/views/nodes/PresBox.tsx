@@ -129,7 +129,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 const nextChildDocs = DocListCast(nextTagDoc[Doc.LayoutFieldKey(presTargetDoc)]);
                 nextChildDocs.forEach((doc, i) => {
                     doc.opacity = 1;
-                })
+                });
             }
             const nextSelected = this.itemIndex + 1;
             this.gotoDocument(nextSelected, this.itemIndex);
@@ -158,28 +158,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const vfHeight: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]);
         // Case 1: document that is not a Golden Layout tab
         if (srcContext) {
-            console.log("CASE 1");
             const srcDocView = DocumentManager.Instance.getDocumentView(srcContext);
             if (srcDocView) {
                 const layoutdoc = Doc.Layout(presTargetDoc);
                 const panelWidth: number = srcDocView.props.PanelWidth();
                 const panelHeight: number = srcDocView.props.PanelHeight();
-                console.log("srcDocView: " + srcDocView.props.PanelWidth());
                 const newPanX = NumCast(presTargetDoc.x) + NumCast(layoutdoc._width) / 2;
                 const newPanY = NumCast(presTargetDoc.y) + NumCast(layoutdoc._height) / 2;
-                let newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
+                const newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
                 srcContext._panX = newPanX + (vfLeft + (vfWidth / 2));
                 srcContext._panY = newPanY + (vfTop + (vfHeight / 2));
                 srcContext._viewScale = newScale;
-                console.log("X: " + srcContext._panX + ", Y: " + srcContext._panY + ", Scale: " + srcContext._viewScale);
             }
         }
         // Case 2: document is the containing collection
         if (docView && !srcContext) {
-            console.log("CASE 2");
             const panelWidth: number = docView.props.PanelWidth();
             const panelHeight: number = docView.props.PanelHeight();
-            let newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
+            const newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
             presTargetDoc._panX = vfLeft + (vfWidth / 2);
             presTargetDoc._panY = vfTop + (vfWidth / 2);
             presTargetDoc._viewScale = newScale;
@@ -791,7 +787,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-button" style={{ display: "flex", backgroundColor: targetDoc.editProgressivize ? "#aedef8" : "" }} onClick={this.editProgressivize}>Start manually</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: "flex" }}>
-                                <div className="ribbon-button" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => { activeItem.openDocument = !activeItem.openDocument }}>Open document</div>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => activeItem.openDocument = !activeItem.openDocument}>Open document</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.WEB ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" onClick={this.progressivizeText}>Store original website</div>
@@ -808,15 +804,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <div>
                 <div className={'presBox-toolbar-dropdown'} style={{ display: this.newDocumentTools && this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                     <div className="layout-container" style={{ height: 'max-content' }}>
-                        <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'blank'; this.createNewSlide(this.layout); })} />
-                        <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'title'; this.createNewSlide(this.layout); })}>
+                        <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'blank'; this.createNewSlide(this.layout); })} />
+                        <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'title'; this.createNewSlide(this.layout); })}>
                             <div className="title">Title</div>
                             <div className="subtitle">Subtitle</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'header'; this.createNewSlide(this.layout); })}>
+                        <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'header'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
                         </div>
-                        <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'content'; this.createNewSlide(this.layout); })}>
+                        <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => { this.layout = 'content'; this.createNewSlide(this.layout); })}>
                             <div className="title" style={{ alignSelf: 'center' }}>Title</div>
                             <div className="content">Text goes here</div>
                         </div>
@@ -845,39 +841,39 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         {/* <div className="dropdown-textInput"> */}
                         <input className="ribbon-textInput" placeholder="..." type="text" name="fname" ref={this.inputRef} onChange={(e) => {
                             e.stopPropagation();
-                            runInAction(() => { (this.title = e.target.value) });
+                            runInAction(() => this.title = e.target.value);
                         }}></input>
                         {/* </div> */}
                     </div>
                     <div className="ribbon-box">
                         Choose type:
                         <div className="ribbon-doubleButton">
-                            <div title="Text" className={'ribbon-button'} style={{ background: this.addFreeform ? "" : "#aedef8" }} onClick={() => runInAction(() => { this.addFreeform = !this.addFreeform })}>Text</div>
-                            <div title="Freeform" className={'ribbon-button'} style={{ background: this.addFreeform ? "#aedef8" : "" }} onClick={() => runInAction(() => { this.addFreeform = !this.addFreeform })}>Freeform</div>
+                            <div title="Text" className={'ribbon-button'} style={{ background: this.addFreeform ? "" : "#aedef8" }} onClick={action(() => this.addFreeform = !this.addFreeform)}>Text</div>
+                            <div title="Freeform" className={'ribbon-button'} style={{ background: this.addFreeform ? "#aedef8" : "" }} onClick={action(() => this.addFreeform = !this.addFreeform)}>Freeform</div>
                         </div>
                     </div>
                     <div className="ribbon-box" style={{ display: this.addFreeform ? "grid" : "none" }}>
                         Preset layouts:
                         <div className="layout-container" style={{ height: this.openLayouts ? 'max-content' : '75px' }}>
-                            <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'blank' })} />
-                            <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'title' })}>
+                            <div className="layout" style={{ border: this.layout === 'blank' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'blank')} />
+                            <div className="layout" style={{ border: this.layout === 'title' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'title')}>
                                 <div className="title">Title</div>
                                 <div className="subtitle">Subtitle</div>
                             </div>
-                            <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'header' })}>
+                            <div className="layout" style={{ border: this.layout === 'header' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'header')}>
                                 <div className="title" style={{ alignSelf: 'center', fontSize: 10 }}>Section header</div>
                             </div>
-                            <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'content' })}>
+                            <div className="layout" style={{ border: this.layout === 'content' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'content')}>
                                 <div className="title" style={{ alignSelf: 'center' }}>Title</div>
                                 <div className="content">Text goes here</div>
                             </div>
-                            <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={() => runInAction(() => { this.layout = 'twoColumns' })}>
+                            <div className="layout" style={{ border: this.layout === 'twoColumns' ? 'solid 2px #5b9ddd' : '' }} onClick={action(() => this.layout = 'twoColumns')}>
                                 <div className="title" style={{ alignSelf: 'center', gridColumn: '1/3' }}>Title</div>
                                 <div className="content" style={{ gridColumn: 1, gridRow: 2 }}>Column one text</div>
                                 <div className="content" style={{ gridColumn: 2, gridRow: 2 }}>Column two text</div>
                             </div>
                         </div>
-                        <div className="open-layout" onClick={() => runInAction(() => { this.openLayouts = !this.openLayouts })}>
+                        <div className="open-layout" onClick={action(() => this.openLayouts = !this.openLayouts)}>
                             <FontAwesomeIcon style={{ transition: 'all 0.3s', transform: this.openLayouts ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"caret-down"} size={"lg"} />
                         </div>
                     </div>
@@ -974,10 +970,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     // For toggling the options when the user wants to select play
-    @action togglePlay = () => { this.playTools = !this.playTools; }
+    @action togglePlay = () => { this.playTools = !this.playTools; };
 
     // For toggling the options when the user wants to select play
-    @action togglePresent = () => { this.presentTools = !this.presentTools; }
+    @action togglePresent = () => { this.presentTools = !this.presentTools; };
 
     // Case in which the document has keyframes to navigate to next key frame
     @undoBatch
@@ -1381,9 +1377,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (doc && tagDocView) {
 
             const scale = tagDocView.childScaling();
-            console.log("childScaling: " + scale);
             const scale2 = tagDocView.props.ScreenToLocalTransform().Scale;
-            console.log("ScreenToLocal...Scale: " + scale2);
             let height = doc.offsetHeight;
             let width = doc.offsetWidth;
             let top = doc.offsetTop;
@@ -1544,7 +1538,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @undoBatch
     @action
     prevAppearFrame = (doc: Doc, i: number): void => {
-        console.log("prev");
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
         const appearFrame = Cast(doc.appearFrame, "number", null);
@@ -1595,7 +1588,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (activeItem) {
             return (
                 <>
-                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={() => runInAction(() => { this.newDocumentTools = !this.newDocumentTools; })}><FontAwesomeIcon icon={"plus"} />
+                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}><FontAwesomeIcon icon={"plus"} />
                         <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
                     </div></Tooltip>
                     <div className="toolbar-divider" />
@@ -1636,7 +1629,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else {
             return (
                 <>
-                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={() => runInAction(() => { this.newDocumentTools = !this.newDocumentTools; })}>
+                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}>
                         <FontAwesomeIcon icon={"plus"} />
                         <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
                     </div></Tooltip>

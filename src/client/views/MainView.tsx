@@ -80,7 +80,7 @@ export class MainView extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
 
-    @observable public sidebarContent: any = this.userDoc?.["sidebar"];
+    @observable public sidebarContent: any = this.userDoc?.sidebar;
     @observable public panelContent: string = "none";
     @observable public showProperties: boolean = false;
     public isPointerDown = false;

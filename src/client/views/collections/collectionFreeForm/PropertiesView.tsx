@@ -552,7 +552,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     getField(key: string) {
         //if (this.selectedDoc) {
-        return Field.toString(this.selectedDoc[key] as Field);
+        return Field.toString(this?.[key] as Field);
         // } else {
         //     return undefined as Opt<string>;
         // }
@@ -698,7 +698,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 <input className="width-range" type="range"
                     defaultValue={Number(this.widthStk)} min={1} max={100}
                     onChange={(action((e) => this.widthStk = e.target.value))}
-                    onMouseDown={(e) => { this._widthUndo = UndoManager.StartBatch("width undo");; }}
+                    onMouseDown={(e) => { this._widthUndo = UndoManager.StartBatch("width undo"); }}
                     onMouseUp={(e) => { this._widthUndo?.end(); this._widthUndo = undefined; }}
                 />
             </div>

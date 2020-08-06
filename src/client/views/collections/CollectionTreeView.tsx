@@ -133,7 +133,6 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
-        console.log("ele");
         this._treedropDisposer?.();
         ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this), undefined, this.preTreeDrop.bind(this)), this.doc);
     }

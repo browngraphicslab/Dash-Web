@@ -18,8 +18,6 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
 import { PresBox } from "./PresBox";
 import { InkingStroke } from "../InkingStroke";
-import { PDFViewer } from "../pdf/PDFViewer";
-import { PDFBox } from "./PDFBox";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
@@ -119,7 +117,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     public static updateScrollframe(doc: Doc, time: number) {
-        let _pdfViewer: PDFViewer | undefined;
         const timecode = Math.round(time);
         const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
         scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
@@ -191,15 +188,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const wlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const hlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
-            let oarray: List<number>;
-            console.log(doc.title + "AF: " + doc.appearFrame);
-            console.log("timecode: " + timecode);
-            oarray = olist;
+            const oarray = olist;
             oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
             oarray.fill(1, NumCast(doc.appearFrame), timecode);
             // oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
-            // oarray.fill(1, NumCast(doc.appearFrame), timecode);
-            // console.log(oarray);
+            // oarray.fill(1, NumCast(doc.appearFrame), timecode);\
             wlist[curTimecode] = NumCast(doc._width);
             hlist[curTimecode] = NumCast(doc._height);
             xlist[curTimecode] = NumCast(doc.x);

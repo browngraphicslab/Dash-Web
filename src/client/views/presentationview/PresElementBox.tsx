@@ -259,7 +259,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
         // let value = this.getValue(this._heading);
         // value = typeof value === "string" ? `"${value}"` : value;
-        let dragItem: HTMLElement[] = [];
+        const dragItem: HTMLElement[] = [];
         PresBox.Instance._dragArray.map(ele => {
             const drag = ele;
             drag.style.backgroundColor = "#d5dce2";
