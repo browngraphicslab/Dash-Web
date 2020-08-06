@@ -129,8 +129,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._results.forEach(result => {
                 Doc.UnBrushDoc(result[0]);
                 result[0].searchMatch = undefined;
-                result[0].resetSearch = undefined;
-
             });
 
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
@@ -301,6 +299,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     searchCollection(query: string) {
         const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
         query = query.toLowerCase();
+
         if (selectedCollection !== undefined) {
             this.currentSelectedCollection = selectedCollection;
             if (this.filter === true) {
@@ -431,8 +430,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._results.forEach(result => {
             Doc.UnBrushDoc(result[0]);
             result[0].searchMatch = undefined;
-            result[0].resetSearch = undefined;
-
         });
         this._results = [];
         this._resultsSet.clear();
@@ -590,7 +587,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 y += 300;
             }
         }
-
         return Docs.Create.SchemaDocument(Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []), DocListCast(this.dataDoc[this.fieldKey]), { _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString) });
     }
 
@@ -682,7 +678,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             this._isSearch[i] = "search";
                             Doc.BrushDoc(result[0]);
                             result[0].searchMatch = true;
-                            result[0].resetSearch = true;
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                             this.children++;
                         }
@@ -696,7 +691,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             result[0].searchMatch = true;
-                            result[0].resetSearch = true;
                             if (i < this._visibleDocuments.length) {
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";
@@ -780,29 +774,47 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     style={{ padding: 1, backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
                                     onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
                                     onClick={action(() => {
-                                        const dofilter = (currentSelectedCollection: DocumentView) => {
-                                            let docs = DocListCast(currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(currentSelectedCollection.dataDoc)]);
-                                            while (docs.length > 0) {
-                                                const newarray: Doc[] = [];
-                                                docs.filter(d => d.data !== undefined).forEach((d) => {
-                                                    d._searchDocs = new List<Doc>(this.docsforfilter);
-                                                    newarray.push(...DocListCast(d.data));
-                                                });
-                                                docs = newarray;
-                                            }
-                                        };
+                                        ///DONT Change without emailing andy r first.
                                         this.filter = !this.filter && !this.searchFullDB;
                                         if (this.filter === true && this.currentSelectedCollection !== undefined) {
                                             this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
-
-                                            dofilter(this.currentSelectedCollection);
+                                            let newarray: Doc[] = [];
+                                            let docs: Doc[] = [];
+                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                            while (docs.length > 0) {
+                                                newarray = [];
+                                                docs.forEach((d) => {
+                                                    if (d.data !== undefined) {
+                                                        d._searchDocs = new List<Doc>(this.docsforfilter);
+                                                        const newdocs = DocListCast(d.data);
+                                                        newdocs.forEach((newdoc) => {
+                                                            newarray.push(newdoc);
+                                                        });
+                                                    }
+                                                });
+                                                docs = newarray;
+                                            }
 
                                             this.currentSelectedCollection.props.Document._docFilters = new List<string>(Cast(this.props.Document._docFilters, listSpec("string"), []));
                                             this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
                                         }
                                         else if (this.filter === false && this.currentSelectedCollection !== undefined) {
-
-                                            dofilter(this.currentSelectedCollection);
+                                            let newarray: Doc[] = [];
+                                            let docs: Doc[] = [];
+                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                            while (docs.length > 0) {
+                                                newarray = [];
+                                                docs.forEach((d) => {
+                                                    if (d.data !== undefined) {
+                                                        d._searchDocs = new List<Doc>();
+                                                        const newdocs = DocListCast(d.data);
+                                                        newdocs.forEach((newdoc) => {
+                                                            newarray.push(newdoc);
+                                                        });
+                                                    }
+                                                });
+                                                docs = newarray;
+                                            }
 
                                             this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
                                             this.currentSelectedCollection.props.Document._docFilters = undefined;

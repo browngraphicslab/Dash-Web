@@ -112,10 +112,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
-            let rawdocs: (Doc | Promise<Doc>)[] = DocListCast(this.props.Document._searchDocs);
-
-            if (rawdocs.length !== 0) {
-            } else if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+            //DO NOT CHANGE the new algorithm in this class without emailing andy r. first!!
+            let rawdocs: (Doc | Promise<Doc>)[] = [];
+            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
             } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
                 rawdocs = Cast(this.dataField, listSpec(Doc), null);
@@ -131,24 +130,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
             const searchDocs = DocListCast(this.props.Document._searchDocs);
-            // if (searchDocs !== undefined && searchDocs.length > 0) {
-            //     let newdocs: Doc[] = [];
-            //     childDocs.forEach((el) => {
-            //         searchDocs.includes(el) ? newdocs.push(el) : undefined;
-            //     });
-            //     childDocs = newdocs;
-            // }
+
+            //DO NOT CHANGE the new algorithm in this class without emailing andy r. first!!
 
             let docsforFilter: Doc[] = childDocs;
             if (searchDocs !== undefined && searchDocs.length > 0) {
                 docsforFilter = [];
-                // let newdocs: Doc[] = [];
-                // let newarray: Doc[] = [];
-                //while (childDocs.length > 0) {
-                //newarray = [];
+
                 childDocs.forEach((d) => {
                     if (d.data !== undefined) {
-                        console.log(d);
                         let newdocs = DocListCast(d.data);
                         if (newdocs.length > 0) {
                             let vibecheck: boolean | undefined = undefined;
@@ -177,8 +167,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         docsforFilter.push(d);
                     }
                 });
-                //childDocs = newarray;
-                //}
+
             }
             childDocs = docsforFilter;
 
@@ -186,7 +175,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const docFilters = this.docFilters();
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
-            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, this.docFilters(), docRangeFilters, viewSpecScript);
+            return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 
         @action

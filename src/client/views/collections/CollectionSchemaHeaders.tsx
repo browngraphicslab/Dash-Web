@@ -11,6 +11,7 @@ import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHe
 import { undoBatch } from "../../util/UndoManager";
 import { Doc } from "../../../fields/Doc";
 import { StrCast } from "../../../fields/Types";
+import { optionFocusAriaMessage } from "react-select/src/accessibility";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -286,6 +287,7 @@ export interface KeysDropdownProps {
     setIsEditing: (isEditing: boolean) => void;
     width?: string;
     docs?: Doc[];
+
 }
 @observer
 export class KeysDropdown extends React.Component<KeysDropdownProps> {
@@ -365,10 +367,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     onPointerOut = (e: React.PointerEvent): void => {
         this._canClose = true;
     }
-
+    @action
     renderOptions = (): JSX.Element[] | JSX.Element => {
-        if (!this._isOpen) return <></>;
-
+        // if (!this._isOpen) {
+        //     this.defaultMenuHeight = 0;
+        //     return <></>;
+        // }
         const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
 
         const keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
@@ -378,7 +382,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const options = keyOptions.map(key => {
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray",
-                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
             }}
                 onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
@@ -387,21 +391,35 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         if (this._key !== this._searchTerm.slice(0, this._key.length)) {
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
                 options.push(<div key={""} className="key-option" style={{
-                    border: "1px solid lightgray",
-                    width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+                    border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
                 }}
                     onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
                     Create "{this._searchTerm}" key</div>);
             }
         }
 
+        if (options.length === 0) {
+            this.defaultMenuHeight = 0;
+        }
+        else {
+            if (this.props.docs) {
+                let panesize = this.props.docs.length * 30;
+                options.length * 20 + 8 - 10 > panesize ? this.defaultMenuHeight = panesize : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+            else {
+                options.length > 5 ? this.defaultMenuHeight = 108 : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+        }
         return options;
     }
-
+    @action
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
-        if (!this._isOpen) return <></>;
+        // if (!this._isOpen) {
+        //     this.defaultMenuHeight = 0;
+        //     return <></>;
+        // }
         const keyOptions: string[] = [];
-        const colpos = this._searchTerm.indexOf(":")
+        const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         this.props.docs?.forEach((doc) => {
             const key = StrCast(doc[this._key]);
@@ -413,15 +431,28 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
         const options = keyOptions.map(key => {
             return <div key={key} className="key-option" style={{
-                border: "1px solid lightgray",
-                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden"
+                border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
             }}
                 onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelectValue(key); }}>{key}</div>;
         });
+        if (options.length === 0) {
+            this.defaultMenuHeight = 0;
+        }
+        else {
+            if (this.props.docs) {
+                let panesize = this.props.docs.length * 30;
+                options.length * 20 + 8 - 10 > panesize ? this.defaultMenuHeight = panesize : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+            else {
+                options.length > 5 ? this.defaultMenuHeight = 108 : this.defaultMenuHeight = options.length * 20 + 8;
+            }
+
+        }
 
         return options;
     }
 
+    @observable defaultMenuHeight = 0;
 
     render() {
         return (
@@ -434,8 +465,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                         e.stopPropagation();
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" style={{
-                    backgroundColor: "white",
-                    width: this.props.width, maxWidth: this.props.width,
+                    width: this.props.width, maxWidth: this.props.width, overflow: "scroll", height: this.defaultMenuHeight,
                 }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this._searchTerm.includes(":") ?
