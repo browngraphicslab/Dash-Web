@@ -19,7 +19,6 @@ interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
     addDocTab: (document: Doc, where: string) => boolean;
-    location: number[];
 }
 
 @observer
@@ -85,17 +84,25 @@ export class LinkMenu extends React.Component<Props> {
         return linkItems;
     }
 
+    @computed
+    get position() {
+        const docView = this.props.docView;
+        const transform = (docView.props.ScreenToLocalTransform().scale(docView.props.ContentScaling())).inverse();
+        const [sptX, sptY] = transform.transformPoint(0, 0);
+        const [bptX, bptY] = transform.transformPoint(docView.props.PanelWidth(), docView.props.PanelHeight());
+        return { x: sptX, y: sptY, r: bptX, b: bptY };
+    }
+
     render() {
+        console.log("computed", this.position.x, this.position.b);
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         return <div className="linkMenu" ref={this._linkMenuRef} >
-            {!this._editingLink ? <div className="linkMenu-list" style={{
-                left: this.props.location[0], top: this.props.location[1]
-            }}>
-                {this.renderAllGroups(groups)}
-            </div> : <div className="linkMenu-listEditor" style={{
-                left: this.props.location[0], top: this.props.location[1]
-            }}>
+            {!this._editingLink ?
+                <div className="linkMenu-list" style={{ left: this.position.x, top: this.position.b + 15 }}>
+                    {this.renderAllGroups(groups)}
+                </div> :
+                <div className="linkMenu-listEditor" style={{ left: this.position.x, top: this.position.b + 15 }}>
                     <LinkEditor sourceDoc={this.props.docView.props.Document} linkDoc={this._editingLink}
                         showLinks={action(() => this._editingLink = undefined)} />
                 </div>

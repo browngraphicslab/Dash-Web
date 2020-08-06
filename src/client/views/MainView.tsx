@@ -790,7 +790,7 @@ export class MainView extends React.Component {
             <FormatShapePane />
             <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
+            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}
