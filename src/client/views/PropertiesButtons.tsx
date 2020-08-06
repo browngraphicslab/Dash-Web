@@ -245,7 +245,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>}>
             <div className="propertiesButtons-linker"
-                style={{ backgroundColor: "white", color: "black" }}
+                style={{ backgroundColor: "black", color: "white" }}
                 onClick={e => {
                     if (targetDoc) {
                         DockedFrameRenderer.PinDoc(targetDoc, false);
@@ -259,8 +259,13 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         activeDoc.presPinViewScale = scale;
                     }
                 }}>
-                <div style={{ position: 'absolute', fontSize: 25, fontWeight: 700, transform: 'translate(42%, -7px)', color: 'rgba(0,0,0,0.2)' }}>V</div>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
+                <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(42%, -7px)', color: 'rgba(0,0,0,0.2)' }}>V</div>
+                <div className="propertiesButtons-title" style={{
+                    backgroundColor: "black",
+                    color: "white"
+                }}
+                >{"Pin with view"}</div>
             </div></Tooltip>;
     }
 

@@ -873,13 +873,12 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return <div className="miniPres" style={{
             width: 250, height: 30, background: '#323232'
         }}>
-            <div className="miniPresOverlay" >
+            <div className="miniPresOverlay" onClick={() => document.addEventListener("keydown", PresBox.Instance.minimizeEvents, false)}>
                 <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
                 <div className="miniPres-button" onClick={() => PresBox.Instance.startOrResetPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
                 <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
                 <div className="miniPres-divider"></div>
                 <div className="miniPres-button-text">Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}</div>
-                {/* <div className="miniPres-button-text">{this.getCurrentFrame}</div> */}
                 <div className="miniPres-divider"></div>
                 <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
             </div>
