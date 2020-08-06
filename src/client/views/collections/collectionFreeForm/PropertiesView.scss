@@ -41,7 +41,7 @@
         font-size: 12.5px;
 
         &:hover {
-            cursor: pointer;
+            cursor: text;
         }
     }
 
@@ -617,6 +617,7 @@
 
         display: flex;
         margin-bottom: 3px;
+        margin-left: 4px;
 
         .arrows-head {
 
@@ -650,7 +651,7 @@
     .dashed {
 
         display: flex;
-        margin-left: 74px;
+        margin-left: 64px;
         margin-bottom: 6px;
 
         .dashed-title {
@@ -661,5 +662,16 @@
             margin-left: 6px;
             margin-top: 2px;
         }
+    }
+}
+
+.editable-title {
+    border: none;
+    padding: 6px;
+    padding-bottom: 2px;
+
+
+    &:hover {
+        border: 0.75px solid rgb(122, 28, 28);
     }
 }

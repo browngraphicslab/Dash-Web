@@ -1,37 +1,35 @@
 import React = require("react");
-import { FontAwesomeIcon, FontAwesomeIconProps } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction, runInAction, Lambda } from "mobx";
-import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt, Field } from "../../../fields/Doc";
-import { BoolCast, Cast, StrCast, NumCast } from "../../../fields/Types";
-import AntimodeMenu from "../AntimodeMenu";
-import "./CollectionMenu.scss";
-import { undoBatch } from "../../util/UndoManager";
-import { CollectionViewType, CollectionView, COLLECTION_BORDER_WIDTH } from "./CollectionView";
-import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
-import { DragManager } from "../../util/DragManager";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { List } from "../../../fields/List";
-import { EditableView } from "../EditableView";
-import { Id } from "../../../fields/FieldSymbols";
-import { listSpec } from "../../../fields/Schema";
-import FormatShapePane from "./collectionFreeForm/FormatShapePane";
-import { ActiveFillColor, SetActiveInkWidth, ActiveInkColor, SetActiveBezierApprox, SetActiveArrowEnd, SetActiveArrowStart, SetActiveFillColor, SetActiveInkColor } from "../InkingStroke";
-import GestureOverlay from "../GestureOverlay";
-import { InkTool } from "../../../fields/InkField";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { Document } from "../../../fields/documentSchemas";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentView } from "../nodes/DocumentView";
-import { ColorState } from "react-color";
-import { ObjectField } from "../../../fields/ObjectField";
-import RichTextMenu from "../nodes/formattedText/RichTextMenu";
-import { RichTextField } from "../../../fields/RichTextField";
-import { ScriptField } from "../../../fields/ScriptField";
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import { DocUtils } from "../../documents/Documents";
+import { FontAwesomeIcon, FontAwesomeIconProps } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
+import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import { ColorState } from "react-color";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { Document } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { InkTool } from "../../../fields/InkField";
+import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
+import { listSpec } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { DragManager } from "../../util/DragManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { undoBatch } from "../../util/UndoManager";
+import AntimodeMenu from "../AntimodeMenu";
+import { EditableView } from "../EditableView";
+import GestureOverlay from "../GestureOverlay";
+import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
+import { DocumentView } from "../nodes/DocumentView";
+import RichTextMenu from "../nodes/formattedText/RichTextMenu";
+import "./CollectionMenu.scss";
+import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu {
@@ -185,7 +183,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
     };
 
-    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
+    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
     @computed get _stacking_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
     @computed get _masonry_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
     @computed get _schema_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._templateCommand, this._narrativeCommand]; }
@@ -236,7 +234,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
 
     @computed get subChrome() {
         switch (this.props.type) {
-            default:
+            default: return this.otherSubChrome;
             case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);
@@ -247,6 +245,21 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
             case CollectionViewType.Docking: return (<CollectionDockingChrome key="collchrome" {...this.props} />);
         }
     }
+
+    @computed get otherSubChrome() {
+        const docType = this.props.docView.Document.type;
+        switch (docType) {
+            default: return (null);
+            case DocumentType.IMG: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={false} isDoc={true} />);
+            case DocumentType.PDF: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={false} isDoc={true} />);
+            case DocumentType.INK: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={false} isDoc={true} />);
+            case DocumentType.WEB: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={false} isDoc={true} />);
+            case DocumentType.VID: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={false} isDoc={true} />);
+            case DocumentType.RTF: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} isDoc={true} />);
+        }
+    }
+
+
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer?.();
@@ -392,7 +405,7 @@ export class CollectionDockingChrome extends React.Component<CollectionMenuProps
 }
 
 @observer
-export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps & { isOverlay: boolean }> {
+export class CollectionFreeFormViewChrome extends React.Component<CollectionMenuProps & { isOverlay: boolean, isDoc?: boolean }> {
     public static Instance: CollectionFreeFormViewChrome;
     constructor(props: any) {
         super(props);
@@ -590,34 +603,36 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
 
+    @observable viewType = this.selectedDoc?._viewType;
+
     render() {
         return !this.props.docView.layoutDoc ? (null) :
             <div className="collectionFreeFormMenu-cont">
-                {this.props.docView.props.renderDepth !== 0 || this.isText ? (null) :
+                {this.props.docView.props.renderDepth !== 0 || this.isText || this.props.isDoc ? (null) :
                     <Tooltip key="map" title={<div className="dash-tooltip">Toggle Mini Map</div>} placement="bottom">
-                        <div className="backKeyframe" onClick={this.miniMap}>
+                        <div className="backKeyframe" onClick={this.miniMap} style={{ marginRight: "5px" }}>
                             <FontAwesomeIcon icon={"map"} size={"lg"} />
                         </div>
                     </Tooltip>
                 }
-                {!this.isText ? <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
+                {!this.isText && !this.props.isDoc ? <Tooltip key="back" title={<div className="dash-tooltip">Back Frame</div>} placement="bottom">
                     <div className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                     </div>
                 </Tooltip> : null}
-                {!this.isText ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
+                {!this.isText && !this.props.isDoc ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
                     <div className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
                         onClick={action(() => this.document.editing = !this.document.editing)} >
                         {NumCast(this.document.currentFrame)}
                     </div>
                 </Tooltip> : null}
-                {!this.isText ? <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
+                {!this.isText && !this.props.isDoc ? <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
                     <div className="fwdKeyframe" onClick={this.nextKeyframe}>
                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                     </div>
                 </Tooltip> : null}
 
-                {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText ? (null) :
+                {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
                     <Tooltip key="hypothesis" title={<div className="dash-tooltip">Use Hypothesis</div>} placement="bottom">
                         <button className={"antimodeMenu-button"} key="hypothesis"
                             style={{
@@ -655,6 +670,24 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
         const docs = DocListCast(this.document[this.props.fieldKey]);
+
+        if (Doc.UserDoc().noviceMode) {
+            if (docs instanceof Doc) {
+                const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
+                    key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
+                    (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                return keys.filter(key => key.toLowerCase().indexOf(value.toLowerCase()) > -1);
+            } else {
+                const keys = new Set<string>();
+                docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
+                const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 ||
+                    key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
+                    key.indexOf("lastModified") >= 0 || (key[0].toUpperCase() === key[0] &&
+                        key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
+                return noviceKeys.filter(key => key.toLowerCase().indexOf(value.toLowerCase()) > -1);
+            }
+        }
+
         if (docs instanceof Doc) {
             return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
         } else {

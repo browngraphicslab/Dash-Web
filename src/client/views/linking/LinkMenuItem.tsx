@@ -191,7 +191,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.AUDIO: destinationIcon = "microphone"; break;
             case DocumentType.BUTTON: destinationIcon = "bolt"; break;
             case DocumentType.PRES: destinationIcon = "tv"; break;
-            case DocumentType.QUERY: destinationIcon = "search"; break;
             case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
             case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;

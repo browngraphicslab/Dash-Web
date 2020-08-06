@@ -18,7 +18,7 @@ export default class HypothesisAuthenticationManager extends React.Component<{}>
     @observable private showPasteTargetState = false;
     @observable private success: Opt<boolean> = undefined;
     @observable private displayLauncher = true;
-    @observable private credentials: string;
+    @observable private credentials: string = "";
     private disposer: Opt<IReactionDisposer>;
 
     private set isOpen(value: boolean) {
