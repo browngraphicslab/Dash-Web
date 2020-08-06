@@ -113,7 +113,8 @@ export namespace Hypothesis {
     // listen for event from Hypothes.is plugin to link an annotation to Dash
     export const linkListener = async (e: any) => {
         const annotationId: string = e.detail.id;
-        const annotationUri: string = StrCast(e.detail.uri).split("#annotations:")[0]; // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
+        const annotationUri: string = StrCast(e.detail.uri).split("#annotations:")[0]; // clean hypothes.is URLs that reference a specific annotation 
+        const isStart = (e.detail.isLinkStart === "true");
         const sourceDoc: Doc = await getSourceWebDoc(annotationUri);
 
         if (!DocumentLinksButton.StartLink) { // start link if there were none already started 
@@ -123,7 +124,6 @@ export namespace Hypothesis {
                 DocumentLinksButton.StartLink = sourceDoc;
             });
         } else if (!Doc.AreProtosEqual(sourceDoc, DocumentLinksButton.StartLink)) { // if a link has already been started, complete the link to the sourceDoc
-            console.log("completing link", sourceDoc.title);
             runInAction(() => {
                 DocumentLinksButton.AnnotationId = annotationId;
                 DocumentLinksButton.AnnotationUri = annotationUri;
