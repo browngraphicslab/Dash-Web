@@ -25,6 +25,7 @@ import "./FormatShapePane.scss";
 import { discovery_v1 } from "googleapis";
 import { PresBox } from "../../nodes/PresBox";
 import { DocumentManager } from "../../../util/DocumentManager";
+import FormatShapePane from "./FormatShapePane";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -51,8 +52,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance._selectedArray.length >= 1) {
-            return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
+        } else if (PresBox.Instance?._selectedArray.length >= 1) {
+            return DocumentManager.Instance.getDocumentView(PresBox.Instance?.rootDoc);
         } else { return undefined; }
     }
     @computed get isPres(): boolean {
@@ -72,6 +73,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openTransform: boolean = true;
     // @observable selectedUser: string = "";
     // @observable addButtonPressed: boolean = false;
+
     //Pres Trails booleans:
     @observable openAddSlide: boolean = true;
     @observable openPresentationTools: boolean = true;
@@ -957,9 +959,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance._selectedArray.length} selected
+                            {PresBox.Instance?._selectedArray.length} selected
                             <div className="propertiesView-selectedList">
-                                {PresBox.Instance.listOfSelected}
+                                {PresBox.Instance?.listOfSelected}
                             </div>
                         </div>
                     </div>
@@ -973,7 +975,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                         {this.openAddSlide ? <div className="propertiesView-settings-content">
-                            {PresBox.Instance.newDocumentDropdown}
+                            {PresBox.Instance?.newDocumentDropdown}
                         </div> : null}
                     </div>
                     <div className="propertiesView-sharing">
@@ -986,7 +988,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                         {this.openPresTransitions ? <div className="propertiesView-sharing-content">
-                            {PresBox.Instance.transitionDropdown}
+                            {PresBox.Instance?.transitionDropdown}
                         </div> : null}
                     </div>
                     <div className="propertiesView-sharing">
@@ -999,20 +1001,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                         {this.openPresProgressivize ? <div className="propertiesView-sharing-content">
-                            {PresBox.Instance.progressivizeDropdown}
+                            {PresBox.Instance?.progressivizeDropdown}
                         </div> : null}
                     </div>
                     <div className="propertiesView-sharing">
                         <div className="propertiesView-sharing-title"
                             onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
+                            &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance?.stringType} options
                         <div className="propertiesView-sharing-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {this.openSlideOptions ? <div className="propertiesView-sharing-content">
-                            {PresBox.Instance.optionsDropdown}
+                            {PresBox.Instance?.optionsDropdown}
                         </div> : null}
                     </div>
                     <div className="propertiesView-sharing">
