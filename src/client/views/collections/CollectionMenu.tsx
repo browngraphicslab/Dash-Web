@@ -235,6 +235,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     @computed get subChrome() {
         switch (this.props.type) {
             default: return this.otherSubChrome;
+            case CollectionViewType.Invalid:
             case CollectionViewType.Freeform: return (<CollectionFreeFormViewChrome key="collchrome" {...this.props} isOverlay={this.props.type === CollectionViewType.Invalid} />);
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" {...this.props} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" {...this.props} />);

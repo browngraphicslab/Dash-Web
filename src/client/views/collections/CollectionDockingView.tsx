@@ -896,8 +896,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 CollectionView={undefined}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                ChildLayoutTemplate={this.childLayoutTemplate} // bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid havin to set stuff like this.
-                noOverlay={true} // don't render overlay Docs since they won't scale
+                ChildLayoutTemplate={this.childLayoutTemplate}// bcz: Ugh .. should probably be rendering a CollectionView or the minimap should be part of the collectionFreeFormView to avoid havin to set stuff like this.
                 active={returnTrue}
                 select={emptyFunction}
                 dropAction={undefined}
