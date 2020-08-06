@@ -1390,8 +1390,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const doc = document.getElementById('resizable');
         if (doc && tagDocView) {
 
-            const scale = tagDocView.childScaling();
-            const scale2 = tagDocView.props.ScreenToLocalTransform().Scale;
+            const scale2 = tagDocView.childScaling();
+            const scale3 = tagDocView.props.ScreenToLocalTransform().Scale;
+            const scale = NumCast(targetDoc._viewScale);
+            console.log("scale: " + NumCast(targetDoc._viewScale));
             let height = doc.offsetHeight;
             let width = doc.offsetWidth;
             let top = doc.offsetTop;
@@ -1428,9 +1430,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // }
             //Bottom right
             if (this._isDraggingBR) {
-                const newHeight = height += (e.movementY * scale2);
+                const newHeight = height += (e.movementY * scale);
                 doc.style.height = newHeight + 'px';
-                const newWidth = width += (e.movementX * scale2);
+                const newWidth = width += (e.movementX * scale);
                 doc.style.width = newWidth + 'px';
                 // Bottom left
             } else if (this._isDraggingBL) {
@@ -1442,26 +1444,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 doc.style.left = newLeft + 'px';
                 // Top right
             } else if (this._isDraggingTR) {
-                const newWidth = width += (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newWidth = width += (e.movementX * scale);
                 doc.style.width = newWidth + 'px';
-                const newHeight = height -= (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newHeight = height -= (e.movementY * scale);
                 doc.style.height = newHeight + 'px';
-                const newTop = top += (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newTop = top += (e.movementY * scale);
                 doc.style.top = newTop + 'px';
                 // Top left
             } else if (this._isDraggingTL) {
-                const newWidth = width -= (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newWidth = width -= (e.movementX * scale);
                 doc.style.width = newWidth + 'px';
-                const newHeight = height -= (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newHeight = height -= (e.movementY * scale);
                 doc.style.height = newHeight + 'px';
-                const newTop = top += (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newTop = top += (e.movementY * scale);
                 doc.style.top = newTop + 'px';
-                const newLeft = left += (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newLeft = left += (e.movementX * scale);
                 doc.style.left = newLeft + 'px';
             } else if (this._isDragging) {
-                const newTop = top += (e.movementY * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newTop = top += (e.movementY * scale);
                 doc.style.top = newTop + 'px';
-                const newLeft = left += (e.movementX * tagDocView.props.ScreenToLocalTransform().Scale);
+                const newLeft = left += (e.movementX * scale);
                 doc.style.left = newLeft + 'px';
             }
             this.updateList(targetDoc, targetDoc["viewfinder-width-indexed"], width);
@@ -1501,20 +1503,24 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get zoomProgressivizeContainer() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        if (targetDoc.editZoomProgressivize) {
+        if (targetDoc) {
+            const vfLeft: number = this.checkList(targetDoc, targetDoc["viewfinder-left-indexed"]);
+            const vfWidth: number = this.checkList(targetDoc, targetDoc["viewfinder-width-indexed"]);
+            const vfTop: number = this.checkList(targetDoc, targetDoc["viewfinder-top-indexed"]);
+            const vfHeight: number = this.checkList(targetDoc, targetDoc["viewfinder-height-indexed"]);
             return (
                 <>
-                    <div id="resizable" className="resizable" onPointerDown={this.onPointerMid} style={{ width: this.checkList(targetDoc, targetDoc["viewfinder-width-indexed"]), height: this.checkList(targetDoc, targetDoc["viewfinder-height-indexed"]), top: this.checkList(targetDoc, targetDoc["viewfinder-top-indexed"]), left: this.checkList(targetDoc, targetDoc["viewfinder-left-indexed"]), position: 'absolute' }}>
+                    {!targetDoc.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerMid} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
                         <div className='resizers'>
                             <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerTL}></div>
                             <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerTR}></div>
                             <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerBL}></div>
                             <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerBR}></div>
                         </div>
-                    </div>
+                    </div>}
                 </>
             );
-        } else return null;
+        }
     }
 
     @computed get progressivizeChildDocs() {

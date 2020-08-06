@@ -1495,33 +1495,26 @@ interface CollectionFreeFormViewPannableContentsProps {
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
     @computed get zoomProgressivize() {
-        if (this.props.zoomProgressivize) {
-            console.log("should render");
-            return (
-                <>
-                    {PresBox.Instance.zoomProgressivizeContainer}
-                </>
-            );
-        }
+        if (PresBox.Instance) return (
+            <>
+                {this.props.zoomProgressivize ? PresBox.Instance.zoomProgressivizeContainer : (null)}
+            </>
+        );
     }
 
     @computed get progressivize() {
-        if (this.props.progressivize) {
-            console.log("should render");
-            return (
-                <>
-                    {PresBox.Instance.progressivizeChildDocs}
-                </>
-            );
-        }
+        if (PresBox.Instance) return (
+            <>
+                {this.props.progressivize ? PresBox.Instance.progressivizeChildDocs : (null)}
+            </>
+        );
     }
 
     @computed get presPaths() {
         const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
-        if (this.props.presPaths) {
-            return (
-                <>
-                    <div>{PresBox.Instance.order}</div>
+        if (PresBox.Instance) return (
+            <>
+                {!this.props.presPaths ? (null) : <><div>{PresBox.Instance.order}</div>
                     <svg className={presPaths}>
                         <defs>
                             <marker id="arrow" markerWidth="3" overflow="visible" markerHeight="3" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
@@ -1542,10 +1535,9 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                             </marker>
                         </defs>;
                     {PresBox.Instance.paths}
-                    </svg>
-                </>
-            );
-        }
+                    </svg></>}
+            </>
+        );
     }
 
     render() {
