@@ -119,6 +119,19 @@
             font-size: 10px;
             padding: 10px;
             margin-left: 5px;
+
+            .change-buttons {
+                display: flex;
+
+                button {
+                    width: 5;
+                    height: 5;
+                }
+
+                input {
+                    width: 100%;
+                }
+            }
         }
     }
 
@@ -233,11 +246,15 @@
 
     .propertiesView-sharingTable {
 
+        // whatever's commented out - add it back in when adding the buttons
+
+        // border: 1.5px solid black;
         border: 1px solid black;
-        padding: 5px;
-        border-radius: 6px;
-        /* width: 170px; */
-        margin-right: 10px;
+        padding: 5px; // remove when adding buttons
+        border-radius: 6px; // remove when adding buttons
+        margin-right: 10px; // remove when adding buttons
+        // width: 100%;
+        // display: inline-table;
         background-color: #ececec;
         max-height: 130px;
         overflow-y: scroll;
@@ -245,9 +262,11 @@
         .propertiesView-sharingTable-item {
 
             display: flex;
+            // padding: 5px;
             padding: 3px;
             align-items: center;
             border-bottom: 0.5px solid grey;
+            cursor: pointer;
 
             &:hover .propertiesView-sharingTable-item-name {
                 overflow-x: unset;
