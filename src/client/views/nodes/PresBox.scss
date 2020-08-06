@@ -161,52 +161,6 @@ $light-background: #ececec;
         padding-left: 10px;
     }
 
-    // .toolbar-slider {
-    //     position: relative;
-    //     align-self: center;
-    //     justify-self: left;
-    //     -webkit-appearance: none;
-    //     background-color: #5b9ddd;
-    //     overflow: hidden;
-    //     margin-top: 5px;
-    //     width: 100%;
-    //     max-width: 200px;
-
-    // }
-
-    // .toolbar-slider:focus {
-    //     outline: none;
-    // }
-
-    // .effectDirection {
-    //     justify-self: center;
-    //     align-self: center;
-    //     align-items: center;
-    //     justify-content: center;
-    //     grid-template-columns: 13px 13px 13px;
-    //     display: grid;
-    // }
-
-    // .toolbar-slider::-webkit-slider-thumb {
-    //     -webkit-appearance: none;
-    //     background-color: #5b9ddd;
-    //     box-shadow: -100 vw 0 0 100vw pink;
-    //     width: 12px;
-    //     height: 12px;
-    // }
-
-    // .toolbar-slider::-webkit-slider-runnable-track {
-    //     position: relative;
-    //     align-self: center;
-    //     justify-self: left;
-    //     -webkit-appearance: none;
-    //     background-color: #5b9ddd;
-    //     margin-top: 5px;
-    //     border: solid 1px black;
-    //     border-radius: 10px;
-    //     height: 5px;
-    //     left: 0px;
-    // }
     .presBox-subheading {
         font-size: 11;
         font-weight: 400;
@@ -412,7 +366,7 @@ $light-background: #ececec;
         font-size: 10.5;
         font-weight: 200;
         height: 20;
-        background-color: #dedede;
+        background-color: $light-background;
         border: solid 1px black;
         display: flex;
         margin-top: 5px;
@@ -504,7 +458,7 @@ $light-background: #ececec;
             grid-template-columns: auto 20%;
             position: relative;
             border: solid 1px black;
-            background-color: #dedede;
+            background-color: $light-background;
             border-radius: 5px;
             font-size: 10;
             height: 30;
@@ -632,7 +586,7 @@ $light-background: #ececec;
     align-items: center;
     justify-content: center;
     transform: translate(0px, -1px);
-    background-color: #dedede;
+    background-color: $light-background;
     width: 40px;
     height: 15px;
     align-self: center;
@@ -646,7 +600,7 @@ $light-background: #ececec;
 .layout-container {
     padding: 5px;
     display: grid;
-    background-color: #dedede;
+    background-color: $light-background;
     grid-template-columns: repeat(auto-fit, minmax(90px, 100px));
     width: 100%;
     border: solid 1px black;
@@ -798,12 +752,14 @@ $light-background: #ececec;
         border-radius: 5px;
         grid-template-rows: 100%;
         height: 25;
-        width: 200;
+        width: max-content;
+        min-width: max-content;
         justify-content: space-evenly;
         align-items: center;
         display: flex;
         position: absolute;
         right: 10px;
+        transition: all 0.2s;
 
         .miniPres-button-text {
             display: flex;
@@ -811,6 +767,10 @@ $light-background: #ececec;
             width: max-content;
             font-family: Roboto;
             font-weight: 400;
+            margin-left: 3px;
+            margin-right: 3px;
+            padding-right: 3px;
+            padding-left: 3px;
             letter-spacing: normal;
             border-radius: 5px;
             align-items: center;
@@ -824,10 +784,27 @@ $light-background: #ececec;
             border-right: solid 1px #5a5a5a;
         }
 
+        .miniPres-button-frame {
+            justify-self: center;
+            align-self: center;
+            align-items: center;
+            display: grid;
+            grid-template-columns: auto auto auto;
+            justify-content: space-around;
+            font-size: 11;
+            margin-left: 7;
+            width: 30;
+            height: 85%;
+            background-color: rgba(91, 157, 221, 0.4);
+            border-radius: 5px;
+        }
+
         .miniPres-button {
             display: flex;
             height: 20;
             min-width: 20;
+            margin-left: 3px;
+            margin-right: 3px;
             border-radius: 100%;
             align-items: center;
             justify-content: center;

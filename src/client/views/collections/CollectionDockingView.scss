@@ -54,6 +54,21 @@
             transition: all 0.3s;
         }
 
+        .miniPres-button-frame {
+            justify-self: center;
+            align-self: center;
+            align-items: center;
+            display: grid;
+            grid-template-columns: auto auto auto;
+            justify-content: space-around;
+            font-size: 11;
+            margin-left: 7;
+            width: 30;
+            height: 85%;
+            background-color: rgba(91, 157, 221, 0.4);
+            border-radius: 5px;
+        }
+
         .miniPres-divider {
             width: 0.5px;
             height: 80%;

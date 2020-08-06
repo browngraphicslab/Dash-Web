@@ -243,9 +243,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             const scale = targetDoc._viewScale;
         }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>} placement="top">
-            <>
+            <div>
                 <div className="propertiesButtons-linker"
-                    style={{ backgroundColor: "black", color: "white" }}
                     onClick={e => {
                         if (targetDoc) {
                             DockedFrameRenderer.PinDoc(targetDoc, false);
@@ -262,8 +261,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
                     <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -20px)', color: 'rgba(250,250,250,0.5)' }}>V</div>
                 </div>
-                <div className="propertiesButtons-title" style={{ backgroundColor: "black", color: "white" }}>{"View"}</div>
-            </>
+
+                <div className="propertiesButtons-title">{"View"}</div>
+            </div>
         </Tooltip>;
     }
 
