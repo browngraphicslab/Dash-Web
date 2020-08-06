@@ -307,7 +307,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (BoolCast(Doc.GetProto(this.dataDoc).resetSearch) === true) {
                 this._searchIndex = 0;
                 Doc.GetProto(this.dataDoc).resetSearch = undefined;
-                this.dumbthing = true;
             }
             else {
                 this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;

@@ -590,7 +590,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 y += 300;
             }
         }
-        return Docs.Create.SearchDocument({ _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString), searchQuery: StrCast(this.layoutDoc._searchString) });
+
+        return Docs.Create.SchemaDocument(Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []), DocListCast(this.dataDoc[this.fieldKey]), { _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString) });
     }
 
     @action.bound
