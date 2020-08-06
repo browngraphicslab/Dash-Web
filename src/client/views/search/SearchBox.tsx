@@ -129,6 +129,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._results.forEach(result => {
                 Doc.UnBrushDoc(result[0]);
                 result[0].searchMatch = undefined;
+                result[0].resetSearch = undefined;
+
             });
 
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
@@ -429,6 +431,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._results.forEach(result => {
             Doc.UnBrushDoc(result[0]);
             result[0].searchMatch = undefined;
+            result[0].resetSearch = undefined;
+
         });
         this._results = [];
         this._resultsSet.clear();
@@ -677,6 +681,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             this._isSearch[i] = "search";
                             Doc.BrushDoc(result[0]);
                             result[0].searchMatch = true;
+                            result[0].resetSearch = true;
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                             this.children++;
                         }
@@ -690,6 +695,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].lines = lines;
                             result[0].highlighting = highlights.join(", ");
                             result[0].searchMatch = true;
+                            result[0].resetSearch = true;
                             if (i < this._visibleDocuments.length) {
                                 this._visibleDocuments[i] = result[0];
                                 this._isSearch[i] = "search";

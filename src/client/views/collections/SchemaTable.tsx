@@ -177,7 +177,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
-        console.log(columns);
 
         const cols = this.props.columns.map(col => {
 
@@ -315,31 +314,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             width: 28,
             resizable: false
         });
-        console.log(columns);
         return columns;
     }
 
-
-
-    @action
-    nextHighlight = (e: React.MouseEvent, doc: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
-        doc.searchMatch = false;
-        console.log(doc.searchMatch);
-        setTimeout(() => doc.searchMatch = true, 0);
-        console.log(doc.searchMatch);
-
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
-
-    @action
-    nextHighlight2 = (doc: Doc) => {
-
-        doc.searchMatchAlt = false;
-        setTimeout(() => doc.searchMatchAlt = true, 0);
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
 
     constructor(props: SchemaTableProps) {
         super(props);
