@@ -645,7 +645,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         </button>
                     </Tooltip>
                 }
-                {(!this.props.isOverlay || this.props.docView.layoutDoc.isAnnotating) && !this.isText ?
+                {!this.isText ?
                     <>
                         {this.drawButtons}
                         {this.widthPicker}
