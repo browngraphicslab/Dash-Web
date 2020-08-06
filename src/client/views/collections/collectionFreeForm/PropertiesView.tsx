@@ -83,8 +83,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get isInk() { return this.selectedDoc?.type === DocumentType.INK; }
 
-    @observable scrolling: boolean = true;
-
     @action
     rtfWidth = () => {
         if (this.selectedDoc) {
@@ -616,12 +614,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     }
 
-    @action
-    changeScrolling = (scroll: boolean) => {
-        console.log(scroll);
-        this.scrolling = scroll;
-    }
-
     @undoBatch
     @action
     switchStk = (color: ColorState) => {
@@ -780,7 +772,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
-                    overflowY: this.scrolling ? "scroll" : "visible"
+                    //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
