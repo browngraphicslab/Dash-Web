@@ -598,16 +598,18 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set colorStk(value) { value && (this._lastLine = value); this.selectedDoc && (this.selectedDoc.color = value ? value : undefined); }
 
     colorButton(value: string, type: string, setter: () => {}) {
-        return <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-            content={type === "fill" ? this.fillPicker : this.linePicker}>
-            <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
-                <div className="color-button-preview" style={{
-                    backgroundColor: value ?? "121212", width: 15, height: 15,
-                    display: value === "" || value === "transparent" ? "none" : ""
-                }} />
-                {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
-            </div>
-        </Flyout>;
+        return <div className="properties-flyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={type === "fill" ? this.fillPicker : this.linePicker}>
+                <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
+                    <div className="color-button-preview" style={{
+                        backgroundColor: value ?? "121212", width: 15, height: 15,
+                        display: value === "" || value === "transparent" ? "none" : ""
+                    }} />
+                    {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
+                </div>
+            </Flyout>
+        </div>;
 
     }
 
@@ -844,11 +846,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <div className="propertiesView-fields-title"
                             onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
                             style={{ backgroundColor: this.openFields ? "black" : "" }}>
-                            <div className="propertiesView-fields-title-name">
-                                Fields {"&"} Tags
+                            Fields {"&"} Tags
                             <div className="propertiesView-fields-title-icon">
-                                    <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
-                                </div>
+                                <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">

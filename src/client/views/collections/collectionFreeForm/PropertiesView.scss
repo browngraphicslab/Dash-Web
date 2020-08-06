@@ -23,8 +23,9 @@
             height: 20px;
             padding-left: 38px;
             margin-top: -5px;
-            right: 19;
-            position: absolute;
+            align-items: flex-end;
+            margin-left: auto;
+            margin-right: 10px;
 
             &:hover {
                 color: grey;
@@ -66,9 +67,9 @@
 
             .propertiesView-settings-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {
@@ -104,9 +105,9 @@
 
             .propertiesView-sharing-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {
@@ -141,9 +142,9 @@
 
             .propertiesView-appearance-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {
@@ -178,9 +179,9 @@
 
             .propertiesView-transform-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {
@@ -266,9 +267,8 @@
 
             .propertiesView-sharingTable-item-permission {
                 display: flex;
-                right: 34;
-                float: right;
-                position: absolute;
+                align-items: flex-end;
+                margin-left: auto;
 
                 .permissions-select {
                     z-index: 1;
@@ -307,25 +307,18 @@
                 cursor: pointer;
             }
 
-            .propertiesView-fields-title-name {
-                font-size: 12.5px;
-                font-weight: bold;
-                white-space: nowrap;
-                width: 35px;
-                display: flex;
-            }
-
             .propertiesView-fields-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {
                     cursor: pointer;
                 }
             }
+
         }
 
         .propertiesView-fields-checkbox {
@@ -388,9 +381,9 @@
 
             .propertiesView-layout-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {
@@ -674,4 +667,9 @@
     &:hover {
         border: 0.75px solid rgb(122, 28, 28);
     }
+}
+
+
+.properties-flyout {
+    grid-column: 2/4;
 }
