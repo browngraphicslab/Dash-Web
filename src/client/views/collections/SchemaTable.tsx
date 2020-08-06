@@ -11,22 +11,22 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaDateCell, CollectionSchemaButtons } from "./CollectionSchemaCells";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { emptyFunction, returnZero, returnOne, returnFalse, returnEmptyFilter, emptyPath } from "../../../Utils";
-import { TouchScrollableMenuItem } from "../TouchScrollableMenu";
 
 
 enum ColumnType {
@@ -160,7 +160,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === "x", false)) {
+        if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
             columns.push(
                 {
                     expander: true,
@@ -472,11 +472,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed
     get reactTable() {
         const children = this.childDocs;
+        const hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         const expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         const expanded = {};
         //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
         const rerender = [...this.textWrappedRows]; // TODO: get component to rerender on text wrap change without needign to console.log :((((
+
         return <ReactTable
             style={{ position: "relative" }}
             data={children}
@@ -491,8 +493,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             sorted={this.sorted}
             expanded={expanded}
             resized={this.resized}
-            NoDataComponent={() => null}
             onResizedChange={this.props.onResizedChange}
+            SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
+                <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}
 
         />;
     }
