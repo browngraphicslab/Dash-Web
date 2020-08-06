@@ -4,14 +4,13 @@ import { DocumentView } from "../nodes/DocumentView";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc, Opt } from "../../../fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
-import { isUndefined } from "util";
 
 library.add(faTrash);
 
