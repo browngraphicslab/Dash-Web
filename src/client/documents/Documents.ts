@@ -565,6 +565,7 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
+            dataDoc.aliases = new List<Doc>();
 
             proto.links = ComputedField.MakeFunction("links(self)");
 

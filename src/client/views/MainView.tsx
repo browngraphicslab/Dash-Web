@@ -439,7 +439,7 @@ export class MainView extends React.Component {
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     //sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-55, 0);
 
     @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
