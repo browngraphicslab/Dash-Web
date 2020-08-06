@@ -369,10 +369,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     }
     @action
     renderOptions = (): JSX.Element[] | JSX.Element => {
-        // if (!this._isOpen) {
-        //     this.defaultMenuHeight = 0;
-        //     return <></>;
-        // }
+        if (!this._isOpen) {
+            this.defaultMenuHeight = 0;
+            return <></>;
+        }
         const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
 
         const keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
@@ -414,10 +414,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     }
     @action
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
-        // if (!this._isOpen) {
-        //     this.defaultMenuHeight = 0;
-        //     return <></>;
-        // }
+        if (!this._isOpen) {
+            this.defaultMenuHeight = 0;
+            return <></>;
+        }
         const keyOptions: string[] = [];
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
