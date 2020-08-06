@@ -203,9 +203,12 @@ export default class SettingsManager extends React.Component<{}> {
 
     @computed get accountsContent() {
         return <div className="accounts-content">
-            <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
-            <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
-            <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
+            <button onClick={this.googleAuthorize}
+                style={{ paddingLeft: 20, paddingRight: 20, marginRight: 35 }}
+                value="data">{`Link to Google`}</button>
+            {/* <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button> */}
+            <button onClick={() => GroupManager.Instance.open()}
+                style={{ paddingLeft: 20, paddingRight: 20 }}>Manage groups</button>
         </div>;
     }
 

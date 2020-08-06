@@ -201,6 +201,7 @@ export interface DocumentOptions {
     linearViewIsExpanded?: boolean; // is linear view expanded
     border?: string; //for searchbox
     hovercolor?: string;
+    developerFeature?: boolean;
 }
 
 class EmptyBox {
