@@ -221,8 +221,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 <div className="propertiesButtons-linker"
                     style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white" }}
                     onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin"
-                    />
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
                 </div>
 
                 <div className="propertiesButtons-title" style={{

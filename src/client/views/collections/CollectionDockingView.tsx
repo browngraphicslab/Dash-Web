@@ -873,9 +873,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return (
             <div className="miniPres"
                 style={{ width: 250, height: 30, background: '#323232' }}
-                onClick={() => document.addEventListener("keydown", PresBox.Instance.minimizeEvents, false)}
             >
-                {<div className="miniPresOverlay" onClick={() => document.addEventListener("keydown", PresBox.Instance.minimizeEvents, false)}>
+                {<div className="miniPresOverlay">
                     <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
                     <div className="miniPres-button" onClick={() => PresBox.Instance.startAutoPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
                     <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>

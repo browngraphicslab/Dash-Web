@@ -577,7 +577,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const mainBulletText: string[] = [];
         const mainBulletList: Doc[] = [];
         if (list) {
-            const newBullets: Doc[] = this.recursiveProgressivize(1, list);
+            const newBullets: Doc[] = this.recursiveProgressivize(1, list)[0];
             mainBulletList.push.apply(mainBulletList, newBullets);
         }
         console.log(mainBulletList.length);
@@ -591,7 +591,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.props.addDocument?.(doc);
     }
 
-    recursiveProgressivize = (nestDepth: number, list: HTMLCollectionOf<HTMLLIElement>, d?: number, y?: number, before?: string): Doc[] => {
+    recursiveProgressivize = (nestDepth: number, list: HTMLCollectionOf<HTMLLIElement>, d?: number, y?: number, before?: string): [Doc[], number] => {
         const mainBulletList: Doc[] = [];
         let b = d ? d : 0;
         let yLoc = y ? y : 0;
@@ -607,29 +607,30 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 if (listItem.childElementCount > 1) {
                     b++;
                     nestCount++;
-                    count = before ? count + nestCount + "." : nestCount + ".";
                     yLoc += height;
+                    count = before ? count + nestCount + "." : nestCount + ".";
                     const text = listItem.getElementsByTagName("p")[0].innerText;
                     const length = text.length;
-                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _autoHeight: true, x: xLoc, y: (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    // yLoc += NumCast(bullet1._height);
                     mainBulletList.push(bullet1);
                     const newList = this.recursiveProgressivize(nestDepth + 1, listItem.getElementsByTagName("li"), b, yLoc, count);
-                    mainBulletList.push.apply(mainBulletList, newList);
-                    b += newList.length;
+                    mainBulletList.push.apply(mainBulletList, newList[0]);
                     yLoc += newList.length * (55 - ((nestDepth + 1) * 5));
                 } else {
                     b++;
                     nestCount++;
-                    count = before ? count + nestCount + "." : nestCount + ".";
                     yLoc += height;
+                    count = before ? count + nestCount + "." : nestCount + ".";
                     const text = listItem.innerText;
                     const length = text.length;
-                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _autoHeight: true, x: xLoc, y: (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    // yLoc += NumCast(bullet1._height);
                     mainBulletList.push(bullet1);
                 }
             }
         });
-        return mainBulletList;
+        return [mainBulletList, yLoc];
     }
 
     recordDictation = () => {

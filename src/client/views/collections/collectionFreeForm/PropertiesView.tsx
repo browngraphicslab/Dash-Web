@@ -71,11 +71,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
     //Pres Trails booleans:
-    @observable openAddSlide: boolean = true;
-    @observable openPresentationTools: boolean = true;
-    @observable openPresTransitions: boolean = true;
-    @observable openPresProgressivize: boolean = true;
-    @observable openSlideOptions: boolean = true;
+    @observable openPresTransitions: boolean = false;
+    @observable openPresProgressivize: boolean = false;
+    @observable openAddSlide: boolean = false;
+    @observable openSlideOptions: boolean = false;
 
     @observable inActions: boolean = false;
     @observable _controlBtn: boolean = false;
@@ -874,6 +873,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>;
             }
             if (this.isPres) {
+                const selectedItem: boolean = PresBox.Instance._selectedArray.length > 0;
                 return <div className="propertiesView" style={{ width: this.props.width }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -890,56 +890,56 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             </div>
                         </div>
                     </div>
-                    <div className="propertiesView-settings">
-                        <div className="propertiesView-settings-title"
-                            onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
-                            style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
-                        <div className="propertiesView-settings-title-icon">
-                                <FontAwesomeIcon icon={this.openAddSlide ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openAddSlide ? <div className="propertiesView-settings-content">
-                            {PresBox.Instance.newDocumentDropdown}
-                        </div> : null}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
                             onPointerDown={() => runInAction(() => { this.openPresTransitions = !this.openPresTransitions; })}
                             style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresTransitions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openPresTransitions ? <div className="propertiesView-sharing-content">
+                        {this.openPresTransitions ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
+                    </div>}
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
                             onPointerDown={() => runInAction(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"tasks"} /> &nbsp; Progressivize
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresProgressivize ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openPresProgressivize ? <div className="propertiesView-sharing-content">
+                        {this.openPresProgressivize ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
+                    </div>}
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
                             onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openSlideOptions ? <div className="propertiesView-sharing-content">
+                        {this.openSlideOptions ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.optionsDropdown}
+                        </div> : null}
+                    </div>}
+                    <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
+                            onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
+                            style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
+                            &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
+                        <div className="propertiesView-presTrails-title-icon">
+                                <FontAwesomeIcon icon={this.openAddSlide ? "caret-down" : "caret-right"} size="lg" color="white" />
+                            </div>
+                        </div>
+                        {this.openAddSlide ? <div className="propertiesView-presTrails-content">
+                            {PresBox.Instance.newDocumentDropdown}
                         </div> : null}
                     </div>
                     <div className="propertiesView-sharing">

@@ -371,11 +371,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (srcContext.miniPres) {
                 srcContext.miniPres = false;
                 CollectionDockingView.AddRightSplit(this.rootDoc);
-                document.removeEventListener("keydown", this.minimizeEvents, false);
             } else {
                 srcContext.miniPres = true;
                 this.props.addDocTab?.(this.rootDoc, "close");
-                document.addEventListener("keydown", this.minimizeEvents, false);
             }
         }
     }
@@ -506,20 +504,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
-    // Key events when the minimized player is active
-    @action
-    minimizeEvents = (e: KeyboardEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (e.keyCode === 27) { // Escape key
-            this.layoutDoc.presStatus = "edit";
-        } if (e.keyCode === 37) { // left(37) / a(65) / up(38) to go back
-            this.back();
-        } if (e.keyCode === 39) { // right (39) / d(68) / down(40) to go to next
-            this.next();
-        }
-    }
-
     // Key for when the presentaiton is active (according to Selection Manager)
     @action
     keyEvents = (e: KeyboardEvent) => {
@@ -531,10 +515,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             else this.layoutDoc.presStatus = "edit";
         } if ((e.metaKey || e.altKey) && e.keyCode === 65) { // Ctrl-A to select all
             if (this.layoutDoc.presStatus === "edit") this._selectedArray = this.childDocs;
-        } if (e.keyCode === 37) { // left(37) / a(65) / up(38) to go back
-            if (this.layoutDoc.presStatus !== "edit") this.back();
-        } if (e.keyCode === 39) { // right (39) / d(68) / down(40) to go to next
-            if (this.layoutDoc.presStatus !== "edit") this.next();
+        } if (e.keyCode === 37 || e.keyCode === 38) { // left(37) / a(65) / up(38) to go back
+            this.back();
+        } if (e.keyCode === 39 || e.keyCode === 40) { // right (39) / d(68) / down(40) to go to next
+            this.next();
         } if (e.keyCode === 32) { // spacebar to 'present' or autoplay
             if (this.layoutDoc.presStatus !== "edit") this.startAutoPres(0);
             else this.layoutDoc.presStatus = "manual";
@@ -720,7 +704,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="ribbon-property"> {duration} s </div>
                         </div>
                         <input type="range" step="0.1" min="0.1" max="10" value={duration} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
-                        <div className={"slider-headers"} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }}>
+                        <div className={"slider-headers"} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "grid" }}>
                             <div className="slider-text">Short</div>
                             <div className="slider-text">Medium</div>
                             <div className="slider-text">Long</div>
@@ -813,6 +797,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: "flex" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.openDocument ? "#aedef8" : "" }} onClick={() => activeItem.openDocument = !activeItem.openDocument}>Open document</div>
+                            </div>
+                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL ? "inline-flex" : "none" }}>
+                                <div className="ribbon-button" style={{ backgroundColor: activeItem.presPinView ? "#aedef8" : "" }}
+                                    onClick={() => {
+                                        activeItem.presPinView = !activeItem.presPinView;
+                                        if (activeItem.presPinView) {
+                                            const x = targetDoc._panX;
+                                            const y = targetDoc._panY;
+                                            const scale = targetDoc._viewScale;
+                                            activeItem.presPinViewX = x;
+                                            activeItem.presPinViewY = y;
+                                            activeItem.presPinViewScale = scale;
+                                        }
+                                    }}>Presentation pin view</div>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.WEB ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" onClick={this.progressivizeText}>Store original website</div>
@@ -1592,35 +1590,26 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     @computed get toolbar() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
-        if (activeItem) {
-            return (
-                <div id="toolbarContainer" className={'presBox-toolbar'} style={{ display: this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }}>
-                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}>
-                        <FontAwesomeIcon icon={"plus"} />
-                        <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
-                    </div></Tooltip>
-                    <div className="toolbar-divider" />
-                    <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}><div className={`toolbar-button ${this.pathBoolean ? "active" : ""}`}>
-                        <FontAwesomeIcon icon={"exchange-alt"} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined} />
-                    </div></Tooltip>
-                    <Tooltip title={<><div className="dash-tooltip">{this.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
-                        <div className={`toolbar-button ${this.expandBoolean ? "active" : ""}`} onClick={() => { this.toggleExpand(); this.childDocs.forEach((doc, ind) => { if (this.expandBoolean) doc.presExpandInlineButton = true; else doc.presExpandInlineButton = false; }); }}>
-                            <FontAwesomeIcon icon={"eye"} />
-                        </div>
-                    </Tooltip>
-                    <div className="toolbar-divider" />
-                </div>
-            );
-        } else {
-            return (
-                <div id="toolbarContainer" className={'presBox-toolbar'}>
-                    <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}>
-                        <FontAwesomeIcon icon={"plus"} />
-                        <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
-                    </div></Tooltip>
-                </div>
-            );
-        }
+        return (
+            <div id="toolbarContainer" className={'presBox-toolbar'} style={{ display: this.layoutDoc.presStatus === "edit" ? "inline-flex" : "none" }}>
+                <Tooltip title={<><div className="dash-tooltip">{"Add new slide"}</div></>}><div className={`toolbar-button ${this.newDocumentTools ? "active" : ""}`} onClick={action(() => this.newDocumentTools = !this.newDocumentTools)}>
+                    <FontAwesomeIcon icon={"plus"} />
+                    <FontAwesomeIcon className={`dropdown ${this.newDocumentTools ? "active" : ""}`} icon={"angle-down"} />
+                </div></Tooltip>
+                <div className="toolbar-divider" />
+                <Tooltip title={<><div className="dash-tooltip">{"View paths"}</div></>}>
+                    <div style={{ opacity: this.childDocs.length > 1 ? 1 : 0.3 }} className={`toolbar-button ${this.pathBoolean ? "active" : ""}`} onClick={this.childDocs.length > 1 ? this.viewPaths : undefined}>
+                        <FontAwesomeIcon icon={"exchange-alt"} />
+                    </div>
+                </Tooltip>
+                <Tooltip title={<><div className="dash-tooltip">{this.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
+                    <div style={{ opacity: this.childDocs.length > 0 ? 1 : 0.3 }} className={`toolbar-button ${this.expandBoolean ? "active" : ""}`} onClick={() => { if (this.childDocs.length > 0) this.toggleExpand(); this.childDocs.forEach((doc, ind) => { if (this.expandBoolean) doc.presExpandInlineButton = true; else doc.presExpandInlineButton = false; }); }}>
+                        <FontAwesomeIcon icon={"eye"} />
+                    </div>
+                </Tooltip>
+                <div className="toolbar-divider" />
+            </div>
+        );
     }
 
     /**

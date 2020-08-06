@@ -4,7 +4,7 @@ $light-background: #ececec;
 
 .presElementBox-item {
     display: grid;
-    grid-template-columns: max-content max-content max-content;
+    grid-template-columns: max-content max-content max-content max-content;
     background-color: #d5dce2;
     font-family: Roboto;
     letter-spacing: normal;
@@ -122,7 +122,7 @@ $light-background: #ececec;
     padding-left: 10px;
     padding-right: 10px;
     letter-spacing: normal;
-    max-width: max-content;
+    width: max-content;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: pre;
