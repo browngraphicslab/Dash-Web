@@ -16,6 +16,7 @@ import { DocumentsCollection } from "./IDatabase";
 import { Diff, GestureContent, MessageStore, MobileDocumentUploadContent, MobileInkOverlayContent, Transferable, Types, UpdateMobileInkOverlayPositionContent, YoutubeQueryInput, YoutubeQueryTypes } from "./Message";
 import { Search } from "./Search";
 import { resolvedPorts } from './server_Initialization';
+import { Opt } from "../fields/Doc";
 
 export namespace WebSocket {
 
@@ -31,7 +32,7 @@ export namespace WebSocket {
             if (socketPort) {
                 resolvedPorts.socket = Number(socketPort);
             }
-            let socketEndpoint: Server;
+            let socketEndpoint: Opt<Server>;
             await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolvedPorts.socket, resolve));
             io = sio(socketEndpoint!, SSL.Credentials as any);
         } else {
@@ -229,7 +230,8 @@ export namespace WebSocket {
         "script": ["_t", value => value.script.originalScript],
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        "proxy": ["_i", "fieldId"],
+        // "proxy": ["_i", "fieldId"],
+        // "proxy": ["", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {
@@ -243,25 +245,27 @@ export namespace WebSocket {
     };
 
     function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+
         if (val === null || val === undefined) {
             return;
         }
         const type = val.__type || typeof val;
+
         let suffix = suffixMap[type];
         if (!suffix) {
             return;
         }
-
         if (Array.isArray(suffix)) {
             const accessor = suffix[1];
             if (typeof accessor === "function") {
                 val = accessor(val);
             } else {
                 val = val[accessor];
+
             }
             suffix = suffix[0];
-        }
 
+        }
         return { suffix, value: val };
     }
 
@@ -283,7 +287,7 @@ export namespace WebSocket {
             dynfield = true;
             const val = docfield[key];
             key = key.substring(7);
-            Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
+            Object.values(suffixMap).forEach(suf => { update[key + getSuffix(suf)] = { set: null }; });
             const term = ToSearchTerm(val);
             if (term !== undefined) {
                 const { suffix, value } = term;

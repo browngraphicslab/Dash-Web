@@ -74,7 +74,7 @@ export enum CollectionViewType {
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
-    filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
     childOpacity?: () => number;
@@ -88,6 +88,7 @@ export interface CollectionRenderProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
+    PanelHeight: () => number;
     ChildLayoutTemplate?: () => Doc;
     ChildLayoutString?: string;
 }
@@ -520,6 +521,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </div>
                 <div className="collectionTimeView-tree" key="tree">
                     <CollectionTreeView
+                        PanelPosition={""}
                         Document={facetCollection}
                         DataDoc={facetCollection}
                         fieldKey={`${this.props.fieldKey}-filter`}
@@ -571,6 +573,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             active: this.active,
             whenActiveChanged: this.whenActiveChanged,
             PanelWidth: this.bodyPanelWidth,
+            PanelHeight: this.props.PanelHeight,
             ChildLayoutTemplate: this.childLayoutTemplate,
             ChildLayoutString: this.childLayoutString,
         };
@@ -579,7 +582,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}
-            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ display: this.props.PanelPosition === "absolute" ? "flex" : "", justifyContent: this.props.PanelPosition === "absolute" ? "center" : "", width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>

@@ -5,8 +5,8 @@
     font-family: "Noto Sans";
     cursor: auto;
 
-    overflow-x: visible;
-    overflow-y: visible;
+    overflow-x: hidden;
+    overflow-y: scroll;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -41,7 +41,7 @@
         font-size: 12.5px;
 
         &:hover {
-            cursor: pointer;
+            cursor: text;
         }
     }
 
@@ -586,6 +586,27 @@
     }
 }
 
+.propertiesView-presSelected {
+    border-top: solid 1px darkgrey;
+    width: 100%;
+    padding-top: 5px;
+    font-family: Roboto;
+    font-weight: 500;
+    display: inline-flex;
+
+    .propertiesView-selectedList {
+        border-left: solid 1px darkgrey;
+        margin-left: 10px;
+        padding-left: 5px;
+
+        .selectedList-items {
+            font-size: 12;
+            font-weight: 300;
+            margin-top: 1;
+        }
+    }
+}
+
 .widthAndDash {
 
     .width {
@@ -615,6 +636,7 @@
 
         display: flex;
         margin-bottom: 3px;
+        margin-left: 4px;
 
         .arrows-head {
 
@@ -648,7 +670,7 @@
     .dashed {
 
         display: flex;
-        margin-left: 74px;
+        margin-left: 64px;
         margin-bottom: 6px;
 
         .dashed-title {
@@ -659,5 +681,16 @@
             margin-left: 6px;
             margin-top: 2px;
         }
+    }
+}
+
+.editable-title {
+    border: none;
+    padding: 6px;
+    padding-bottom: 2px;
+
+
+    &:hover {
+        border: 0.75px solid rgb(122, 28, 28);
     }
 }

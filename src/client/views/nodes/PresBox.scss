@@ -1,7 +1,9 @@
 .presBox-cont {
     position: absolute;
+    display: block;
     pointer-events: inherit;
     z-index: 2;
+    font-family: Roboto;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     width: 100%;
     min-width: 20px;
@@ -12,73 +14,863 @@
     transition: 0.7s opacity ease;
 
     .presBox-listCont {
-        position: absolute;
+        position: relative;
         height: calc(100% - 25px);
+        width: 100%;
+        margin-top: 3px;
+    }
+
+    .presBox-toolbar {
+        display: none;
+    }
+
+    .presBox-toolbar-dropdown {
+        border-radius: 5px;
+        background-color: white;
+        transform: translate(8px, -5px);
+        box-shadow: 1px 1px 4px 4px rgba(0, 0, 0, 0.25);
+        z-index: 1000;
+        width: 315;
+        height: max-content;
+        justify-self: center;
+        letter-spacing: normal;
+        height: max-content;
+        font-weight: 500;
+        position: relative;
+        font-size: 13;
+    }
+
+    .presBox-toolbar.active {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        height: 30px;
+        width: 100%;
+        color: white;
+        background-color: #323232;
+
+        .toolbar-button {
+            margin-left: 10px;
+            margin-right: 10px;
+            letter-spacing: 0;
+            display: flex;
+            align-items: center;
+            transition: 0.5s;
+        }
+
+        .toolbar-button.active {
+            color: #AEDDF8;
+        }
+
+        .toolbar-transitionButtons {
+            display: block;
+
+            .toolbar-transition {
+                display: flex;
+                font-size: 10;
+                width: 100;
+                background-color: rgba(0, 0, 0, 0);
+                min-width: max-content;
+
+                .toolbar-icon {
+                    margin-right: 5px;
+                }
+            }
+        }
+    }
+
+    .toolbar-moreInfo {
+        position: absolute;
+        right: 5px;
+        display: flex;
+        width: max-content;
+        height: 25px;
+        /* background-color: pink; */
+        justify-content: center;
+        transform: rotate(90deg);
+        align-items: center;
+        transition: 0.7s ease;
+
+        .toolbar-moreInfoBall {
+            width: 4px;
+            height: 4px;
+            border-radius: 100%;
+            background-color: white;
+            margin: 1px;
+            position: relative;
+        }
+    }
+
+    .toolbar-moreInfo.active {
+        transform: rotate(0deg);
+    }
+
+    .toolbar-divider {
+        border-left: solid #ffffff70 0.5px;
+        height: 20px;
+    }
+}
+
+.dropdown {
+    font-size: 10;
+    margin-left: 5px;
+    color: darkgrey;
+    transition: 0.5s ease;
+}
+
+.dropdown.active {
+    transform: rotate(180deg);
+    color: #AEDDF8;
+    opacity: 0.8;
+}
+
+.presBox-ribbon {
+    position: relative;
+    display: inline;
+    font-family: Roboto;
+    /* background-color: white; */
+    color: black;
+    width: 100%;
+    height: max-content;
+    z-index: 100;
+    transition: 0.7s;
+
+    .ribbon-doubleButton {
+        display: inline-flex;
+    }
+
+    .presBox-reactiveGrid {
+        display: grid;
+        justify-content: flex-start;
+        align-items: center;
+        grid-template-columns: repeat(auto-fit, 70px);
+    }
+
+    .ribbon-property {
+        font-size: 11;
+        font-weight: 200;
+        height: 20;
+        background-color: #ececec;
+        color: black;
+        border: solid 1px black;
+        display: flex;
+        margin-left: 5px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        /* border-radius: 5px; */
+        margin-right: 5px;
+        width: max-content;
+        justify-content: center;
+        align-items: center;
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    // .toolbar-slider {
+    //     position: relative;
+    //     align-self: center;
+    //     justify-self: left;
+    //     -webkit-appearance: none;
+    //     background-color: #5b9ddd;
+    //     overflow: hidden;
+    //     margin-top: 5px;
+    //     width: 100%;
+    //     max-width: 200px;
+        
+    // }
+
+    // .toolbar-slider:focus {
+    //     outline: none;
+    // }
+
+    // .effectDirection {
+    //     justify-self: center;
+    //     align-self: center;
+    //     align-items: center;
+    //     justify-content: center;
+    //     grid-template-columns: 13px 13px 13px;
+    //     display: grid;
+    // }
+
+    // .toolbar-slider::-webkit-slider-thumb {
+    //     -webkit-appearance: none;
+    //     background-color: #5b9ddd;
+    //     box-shadow: -100 vw 0 0 100vw pink;
+    //     width: 12px;
+    //     height: 12px;
+    // }
+
+    // .toolbar-slider::-webkit-slider-runnable-track {
+    //     position: relative;
+    //     align-self: center;
+    //     justify-self: left;
+    //     -webkit-appearance: none;
+    //     background-color: #5b9ddd;
+    //     margin-top: 5px;
+    //     border: solid 1px black;
+    //     border-radius: 10px;
+    //     height: 5px;
+    //     left: 0px;
+    // }
+    .presBox-subheading {
+        font-size: 11;
+        font-weight: 400;
+        margin-top: 10px;
+    }
+
+    @media screen and (-webkit-min-device-pixel-ratio:0) {
+        .toolbar-slider {
+            margin-top: 5px;
+            position: relative;
+            align-self: center;
+            justify-self: left;
+            overflow: hidden;
+            width: 100%;
+            height: 10px;
+            border-radius: 10px;
+            -webkit-appearance: none;
+            background-color: #ececec;
+        }
+
+        .toolbar-slider:focus {
+            outline: none;
+        }
+        
+        .toolbar-slider::-webkit-slider-runnable-track {
+          height: 10px;
+          -webkit-appearance: none;
+          margin-top: -1px;
+        }
+        
+        .toolbar-slider::-webkit-slider-thumb {
+          width: 10px;
+          -webkit-appearance: none;
+          height: 10px;
+          cursor: ew-resize;
+          background: #5b9ddd;
+          box-shadow: -100vw 0 0 100vw #aedef8;
+        }
+    }
+
+    .slider-headers {
+        position: relative;
+        display: grid;
+        justify-content: space-between;
+        width: 100%;
+        height: max-content;
+        grid-template-columns: auto auto auto;
+        grid-template-rows: max-content;
+        font-weight: 100;
+        margin-top: 3px;
+        font-size: 10px;
+    }
+
+    .slider-value {
+        top: -20;
+        color: #2f86a2;
+        position: absolute;
+    }
+
+    .slider-value.none,
+    .slider-headers.none,
+    .toolbar-slider.none {
+        display: none;
+    }
+
+    .dropdown-header {
+        padding-bottom: 10px;
+        font-weight: 800;
+        text-align: center;
+        font-size: 16;
+        width: 90%;
+        color: black;
+        transform: translate(5%, 0px);
+        border-bottom: solid 2px darkgrey;
+    }
+
+
+    .ribbon-textInput {
+        border-radius: 2px;
+        height: 20px;
+        font-size: 11.5;
+        font-weight: 100;
+        align-self: center;
+        justify-self: left;
+        margin-top: 5px;
+        padding-left: 10px;
+        background-color: rgb(222, 222, 222);
+        border: solid 1px black;
+        min-width: 80px;
+        max-width: 200px;
         width: 100%;
     }
 
-    .presBox-buttons {
-        width: 100%;
-        background: gray;
-        padding-top: 5px;
-        padding-bottom: 5px;
+    .ribbon-frameSelector {
+        border: black solid 1px;
+        width: 60px;
+        height: 20px;
+        margin-top: 5px;
         display: grid;
-        grid-column-end: 4;
-        grid-column-start: 1;
+        grid-template-columns: auto 27px auto;
+        position: relative;
+        border-radius: 5px;
+        overflow: hidden;
+        align-items: center;
+        justify-self: left;
 
-        .presBox-viewPicker {
-            height: 25;
+        .fwdKeyframe,
+        .backKeyframe {
+            cursor: pointer;
             position: relative;
-            display: inline-block;
-            grid-column: 1/2;
-            min-width: 15px;
-        }
-
-        select {
-            background: #323232;
-            color: white;
-        }
-
-        .presBox-button {
-            margin-right: 2.5%;
-            margin-left: 2.5%;
-            height: 25px;
-            border-radius: 5px;
+            height: 100%;
+            background: #d5dce2;
             display: flex;
             align-items: center;
-            background: #323232;
-            color: white;
+            justify-content: center;
+            text-align: center;
+            color: black;
+        }
 
-            svg {
-                margin: auto;
+        .numKeyframe {
+            font-size: 10;
+            font-weight: 600;
+            position: relative;
+            color: black;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+
+    .ribbon-final-box {
+        align-self: flex-start;
+        justify-self: center;
+        display: grid;
+        margin-top: 10px;
+        grid-template-rows: auto auto;
+        /* padding-left: 10px; */
+        /* padding-right: 10px; */
+        letter-spacing: normal;
+        min-width: max-content;
+        width: 100%;
+        font-size: 13;
+        font-weight: 500;
+        position: relative;
+
+
+        .ribbon-final-button {
+            position: relative;
+            font-size: 11;
+            font-weight: normal;
+            letter-spacing: normal;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 5px;
+            height: 25px;
+            color: white;
+            width: 100%;
+            max-width: 120;
+            padding-left: 10;
+            padding-right: 10;
+            border-radius: 10px;
+            background-color: #979797;
+        }
+
+        .ribbon-final-button-hidden {
+            position: relative;
+            font-size: 11;
+            font-weight: normal;
+            letter-spacing: normal;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 5px;
+            height: 25px;
+            color: lightgrey;
+            width: 100%;
+            max-width: 120;
+            padding-left: 10;
+            padding-right: 10;
+            border-radius: 10px;
+            background-color: black;
+        }
+    }
+
+    .selectedList {
+        display: block;
+        min-width: 50;
+        max-width: 120;
+        height: 70;
+        overflow-y: scroll;
+
+        .selectedList-items {
+            font-size: 7;
+            font-weight: normal;
+        }
+    }
+
+    .ribbon-button {
+        font-size: 10.5;
+        font-weight: 200;
+        height: 20;
+        background-color: #dedede;
+        border: solid 1px black;
+        display: flex;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        margin-right: 5px;
+        width: max-content;
+        justify-content: center;
+        align-items: center;
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .ribbon-button.active {
+        background-color: #aedef8;
+    }
+
+    .ribbon-button:hover {
+        background-color: lightgrey;
+    }
+
+    svg.svg-inline--fa.fa-thumbtack.fa-w-12.toolbar-thumbtack {
+        right: 40;
+        position: absolute;
+        transform: rotate(45deg);
+    }
+
+    .ribbon-box {
+        display: grid;
+        grid-template-rows: max-content auto;
+        justify-self: center;
+        margin-top: 10px;
+        /* padding-left: 10px; */
+        padding-right: 10px;
+        letter-spacing: normal;
+        width: 100%;
+        /* max-width: 100%; */
+        height: max-content;
+        font-weight: 500;
+        position: relative;
+        font-size: 13;
+        padding-bottom: 10px;
+        border-bottom: solid 1px darkgrey;
+
+        .presBox-dropdown:hover {
+            border: solid 1px #378AD8;
+            border-bottom-left-radius: 0px;
+
+            .presBox-dropdownOption {
+                font-size: 11;
+                display: block;
+                padding-left: 10px;
+                padding-right: 5px;
+                padding-top: 3;
+                padding-bottom: 3;
+            }
+
+            .presBox-dropdownOption:hover {
+                position: relative;
+                background-color: lightgrey;
+            }
+
+            .presBox-dropdownOption.active {
+                position: relative;
+                background-color: #aedef8;
+            }
+
+            .presBox-dropdownOptions {
+                position: absolute;
+                top: 29px;
+                left: -1px;
+                z-index: 200;
+                width: 85%;
+                min-width: max-content;
+                display: block;
+                background: #FFFFFF;
+                border: 0.5px solid #979797;
+                box-sizing: border-box;
+                box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            }
+
+            .presBox-dropdownIcon {
+                color: #378AD8;
             }
         }
 
-        .collectionViewBaseChrome-viewPicker {
-            min-width: 50;
-            width: 5%;
-            height: 25;
+        .presBox-dropdown {
+            display: grid;
+            grid-template-columns: auto 20%;
             position: relative;
-            display: inline-block;
+            border: solid 1px black;
+            background-color: #dedede;
+            border-radius: 5px;
+            font-size: 10;
+            height: 30;
+            padding-left: 5px;
+            align-items: center;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            font-weight: 200;
+            width: 100%;
+            min-width: max-content;
+            max-width: 200px;
+            overflow: visible;
+
+            .presBox-dropdownOptions {
+                display: none;
+            }
+
+            .presBox-dropdownIcon {
+                position: relative;
+                color: black;
+                align-self: center;
+                justify-self: center;
+                margin-right: 2px;
+            }
+        }
+    }
+}
+
+.presBox-ribbon.active {
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    grid-template-rows: 100%;
+    height: 100px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border: solid 1px black;
+    // overflow: auto; 
+
+    ::-webkit-scrollbar {
+        -webkit-appearance: none;
+        height: 3px;
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border-radius: 2px;
+    }
+}
+
+.dropdown-play-button {
+    font-size: 12;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    text-align: left;
+    justify-content: left;
+}
+
+.dropdown-play-button:hover {
+    background-color: lightgrey;
+}
+
+.presBox-button-left {
+    position: relative;
+    align-self: flex-start;
+    justify-self: flex-start;
+    width: 80%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.presBox-button-right {
+    position: relative;
+    text-align: center;
+    border-left: solid 1px darkgrey;
+    width: 20%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+}
+
+.presBox-button-right.active {
+    background-color: #223063;
+    border: #aedcf6 solid 1px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.8);
+}
+
+.dropdown-play {
+    right: 0px;
+    top: calc(100% + 2px);
+    display: none;
+    border-radius: 5px;
+    width: max-content;
+    min-height: 20px;
+    height: max-content;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.8);
+    z-index: 200;
+    background-color: white;
+    color: black;
+    position: absolute;
+    overflow: hidden;
+}
+
+.dropdown-play.active {
+    display: block;
+}
+
+.open-layout {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(0px, -1px);
+    background-color: #dedede;
+    width: 40px;
+    height: 15px;
+    align-self: center;
+    justify-self: center;
+    border: solid 1px black;
+    border-top: 0px;
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+}
+
+.layout-container {
+    padding: 5px;
+    display: grid;
+    background-color: #dedede;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 100px));
+    width: 100%;
+    border: solid 1px black;
+    min-width: 100px;
+    overflow: hidden;
+
+    .layout:hover {
+        border: solid 2px #5c9edd;
+    }
+
+    .layout {
+        align-self: center;
+        justify-self: center;
+        margin-top: 5;
+        margin-bottom: 5;
+        position: relative;
+        height: 55px;
+        min-width: 90px;
+        width: 90px;
+        overflow: hidden;
+        background-color: white;
+        border: solid darkgrey 1px;
+        display: grid;
+        grid-template-rows: auto;
+        align-items: center;
+        text-align: center;
+
+        .title {
+            position: relative;
+            align-self: end;
+            padding-left: 3px;
+            margin-left: 3px;
+            margin-right: 3px;
+            height: 13;
+            font-size: 12;
+            display: flex;
+            background-color: #f1efec;
+        }
+
+        .subtitle {
+            align-self: flex-start;
+            position: relative;
+            padding-left: 3px;
+            margin-left: 3px;
+            margin-right: 3px;
+            font-weight: 400;
+            height: 13;
+            font-size: 9;
+            display: flex;
+            background-color: #f1efec;
+        }
+
+        .content {
+            position: relative;
+            font-weight: 200;
+            align-self: flex-start;
+            padding-left: 3px;
+            margin-left: 3px;
+            margin-right: 3px;
+            height: 13;
+            font-size: 10;
+            display: flex;
+            background-color: #f1efec;
+            height: 33;
+            text-align: left;
+            font-size: 8px;
+        }
+    }
+}
+
+.presBox-buttons {
+    position: relative;
+    width: 100%;
+    background: gray;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    display: grid;
+    grid-template-columns: auto auto;
+
+    .presBox-viewPicker {
+        height: 25;
+        position: relative;
+        display: inline-block;
+        grid-column: 1;
+        border-radius: 5px;
+        min-width: 15px;
+        max-width: 100px;
+        left: 8px;
+    }
+
+    .presBox-presentPanel {
+        display: flex;
+        justify-self: end;
+        width: 100%;
+        max-width: 300px;
+        min-width: 150px;
+    }
+
+    
+
+    select {
+        background: #323232;
+        color: white;
+    }
+
+    .presBox-button {
+        height: 25px;
+        border-radius: 5px;
+        display: none;
+        justify-content: center;
+        align-content: center;
+        align-items: center;
+        text-align: center;
+        letter-spacing: normal;
+        width: inherit;
+        background: #323232;
+        color: white;
+    }
+
+    .presBox-button.active {
+        display: flex;
+    }
+
+    .presBox-button.active:hover {
+        background-color: #233163;
+    }
+
+    .presBox-button.edit {
+        display: flex;
+        max-width: 25px;
+    }
+
+    .presBox-button.present {
+        display: flex;
+        min-width: 100px;
+        width: 100px;
+        position: absolute;
+        right: 10px;
+
+        .present-icon {
+            margin-right: 7px;
         }
     }
 
-    .presBox-backward,
-    .presBox-forward {
-        width: 25px;
+        
+    .miniPresOverlay {
+        background-color: #323232;
+        color: white;
         border-radius: 5px;
-        top: 50%;
+        grid-template-rows: 100%;
+        height: 25;
+        width: 200;
+        justify-content: space-evenly;
+        align-items: center;
+        display: flex;
         position: absolute;
+        right: 10px;
+
+        .miniPres-button-text {
+            display: flex;
+            height: 20;
+            width: max-content;
+            font-family: Roboto;
+            font-weight: 400;
+            letter-spacing: normal;
+            border-radius: 5px;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-divider {
+            width: 0.5px;
+            height: 80%;
+            border-right: solid 1px #5a5a5a;
+        }
+
+        .miniPres-button {
+            display: flex;
+            height: 20;
+            min-width: 20;
+            border-radius: 100%;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-button:hover {
+            background-color: #5a5a5a;
+        }
+
+        .miniPres-button-text:hover {
+            background-color: #5a5a5a;
+        }
+    }
+
+
+
+    .collectionViewBaseChrome-viewPicker {
+        min-width: 50;
+        width: 5%;
+        height: 25;
+        position: relative;
         display: inline-block;
+        left: 8px;
     }
+}
 
-    .presBox-backward {
-        left: 5;
-    }
+.presBox-backward,
+.presBox-forward {
+    width: 25px;
+    border-radius: 5px;
+    top: 50%;
+    position: absolute;
+    display: inline-block;
+}
 
-    .presBox-forward {
-        right: 5;
-    }
+.presBox-backward {
+    left: 5;
+}
+
+.presBox-forward {
+    right: 5;
 }
 
 // CSS adjusted for mobile devices

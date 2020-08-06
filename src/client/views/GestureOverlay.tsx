@@ -676,6 +676,15 @@ export default class GestureOverlay extends Touchable {
         var left = Math.min(...xs);
         var bottom = Math.max(...ys);
         var top = Math.min(...ys);
+        const firstx = this._points[0].X;
+        const firsty = this._points[0].Y;
+        const lastx = this._points[this._points.length - 2].X;
+        const lasty = this._points[this._points.length - 2].Y;
+        var fourth = (lastx - firstx) / 4;
+        if (isNaN(fourth) || fourth === 0) { fourth = 0.01; }
+        var m = (lasty - firsty) / (lastx - firstx);
+        if (isNaN(m) || m === 0) { m = 0.01; }
+        const b = firsty - m * firstx;
         if (shape === "noRec") {
             return false;
         }
@@ -724,6 +733,8 @@ export default class GestureOverlay extends Touchable {
 
                 this._points.push({ X: left, Y: top });
                 this._points.push({ X: left, Y: top });
+                // this._points.push({ X: left, Y: top });
+
                 // this._points.push({ X: left, Y: top });
                 // this._points.push({ X: left, Y: top });
 
@@ -797,8 +808,33 @@ export default class GestureOverlay extends Touchable {
 
                 break;
             case "line":
-                this._points.push({ X: left, Y: top });
-                this._points.push({ X: right, Y: bottom });
+                // const firstx = this._points[0].X;
+                // const firsty = this._points[0].Y;
+                // const lastx = this._points[this._points.length - 1].X;
+                // const lasty = this._points[this._points.length - 1].Y;
+                // const fourth = (lastx - firstx) / 4;
+                // const m = (lasty - firsty) / (lastx - firstx);
+                // const b = firsty - m * firstx;
+                this._points.push({ X: firstx, Y: firsty });
+                this._points.push({ X: firstx, Y: firsty });
+
+                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
+                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
+                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
+                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
+
+                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
+                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
+                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
+                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
+
+                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
+                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
+                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
+                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
+
+                this._points.push({ X: firstx + 4 * fourth, Y: m * (firstx + 4 * fourth) + b });
+                this._points.push({ X: firstx + 4 * fourth, Y: m * (firstx + 4 * fourth) + b });
                 break;
             case "arrow":
                 const x1 = left;

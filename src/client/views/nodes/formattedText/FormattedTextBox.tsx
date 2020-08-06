@@ -236,7 +236,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
-                    (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
+                    const lastmodified = "lastmodified";
+                    (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()))) && (this.dataDoc[lastmodified] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
@@ -270,7 +271,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.rootDoc.customTitle) {
             let node = this._editorView.state.doc;
-            while (node.firstChild) node = node.firstChild;
+            while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -292,18 +293,40 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
-    public highlightSearchTerms = (terms: string[]) => {
+    public highlightSearchTerms = (terms: string[], alt: boolean) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
+
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            const length = res[0].length;
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
+
+
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
+            if (alt === true) {
+                if (this._searchIndex > 1) {
+                    this._searchIndex += -2;
+                }
+                else if (this._searchIndex === 1) {
+                    this._searchIndex = length - 1;
+                }
+                else if (this._searchIndex === 0 && length !== 1) {
+                    this._searchIndex = length - 2;
+                }
+
+            }
+            else {
+
+            }
+            const index = this._searchIndex;
+
+            Doc.GetProto(this.dataDoc).searchIndex = index;
         }
     }
 
@@ -314,6 +337,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const end = this._editorView.state.doc.nodeSize - 2;
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
+
         }
         if (FormattedTextBox.PasteOnLoad) {
             const pdfDocId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfOrigin");
@@ -536,6 +560,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
+        appearanceItems.push({ description: "Create progressivized slide...", event: this.progressivizeText, icon: "desktop" });
         cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = cm.findByDescription("Options...");
@@ -545,6 +570,66 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
+    }
+
+    progressivizeText = () => {
+        const list = this.ProseRef?.getElementsByTagName("li");
+        const mainBulletText: string[] = [];
+        const mainBulletList: Doc[] = [];
+        if (list) {
+            const newBullets: Doc[] = this.recursiveProgressivize(1, list);
+            mainBulletList.push.apply(mainBulletList, newBullets);
+        }
+        console.log(mainBulletList.length);
+        const title = Docs.Create.TextDocument(StrCast(this.rootDoc.title), { title: "Title", _width: 800, _height: 70, x: 20, y: -10, _fontSize: '20pt', backgroundColor: "rgba(0,0,0,0)", appearFrame: 0, _fontWeight: 700 });
+        mainBulletList.push(title);
+        const doc = Docs.Create.FreeformDocument(mainBulletList, {
+            title: StrCast(this.rootDoc.title),
+            x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
+            _width: 400, _height: 225, _fitToBox: true,
+        });
+        this.props.addDocument?.(doc);
+    }
+
+    recursiveProgressivize = (nestDepth: number, list: HTMLCollectionOf<HTMLLIElement>, d?: number, y?: number, before?: string): Doc[] => {
+        const mainBulletList: Doc[] = [];
+        let b = d ? d : 0;
+        let yLoc = y ? y : 0;
+        let nestCount = 0;
+        let count: string = before ? before : '';
+        const fontSize: string = (16 - (nestDepth * 2)) + 'pt';
+        const xLoc: number = (nestDepth * 20);
+        const width: number = 390 - xLoc;
+        const height: number = 55 - (nestDepth * 5);
+        Array.from(list).forEach(listItem => {
+            const mainBullets: number = Number(listItem.getAttribute("data-bulletstyle"));
+            if (mainBullets === nestDepth) {
+                if (listItem.childElementCount > 1) {
+                    b++;
+                    nestCount++;
+                    count = before ? count + nestCount + "." : nestCount + ".";
+                    yLoc += height;
+                    const text = listItem.getElementsByTagName("p")[0].innerText;
+                    const length = text.length;
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    mainBulletList.push(bullet1);
+                    const newList = this.recursiveProgressivize(nestDepth + 1, listItem.getElementsByTagName("li"), b, yLoc, count);
+                    mainBulletList.push.apply(mainBulletList, newList);
+                    b += newList.length;
+                    yLoc += newList.length * (55 - ((nestDepth + 1) * 5));
+                } else {
+                    b++;
+                    nestCount++;
+                    count = before ? count + nestCount + "." : nestCount + ".";
+                    yLoc += height;
+                    const text = listItem.innerText;
+                    const length = text.length;
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _height: height, x: xLoc, y: 10 + (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    mainBulletList.push(bullet1);
+                }
+            }
+        });
+        return mainBulletList;
     }
 
     recordDictation = () => {
@@ -738,8 +823,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
+        this._disposers.searchAlt = reaction(() => this.rootDoc.searchMatchAlt,
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], false) : this.unhighlightSearchTerms(),
+            { fireImmediately: true });
         this._disposers.search = reaction(() => this.rootDoc.searchMatch,
-            search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], true) : this.unhighlightSearchTerms(),
             { fireImmediately: this.rootDoc.searchMatch ? true : false });
 
         this._disposers.record = reaction(() => this._recording,
@@ -1374,6 +1462,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "string", null),
+                        fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                         transition: "opacity 1s"
                     }}
