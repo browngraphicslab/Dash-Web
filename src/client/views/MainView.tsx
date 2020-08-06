@@ -617,7 +617,7 @@ export class MainView extends React.Component {
                     </div>
                 }
                 {this.propertiesWidth() < 10 ? (null) :
-                    <div style={{ width: this.propertiesWidth() }}> {this.propertiesView} </div>}
+                    <div style={{ width: this.propertiesWidth(), height: "calc(100% - 35px)" }}> {this.propertiesView} </div>}
             </div>
         </>;
     }
