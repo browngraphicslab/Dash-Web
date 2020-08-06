@@ -237,36 +237,34 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed
     get pinWithViewButton() {
         const targetDoc = this.selectedDoc;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         if (targetDoc) {
             const x = targetDoc._panX;
             const y = targetDoc._panY;
             const scale = targetDoc._viewScale;
         }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>}>
-            <div className="propertiesButtons-linker"
-                style={{ backgroundColor: "black", color: "white" }}
-                onClick={e => {
-                    if (targetDoc) {
-                        DockedFrameRenderer.PinDoc(targetDoc, false);
-                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-                        const x = targetDoc._panX;
-                        const y = targetDoc._panY;
-                        const scale = targetDoc._viewScale;
-                        activeDoc.presPinView = true;
-                        activeDoc.presPinViewX = x;
-                        activeDoc.presPinViewY = y;
-                        activeDoc.presPinViewScale = scale;
-                    }
-                }}>
-                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
-                <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(42%, -7px)', color: 'rgba(0,0,0,0.2)' }}>V</div>
-                <div className="propertiesButtons-title" style={{
-                    backgroundColor: "black",
-                    color: "white"
-                }}
-                >{"Pin with view"}</div>
-            </div></Tooltip>;
+            <>
+                <div className="propertiesButtons-linker"
+                    style={{ backgroundColor: "black", color: "white" }}
+                    onClick={e => {
+                        if (targetDoc) {
+                            DockedFrameRenderer.PinDoc(targetDoc, false);
+                            const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+                            const x = targetDoc._panX;
+                            const y = targetDoc._panY;
+                            const scale = targetDoc._viewScale;
+                            activeDoc.presPinView = true;
+                            activeDoc.presPinViewX = x;
+                            activeDoc.presPinViewY = y;
+                            activeDoc.presPinViewScale = scale;
+                        }
+                    }}>
+                    <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin" />
+                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -20px)', color: 'rgba(250,250,250,0.5)' }}>V</div>
+                </div>
+                <div className="propertiesButtons-title" style={{ backgroundColor: "black", color: "white" }}>{"View"}</div>
+            </>
+        </Tooltip>;
     }
 
 

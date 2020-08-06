@@ -1064,10 +1064,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
                                 {/* <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div> */}
                             </div>
-                            <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform' ? "inline-flex" : "none" }}>
+                            {/* <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform' ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" onClick={this.progressivizeText}>Text progressivize</div>
                                 <div className="ribbon-button" style={{ display: activeItem.textProgressivize ? "flex" : "none", backgroundColor: targetDoc.editTextProgressivize ? "#aedef8" : "" }} onClick={this.editTextProgressivize}>Edit</div>
-                            </div>
+                            </div> */}
                             <div className="ribbon-doubleButton" style={{ display: targetDoc._viewType === "stacking" || targetDoc.type === DocumentType.PDF || targetDoc.type === DocumentType.WEB || targetDoc.type === DocumentType.RTF ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.scrollProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeScroll}>Scroll progressivize</div>
                                 <div className="ribbon-button" style={{ display: activeItem.scrollProgressivize ? "flex" : "none", backgroundColor: targetDoc.editScrollProgressivize ? "#aedef8" : "" }} onClick={this.editScrollProgressivize}>Edit</div>
@@ -1657,6 +1657,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return <div onPointerOver={this.onPointerOver} onPointerLeave={this.onPointerLeave} className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
                 <select className="presBox-viewPicker"
+                    style={{ display: this.layoutDoc.presStatus === "edit" ? "block" : "none" }}
                     onPointerDown={e => e.stopPropagation()}
                     onChange={this.viewChanged}
                     value={mode}>
@@ -1665,7 +1666,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </select>
                 <div className="presBox-presentPanel">
                     <span className={`presBox-button ${this.layoutDoc.presStatus === "edit" ? "present" : ""}`}>
-                        <div className="presBox-button-left" onClick={() => this.layoutDoc.presStatus = "manual"}><FontAwesomeIcon icon={"play-circle"} /> &nbsp; Present </div>
+                        <div className="presBox-button-left" onClick={() => this.layoutDoc.presStatus = "manual"}><FontAwesomeIcon icon={"play-circle"} /> <div style={{ display: this.props.PanelWidth() > 200 ? "inline-flex" : "none" }}>&nbsp; Present </div></div>
                         <div className={`presBox-button-right ${this.presentTools ? "active" : ""}`} onClick={e => { e.stopPropagation; this.togglePresent(); }}>
                             <FontAwesomeIcon className="dropdown" style={{ margin: 0, transform: this.presentTools ? 'rotate(180deg)' : 'rotate(0deg)' }} icon={"angle-down"} />
                             {this.presentDropdown}
