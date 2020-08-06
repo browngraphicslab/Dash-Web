@@ -339,6 +339,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._visible = false;
     }
 
+    @undoBatch
     @action
     delete = () => {
         const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
