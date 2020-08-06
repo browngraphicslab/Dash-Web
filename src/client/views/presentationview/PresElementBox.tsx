@@ -238,7 +238,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         e.preventDefault();
         if (element) {
-            console.log(element.className);
             if (PresBox.Instance._eleArray.includes(element)) {
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             }
