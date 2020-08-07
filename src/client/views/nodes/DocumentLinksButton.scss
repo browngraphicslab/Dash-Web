@@ -28,7 +28,13 @@
 }
 
 .documentLinksButton {
-    background-color: $link-color;
+    background-color: black;
+
+    &:hover {
+        background: $main-accent;
+        transform: scale(1.05);
+        cursor: pointer;
+    }
 }
 
 .documentLinksButton-endLink {

@@ -167,6 +167,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         DocumentLinksButton.EditLink = undefined;
     }
 
+    @undoBatch
     @action
     showLink = () => {
         this.props.linkDoc.hidden = !this.props.linkDoc.hidden;
@@ -182,7 +183,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         switch (this.props.destinationDoc.type) {
             case DocumentType.IMG: destinationIcon = "image"; break;
             case DocumentType.COMPARISON: destinationIcon = "columns"; break;
-            case DocumentType.RTF: destinationIcon = "font"; break;
+            case DocumentType.RTF: destinationIcon = "sticky-note"; break;
             case DocumentType.COL: destinationIcon = "folder"; break;
             case DocumentType.WEB: destinationIcon = "globe-asia"; break;
             case DocumentType.SCREENSHOT: destinationIcon = "photo-video"; break;
@@ -190,12 +191,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             case DocumentType.AUDIO: destinationIcon = "microphone"; break;
             case DocumentType.BUTTON: destinationIcon = "bolt"; break;
             case DocumentType.PRES: destinationIcon = "tv"; break;
-            case DocumentType.QUERY: destinationIcon = "search"; break;
             case DocumentType.SCRIPTING: destinationIcon = "terminal"; break;
             case DocumentType.IMPORT: destinationIcon = "cloud-upload-alt"; break;
             case DocumentType.DOCHOLDER: destinationIcon = "expand"; break;
             case DocumentType.VID: destinationIcon = "video"; break;
             case DocumentType.INK: destinationIcon = "pen-nib"; break;
+            case DocumentType.PDF: destinationIcon = "file"; break;
             default: destinationIcon = "question"; break;
         }
 

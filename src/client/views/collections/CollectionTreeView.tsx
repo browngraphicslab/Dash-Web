@@ -90,7 +90,10 @@ class TreeView extends React.Component<TreeViewProps> {
     get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
     get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.doc.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
-    set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.doc.treeViewOpen = this._overrideTreeViewOpen = c; }
+    set treeViewOpen(c: boolean) {
+        if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
+        else this.doc.treeViewOpen = this._overrideTreeViewOpen = c;
+    }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && BoolCast(this.doc.treeViewOpen)) || this._overrideTreeViewOpen; }
     @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.defaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
@@ -100,8 +103,8 @@ class TreeView extends React.Component<TreeViewProps> {
     childDocList(field: string) {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
         return ((this.props.dataDoc ? DocListCast(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
-            (layout ? Cast(layout[field], listSpec(Doc)) : undefined) || // else if there's a layout doc, display it's fields
-            Cast(this.doc[field], listSpec(Doc))) as Doc[]; // otherwise use the document's data field
+            (layout ? DocListCast(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
+            DocListCast(this.doc[field])); // otherwise use the document's data field
     }
     @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
@@ -328,7 +331,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         [...this.props.renderedIds, this.doc[Id]], this.props.libraryPath, this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields)}
             </ul >;
         } else if (this.treeViewExpandedView === "fields") {
-            return <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.doc[Id] + this.doc.title}>
+            return <ul key={this.doc[Id] + this.doc.title}><div ref={this._dref} style={{ display: "inline-block" }} >
                 {this.expandedField}
             </div></ul>;
         } else {
@@ -782,7 +785,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         onClicks.push({
             description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.doc, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
         });
-        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "hand-point-right" });
+        !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: onClicks, icon: "mouse-pointer" });
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onExternalDrop(e, {});

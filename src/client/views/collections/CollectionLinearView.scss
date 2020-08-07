@@ -2,7 +2,7 @@
 @import "../_nodeModuleOverrides";
 
 .collectionLinearView-outer {
-    overflow: hidden;
+    overflow: visible;
     height: 100%;
 
     .collectionLinearView {

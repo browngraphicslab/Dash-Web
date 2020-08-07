@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Opt, DocListCast, DataSym, AclEdit, AclAddonly, AclAdmin } from "../../../../fields/Doc";
-import { GetEffectiveAcl, getPlaygroundMode } from "../../../../fields/util";
+import { GetEffectiveAcl } from "../../../../fields/util";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
@@ -281,7 +281,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this._downX = x;
             this._downY = y;
             const effectiveAcl = GetEffectiveAcl(this.props.Document);
-            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl) || getPlaygroundMode()) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl)) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
             this.clearSelection();
         }
     });
@@ -339,10 +339,21 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._visible = false;
     }
 
+    @undoBatch
     @action
     delete = () => {
-        this.props.removeDocument(this.marqueeSelect(false));
+        const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+        const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
+
+        selected.map(doc => {
+            const effectiveAcl = GetEffectiveAcl(doc);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
+                recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                this.props.removeDocument(doc);
+            }
+        });
+
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();

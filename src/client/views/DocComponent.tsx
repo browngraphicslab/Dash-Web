@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym, DocListCastAsync, DocListCast } from '../../fields/Doc';
+import { Doc, Opt, DataSym, AclReadonly, AclAddonly, AclPrivate, AclEdit, AclSym, DocListCastAsync, DocListCast, AclAdmin } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
@@ -7,7 +7,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../fields/List';
 import { DateField } from '../../fields/DateField';
 import { ScriptField } from '../../fields/ScriptField';
-import { GetEffectiveAcl, getPlaygroundMode, SharingPermissions } from '../../fields/util';
+import { GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../fields/util';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -26,7 +26,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
@@ -59,7 +59,7 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
         lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !Doc.SelectedTool();  // bcz: inking state shouldn't affect static tools 
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
@@ -96,7 +96,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             [AclPrivate, SharingPermissions.None],
             [AclReadonly, SharingPermissions.View],
             [AclAddonly, SharingPermissions.Add],
-            [AclEdit, SharingPermissions.Edit]
+            [AclEdit, SharingPermissions.Edit],
+            [AclAdmin, SharingPermissions.Admin]
         ]);
 
         lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
@@ -114,7 +115,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             return style;
         }
 
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
         _annotationKey: string = "annotations";
         public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
@@ -150,25 +151,24 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
 
             if (added.length) {
-                if (effectiveAcl === AclPrivate || (effectiveAcl === AclReadonly && !getPlaygroundMode())) {
+                if (effectiveAcl === AclPrivate || effectiveAcl === AclReadonly) {
                     return false;
                 }
                 else {
                     if (this.props.Document[AclSym]) {
                         added.forEach(d => {
-                            const dataDoc = d[DataSym];
-                            dataDoc[AclSym] = d[AclSym] = this.props.Document[AclSym];
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                                dataDoc[key] = d[key] = this.AclMap.get(value);
+                                distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                             }
                         });
                     }
+
                     if (effectiveAcl === AclAddonly) {
                         added.map(doc => Doc.AddDocToList(targetDataDoc, this.annotationKey, doc));
                     }
                     else {
                         added.map(doc => doc.context = this.props.Document);
-                        targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                        (targetDataDoc[this.annotationKey] as List<Doc>).push(...added);
                         targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
                     }
                 }

@@ -1,22 +1,22 @@
-import * as fs from 'fs';
-import { logPort } from './ActionUtilities';
-import { Utils } from "../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "./Message";
-import { Client } from "./Client";
-import { Socket } from "socket.io";
-import { Database } from "./database";
-import { Search } from "./Search";
-import * as sio from 'socket.io';
-import YoutubeApi from "./apis/youtube/youtubeApiSample";
-import { GoogleCredentialsLoader, SSL } from "./apis/google/CredentialsLoader";
-import { timeMap } from "./ApiManagers/UserManager";
-import { green } from "colors";
-import { networkInterfaces } from "os";
-import executeImport from "../scraping/buxton/final/BuxtonImporter";
-import { DocumentsCollection } from "./IDatabase";
-import { createServer, Server } from "https";
 import * as express from "express";
+import { blue, green } from "colors";
+import { createServer, Server } from "https";
+import { networkInterfaces } from "os";
+import * as sio from 'socket.io';
+import { Socket } from "socket.io";
+import executeImport from "../scraping/buxton/final/BuxtonImporter";
+import { Utils } from "../Utils";
+import { logPort } from './ActionUtilities';
+import { timeMap } from "./ApiManagers/UserManager";
+import { GoogleCredentialsLoader, SSL } from "./apis/google/CredentialsLoader";
+import YoutubeApi from "./apis/youtube/youtubeApiSample";
+import { Client } from "./Client";
+import { Database } from "./database";
+import { DocumentsCollection } from "./IDatabase";
+import { Diff, GestureContent, MessageStore, MobileDocumentUploadContent, MobileInkOverlayContent, Transferable, Types, UpdateMobileInkOverlayPositionContent, YoutubeQueryInput, YoutubeQueryTypes } from "./Message";
+import { Search } from "./Search";
 import { resolvedPorts } from './server_Initialization';
+import { Opt } from "../fields/Doc";
 
 export namespace WebSocket {
 
@@ -32,7 +32,7 @@ export namespace WebSocket {
             if (socketPort) {
                 resolvedPorts.socket = Number(socketPort);
             }
-            let socketEndpoint: Server;
+            let socketEndpoint: Opt<Server>;
             await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolvedPorts.socket, resolve));
             io = sio(socketEndpoint!, SSL.Credentials as any);
         } else {
@@ -187,7 +187,7 @@ export namespace WebSocket {
             + currentdate.getHours() + ":"
             + currentdate.getMinutes() + ":"
             + currentdate.getSeconds();
-        console.log(green(`user ${userEmail} has connected to the web socket at: ${datetime}`));
+        console.log(blue(`user ${userEmail} has connected to the web socket at: ${datetime}`));
         socketMap.set(socket, userEmail);
     }
 
@@ -209,10 +209,12 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
+        process.stdout.write(`.`);
         Database.Instance.getDocument(id, callback);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
+        process.stdout.write(`${ids.length}…`);
         Database.Instance.getDocuments(ids, callback);
     }
 
@@ -228,7 +230,8 @@ export namespace WebSocket {
         "script": ["_t", value => value.script.originalScript],
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        "proxy": ["_i", "fieldId"],
+        // "proxy": ["_i", "fieldId"],
+        // "proxy": ["", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {
@@ -242,25 +245,27 @@ export namespace WebSocket {
     };
 
     function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+
         if (val === null || val === undefined) {
             return;
         }
         const type = val.__type || typeof val;
+
         let suffix = suffixMap[type];
         if (!suffix) {
             return;
         }
-
         if (Array.isArray(suffix)) {
             const accessor = suffix[1];
             if (typeof accessor === "function") {
                 val = accessor(val);
             } else {
                 val = val[accessor];
+
             }
             suffix = suffix[0];
-        }
 
+        }
         return { suffix, value: val };
     }
 
@@ -282,7 +287,7 @@ export namespace WebSocket {
             dynfield = true;
             const val = docfield[key];
             key = key.substring(7);
-            Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
+            Object.values(suffixMap).forEach(suf => { update[key + getSuffix(suf)] = { set: null }; });
             const term = ToSearchTerm(val);
             if (term !== undefined) {
                 const { suffix, value } = term;

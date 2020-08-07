@@ -1,8 +1,8 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
-import { Socket, Room } from 'socket.io';
-import { Message } from './server/Message';
 import { ColorState } from 'react-color';
+import { Socket } from 'socket.io';
+import { Message } from './server/Message';
 
 export namespace Utils {
     export let DRAG_THRESHOLD = 4;

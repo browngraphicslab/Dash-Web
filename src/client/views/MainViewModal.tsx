@@ -10,7 +10,7 @@ export interface MainViewOverlayProps {
     overlayStyle?: React.CSSProperties;
     dialogueBoxDisplayedOpacity?: number;
     overlayDisplayedOpacity?: number;
-    closeOnExternalClick?: () => void;
+    closeOnExternalClick?: () => void; // the close method of a MainViewModal, triggered if there is a click on the overlay (closing the modal)
 }
 
 @observer
@@ -21,7 +21,9 @@ export default class MainViewModal extends React.Component<MainViewOverlayProps>
         const dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
         const overlayOpacity = p.overlayDisplayedOpacity || 0.4;
         return !p.isDisplayed ? (null) : (
-            <div style={{ pointerEvents: p.isDisplayed && p.interactive ? "all" : "none" }}>
+            <div style={{
+                pointerEvents: p.isDisplayed && p.interactive ? "all" : "none"
+            }}>
                 <div
                     className={"dialogue-box"}
                     style={{

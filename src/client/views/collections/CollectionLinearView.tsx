@@ -161,7 +161,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
                                 renderDepth={this.props.renderDepth + 1}
                                 focus={emptyFunction}
-                                backgroundColor={returnEmptyString}
+                                backgroundColor={this.props.backgroundColor}
                                 parentActive={returnTrue}
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
@@ -176,7 +176,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                 }}
                     onPointerDown={e => e.stopPropagation()} >
                     <span className="bottomPopup-text" >
-                        Creating link from: {DocumentLinksButton.StartLink.title}
+                        Creating link from: {DocumentLinksButton.StartLink.props.Document.title}
                     </span>
 
                     <Tooltip title={<><div className="dash-tooltip">{LinkDescriptionPopup.showDescriptions ? "Turn off description pop-up" :

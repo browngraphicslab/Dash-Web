@@ -11,10 +11,12 @@ import { Document } from "../../../fields/documentSchemas";
 import { TraceMobx } from "../../../fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { List } from "../../../fields/List";
-import { numberRange } from "../../../Utils";
+import { numberRange, smoothScroll } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { Zoom, Fade, Flip, Rotate, Bounce, Roll, LightSpeed } from 'react-reveal';
+import { PresBox } from "./PresBox";
 import { InkingStroke } from "../InkingStroke";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
@@ -74,33 +76,84 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     public static getValues(doc: Doc, time: number) {
         const timecode = Math.round(time);
         return ({
+            h: Cast(doc["h-indexed"], listSpec("number"), [NumCast(doc._height)]).reduce((p, h, i) => (i <= timecode && h !== undefined) || p === undefined ? h : p, undefined as any as number),
+            w: Cast(doc["w-indexed"], listSpec("number"), [NumCast(doc._width)]).reduce((p, w, i) => (i <= timecode && w !== undefined) || p === undefined ? w : p, undefined as any as number),
             x: Cast(doc["x-indexed"], listSpec("number"), [NumCast(doc.x)]).reduce((p, x, i) => (i <= timecode && x !== undefined) || p === undefined ? x : p, undefined as any as number),
             y: Cast(doc["y-indexed"], listSpec("number"), [NumCast(doc.y)]).reduce((p, y, i) => (i <= timecode && y !== undefined) || p === undefined ? y : p, undefined as any as number),
+            scroll: Cast(doc["scroll-indexed"], listSpec("number"), [NumCast(doc._scrollTop, 0)]).reduce((p, s, i) => (i <= timecode && s !== undefined) || p === undefined ? s : p, undefined as any as number),
             opacity: Cast(doc["opacity-indexed"], listSpec("number"), [NumCast(doc.opacity, 1)]).reduce((p, o, i) => i <= timecode || p === undefined ? o : p, undefined as any as number),
         });
     }
 
-    public static setValues(time: number, d: Doc, x?: number, y?: number, opacity?: number) {
+    public static setValues(time: number, d: Doc, x?: number, y?: number, h?: number, w?: number, scroll?: number, opacity?: number) {
         const timecode = Math.round(time);
+        const hindexed = Cast(d["h-indexed"], listSpec("number"), []).slice();
+        const windexed = Cast(d["w-indexed"], listSpec("number"), []).slice();
         const xindexed = Cast(d["x-indexed"], listSpec("number"), []).slice();
         const yindexed = Cast(d["y-indexed"], listSpec("number"), []).slice();
         const oindexed = Cast(d["opacity-indexed"], listSpec("number"), []).slice();
+        const scrollIndexed = Cast(d["scroll-indexed"], listSpec("number"), []).slice();
         xindexed[timecode] = x as any as number;
         yindexed[timecode] = y as any as number;
+        hindexed[timecode] = h as any as number;
+        windexed[timecode] = w as any as number;
         oindexed[timecode] = opacity as any as number;
+        scrollIndexed[timecode] = scroll as any as number;
         d["x-indexed"] = new List<number>(xindexed);
         d["y-indexed"] = new List<number>(yindexed);
+        d["h-indexed"] = new List<number>(hindexed);
+        d["w-indexed"] = new List<number>(windexed);
         d["opacity-indexed"] = new List<number>(oindexed);
+        d["scroll-indexed"] = new List<number>(scrollIndexed);
+        if (d.appearFrame) {
+            if (d.appearFrame === timecode + 1) {
+                d["text-color"] = "red";
+            } else if (d.appearFrame < timecode + 1) {
+                d["text-color"] = "grey";
+            } else { d["text-color"] = "black"; }
+        } else if (d.appearFrame === 0) {
+            d["text-color"] = "black";
+        }
     }
+
+    public static updateScrollframe(doc: Doc, time: number) {
+        const timecode = Math.round(time);
+        const scrollIndexed = Cast(doc['scroll-indexed'], listSpec("number"), null);
+        scrollIndexed?.length <= timecode + 1 && scrollIndexed.push(undefined as any as number);
+        setTimeout(() => doc.dataTransition = "inherit", 1010);
+    }
+
+    public static setupScroll(doc: Doc, timecode: number, scrollProgressivize: boolean = false) {
+        const scrollList = new List<number>();
+        scrollList[timecode] = NumCast(doc._scrollTop);
+        doc["scroll-indexed"] = scrollList;
+        doc.activeFrame = ComputedField.MakeFunction("self.currentFrame");
+        doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
+    }
+
+
     public static updateKeyframe(docs: Doc[], time: number) {
         const timecode = Math.round(time);
         docs.forEach(doc => {
             const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
             const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
+            const hindexed = Cast(doc['h-indexed'], listSpec("number"), null);
+            const windexed = Cast(doc['w-indexed'], listSpec("number"), null);
             const opacityindexed = Cast(doc['opacity-indexed'], listSpec("number"), null);
+            hindexed?.length <= timecode + 1 && hindexed.push(undefined as any as number);
+            windexed?.length <= timecode + 1 && windexed.push(undefined as any as number);
             xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
             yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
+            if (doc.appearFrame) {
+                if (doc.appearFrame === timecode + 1) {
+                    doc["text-color"] = "red";
+                } else if (doc.appearFrame < timecode + 1) {
+                    doc["text-color"] = "grey";
+                } else { doc["text-color"] = "black"; }
+            } else if (doc.appearFrame === 0) {
+                doc["text-color"] = "black";
+            }
             doc.dataTransition = "all 1s";
         });
         setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
@@ -111,18 +164,49 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
     }
 
+    public static setupZoom(doc: Doc, zoomProgressivize: boolean = false) {
+        const width = new List<number>();
+        const height = new List<number>();
+        const top = new List<number>();
+        const left = new List<number>();
+        width.push(NumCast(doc.width));
+        height.push(NumCast(doc.height));
+        top.push(NumCast(doc.height) / -2);
+        left.push(NumCast(doc.width) / -2);
+        doc["viewfinder-width-indexed"] = width;
+        doc["viewfinder-height-indexed"] = height;
+        doc["viewfinder-top-indexed"] = top;
+        doc["viewfinder-left-indexed"] = left;
+    }
+
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
         docs.forEach((doc, i) => {
+            if (doc.appearFrame === undefined) doc.appearFrame = i;
             const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
+            const wlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
+            const hlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
+            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
+            const oarray = olist;
+            oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
+            oarray.fill(1, NumCast(doc.appearFrame), timecode);
+            // oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
+            // oarray.fill(1, NumCast(doc.appearFrame), timecode);\
+            wlist[curTimecode] = NumCast(doc._width);
+            hlist[curTimecode] = NumCast(doc._height);
             xlist[curTimecode] = NumCast(doc.x);
             ylist[curTimecode] = NumCast(doc.y);
+            doc.xArray = xlist;
+            doc.yArray = ylist;
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
-            doc["opacity-indexed"] = olist;
+            doc["w-indexed"] = wlist;
+            doc["h-indexed"] = hlist;
+            doc["opacity-indexed"] = oarray;
             doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
+            doc._height = ComputedField.MakeInterpolated("h", "activeFrame");
+            doc._width = ComputedField.MakeInterpolated("w", "activeFrame");
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
@@ -133,6 +217,44 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     nudge = (x: number, y: number) => {
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
+    }
+
+    @computed get freeformNodeDiv() {
+        const node = <DocumentView {...this.props}
+            nudge={this.nudge}
+            dragDivName={"collectionFreeFormDocumentView-container"}
+            ContentScaling={this.contentScaling}
+            ScreenToLocalTransform={this.getTransform}
+            backgroundColor={this.props.backgroundColor}
+            opacity={this.opacity}
+            NativeHeight={this.NativeHeight}
+            NativeWidth={this.NativeWidth}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight} />;
+        if (PresBox.Instance && this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc) {
+            const effectProps = {
+                left: this.layoutDoc.presEffectDirection === 'left',
+                right: this.layoutDoc.presEffectDirection === 'right',
+                top: this.layoutDoc.presEffectDirection === 'top',
+                bottom: this.layoutDoc.presEffectDirection === 'bottom',
+                opposite: true,
+                delay: this.layoutDoc.presTransition,
+                // when: this.layoutDoc === PresBox.Instance.childDocs[PresBox.Instance.itemIndex]?.presentationTargetDoc,
+            };
+            switch (this.layoutDoc.presEffect) {
+                case "Zoom": return (<Zoom {...effectProps}>{node}</Zoom>); break;
+                case "Fade": return (<Fade {...effectProps}>{node}</Fade>); break;
+                case "Flip": return (<Flip {...effectProps}>{node}</Flip>); break;
+                case "Rotate": return (<Rotate {...effectProps}>{node}</Rotate>); break;
+                case "Bounce": return (<Bounce {...effectProps}>{node}</Bounce>); break;
+                case "Roll": return (<Roll {...effectProps}>{node}</Roll>); break;
+                case "LightSpeed": return (<LightSpeed {...effectProps}>{node}</LightSpeed>); break;
+                case "None": return node; break;
+                default: return node; break;
+            }
+        } else {
+            return node;
+        }
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
@@ -165,6 +287,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 || this.props.Document.type === DocumentType.INK || this.props.Document.isInkMask ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
+
             {Doc.UserDoc().renderStyle !== "comic" ? (null) :
                 <div style={{ width: "100%", height: "100%", position: "absolute" }}>
                     <svg style={{ transform: `scale(1,${this.props.PanelHeight() / this.props.PanelWidth()})`, transformOrigin: "top left", overflow: "visible" }} viewBox="0 0 12 14">
@@ -174,17 +297,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 </div>}
 
             {!this.props.fitToBox ?
-                <DocumentView {...this.props}
-                    nudge={this.nudge}
-                    dragDivName={"collectionFreeFormDocumentView-container"}
-                    ContentScaling={this.contentScaling}
-                    ScreenToLocalTransform={this.getTransform}
-                    backgroundColor={this.props.backgroundColor}
-                    opacity={this.opacity}
-                    NativeHeight={this.NativeHeight}
-                    NativeWidth={this.NativeWidth}
-                    PanelWidth={this.panelWidth}
-                    PanelHeight={this.panelHeight} />
+                <>{this.freeformNodeDiv}</>
                 : <ContentFittingDocumentView {...this.props}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     DataDoc={this.props.DataDoc}

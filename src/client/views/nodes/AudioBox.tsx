@@ -73,13 +73,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     @observable _position: number = 0;
     @observable _buckets: Array<number> = new Array<number>();
-    @observable private _height: number = NumCast(this.layoutDoc.height);
+    @observable private _height: number = NumCast(this.layoutDoc._height);
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
-
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
     async slideTemplate() { return (await Cast((await Cast(Doc.UserDoc().slidesBtn, Doc) as Doc).dragFactory, Doc) as Doc); }
 

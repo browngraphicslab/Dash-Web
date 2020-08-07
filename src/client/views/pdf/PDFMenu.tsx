@@ -84,11 +84,6 @@ export default class PDFMenu extends AntimodeMenu {
         e.preventDefault();
     }
 
-    togglePin = action((e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
-        !this.Pinned && (this.Highlighting = false);
-    });
-
     @action
     highlightClicked = (e: React.MouseEvent) => {
         if (!this.Highlight(this.highlightColor) && this.Pinned) {
@@ -98,7 +93,7 @@ export default class PDFMenu extends AntimodeMenu {
 
     @computed get highlighter() {
         const button =
-            <button className="antimodeMenu-button color-preview-button" title="" key="highilghter-button" onPointerDown={this.highlightClicked}>
+            <button className="antimodeMenu-button color-preview-button" title="" key="highlighter-button" onPointerDown={this.highlightClicked}>
                 <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
                 <div className="color-preview" style={{ backgroundColor: this.highlightColor }}></div>
             </button>;
@@ -161,8 +156,6 @@ export default class PDFMenu extends AntimodeMenu {
                 this.highlighter,
                 <button key="2" className="antimodeMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
                     <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
-                <button key="4" className="antimodeMenu-button" title="Pin Menu" onClick={this.togglePin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
-                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} /></button>,
             ] : [
                 <button key="5" className="antimodeMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}>
                     <FontAwesomeIcon icon="trash-alt" size="lg" /></button>,

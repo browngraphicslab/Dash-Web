@@ -1,4 +1,4 @@
-import { action } from 'mobx';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast } from '../../../fields/Doc';
@@ -41,7 +41,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
             }, icon: "trash"
         });
 
-        ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "OnClick...", noexpand: true, subitems: funcs, icon: "mouse-pointer" });
     }
 
     @undoBatch
@@ -56,16 +56,26 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
             e.stopPropagation();
         }
     }
+
+    @observable _mouseOver = false;
+    @computed get backColor() { return this.clicked || this._mouseOver ? StrCast(this.layoutDoc.hovercolor) : "unset"; }
+
+    @observable clicked = false;
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
         const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
         const missingParams = params?.filter(p => !this.paramsDoc[p]);
         params?.map(p => DocListCast(this.paramsDoc[p])); // bcz: really hacky form of prefetching ... 
         return (
-            <div className="labelBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
+            <div className="labelBox-outerDiv"
+                onClick={action(() => this.clicked = !this.clicked)}
+                onMouseLeave={action(() => this._mouseOver = false)}
+                onMouseOver={action(() => this._mouseOver = true)}
+                ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
+                    backgroundColor: this.backColor,
                     color: StrCast(this.layoutDoc.color, "inherit"),
                     fontSize: StrCast(this.layoutDoc._fontSize) || "inherit",
                     fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",

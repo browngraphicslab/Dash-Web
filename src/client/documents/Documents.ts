@@ -21,6 +21,8 @@ import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { UndoManager } from "../util/UndoManager";
+import { DocumentType } from "./DocumentTypes";
+import { SearchBox } from "../views/search/SearchBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
@@ -31,6 +33,7 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
+import { MenuIconBox } from "../views/nodes/MenuIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
@@ -38,16 +41,13 @@ import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { PresBox } from "../views/nodes/PresBox";
-import { QueryBox } from "../views/nodes/QueryBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
-import { RecommendationsBox } from "../views/RecommendationsBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
 import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
@@ -93,6 +93,7 @@ export interface DocumentOptions {
     type?: string;
     title?: string;
     label?: string;
+    hidden?: boolean;
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
@@ -128,6 +129,7 @@ export interface DocumentOptions {
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
+    _fontWeight?: number;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -135,6 +137,12 @@ export interface DocumentOptions {
     currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
+    appearFrame?: number; // the frame in which the document appears
+    presTransition?: number; //the time taken for the transition TO a document
+    presDuration?: number; //the duration of the slide in presentation view
+    presProgressivize?: boolean;
+    // xArray?: number[];
+    // yArray?: number[];
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
@@ -152,6 +160,7 @@ export interface DocumentOptions {
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
+    iconShape?: string; // shapes of the fonticon border
     linkRelationship?: string; // type of relatinoship a link represents
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activeInkPen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
@@ -167,6 +176,7 @@ export interface DocumentOptions {
     clipboard?: Doc;
     UseCors?: boolean;
     icon?: string;
+    target?: Doc; // available for use in scripts as the primary target document
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
@@ -187,14 +197,14 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
-    searchText?: string; //for searchbox
-    searchQuery?: string; // for queryBox
-    filterQuery?: string;
+    searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
     isLabel?: boolean;         // whether the document is a label or not (video / audio)
     useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
     audioStart?: number;       // the time frame where the audio should begin playing
     audioEnd?: number;         // the time frame where the audio should stop playing  
+    border?: string; //for searchbox
+    hovercolor?: string;
 }
 
 class EmptyBox {
@@ -224,8 +234,8 @@ export namespace Docs {
                 layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
-            [DocumentType.QUERY, {
-                layout: { view: QueryBox, dataField: defaultDataKey },
+            [DocumentType.SEARCH, {
+                layout: { view: SearchBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
@@ -305,10 +315,10 @@ export namespace Docs {
                 layout: { view: FontIconBox, dataField: defaultDataKey },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
             }],
-            [DocumentType.RECOMMENDATION, {
-                layout: { view: RecommendationsBox, dataField: defaultDataKey },
-                options: { _width: 200, _height: 200 },
-            }],
+            // [DocumentType.RECOMMENDATION, {
+            //     layout: { view: RecommendationsBox, dataField: defaultDataKey },
+            //     options: { _width: 200, _height: 200 },
+            // }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: defaultDataKey }
             }],
@@ -559,6 +569,7 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
+            dataDoc.aliases = new List<Doc>();
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -632,8 +643,8 @@ export namespace Docs {
             return instance;
         }
 
-        export function QueryDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        export function SearchDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>([]), options);
         }
 
         export function ColorDocument(options: DocumentOptions = {}) {
@@ -726,11 +737,11 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Freeform }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Freeform }, id);
         }
 
         export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", ...options, _viewType: CollectionViewType.Pile }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", hideFilterView: true, forceActive: true, ...options, _viewType: CollectionViewType.Pile }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -754,11 +765,11 @@ export namespace Docs {
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Tree }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Stacking }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Stacking }, id);
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
@@ -770,7 +781,7 @@ export namespace Docs {
 
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", ...options, _viewType: CollectionViewType.Masonry });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", dontRegisterChildViews: true, ...options, _viewType: CollectionViewType.Masonry });
         }
 
         export function LabelDocument(options?: DocumentOptions) {
@@ -807,10 +818,6 @@ export namespace Docs {
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.IMPORT), new List<Doc>(), options);
-        }
-
-        export function RecommendationsDocument(data: Doc[], options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
         export type DocConfig = {
@@ -932,9 +939,6 @@ export namespace DocUtils {
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1?.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2?.title');
 
-        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
-        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
-
         return linkDoc;
     }
 
@@ -1043,6 +1047,7 @@ export namespace DocUtils {
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
                     if (newDoc) {
+                        newDoc.author = Doc.CurrentUserEmail;
                         newDoc.x = x;
                         newDoc.y = y;
                         docAdder(newDoc);
@@ -1062,6 +1067,7 @@ export namespace DocUtils {
             }
         });
         batch.end();
+        return doc;
     }
     export function findTemplate(templateName: string, type: string, signature: string) {
         let docLayoutTemplate: Opt<Doc>;
