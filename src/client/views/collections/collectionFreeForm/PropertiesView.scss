@@ -437,9 +437,9 @@
 
             .propertiesView-presTrails-title-icon {
                 float: right;
-                right: 0;
-                position: absolute;
-                margin-left: 2px;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
                 margin-right: 9px;
 
                 &:hover {

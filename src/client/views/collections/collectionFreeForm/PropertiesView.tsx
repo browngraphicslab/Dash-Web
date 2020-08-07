@@ -950,12 +950,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance._selectedArray.length > 0;
-                return <div className="propertiesView" style={{ width: this.props.width }} >
-                    <div className="propertiesView-title" style={{ width: this.props.width }}>
+                return <div className="propertiesView">
+                    <div className="propertiesView-title">
                         Presentation
-                    <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                            <FontAwesomeIcon icon="times" color="black" size="sm" />
-                        </div>
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}
