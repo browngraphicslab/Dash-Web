@@ -206,7 +206,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     dispatchTransaction = (tx: Transaction) => {
         let timeStamp;
         clearTimeout(timeStamp);
-        console.log("hi");
         if (this._editorView) {
 
             const metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
@@ -255,12 +254,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
-                            console.log("type");
                             if (!this._pause && !this.layoutDoc._timeStampOnEnter) {
-                                console.log("started");
-                                timeStamp = setTimeout(() => this.pause(), 10 * 1000);
+                                timeStamp = setTimeout(() => this.pause(), 10 * 1000); // 10 seconds delay for time stamp
                             }
 
+                            // if 10 seconds have passed, insert time stamp the next time you type
                             if (this._pause) {
                                 this._pause = false;
                                 this.insertTime();
@@ -305,6 +303,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
     }
 
+    // for inserting timestamps 
     insertTime = () => {
         let linkTime;
         if (this._first) {
@@ -320,13 +319,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
 
             })
-
-
-
         }
         this._currentTime = Date.now();
         let time;
-        console.log(this._linkTime);
         this._linkTime ? time = this.formatTime(Math.round(this._linkTime + this._currentTime / 1000 - this._recordingStart / 1000)) : time = null;
 
         if (this._editorView) {
@@ -347,7 +342,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 let value = "";
                 this._break = false;
                 value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
-                console.log(value);
                 const from = state.selection.from;
                 const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
                 this._editorView.dispatch(this._editorView.state.tr.insertText(value));
@@ -683,7 +677,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const recordingStart = DateCast(this.props.Document.recordingStart).date.getTime();
             this._break = false;
             value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
-            console.log(value);
             const from = state.selection.from;
             const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
             this._editorView.dispatch(inserted.setSelection(TextSelection.create(inserted.doc, from, from + value.length + 1)));
@@ -1440,11 +1433,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
-        trace();
-        // if (this.props.Document.recordingStart) {
-        //     console.log(DateCast(this.props.Document.recordingStart).date.getTime());
-        // }
-
         const scale = this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;

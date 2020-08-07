@@ -60,7 +60,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _start: number = 0;
     _hold: boolean = false;
     _left: boolean = false;
-    _amount: number = 1;
     _markers: Array<any> = [];
     _first: boolean = false;
     _dragging = false;
@@ -77,7 +76,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @observable private _height: number = NumCast(this.layoutDoc.height);
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
-    @observable private _repeat: boolean = false;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
@@ -126,36 +124,38 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 const sel = selected.length ? selected[0].props.Document : undefined;
                 let link;
                 if (sel) {
-                    // for determining if the link is created after recording (since it will use linkTIme rather than creation date)
-                    DocListCast(sel.links).map((l, i) => {
+                    // for determining if the link is created after recording (since it will use linkTime rather than creation date)
+                    DocListCast(this.dataDoc.links).map((l, i) => {
                         let la1 = l.anchor1 as Doc;
                         let la2 = l.anchor2 as Doc;
-                        let linkTime = NumCast(l.anchor2_timecode);
-                        let endTime;
-                        if (Doc.AreProtosEqual(la1, this.dataDoc)) {
-                            la1 = l.anchor2 as Doc;
-                            la2 = l.anchor1 as Doc;
-                            linkTime = NumCast(l.anchor1_timecode);
-                        }
-                        if (la2.audioStart) {
-                            linkTime = NumCast(la2.audioStart);
-                        }
+                        if (la1 === sel || la2 === sel) { // if the selected document is linked to this audio 
+                            let linkTime = NumCast(l.anchor2_timecode);
+                            let endTime;
+                            if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                                la1 = l.anchor2 as Doc;
+                                la2 = l.anchor1 as Doc;
+                                linkTime = NumCast(l.anchor1_timecode);
+                            }
+                            if (la2.audioStart) {
+                                linkTime = NumCast(la2.audioStart);
+                            }
 
-                        if (la1.audioStart) {
-                            linkTime = NumCast(la1.audioStart);
-                        }
+                            if (la1.audioStart) {
+                                linkTime = NumCast(la1.audioStart);
+                            }
 
-                        if (la1.audioEnd) {
-                            endTime = NumCast(la1.audioEnd);
-                        }
+                            if (la1.audioEnd) {
+                                endTime = NumCast(la1.audioEnd);
+                            }
 
-                        if (la2.audioEnd) {
-                            endTime = NumCast(la2.audioEnd);
-                        }
+                            if (la2.audioEnd) {
+                                endTime = NumCast(la2.audioEnd);
+                            }
 
-                        if (linkTime) {
-                            link = true;
-                            this.layoutDoc.playOnSelect && this.recordingStart && sel && !Doc.AreProtosEqual(sel, this.props.Document) && endTime ? this.playFrom(linkTime, endTime) : this.playFrom(linkTime);
+                            if (linkTime) {
+                                link = true;
+                                this.layoutDoc.playOnSelect && this.recordingStart && sel && !Doc.AreProtosEqual(sel, this.props.Document) && (endTime ? this.playFrom(linkTime, endTime) : this.playFrom(linkTime));
+                            }
                         }
                     });
                 }
@@ -189,19 +189,19 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
+    // pause play back
     pause = action(() => {
-        if (this._repeat) {
-            this.playFrom(0);
-        } else {
-            this._ele!.pause();
-            this.audioState = "paused";
-        }
+        console.log("pause");
+        this._ele!.pause();
+        this.audioState = "paused";
     });
 
+    // play audio for documents created during recording 
     playFromTime = (absoluteTime: number) => {
         this.recordingStart && this.playFrom((absoluteTime - this.recordingStart) / 1000);
     }
 
+    // play back the audio from time
     @action
     playFrom = (seekTimeInSeconds: number, endTime: number = this.dataDoc.duration) => {
         let play;
@@ -220,15 +220,15 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 this._ele.play();
                 runInAction(() => this.audioState = "playing");
                 if (endTime !== this.dataDoc.duration) {
-                    play = setTimeout(() => this.pause(), (this._duration) * 1000);
+                    play = setTimeout(() => this.pause(), (this._duration) * 1000); // use setTimeout to play a specific duration
                 }
-            } else { // this is getting called because time is greater than duration
+            } else {
                 this.pause();
             }
         }
     }
 
-
+    // update the recording time
     updateRecordTime = () => {
         if (this.audioState === "recording") {
             if (this._paused) {
@@ -241,6 +241,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
+    // starts recording
     recordAudioAnnotation = async () => {
         this._stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this._recorder = new MediaRecorder(this._stream);
@@ -259,6 +260,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         setTimeout(() => this._recorder && this.stopRecording(), 60 * 60 * 1000); // stop after an hour
     }
 
+    // context menu
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when link is selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
@@ -268,6 +270,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         ContextMenu.Instance?.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
+    // stops the recording 
     stopRecording = action(() => {
         this._recorder.stop();
         this._recorder = undefined;
@@ -278,6 +281,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
     });
 
+    // button for starting and stopping the recording
     recordClick = (e: React.MouseEvent) => {
         if (e.button === 0 && !e.ctrlKey) {
             this._recorder ? this.stopRecording() : this.recordAudioAnnotation();
@@ -285,14 +289,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
     }
 
+    // for play button
     onPlay = (e: any) => {
         this.playFrom(this._ele!.paused ? this._ele!.currentTime : -1);
         e.stopPropagation();
     }
-    onStop = (e: any) => {
-        this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect;
-        e.stopPropagation();
-    }
+
+    // creates a text document for dictation
     onFile = (e: any) => {
         const newDoc = Docs.Create.TextDocument("", {
             title: "", _chromeStatus: "disabled",
@@ -306,54 +309,211 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         e.stopPropagation();
     }
 
+    // ref for updating time
     setRef = (e: HTMLAudioElement | null) => {
         e?.addEventListener("timeupdate", this.timecodeChanged);
         e?.addEventListener("ended", this.pause);
         this._ele = e;
     }
 
+    // returns the path of the audio file
     @computed get path() {
         const field = Cast(this.props.Document[this.props.fieldKey], AudioField);
         const path = (field instanceof AudioField) ? field.url.href : "";
         return path === nullAudio ? "" : path;
     }
 
-    // @action
-    // buckets = () => {
-    //     let audioCtx = new (window.AudioContext)();
-    //     const buckets: number[] = [];
+    // returns the html audio element
+    @computed get audio() {
+        const interactive = this.active() ? "-interactive" : "";
+        return <audio ref={this.setRef} className={`audiobox-control${interactive}`}>
+            <source src={this.path} type="audio/mpeg" />
+            Not supported.
+        </audio>;
+    }
 
-    //     axios({ url: this.path, responseType: "arraybuffer" })
-    //         .then(response => runInAction(() => {
-    //             let audioData = response.data;
+    // pause the time during recording phase
+    @action
+    recordPause = (e: React.MouseEvent) => {
+        this._pauseStart = new Date().getTime();
+        this._paused = true;
+        this._recorder.pause();
+        e.stopPropagation();
 
-    //             audioCtx.decodeAudioData(audioData, buffer => {
-    //                 let decodedAudioData = buffer.getChannelData(0);
-    //                 const NUMBER_OF_BUCKETS = 100;
-    //                 let bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
+    }
 
-    //                 for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
-    //                     let startingPoint = i * bucketDataSize;
-    //                     let endingPoint = i * bucketDataSize + bucketDataSize;
-    //                     let max = 0;
-    //                     for (let j = startingPoint; j < endingPoint; j++) {
-    //                         if (decodedAudioData[j] > max) {
-    //                             max = decodedAudioData[j];
-    //                         }
-    //                     }
-    //                     let size = Math.abs(max);
-    //                     buckets.push(size / 2);
-    //                 }
+    // continue the recording
+    @action
+    recordPlay = (e: React.MouseEvent) => {
+        this._pauseEnd = new Date().getTime();
+        this._paused = false;
+        this._recorder.resume();
+        e.stopPropagation();
 
-    //             });
-    //             return buckets
-    //         }));
-    // }
+    }
 
+    // return the total time paused to update the correct time
+    @computed get pauseTime() {
+        return (this._pauseEnd - this._pauseStart);
+    }
+
+    // creates a new label 
+    @action
+    newMarker(marker: Doc) {
+        marker.data = "";
+        if (this.dataDoc[this.annotationKey]) {
+            this.dataDoc[this.annotationKey].push(marker);
+        } else {
+            this.dataDoc[this.annotationKey] = new List<Doc>([marker]);
+        }
+    }
+
+    // the starting time of the marker
+    start(startingPoint: number) {
+        this._hold = true;
+        this._start = startingPoint;
+    }
+
+    // creates a new marker
+    @action
+    end(marker: number) {
+        this._hold = false;
+        let newMarker = Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: false, useLinkSmallAnchor: true, hideLinkButton: true, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document });
+        newMarker.data = "";
+        if (this.dataDoc[this.annotationKey]) {
+            this.dataDoc[this.annotationKey].push(newMarker);
+        } else {
+            this.dataDoc[this.annotationKey] = new List<Doc>([newMarker]);
+        }
+
+        this._start = 0;
+    }
+
+    // starting the drag event for marker resizing
+    onPointerDown = (e: React.PointerEvent, m: any, left: boolean): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = true;
+        this._currMarker = m;
+        this._timeline?.setPointerCapture(e.pointerId);
+        this._left = left;
+
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointerup", this.onPointerUp);
+    }
+
+    // ending the drag event for marker resizing
+    @action
+    onPointerUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = false;
+        this._dragging = false;
+
+        const rect = (e.target as any).getBoundingClientRect();
+        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+
+        this._timeline?.releasePointerCapture(e.pointerId);
+
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    // resizes the marker while dragging
+    onPointerMove = async (e: PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log("drag");
+
+        if (!this._isPointerDown) {
+            return;
+        }
+
+        const rect = await (e.target as any).getBoundingClientRect();
+
+        let newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+
+        this.changeMarker(this._currMarker, newTime);
+    }
+
+    // updates the marker with the new time
+    @action
+    changeMarker = (m: any, time: any) => {
+        for (let i = 0; i < this.dataDoc[this.annotationKey].length; i++) {
+            if (this.isSame(this.dataDoc[this.annotationKey][i], m)) {
+                this._left ? this.dataDoc[this.annotationKey][i].audioStart = time : this.dataDoc[this.annotationKey][i].audioEnd = time;
+            }
+        }
+    }
+
+    // checks if the two markers are the same with start and end time
+    isSame = (m1: any, m2: any) => {
+        if (m1.audioStart === m2.audioStart && m1.audioEnd === m2.audioEnd) {
+            return true;
+        }
+        return false;
+    }
+
+    // instantiates a new array of size 500 for marker layout
+    markers = () => {
+        const increment = NumCast(this.layoutDoc.duration) / 500;
+        this._count = [];
+        for (let i = 0; i < 500; i++) {
+            this._count.push([increment * i, 0])
+        }
+
+    }
+
+    // makes sure no markers overlaps each other by setting the correct position and width
+    isOverlap = (m: any) => {
+        if (this._first) {
+            this._first = false;
+            this.markers();
+        }
+        let max = 0
+
+        for (let i = 0; i < 500; i++) {
+            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
+                this._count[i][1]++;
+
+                if (this._count[i][1] > max) {
+                    max = this._count[i][1];
+                }
+            }
+        }
+
+        for (let i = 0; i < 500; i++) {
+            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
+                this._count[i][1] = max;
+            }
+
+        }
+
+        if (this.dataDoc.markerAmount < max) {
+            this.dataDoc.markerAmount = max;
+        }
+        return max - 1
+    }
+
+    // returns the audio waveform
+    @computed get waveform() {
+        return <Waveform
+            color={"darkblue"}
+            height={this._height}
+            barWidth={0.1}
+            // pos={this.layoutDoc.currentTimecode}
+            pos={this.dataDoc.duration}
+            duration={this.dataDoc.duration}
+            peaks={this._buckets.length === 100 ? this._buckets : undefined}
+            progressColor={"blue"} />;
+    }
+
+    // decodes the audio file into peaks for generating the waveform
     @action
     buckets = async () => {
         let audioCtx = new (window.AudioContext)();
-        const buckets: number[] = [];
 
         axios({ url: this.path, responseType: "arraybuffer" })
             .then(response => {
@@ -374,344 +534,19 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             }
                         }
                         let size = Math.abs(max);
-                        buckets.push(size / 2);
                         this._buckets.push(size / 2);
                     }
 
                 }));
-                return buckets;
             });
     }
 
+    // Returns the peaks of the audio waveform
     @computed get peaks() {
-        // let audioCtx = new (window.AudioContext)();
-        // let buckets: number[] = [];
-
-        // return (async () => {
-        //     await axios({ url: this.path, responseType: "arraybuffer" })
-        //         .then(response => {
-        //             let audioData = response.data;
-
-        //             audioCtx.decodeAudioData(audioData, buffer => {
-        //                 let decodedAudioData = buffer.getChannelData(0);
-        //                 const NUMBER_OF_BUCKETS = 100;
-        //                 let bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
-
-
-
-        //                 for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
-        //                     let startingPoint = i * bucketDataSize;
-        //                     let endingPoint = i * bucketDataSize + bucketDataSize;
-        //                     let max = 0;
-        //                     for (let j = startingPoint; j < endingPoint; j++) {
-        //                         if (decodedAudioData[j] > max) {
-        //                             max = decodedAudioData[j];
-        //                         }
-        //                     }
-        //                     let size = Math.abs(max);
-        //                     console.log(size);
-        //                     buckets.push(size / 2);
-        //                     console.log(buckets);
-        //                 }
-        //             });
-        //             console.log(buckets);
-        //             return buckets;
-        //         });
-        //     console.log(buckets.length);
-        //     return buckets;
-        // })();
-
-
         return this.buckets();
     }
 
-    @computed get audio() {
-        const interactive = this.active() ? "-interactive" : "";
-        return <audio ref={this.setRef} className={`audiobox-control${interactive}`}>
-            <source src={this.path} type="audio/mpeg" />
-            Not supported.
-        </audio>;
-    }
-
-    @action
-    onRepeat = (e: React.MouseEvent) => {
-        this._repeat = !this._repeat;
-        e.stopPropagation();
-    }
-
-    @action
-    recordPause = (e: React.MouseEvent) => {
-        this._pauseStart = new Date().getTime();
-        this._paused = true;
-        this._recorder.pause();
-        e.stopPropagation();
-
-    }
-
-    @action
-    recordPlay = (e: React.MouseEvent) => {
-        this._pauseEnd = new Date().getTime();
-        this._paused = false;
-        this._recorder.resume();
-        e.stopPropagation();
-
-    }
-
-    @computed get pauseTime() {
-        return (this._pauseEnd - this._pauseStart);
-    }
-
-    @action
-    newMarker(marker: Doc) {
-        if (this.dataDoc[this.annotationKey]) {
-            this.dataDoc[this.annotationKey].push(marker);
-        } else {
-            this.dataDoc[this.annotationKey] = new List<Doc>([marker]);
-        }
-    }
-
-    start(marker: number) {
-        console.log("start!");
-        this._hold = true;
-        this._start = marker;
-    }
-
-    @action
-    end(marker: number) {
-        console.log("end!");
-        this._hold = false;
-        //this._markers.push(Docs.Create.LabelDocument({ isLabel: false, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }))
-        let newMarker = Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: false, useLinkSmallAnchor: true, hideLinkButton: true, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document });
-        newMarker.data = "";
-        if (this.dataDoc[this.annotationKey]) {
-            this.dataDoc[this.annotationKey].push(newMarker); // onClick: ScriptField.MakeScript(`playFrom(${NumCast(this._start)}, ${NumCast(marker)})`)
-        } else {
-            this.dataDoc[this.annotationKey] = new List<Doc>([newMarker]);
-        }
-
-
-        this._start = 0;
-        this._amount++;
-    }
-
-    onPointerDown = (e: React.PointerEvent, m: any, left: boolean): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        this._isPointerDown = true;
-        console.log("click");
-        this._currMarker = m;
-        this._timeline?.setPointerCapture(e.pointerId);
-        this._left = left;
-
-
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointerup", this.onPointerUp);
-    }
-
-    @action
-    onPointerUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        this._isPointerDown = false;
-        this._dragging = false;
-
-        const rect = (e.target as any).getBoundingClientRect();
-        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-
-        this._timeline?.releasePointerCapture(e.pointerId);
-
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-    }
-
-    onPointerMove = async (e: PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        console.log("drag");
-
-        if (!this._isPointerDown) {
-            return;
-        }
-
-        const rect = await (e.target as any).getBoundingClientRect();
-
-        // if (e.target as HTMLElement === document.getElementById("timeline")) {
-
-        let newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-
-        this.changeMarker(this._currMarker, newTime);
-        // }
-    }
-
-    @action
-    changeMarker = (m: any, time: any) => {
-        for (let i = 0; i < this.dataDoc[this.annotationKey].length; i++) {
-            if (this.isSame(this.dataDoc[this.annotationKey][i], m)) {
-                // this._left ? this._markers[i][0] = time : this._markers[i][1] = time;
-                this._left ? this.dataDoc[this.annotationKey][i].audioStart = time : this.dataDoc[this.annotationKey][i].audioEnd = time;
-            }
-        }
-    }
-
-    isSame = (m1: any, m2: any) => {
-        if (m1.audioStart === m2.audioStart && m1.audioEnd === m2.audioEnd) {
-            return true;
-        }
-        return false;
-    }
-
-    markers = () => {
-        const increment = NumCast(this.layoutDoc.duration) / 500;
-        this._count = [];
-        for (let i = 0; i < 500; i++) {
-            this._count.push([increment * i, 0])
-        }
-
-    }
-
-    // Probably need a better way to format
-    // isOverlap = (m: any, i: number) => {
-    //     console.log("called");
-    //     let counter = 0;
-
-    //     if (this._first) {
-    //         this._markers = [];
-    //         this._first = false;
-    //     }
-    //     for (let i = 0; i < this._markers.length; i++) {
-    //         if ((m.audioEnd > this._markers[i].audioStart && m.audioStart < this._markers[i].audioEnd)) {
-    //             counter++;
-    //             console.log(counter);
-    //         }
-    //     }
-
-    //     if (this.dataDoc.markerAmount < counter) {
-    //         this.dataDoc.markerAmount = counter;
-    //     }
-
-    //     this._markers.push(m);
-
-    //     return counter;
-    // }
-
-    isOverlap = (m: any) => {
-        if (this._first) {
-            this._first = false;
-            this.markers();
-        }
-
-
-        let max = 0
-
-        for (let i = 0; i < 500; i++) {
-            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
-                this._count[i][1]++;
-
-                if (this._count[i][1] > max) {
-                    max = this._count[i][1];
-                }
-            }
-
-
-        }
-
-        for (let i = 0; i < 500; i++) {
-            if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
-                this._count[i][1] = max;
-            }
-
-        }
-
-        if (this.dataDoc.markerAmount < max) {
-            this.dataDoc.markerAmount = max;
-        }
-        return max - 1
-    }
-
-
-    @action
-    onHover = () => {
-        this._dragging = true;
-    }
-
-    @action
-    onLeave = () => {
-        this._dragging = false;
-    }
-    // onMouseOver={this.onHover} onMouseLeave={this.onLeave}
-
-    change = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        const rect = (e.target as any).getBoundingClientRect();
-
-        const wasPaused = this.audioState === "paused";
-        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-        wasPaused && this.pause();
-        console.log("double!");
-    }
-
-    rangeScript = () => AudioBox.RangeScript;
-
-    labelScript = () => AudioBox.LabelScript;
-
-    // see if time is encapsulated by comparing time on both sides (for moving onto a new row in the timeline for the markers)
-    check = (e: React.PointerEvent) => {
-        if (e.target as HTMLElement === document.getElementById("timeline")) {
-            return true;
-        }
-    }
-
-    reset = () => {
-        this._first = true;
-    }
-
-    @computed get height() {
-        console.log(this.layoutDoc._height);
-        if (this.layoutDoc._height) {
-            return 0.8 * NumCast(this.layoutDoc._height)
-        }
-    }
-
-    // waveform() {
-    //     let wavesurfer: any;
-    //     if (WaveSurfer) {
-    //         this.path ?
-    //             wavesurfer = WaveSurfer.create({
-    //                 container: 'waveform',
-    //                 waveColor: "grey",
-    //                 progressColor: "blue"
-    //             })
-    //             :
-    //             wavesurfer = (null);
-    //     } else {
-    //         console.log("hi");
-    //     }
-
-    //     if (wavesurfer) {
-    //         wavesurfer.on('ready', function () {
-    //             wavesurfer.play();
-    //         });
-
-    //         wavesurfer.load(this.path);
-    //         console.log("hi");
-    //     }
-    // }
-
-    @computed get waveform() {
-        return <Waveform
-            color={"darkblue"}
-            height={this._height}
-            barWidth={0.1}
-            // pos={this.layoutDoc.currentTimecode}
-            pos={this.dataDoc.duration}
-            duration={this.dataDoc.duration}
-            peaks={this._buckets.length === 100 ? this._buckets : undefined}
-            progressColor={"blue"} />;
-    }
-
+    // for updating the width and height of the waveform with timeline ref
     timelineRef = (timeline: HTMLDivElement) => {
         const observer = new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
@@ -724,6 +559,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._timeline = timeline;
     }
 
+    // update the width and height of the audio waveform
     @action
     update = (width: number, height: number) => {
         if (height) {
@@ -741,8 +577,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 if (context) {
                     context.scale(ratio1, ratio2)
                 }
-
-
             }
 
             let canvas1 = document.getElementsByTagName("canvas")[1];
@@ -758,36 +592,28 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 if (context) {
                     context.scale(ratio1, ratio2)
                 }
-
-                // let parent = canvas1.parentElement;
-                // if (parent) {
-                //     parent.style.width = `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration) * width}`;
-                //     parent.style.height = `${this._height}`;
-                // }
             }
         }
     }
 
+    rangeScript = () => AudioBox.RangeScript;
+
+    labelScript = () => AudioBox.LabelScript;
+
+    // for indicating the first marker that is rendered
+    reset = () => this._first = true;
 
     render() {
         trace();
         const interactive = this.active() ? "-interactive" : "";
         this.reset();
-        // this.waveform();
-        this.path && this._buckets.length !== 100 ? this.buckets() : null;
+        this.path && this._buckets.length !== 100 ? this.peaks : null; // render waveform if audio is done recording
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
                 <div className="audiobox-buttons">
                     <div className="audiobox-dictation" onClick={this.onFile}>
                         <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
-                    {/* <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "lightgrey" : "black" }}>
-                        {this.audioState === "recording" ?
-                            <div className="recording" style={{}}>
-                                10:00
-                                    <FontAwesomeIcon style={{ width: "100%" }} icon={"stop-circle"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
-                                <FontAwesomeIcon style={{ width: "100%" }} icon={"pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /> </div> : "RECORD"}
-                    </button> */}
                     {this.audioState === "recording" ?
                         <div className="recording" onClick={e => e.stopPropagation()}>
                             <div className="buttons" onClick={this.recordClick}>
@@ -798,19 +624,16 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             </div>
                             <div className="time">{formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}</div>
                         </div>
-
                         :
                         <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
                             RECORD
                             </button>}
                 </div> :
-                <div className="audiobox-controls" > {/*onClick={this.layoutDoc.playOnSelect ? this.onPlay : undefined}*/}
+                <div className="audiobox-controls" >
                     <div className="audiobox-dictation"></div>
                     <div className="audiobox-player" >
                         <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                        {/* <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "darkgrey" : "" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                        <div className="audiobox-playhead" onClick={this.onRepeat}><FontAwesomeIcon style={{ width: "100%", background: this._repeat ? "darkgrey" : "" }} icon="redo-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div> */}
-                        <div className="audiobox-timeline" ref={this.timelineRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} onDoubleClick={e => this.change}
+                        <div className="audiobox-timeline" ref={this.timelineRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }}
                             onPointerDown={e => {
                                 e.stopPropagation();
                                 e.preventDefault();
@@ -834,21 +657,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 }
                             }}>
                             <div className="waveform" id="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px" }}>
-                                {/* {console.log(this.peaks)} */}
-                                {/* <Waveform
-                                    color={"#000000"}
-                                    height={this._height}
-                                    barWidth={0.1}
-                                    pos={this.layoutDoc.currentTimecode}
-                                    duration={this.dataDoc.duration}
-                                    peaks={this._buckets.length === 100 ? this._buckets : undefined}
-
-                                    progressColor={"#0000ff"} /> */}
                                 {this.waveform}
-                                {/* {this.waveform} */}
                             </div>
                             {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
-                                // let text = Docs.Create.TextDocument("hello", { title: "label", _showSidebar: false, _autoHeight: false });
                                 let rect;
                                 (!m.isLabel) ?
                                     (this.layoutDoc.hideMarkers) ? (null) :
@@ -869,8 +680,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                                 ignoreAutoHeight={false}
                                                 bringToFront={emptyFunction}
                                                 scriptContext={this} />
-                                            {/* <LabelBox {... this.props} Document={m} /> */}
-                                            {/* <div className="click" onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)) }}></div> */}
                                             <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
                                         </div>
                                     :
@@ -905,13 +714,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     linkTime = NumCast(l.anchor1_timecode);
                                 }
 
-                                if (la2.audioStart) {
+                                if (la2.audioStart && !la2.audioEnd) {
                                     linkTime = NumCast(la2.audioStart);
                                 }
 
                                 return !linkTime ? (null) :
                                     <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }} onClick={e => e.stopPropagation()}>
-                                        {/* <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}> */}
                                         <DocumentView {...this.props}
                                             Document={l}
                                             NativeHeight={returnZero}
@@ -933,7 +741,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             })}
                             <div className="audiobox-current" id="current" onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%`, pointerEvents: "none" }} />
                             {this.audio}
-
                         </div>
                         <div className="current-time">
                             {formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}
