@@ -74,7 +74,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
             </div>
         </button>;
-        return (this.layoutDoc.developerFeature && Doc.UserDoc().noviceMode) ? (null) : !this.layoutDoc.toolTip ? button :
+        return !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
                 {button}
             </Tooltip>;

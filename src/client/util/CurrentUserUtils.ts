@@ -385,10 +385,9 @@ export class CurrentUserUtils {
         return doc["template-icons"] as Doc;
     }
 
-    static creatorBtnDescriptors(doc: Doc): {
+    static creatorBtnDescriptors(doc: Doc, novice: boolean): {
         title: string, toolTip: string, icon: string, drag?: string, ignoreClick?: boolean,
         click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc, hidden?: any,
-        developerFeature?: boolean
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
@@ -461,7 +460,6 @@ export class CurrentUserUtils {
             toolTip: "Drag a screengrabber", title: "Grab",
             icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))',
             drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc,
-            developerFeature: true,
         };
         const audio = {
             toolTip: "Drag a audio recorder", title: "Audio",
@@ -482,35 +480,35 @@ export class CurrentUserUtils {
         const search = {
             toolTip: "Drag a search box", title: "Query", icon: "search",
             click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)',
-            dragFactory: doc.emptySearch as Doc, developerFeature: true,
+            dragFactory: doc.emptySearch as Doc,
         };
         const script = {
             toolTip: "Drag a scripting box", title: "Script",
             icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))',
             drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc,
-            developerFeature: true,
         };
         const mobile = {
             toolTip: "Drag a mobile view", title: "Phone",
             icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)',
             drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc,
-            developerFeature: true,
         };
         const preview = {
             toolTip: "Drag a document previewer", title: "Prev",
             icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))',
             drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc,
-            developerFeature: true,
         };
         const repl = {
             toolTip: "Toggle a Calculator REPL", title: "repl",
             icon: "calculator",
             click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })',
-            developerFeature: true,
         };
 
         // novice : [collection, web, compare, audio, button, pres] 
-        return [collection, web, compare, screen, audio, button, pres, search, script, preview, repl];
+        if (novice) {
+            return [collection, web, compare, audio, button, pres];
+        } else {
+            return [collection, web, compare, screen, audio, button, pres, search, script, preview, repl];
+        }
 
     }
 
@@ -525,10 +523,9 @@ export class CurrentUserUtils {
                 alreadyCreatedButtons = dragDocs.map(d => StrCast(d.title));
             }
         }
-        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
+        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc, true).filter(d => !alreadyCreatedButtons?.includes(d.title));
         const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag,
-            click, ischecked, activeInkPen, backgroundColor, dragFactory,
-            developerFeature }) => Docs.Create.FontIconDocument({
+            click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
                 _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
                 icon,
                 title,
@@ -542,12 +539,55 @@ export class CurrentUserUtils {
                 backgroundColor,
                 removeDropProperties: new List<string>(["dropAction"]),
                 dragFactory,
-                developerFeature,
             }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0,
+                title: "Basic Item Creators",
+                hidden: ComputedField.MakeFunction("!self.target.noviceMode") as any,
+                _showTitle: "title", _xMargin: 0,
+                _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
+                dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
+            }));
+        } else {
+            creatorBtns.forEach(nb => Doc.AddDocToList(doc.myItemCreators as Doc, "data", nb));
+        }
+        return doc.myItemCreators as Doc;
+    }
+
+    static async setupDevCreatorButtons(doc: Doc) {
+        let alreadyCreatedButtons: string[] = [];
+        const dragCreatorSet = await Cast(doc.myItemCreators, Doc, null);
+        if (dragCreatorSet) {
+            const dragCreators = await Cast(dragCreatorSet.data, listSpec(Doc));
+            if (dragCreators) {
+                const dragDocs = await Promise.all(dragCreators);
+                alreadyCreatedButtons = dragDocs.map(d => StrCast(d.title));
+            }
+        }
+        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc, false).filter(d => !alreadyCreatedButtons?.includes(d.title));
+        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag,
+            click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
+                _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
+                icon,
+                title,
+                toolTip,
+                ignoreClick,
+                dropAction: "copy",
+                onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
+                onClick: click ? ScriptField.MakeScript(click) : undefined,
+                ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
+                activeInkPen,
+                backgroundColor,
+                removeDropProperties: new List<string>(["dropAction"]),
+                dragFactory,
+            }));
+
+        if (dragCreatorSet === undefined) {
+            doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
+                title: "Basic Item Creators",
+                hidden: ComputedField.MakeFunction("self.target.noviceMode") as any,
+                _showTitle: "title", _xMargin: 0,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
@@ -724,12 +764,13 @@ export class CurrentUserUtils {
     static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
+        const devBtns = await CurrentUserUtils.setupDevCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
 
         doc["tabs-button-tools"] = undefined;
 
         if (doc.myCreators === undefined) {
-            doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
+            doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, devBtns, templateBtns], {
                 title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
                 _width: 500, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
             }));

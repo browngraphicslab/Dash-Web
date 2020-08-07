@@ -205,7 +205,6 @@ export interface DocumentOptions {
     audioEnd?: number;         // the time frame where the audio should stop playing  
     border?: string; //for searchbox
     hovercolor?: string;
-    developerFeature?: boolean;
 }
 
 class EmptyBox {
