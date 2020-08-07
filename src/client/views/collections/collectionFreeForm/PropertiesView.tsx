@@ -959,9 +959,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance?._selectedArray.length} selected
+                            {PresBox.Instance._selectedArray.length} selected
                             <div className="propertiesView-selectedList">
-                                {PresBox.Instance?.listOfSelected}
+                                {PresBox.Instance.listOfSelected}
                             </div>
                         </div>
                     </div>
