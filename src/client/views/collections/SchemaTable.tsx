@@ -177,7 +177,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
-        console.log(columns);
 
         const cols = this.props.columns.map(col => {
 
@@ -315,7 +314,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             width: 28,
             resizable: false
         });
-        console.log(columns);
         return columns;
     }
 

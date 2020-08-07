@@ -892,20 +892,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.rootDoc.type === DocumentType.LINK ||
             this.props.dontRegisterView ? (null) : // view that are not registered
             DocUtils.FilterDocs(this.directLinks, this.props.docFilters(), []).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
-                <div className="documentView-anchorCont" key={i + 1}> <DocumentView {...this.props}
-                    Document={d}
-                    ContainingCollectionView={this.props.ContainingCollectionView}
-                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
-                    PanelWidth={this.anchorPanelWidth}
-                    PanelHeight={this.anchorPanelHeight}
-                    ContentScaling={returnOne}
-                    dontRegisterView={false}
-                    forcedBackgroundColor={returnTransparent}
-                    removeDocument={this.hideLinkAnchor}
-                    pointerEvents={false}
-                    LayoutTemplate={undefined}
-                    LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)}
-                /></div >);
+                <div className="documentView-anchorCont" key={i + 1}>
+                    <DocumentView {...this.props}
+                        Document={d}
+                        ContainingCollectionView={this.props.ContainingCollectionView}
+                        ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
+                        PanelWidth={this.anchorPanelWidth}
+                        PanelHeight={this.anchorPanelHeight}
+                        ContentScaling={returnOne}
+                        dontRegisterView={false}
+                        forcedBackgroundColor={returnTransparent}
+                        removeDocument={this.hideLinkAnchor}
+                        pointerEvents={false}
+                        LayoutTemplate={undefined}
+                        LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)} />
+                </div >);
     }
     @computed get innards() {
         TraceMobx();

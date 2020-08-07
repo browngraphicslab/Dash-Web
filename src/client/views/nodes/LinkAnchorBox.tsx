@@ -119,7 +119,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         const y = NumCast(this.rootDoc[this.fieldKey + "_y"], 100);
         const c = StrCast(this.layoutDoc._backgroundColor, StrCast(this.layoutDoc.backgroundColor, StrCast(this.dataDoc.backgroundColor, "lightBlue"))); // note this is not where the typical lightBlue default color comes from.  See Documents.Create.LinkDocument()
         const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
-        const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
+        const anchorScale = !this.dataDoc[this.fieldKey + "-useLinkSmallAnchor"] && (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .25;
 
         const timecode = this.dataDoc[anchor + "_timecode"];
         const targetTitle = StrCast((this.dataDoc[anchor] as Doc)?.title) + (timecode !== undefined ? ":" + timecode : "");
