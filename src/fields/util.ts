@@ -10,7 +10,6 @@ import { DocServer } from "../client/DocServer";
 import { ComputedField } from "./ScriptField";
 import { ScriptCast, StrCast } from "./Types";
 import { returnZero } from "../Utils";
-import { addSyntheticLeadingComment } from "typescript";
 
 
 function _readOnlySetter(): never {
@@ -221,7 +220,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         // maps over the aliases of the document
         if (target.aliases) {
             DocListCast(target.aliases).map(alias => {
-                distributeAcls(key, acl, alias);
+                distributeAcls(key, acl, alias, inheritingFromCollection);
             });
         }
 

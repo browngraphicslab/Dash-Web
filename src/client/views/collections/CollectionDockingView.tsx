@@ -30,6 +30,8 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { listSpec } from '../../../fields/Schema';
 import { clamp } from 'lodash';
+import { PresBox } from '../nodes/PresBox';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
@@ -793,10 +795,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let scaling = 1;
         if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
             scaling = 1;
-        } else if ((this.layoutDoc?._fitWidth) ||
-            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+        } else if (NumCast(this.layoutDoc!._nativeWidth) && ((this.layoutDoc?._fitWidth) ||
+            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth))) {
             scaling = this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
-        } else {
+        } else if (nativeW && nativeH) {
             // if (this.layoutDoc!.type === DocumentType.PDF || this.layoutDoc!.type === DocumentType.WEB) {
             //     if ((this.layoutDoc?._fitWidth) ||
             //         this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
@@ -807,7 +809,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             // }
             const wscale = this.panelWidth() / nativeW;
             scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
-        }
+        } else scaling = 1;
         return scaling;
     }
 
@@ -861,6 +863,31 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             this._document!._panY = clamp(NumCast(this._document!._panY) + delta[1] / this.returnMiniSize() * this.renderContentBounds.dim, this.renderContentBounds.t, this.renderContentBounds.t + this.renderContentBounds.dim);
             return false;
         }), emptyFunction, emptyFunction);
+    }
+    getCurrentFrame = (): number => {
+        const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
+        const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
+        return currentFrame;
+    }
+    renderMiniPres() {
+        return (
+            <div className="miniPres"
+                style={{ width: 250, height: 30, background: '#323232' }}
+            >
+                {<div className="miniPresOverlay">
+                    <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
+                    <div className="miniPres-button" onClick={() => PresBox.Instance.startAutoPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
+                    <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
+                    <div className="miniPres-divider"></div>
+                    <div className="miniPres-button-text">
+                        Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}
+                        {PresBox.Instance.playButtonFrames}
+                    </div>
+                    <div className="miniPres-divider"></div>
+                    <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
+                </div>}
+            </div>
+        );
     }
     renderMiniMap() {
         return <div className="miniMap" style={{
@@ -944,6 +971,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
             {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
+            {document._viewType === CollectionViewType.Freeform && this._document?.miniPres ? this.renderMiniPres() : (null)}
         </>;
     }
 

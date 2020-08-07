@@ -508,9 +508,9 @@ export namespace Doc {
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
+        alias[AclSym] = doc[AclSym];
 
-        if (!doc.aliases) doc.aliases = new List<Doc>([alias]);
-        else Doc.AddDocToList(doc, "aliases", alias);
+        Doc.AddDocToList(doc[DataSym], "aliases", alias);
 
         return alias;
     }
@@ -627,7 +627,7 @@ export namespace Doc {
 
         const zip = new JSZip();
 
-        zip.file("doc.json", docString);
+        zip.file(doc.title + ".json", docString);
 
         // // Generate a directory within the Zip file structure
         // var img = zip.folder("images");
@@ -639,7 +639,7 @@ export namespace Doc {
         zip.generateAsync({ type: "blob" })
             .then((content: any) => {
                 // Force down of the Zip file
-                saveAs(content, "download.zip");
+                saveAs(content, doc.title + ".zip"); // glr: Possibly change the name of the document to match the title?
             });
     }
     //

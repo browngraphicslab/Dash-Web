@@ -187,6 +187,11 @@ declare class List<T extends Field> extends ObjectField {
     [Copy](): ObjectField;
 }
 
+declare class InkField extends ObjectField {
+    constructor(data:Array<{X:number, Y:number}>);
+    [Copy](): ObjectField;
+}
+
 // @ts-ignore
 declare const console: any;
 

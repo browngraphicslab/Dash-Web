@@ -27,6 +27,8 @@ import { GetEffectiveAcl } from '../../fields/util';
 import { DocumentIcon } from './nodes/DocumentIcon';
 import { render } from 'react-dom';
 import { createLessThan } from 'typescript';
+import FormatShapePane from './collections/collectionFreeForm/FormatShapePane';
+import { PropertiesView } from './collections/collectionFreeForm/PropertiesView';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -59,6 +61,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
     private _resizeUndo?: UndoManager.Batch;
+    private _rotateUndo?: UndoManager.Batch;
     private _offX = 0; _offY = 0;  // offset from click pt to inner edge of resize border
     private _snapX = 0; _snapY = 0; // last snapped location of resize border
     private _prevX = 0;
@@ -258,8 +261,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return false;
     }
 
+    @undoBatch
     @action
     onRotateDown = (e: React.PointerEvent): void => {
+        this._rotateUndo = UndoManager.StartBatch("rotatedown");
+
         setupMoveUpEvents(this, e, this.onRotateMove, this.onRotateUp, (e) => { });
         this._prevX = e.clientX;
         this._prevY = e.clientY;
@@ -281,6 +287,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }));
 
     }
+
+    @undoBatch
     @action
     onRotateMove = (e: PointerEvent, down: number[]): boolean => {
 
@@ -332,12 +340,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     onRotateUp = (e: PointerEvent) => {
         this._centerPoints = [];
+        this._rotateUndo?.end();
+        this._rotateUndo = undefined;
     }
 
 
 
     _initialAutoHeight = false;
     _dragHeights = new Map<Doc, number>();
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
 
@@ -346,8 +357,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const doc = Document(element.rootDoc);
             if (doc.type === DocumentType.INK && doc.x && doc.y && doc._width && doc._height) {
                 this._inkDocs.push({ x: doc.x, y: doc.y, width: doc._width, height: doc._height });
+                if (FormatShapePane.Instance._lock) {
+                    doc._nativeHeight = doc._height;
+                    doc._nativeWidth = doc._width;
+                }
             }
-
         }));
 
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
@@ -373,7 +387,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
         const first = SelectionManager.SelectedDocuments()[0];
         let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
-        const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
+        var fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
+        SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            const doc = Document(element.rootDoc);
+            if (doc.type === DocumentType.INK && doc._width && doc._height && FormatShapePane.Instance._lock) {
+                fixedAspect = NumCast(doc._nativeWidth) / NumCast(doc._nativeHeight);
+            }
+        }));
+
+
         if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
             const project = (p: number[], a: number[], b: number[]) => {
                 const atob = [b[0] - a[0], b[1] - a[1]];
@@ -544,7 +566,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     doc.data = new InkField(newPoints);
 
                 }
-
+                doc._nativeWidth = 0;
+                doc._nativeHeight = 0;
             }
         }));
     }
@@ -588,7 +611,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
-        const canDelete = SelectionManager.SelectedDocuments().map(docView => GetEffectiveAcl(docView.props.ContainingCollectionDoc)).some(permission => permission === AclAdmin || permission === AclEdit);
+        const canDelete = SelectionManager.SelectedDocuments().some(docView => {
+            const docAcl = GetEffectiveAcl(docView.props.Document);
+            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc);
+            return [docAcl, collectionAcl].some(acl => [AclAdmin, AclEdit].includes(acl));
+        });
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
             <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
@@ -639,10 +666,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
         var offset = 0;
+        var rotButton = <></>;
         //make offset larger for ink to edit points
         if (seldoc.rootDoc.type === DocumentType.INK) {
             offset = 20;
+            rotButton = <div id="documentDecorations-rotation" title="rotate" className="documentDecorations-rotation"
+                onPointerDown={this.onRotateDown}> ⟲ </div>;
         }
+
         return (<div className="documentDecorations" style={{ background: darkScheme }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -670,8 +701,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
                     </div></Tooltip>
-                    <div id="documentDecorations-rotation" className="documentDecorations-rotation"
-                        onPointerDown={this.onRotateDown}> ⟲ </div>
+                    {rotButton}
                     <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                         onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                     <div id="documentDecorations-topResizer" className="documentDecorations-resizer"

@@ -9,8 +9,8 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
-import { createSchema, makeInterface } from "../../../fields/Schema";
-import { ScriptField } from "../../../fields/ScriptField";
+import { createSchema, makeInterface, listSpec } from "../../../fields/Schema";
+import { ScriptField, ComputedField } from "../../../fields/ScriptField";
 import { Cast, NumCast } from "../../../fields/Types";
 import { PdfField } from "../../../fields/URLField";
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
@@ -106,6 +106,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _scrollTopReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _searchReactionDisposer?: IReactionDisposer;
+    private _searchReactionDisposer2?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
@@ -336,11 +337,18 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
+        this.Document.searchIndex = this.Index;
+
     }
 
     @action
     gotoPage = (p: number) => {
         this._pdfViewer?.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+    }
+
+    @action
+    scrollToFrame = (duration: number, top: number) => {
+        this._mainCont.current && smoothScroll(duration, this._mainCont.current, top);
     }
 
     @action
@@ -403,6 +411,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 phraseSearch: true,
                 query: searchString
             });
+            this.Document.searchIndex = this.Index;
         }
         else if (this._mainCont.current) {
             const executeFind = () => {
@@ -416,7 +425,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             };
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
+            this.Document.searchIndex = this.Index;
         }
+
     }
 
     @action

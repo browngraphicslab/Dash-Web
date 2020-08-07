@@ -11,22 +11,22 @@ import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
-import { CellProps, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaDateCell } from "./CollectionSchemaCells";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { emptyFunction, returnZero, returnOne, returnFalse, returnEmptyFilter, emptyPath } from "../../../Utils";
-import { TouchScrollableMenuItem } from "../TouchScrollableMenu";
 
 
 enum ColumnType {
@@ -128,7 +128,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
     @computed get sorted(): SortingRule[] {
         return this.props.columns.reduce((sorted, shf) => {
-            shf.desc && sorted.push({ id: shf.heading, desc: shf.desc });
+            shf.desc !== undefined && sorted.push({ id: shf.heading, desc: shf.desc });
             return sorted;
         }, [] as SortingRule[]);
     }
@@ -160,7 +160,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === "collection", false)) {
+        if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
             columns.push(
                 {
                     expander: true,
@@ -188,7 +188,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 addNew={false}
                 onSelect={this.props.changeColumns}
                 setIsEditing={this.props.setHeaderIsEditing}
-
+                docs={this.props.childDocs}
                 // try commenting this out
                 width={"100%"}
             />;
@@ -216,21 +216,21 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     className="collectionSchemaView-menuOptions-wrapper"
                     style={{
                         background: col.color, padding: "2px",
-                        display: "flex"
+                        display: "flex", cursor: "default", height: "100%",
                     }}>
-                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingLeft: "7px" }} />
-                    <div className="keys-dropdown"
-                        style={{ display: "inline", zIndex: 1000 }}>
-                        {keysDropdown}
-                    </div>
+                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px" }} />
+                    {/* <div className="keys-dropdown"
+                        style={{ display: "inline", zIndex: 1000 }}> */}
+                    {keysDropdown}
+                    {/* </div> */}
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ paddingRight: "6px", marginLeft: "4px", display: "inline" }}>
-                        <FontAwesomeIcon icon={sortIcon} size="sm" />
+                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit" }}>
+                        <FontAwesomeIcon icon={sortIcon} size="lg" />
                     </div>
-                    <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
-                        style={{ float: "right", paddingRight: "6px" }}>
-                        <FontAwesomeIcon icon={"cog"} size="sm" />
-                    </div>
+                    {/* <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
+                        style={{ float: "right", paddingRight: "6px", zIndex: 1, background: "inherit" }}>
+                        <FontAwesomeIcon icon={"compass"} size="sm" />
+                    </div> */}
                 </div>;
 
             return {
@@ -283,11 +283,60 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             Header: <CollectionSchemaAddColumnHeader createColumn={this.createColumn} />,
             accessor: (doc: Doc) => 0,
             id: "add",
-            Cell: (rowProps: CellInfo) => <></>,
+            Cell: (rowProps: CellInfo) => {
+                const rowIndex = rowProps.index;
+                const columnIndex = this.props.columns.map(c => c.heading).indexOf(rowProps.column.id!);
+                const isFocused = focusedRow === rowIndex && focusedCol === columnIndex && tableIsFocused;
+                const props: CellProps = {
+                    row: rowIndex,
+                    col: columnIndex,
+                    rowProps: rowProps,
+                    isFocused: isFocused,
+                    changeFocusedCellByIndex: this.changeFocusedCellByIndex,
+                    CollectionView: this.props.CollectionView,
+                    ContainingCollection: this.props.ContainingCollectionView,
+                    Document: this.props.Document,
+                    fieldKey: this.props.fieldKey,
+                    renderDepth: this.props.renderDepth,
+                    addDocTab: this.props.addDocTab,
+                    pinToPres: this.props.pinToPres,
+                    moveDocument: this.props.moveDocument,
+                    setIsEditing: this.setCellIsEditing,
+                    isEditable: isEditable,
+                    setPreviewDoc: this.props.setPreviewDoc,
+                    setComputed: this.setComputed,
+                    getField: this.getField,
+                    showDoc: this.showDoc,
+                };
+
+                return <CollectionSchemaButtons {...props} />;
+            },
             width: 28,
             resizable: false
         });
         return columns;
+    }
+
+
+
+    @action
+    nextHighlight = (e: React.MouseEvent, doc: Doc) => {
+        e.preventDefault();
+        e.stopPropagation();
+        doc.searchMatch = false;
+        console.log(doc.searchMatch);
+        setTimeout(() => doc.searchMatch = true, 0);
+        console.log(doc.searchMatch);
+
+        doc.searchIndex = NumCast(doc.searchIndex);
+    }
+
+    @action
+    nextHighlight2 = (doc: Doc) => {
+
+        doc.searchMatchAlt = false;
+        setTimeout(() => doc.searchMatchAlt = true, 0);
+        doc.searchIndex = NumCast(doc.searchIndex);
     }
 
     constructor(props: SchemaTableProps) {
@@ -574,7 +623,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return <div className="collectionSchemaView-table" onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
-            <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+            {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+                : undefined}
             {!this._showDoc ? (null) :
                 <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}
                     style={{

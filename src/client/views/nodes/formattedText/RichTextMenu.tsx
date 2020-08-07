@@ -274,7 +274,7 @@ export default class RichTextMenu extends AntimodeMenu {
             }
             !activeFamilies.length && (activeFamilies.push(StrCast(this.TextView.layoutDoc._fontFamily, StrCast(Doc.UserDoc().fontFamily))));
             !activeSizes.length && (activeSizes.push(StrCast(this.TextView.layoutDoc._fontSize, StrCast(Doc.UserDoc().fontSize))));
-            !activeColors.length && (activeSizes.push(StrCast(this.TextView.layoutDoc.color, StrCast(Doc.UserDoc().fontColor))));
+            !activeColors.length && (activeColors.push(StrCast(this.TextView.layoutDoc.color, StrCast(Doc.UserDoc().fontColor))));
         }
         !activeFamilies.length && (activeFamilies.push(StrCast(Doc.UserDoc().fontFamily)));
         !activeSizes.length && (activeSizes.push(StrCast(Doc.UserDoc().fontSize)));
@@ -903,8 +903,9 @@ export default class RichTextMenu extends AntimodeMenu {
             ref_node = pos.nodeBefore;
         }
         if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-            if (!pos.nodeBefore || this.view.state.selection.$from.pos !== this.view.state.selection.$to.pos)
+            if (!pos.nodeBefore || this.view.state.selection.$from.pos !== this.view.state.selection.$to.pos) {
                 ref_node = pos.nodeAfter;
+            }
         }
         if (!ref_node && pos.pos > 0) {
             let skip = false;

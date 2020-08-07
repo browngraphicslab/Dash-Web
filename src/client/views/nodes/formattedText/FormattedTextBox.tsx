@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap, selectAll } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -93,6 +93,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _undoTyping?: UndoManager.Batch;
     private _disposers: { [name: string]: IReactionDisposer } = {};
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _first: Boolean = true;
+    private _recordingStart: number = 0;
+    private _currentTime: number = 0;
+    private _linkTime: number | null = null;
+    private _pause: boolean = false;
 
     @computed get _recording() { return this.dataDoc.audioState === "recording"; }
     set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
@@ -140,6 +145,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         super(props);
         FormattedTextBox.Instance = this;
         this.updateHighlights();
+        this._recordingStart = Date.now();
+        this.layoutDoc._timeStampOnEnter = true;
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -197,9 +204,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     dispatchTransaction = (tx: Transaction) => {
+        let timeStamp;
+        clearTimeout(timeStamp);
         if (this._editorView) {
+
             const metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
             if (metadata) {
+
                 const range = tx.selection.$from.blockRange(tx.selection.$to);
                 let text = range ? tx.doc.textBetween(range.start, range.end) : "";
                 let textEndSelection = tx.selection.to;
@@ -221,6 +232,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.dataDoc[key] = value;
                 }
             }
+
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
 
@@ -233,19 +245,33 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const json = JSON.stringify(state.toJSON());
             let unchanged = true;
             const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+
+
             if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
                 if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                     this._applyingChange = true;
-                    (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now())));
+                    const lastmodified = "lastmodified";
+                    (curText !== Cast(this.dataDoc[this.fieldKey], RichTextField)?.Text) && (this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()))) && (this.dataDoc[lastmodified] = new DateField(new Date(Date.now())));
                     if ((!curTemp && !curProto) || curText || curLayout?.Data.includes("dash")) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                         if (json.replace(/"selection":.*/, "") !== curLayout?.Data.replace(/"selection":.*/, "")) {
+                            if (!this._pause && !this.layoutDoc._timeStampOnEnter) {
+                                timeStamp = setTimeout(() => this.pause(), 10 * 1000); // 10 seconds delay for time stamp
+                            }
+
+                            // if 10 seconds have passed, insert time stamp the next time you type
+                            if (this._pause) {
+                                this._pause = false;
+                                this.insertTime();
+                            }
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontSize" && (Doc.UserDoc().fontSize = this.layoutDoc._fontSize = m.attrs.fontSize));
                             !curText && tx.storedMarks?.map(m => m.type.name === "pFontFamily" && (Doc.UserDoc().fontFamily = this.layoutDoc._fontFamily = m.attrs.fontFamily));
                             this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
                             this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                             ScriptCast(this.layoutDoc.onTextChanged, null)?.script.run({ this: this.layoutDoc, self: this.rootDoc, text: curText });
                             unchanged = false;
+
                         }
+
                     } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                         this.dataDoc[this.props.fieldKey] = undefined;
                         this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
@@ -259,9 +285,65 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             } else {
+
                 const json = JSON.parse(Cast(this.dataDoc[this.fieldKey], RichTextField)?.Data!);
                 json.selection = state.toJSON().selection;
                 this._editorView.updateState(EditorState.fromJSON(this.config, json));
+            }
+        }
+    }
+
+    pause = () => this._pause = true;
+
+    formatTime = (time: number) => {
+        const hours = Math.floor(time / 60 / 60);
+        const minutes = Math.floor(time / 60) - (hours * 60);
+        const seconds = time % 60;
+
+        return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+    }
+
+    // for inserting timestamps 
+    insertTime = () => {
+        if (this._first) {
+            this._first = false;
+            DocListCast(this.dataDoc.links).map((l, i) => {
+                let la1 = l.anchor1 as Doc;
+                let la2 = l.anchor2 as Doc;
+                this._linkTime = NumCast(l.anchor2_timecode);
+                if (Doc.AreProtosEqual(la2, this.dataDoc)) {
+                    la1 = l.anchor2 as Doc;
+                    la2 = l.anchor1 as Doc;
+                    this._linkTime = NumCast(l.anchor1_timecode);
+                }
+
+            });
+        }
+        this._currentTime = Date.now();
+        let time;
+        this._linkTime ? time = this.formatTime(Math.round(this._linkTime + this._currentTime / 1000 - this._recordingStart / 1000)) : time = null;
+
+        if (this._editorView) {
+            const state = this._editorView.state;
+            const now = Date.now();
+            let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
+            if (!this._break && state.selection.to !== state.selection.from) {
+                for (let i = state.selection.from; i <= state.selection.to; i++) {
+                    const pos = state.doc.resolve(i);
+                    const um = Array.from(pos.marks()).find(m => m.type === schema.marks.user_mark);
+                    if (um) {
+                        mark = um;
+                        break;
+                    }
+                }
+            }
+            if (time) {
+                let value = "";
+                this._break = false;
+                value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
+                const from = state.selection.from;
+                const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
+                this._editorView.dispatch(this._editorView.state.tr.insertText(value));
             }
         }
     }
@@ -270,7 +352,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.rootDoc.customTitle) {
             let node = this._editorView.state.doc;
-            while (node.firstChild) node = node.firstChild;
+            while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -292,18 +374,40 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
-    public highlightSearchTerms = (terms: string[]) => {
+    public highlightSearchTerms = (terms: string[], alt: boolean) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
+
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            const length = res[0].length;
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
+
+
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
+            if (alt === true) {
+                if (this._searchIndex > 1) {
+                    this._searchIndex += -2;
+                }
+                else if (this._searchIndex === 1) {
+                    this._searchIndex = length - 1;
+                }
+                else if (this._searchIndex === 0 && length !== 1) {
+                    this._searchIndex = length - 2;
+                }
+
+            }
+            else {
+
+            }
+            const index = this._searchIndex;
+
+            Doc.GetProto(this.dataDoc).searchIndex = index;
         }
     }
 
@@ -314,6 +418,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const end = this._editorView.state.doc.nodeSize - 2;
             this._editorView.dispatch(this._editorView.state.tr.removeMark(0, end, mark).removeMark(0, end, activeMark));
+
         }
         if (FormattedTextBox.PasteOnLoad) {
             const pdfDocId = FormattedTextBox.PasteOnLoad.clipboardData?.getData("dash/pdfOrigin");
@@ -500,6 +605,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         uicontrols.push({ description: `${this.layoutDoc._showSidebar ? "Hide" : "Show"} Sidebar`, event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         uicontrols.push({ description: `${this.layoutDoc._showAudio ? "Hide" : "Show"} Dictation Icon`, event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
         uicontrols.push({ description: "Show Highlights...", noexpand: true, subitems: highlighting, icon: "hand-point-right" });
+        uicontrols.push({ description: `Create TimeStamp When ${this.layoutDoc._timeStampOnEnter ? "Pause" : "Enter"}`, event: () => this.layoutDoc._timeStampOnEnter = !this.layoutDoc._timeStampOnEnter, icon: "expand-arrows-alt" });
         !Doc.UserDoc().noviceMode && uicontrols.push({
             description: "Broadcast Message", event: () => DocServer.GetRefField("rtfProto").then(proto =>
                 proto instanceof Doc && (proto.BROADCAST_MESSAGE = Cast(this.rootDoc[this.fieldKey], RichTextField)?.Text)), icon: "expand-arrows-alt"
@@ -536,6 +642,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
+        appearanceItems.push({ description: "Create progressivized slide...", event: this.progressivizeText, icon: "desktop" });
         cm.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const options = cm.findByDescription("Options...");
@@ -545,6 +652,67 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._downX = this._downY = Number.NaN;
+    }
+
+    progressivizeText = () => {
+        const list = this.ProseRef?.getElementsByTagName("li");
+        const mainBulletText: string[] = [];
+        const mainBulletList: Doc[] = [];
+        if (list) {
+            const newBullets: Doc[] = this.recursiveProgressivize(1, list)[0];
+            mainBulletList.push.apply(mainBulletList, newBullets);
+        }
+        console.log(mainBulletList.length);
+        const title = Docs.Create.TextDocument(StrCast(this.rootDoc.title), { title: "Title", _width: 800, _height: 70, x: 20, y: -10, _fontSize: '20pt', backgroundColor: "rgba(0,0,0,0)", appearFrame: 0, _fontWeight: 700 });
+        mainBulletList.push(title);
+        const doc = Docs.Create.FreeformDocument(mainBulletList, {
+            title: StrCast(this.rootDoc.title),
+            x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
+            _width: 400, _height: 225, _fitToBox: true,
+        });
+        this.props.addDocument?.(doc);
+    }
+
+    recursiveProgressivize = (nestDepth: number, list: HTMLCollectionOf<HTMLLIElement>, d?: number, y?: number, before?: string): [Doc[], number] => {
+        const mainBulletList: Doc[] = [];
+        let b = d ? d : 0;
+        let yLoc = y ? y : 0;
+        let nestCount = 0;
+        let count: string = before ? before : '';
+        const fontSize: string = (16 - (nestDepth * 2)) + 'pt';
+        const xLoc: number = (nestDepth * 20);
+        const width: number = 390 - xLoc;
+        const height: number = 55 - (nestDepth * 5);
+        Array.from(list).forEach(listItem => {
+            const mainBullets: number = Number(listItem.getAttribute("data-bulletstyle"));
+            if (mainBullets === nestDepth) {
+                if (listItem.childElementCount > 1) {
+                    b++;
+                    nestCount++;
+                    yLoc += height;
+                    count = before ? count + nestCount + "." : nestCount + ".";
+                    const text = listItem.getElementsByTagName("p")[0].innerText;
+                    const length = text.length;
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _autoHeight: true, x: xLoc, y: (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    // yLoc += NumCast(bullet1._height);
+                    mainBulletList.push(bullet1);
+                    const newList = this.recursiveProgressivize(nestDepth + 1, listItem.getElementsByTagName("li"), b, yLoc, count);
+                    mainBulletList.push.apply(mainBulletList, newList[0]);
+                    yLoc += newList.length * (55 - ((nestDepth + 1) * 5));
+                } else {
+                    b++;
+                    nestCount++;
+                    yLoc += height;
+                    count = before ? count + nestCount + "." : nestCount + ".";
+                    const text = listItem.innerText;
+                    const length = text.length;
+                    const bullet1 = Docs.Create.TextDocument(count + " " + text, { title: "Slide text", _width: width, _autoHeight: true, x: xLoc, y: (yLoc), _fontSize: fontSize, backgroundColor: "rgba(0,0,0,0)", appearFrame: d ? d : b });
+                    // yLoc += NumCast(bullet1._height);
+                    mainBulletList.push(bullet1);
+                }
+            }
+        });
+        return [mainBulletList, yLoc];
     }
 
     recordDictation = () => {
@@ -738,8 +906,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
+        this._disposers.searchAlt = reaction(() => this.rootDoc.searchMatchAlt,
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], false) : this.unhighlightSearchTerms(),
+            { fireImmediately: true });
         this._disposers.search = reaction(() => this.rootDoc.searchMatch,
-            search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], true) : this.unhighlightSearchTerms(),
             { fireImmediately: this.rootDoc.searchMatch ? true : false });
 
         this._disposers.record = reaction(() => this._recording,
@@ -1294,6 +1465,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         e.stopPropagation();
         if (e.key === "Tab" || e.key === "Enter") {
+            if (e.key === "Enter" && this.layoutDoc._timeStampOnEnter) {
+                this.insertTime();
+            }
             e.preventDefault();
         }
         if (e.key === " " || this._lastTimedMark?.attrs.userid !== Doc.CurrentUserEmail) {
@@ -1374,6 +1548,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "string", null),
+                        fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                         transition: "opacity 1s"
                     }}

@@ -5,8 +5,8 @@
     font-family: "Noto Sans";
     cursor: auto;
 
-    overflow-x: visible;
-    overflow-y: visible;
+    overflow-x: hidden;
+    overflow-y: scroll;
 
     .propertiesView-title {
         background-color: rgb(159, 159, 159);
@@ -41,7 +41,7 @@
         font-size: 12.5px;
 
         &:hover {
-            cursor: pointer;
+            cursor: text;
         }
     }
 
@@ -119,6 +119,19 @@
             font-size: 10px;
             padding: 10px;
             margin-left: 5px;
+
+            .change-buttons {
+                display: flex;
+
+                button {
+                    width: 5;
+                    height: 5;
+                }
+
+                input {
+                    width: 100%;
+                }
+            }
         }
     }
 
@@ -233,11 +246,15 @@
 
     .propertiesView-sharingTable {
 
+        // whatever's commented out - add it back in when adding the buttons
+
+        // border: 1.5px solid black;
         border: 1px solid black;
-        padding: 5px;
-        border-radius: 6px;
-        /* width: 170px; */
-        margin-right: 10px;
+        padding: 5px; // remove when adding buttons
+        border-radius: 6px; // remove when adding buttons
+        margin-right: 10px; // remove when adding buttons
+        // width: 100%;
+        // display: inline-table;
         background-color: #ececec;
         max-height: 130px;
         overflow-y: scroll;
@@ -245,9 +262,11 @@
         .propertiesView-sharingTable-item {
 
             display: flex;
+            // padding: 5px;
             padding: 3px;
             align-items: center;
             border-bottom: 0.5px solid grey;
+            cursor: pointer;
 
             &:hover .propertiesView-sharingTable-item-name {
                 overflow-x: unset;
@@ -404,6 +423,43 @@
             padding: 10px;
         }
 
+    }
+
+    .propertiesView-presTrails {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-presTrails-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-presTrails-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-presTrails-content {
+            font-size: 10px;
+            padding: 10px;
+            margin-left: 5px;
+        }
     }
 }
 
@@ -567,6 +623,27 @@
     }
 }
 
+.propertiesView-presSelected {
+    border-top: solid 1px darkgrey;
+    width: 100%;
+    padding-top: 5px;
+    font-family: Roboto;
+    font-weight: 500;
+    display: inline-flex;
+
+    .propertiesView-selectedList {
+        border-left: solid 1px darkgrey;
+        margin-left: 10px;
+        padding-left: 5px;
+
+        .selectedList-items {
+            font-size: 12;
+            font-weight: 300;
+            margin-top: 1;
+        }
+    }
+}
+
 .widthAndDash {
 
     .width {
@@ -596,6 +673,7 @@
 
         display: flex;
         margin-bottom: 3px;
+        margin-left: 4px;
 
         .arrows-head {
 
@@ -629,7 +707,7 @@
     .dashed {
 
         display: flex;
-        margin-left: 74px;
+        margin-left: 64px;
         margin-bottom: 6px;
 
         .dashed-title {
@@ -640,5 +718,16 @@
             margin-left: 6px;
             margin-top: 2px;
         }
+    }
+}
+
+.editable-title {
+    border: none;
+    padding: 6px;
+    padding-bottom: 2px;
+
+
+    &:hover {
+        border: 0.75px solid rgb(122, 28, 28);
     }
 }

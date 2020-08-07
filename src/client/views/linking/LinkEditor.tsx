@@ -287,7 +287,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable openDropdown: boolean = false;
     @observable showInfo: boolean = false;
     @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
-    @observable private buttonColor: string = "black";
+    @observable private buttonColor: string = "";
 
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
@@ -303,7 +303,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (LinkManager.currentLink) {
             LinkManager.currentLink.description = value;
             this.buttonColor = "rgb(62, 133, 55)";
-            setTimeout(action(() => this.buttonColor = "black"), 750);
+            setTimeout(action(() => this.buttonColor = ""), 750);
             return true;
         }
     }
@@ -345,7 +345,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     ></input>
                 </div>
                 <div className="linkEditor-description-add-button"
-                    style={{ backgroundColor: this.buttonColor }}
+                    style={{ background: this.buttonColor }}
                     onPointerDown={this.onDown}>Set</div>
             </div></div>;
     }

@@ -21,6 +21,8 @@ import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
 import { UndoManager } from "../util/UndoManager";
+import { DocumentType } from "./DocumentTypes";
+import { SearchBox } from "../views/search/SearchBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
 import { ContextMenu } from "../views/ContextMenu";
@@ -31,6 +33,7 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
+import { MenuIconBox } from "../views/nodes/MenuIconBox";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
@@ -38,7 +41,6 @@ import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { PDFBox } from "../views/nodes/PDFBox";
 import { PresBox } from "../views/nodes/PresBox";
-import { QueryBox } from "../views/nodes/QueryBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { SliderBox } from "../views/nodes/SliderBox";
@@ -46,7 +48,6 @@ import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { DocumentType } from "./DocumentTypes";
 import { Networking } from "../Network";
 import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
@@ -128,6 +129,7 @@ export interface DocumentOptions {
     isLinkButton?: boolean;
     _columnWidth?: number;
     _fontSize?: string;
+    _fontWeight?: number;
     _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
@@ -135,6 +137,12 @@ export interface DocumentOptions {
     currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
+    appearFrame?: number; // the frame in which the document appears
+    presTransition?: number; //the time taken for the transition TO a document
+    presDuration?: number; //the duration of the slide in presentation view
+    presProgressivize?: boolean;
+    // xArray?: number[];
+    // yArray?: number[];
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
@@ -189,10 +197,14 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
-    searchText?: string; //for searchbox
-    searchQuery?: string; // for queryBox
-    filterQuery?: string;
+    searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
+    isLabel?: boolean;         // whether the document is a label or not (video / audio)
+    useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
+    audioStart?: number;       // the time frame where the audio should begin playing
+    audioEnd?: number;         // the time frame where the audio should stop playing  
+    border?: string; //for searchbox
+    hovercolor?: string;
 }
 
 class EmptyBox {
@@ -222,8 +234,8 @@ export namespace Docs {
                 layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
-            [DocumentType.QUERY, {
-                layout: { view: QueryBox, dataField: defaultDataKey },
+            [DocumentType.SEARCH, {
+                layout: { view: SearchBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
@@ -557,6 +569,7 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
+            dataDoc.aliases = new List<Doc>();
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -625,13 +638,13 @@ export namespace Docs {
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
+            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), { useLinkSmallAnchor: true, ...options }); // hideLinkButton: false, useLinkSmallAnchor: false,
             Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
             return instance;
         }
 
-        export function QueryDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        export function SearchDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>([]), options);
         }
 
         export function ColorDocument(options: DocumentOptions = {}) {
@@ -919,6 +932,8 @@ export namespace DocUtils {
         if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
+        Doc.GetProto(linkDoc)["anchor1-useLinkSmallAnchor"] = source.doc.useLinkSmallAnchor;
+        Doc.GetProto(linkDoc)["anchor2-useLinkSmallAnchor"] = target.doc.useLinkSmallAnchor;
         linkDoc.linkDisplay = true;
         linkDoc.hidden = true;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
