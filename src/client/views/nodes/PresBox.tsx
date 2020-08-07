@@ -137,7 +137,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.gotoDocument(nextSelected, this.itemIndex);
             const targetNext = Cast(activeNext.presentationTargetDoc, Doc, null);
             if (activeNext && targetNext.type === DocumentType.AUDIO && activeNext.playAuto) {
-            } else { this._moveOnFromAudio = false };
+            } else this._moveOnFromAudio = false;
         }
     }
 
@@ -1646,7 +1646,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 </select>
                 <div className="presBox-presentPanel" style={{ opacity: this.childDocs.length > 0 ? 1 : 0.3 }}>
                     <span className={`presBox-button ${this.layoutDoc.presStatus === "edit" ? "present" : ""}`}>
-                        <div className="presBox-button-left" onClick={() => { if (this.childDocs.length > 0) this.layoutDoc.presStatus = "manual" }}>
+                        <div className="presBox-button-left" onClick={() => (this.childDocs.length > 0) && (this.layoutDoc.presStatus = "manual")}>
                             <FontAwesomeIcon icon={"play-circle"} />
                             <div style={{ display: this.props.PanelWidth() > 200 ? "inline-flex" : "none" }}>&nbsp; Present</div>
                         </div>
