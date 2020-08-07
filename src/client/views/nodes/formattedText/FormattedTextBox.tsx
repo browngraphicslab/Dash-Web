@@ -305,7 +305,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     // for inserting timestamps 
     insertTime = () => {
-        let linkTime;
         if (this._first) {
             this._first = false;
             DocListCast(this.dataDoc.links).map((l, i) => {
@@ -318,7 +317,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this._linkTime = NumCast(l.anchor1_timecode);
                 }
 
-            })
+            });
         }
         this._currentTime = Date.now();
         let time;
