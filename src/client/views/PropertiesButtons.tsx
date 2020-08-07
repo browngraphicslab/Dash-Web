@@ -225,10 +225,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
                 </div>
 
-                <div className="propertiesButtons-title" style={{
-                    backgroundColor: Doc.isDocPinned(targetDoc) ? "white" : "black",
-                    color: Doc.isDocPinned(targetDoc) ? "black" : "white"
-                }}
+                <div className="propertiesButtons-title"
+                // style={{
+                //     backgroundColor: Doc.isDocPinned(targetDoc) ? "white" : "black",
+                //     color: Doc.isDocPinned(targetDoc) ? "black" : "white"
+                // }}
                 >{Doc.isDocPinned(targetDoc) ? "Unpin" : "Pin"}</div>
             </div>
         </Tooltip>;
@@ -382,10 +383,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         color={BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"}
                         icon={BoolCast(this.selectedDoc?.lockedPosition) ? "unlock" : "lock"} size="lg" />}
                 </div>
-                <div className="propertiesButtons-title" style={{
-                    backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "black",
-                    color: BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"
-                }}>Position </div>
+                <div className="propertiesButtons-title"
+                // style={{
+                //     backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "black",
+                //     color: BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"
+                // }}
+                >Position </div>
             </div>
         </Tooltip>;
     }
@@ -595,10 +598,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         color={this.selectedDoc?.useClusters ? "black" : "white"}
                         icon="braille" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title" style={{
-                    backgroundColor: this.selectedDoc?.useClusters ? "white" : "black",
-                    color: this.selectedDoc?.useClusters ? "black" : "white"
-                }}> clusters </div>
+                <div className="propertiesButtons-title"
+                // style={{
+                //     backgroundColor: this.selectedDoc?.useClusters ? "white" : "black",
+                //     color: this.selectedDoc?.useClusters ? "black" : "white"
+                // }}
+                > clusters </div>
             </div>
         </Tooltip>;
     }
@@ -626,10 +631,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         color={this.selectedDoc?._fitToBox ? "black" : "white"}
                         icon="expand" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title" style={{
-                    backgroundColor: this.selectedDoc?._fitToBox ? "white" : "black",
-                    color: this.selectedDoc?._fitToBox ? "black" : "white"
-                }}> {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
+                <div className="propertiesButtons-title"
+                // style={{
+                //     backgroundColor: this.selectedDoc?._fitToBox ? "white" : "black",
+                //     color: this.selectedDoc?._fitToBox ? "black" : "white"
+                // }}
+                > {this.selectedDoc?._fitToBox ? "unfit" : "fit"} </div>
             </div>
         </Tooltip>;
     }
