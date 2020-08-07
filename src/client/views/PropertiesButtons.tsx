@@ -259,7 +259,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                         }
                     }}>
                     <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
-                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -20px)', color: 'rgba(250,250,250,0.5)' }}>V</div>
+                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -28px)', color: 'rgba(250,250,250,0.55)' }}>V</div>
                 </div>
 
                 <div className="propertiesButtons-title">{"View"}</div>
