@@ -191,7 +191,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     // pause play back
     pause = action(() => {
-        console.log("pause");
         this._ele!.pause();
         this.audioState = "paused";
     });
@@ -215,7 +214,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     this.pause();
                 }
             } else if (seekTimeInSeconds <= this._ele.duration) {
-                console.log("playing");
                 this._ele.currentTime = seekTimeInSeconds;
                 this._ele.play();
                 runInAction(() => this.audioState = "playing");
@@ -425,7 +423,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     onPointerMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        console.log("drag");
 
         if (!this._isPointerDown) {
             return;
@@ -592,6 +589,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 if (context) {
                     context.scale(ratio1, ratio2)
                 }
+
+                let parent = canvas1.parentElement;
+                if (parent) {
+                    parent.style.width = `${width}`;
+                    parent.style.height = `${this._height}`;
+                }
             }
         }
     }
@@ -604,7 +607,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     reset = () => this._first = true;
 
     render() {
-        trace();
         const interactive = this.active() ? "-interactive" : "";
         this.reset();
         this.path && this._buckets.length !== 100 ? this.peaks : null; // render waveform if audio is done recording
