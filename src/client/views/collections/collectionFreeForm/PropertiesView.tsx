@@ -257,12 +257,13 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         ref && observer.observe(ref);
     }
 
+    previewBackground = () => "lightgrey";
     @computed get layoutPreview() {
         if (this.selectedDoc) {
             const layoutDoc = Doc.Layout(this.selectedDoc);
             const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
             const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
-            return <div ref={this.propertiesDocViewRef} style={{ display: "inline-block", height: panelHeight() }} key={this.selectedDoc[Id]}>
+            return <div ref={this.propertiesDocViewRef} style={{ pointerEvents: "none", display: "inline-block", height: panelHeight() }} key={this.selectedDoc[Id]}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
@@ -270,7 +271,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
-                    backgroundColor={() => "lightgrey"}
+                    backgroundColor={this.previewBackground}
                     fitToBox={true}
                     FreezeDimensions={true}
                     NativeWidth={layoutDoc.type ===
