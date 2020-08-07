@@ -426,85 +426,30 @@ export class CurrentUserUtils {
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
         }
+        return [
+            { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc, noviceMode: true },
+            { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
+            { toolTip: "Drag a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
+            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
+            { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
+            //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
+            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
+            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
 
-        // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
-        // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
-        // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-        // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-        // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
-        // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-        // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
-        //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-
-        const collection = {
-            toolTip: "Drag a collection", title: "Col",
-            icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc
-        };
-        const web = {
-            toolTip: "Drag a web page", title: "Web",
-            icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc
-        };
-        const cat = {
-            toolTip: "Drag a cat image", title: "Image",
-            icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc
-        };
-        const compare = {
-            toolTip: "Drag a comparison box", title: "Compare",
-            icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc
-        }
-        const screen = {
-            toolTip: "Drag a screengrabber", title: "Grab",
-            icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc,
-        };
-        const audio = {
-            toolTip: "Drag a audio recorder", title: "Audio",
-            icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc
-        };
-        const button = {
-            toolTip: "Drag a button", title: "Button",
-            icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc
-        };
-        const pres = {
-            toolTip: "Drag a presentation view", title: "Pres", icon: "tv",
-            click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))',
-            drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`,
-            dragFactory: doc.emptyPresentation as Doc
-        };
-        const search = {
-            toolTip: "Drag a search box", title: "Query", icon: "search",
-            click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)',
-            dragFactory: doc.emptySearch as Doc,
-        };
-        const script = {
-            toolTip: "Drag a scripting box", title: "Script",
-            icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc,
-        };
-        const mobile = {
-            toolTip: "Drag a mobile view", title: "Phone",
-            icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)',
-            drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc,
-        };
-        const preview = {
-            toolTip: "Drag a document previewer", title: "Prev",
-            icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))',
-            drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc,
-        };
-        const repl = {
-            toolTip: "Toggle a Calculator REPL", title: "repl",
-            icon: "calculator",
-            click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })',
-        };
-
-        // novice : [collection, web, compare, audio, button, pres] 
-        return [collection, web, compare, screen, audio, button, pres, search, script, preview, repl];
+            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Drag a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
+            { toolTip: "Drag a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
+            // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
+            { toolTip: "Drag a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
+            // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
+            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
+            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
+            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
+            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
+            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
+            { toolTip: "Drag a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
+        ];
 
     }
 
@@ -540,9 +485,7 @@ export class CurrentUserUtils {
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Basic Item Creators",
-                hidden: ComputedField.MakeFunction("!self.target.noviceMode") as any,
-                _showTitle: "title", _xMargin: 0,
+                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
