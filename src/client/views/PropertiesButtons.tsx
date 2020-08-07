@@ -427,6 +427,17 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @action
     deleteDocument = () => {
         this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
+        const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+        const selected = SelectionManager.SelectedDocuments().slice();
+        SelectionManager.DeselectAll();
+
+        selected.map(dv => {
+            const effectiveAcl = GetEffectiveAcl(dv.props.Document);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
+                recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
+                dv.props.removeDocument?.(dv.props.Document);
+            }
+        });
     }
 
     @computed

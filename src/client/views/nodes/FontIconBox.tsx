@@ -59,6 +59,8 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
 
     render() {
+
+        console.log(Doc.UserDoc());
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc)));
@@ -67,7 +69,6 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
             style={{
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined,
                 backgroundColor: this.layoutDoc.iconShape === "square" ? backgroundColor : "",
-                display: (this.layoutDoc.developerFeature && Doc.UserDoc().noviceMode) ? "none" : ""
             }}>
             <div className="menuButton-wrap">
                 {<FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={StrCast(this.dataDoc.icon, "user") as any} color={color}
@@ -75,7 +76,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
             </div>
         </button>;
-        return !this.layoutDoc.toolTip || (this.layoutDoc.developerFeature && Doc.UserDoc().noviceMode) ? button :
+        return (this.layoutDoc.developerFeature && Doc.UserDoc().noviceMode) ? (null) : !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
                 {button}
             </Tooltip>;
