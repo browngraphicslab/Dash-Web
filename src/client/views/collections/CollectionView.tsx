@@ -17,7 +17,7 @@ import { listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
-import { TraceMobx, GetEffectiveAcl, SharingPermissions } from '../../../fields/util';
+import { TraceMobx, GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -148,16 +148,14 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 return false;
             }
             else {
-                // if (this.props.Document[AclSym]) {
-                //     // change so it only adds if more restrictive
-                //     added.forEach(d => {
-                //         // const dataDoc = d[DataSym];
-                //         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                //             // key.substring(4).replace("_", ".") !== Doc.CurrentUserEmail && distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
-                //             distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
-                //         }
-                //     });
-                // }
+                if (this.props.Document[AclSym]) {
+                    added.forEach(d => {
+                        for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
+                            if (d.author === Doc.CurrentUserEmail && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
+                            else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                        }
+                    });
+                }
 
                 if (effectiveAcl === AclAddonly) {
                     added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));

@@ -199,6 +199,10 @@ export interface DocumentOptions {
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     searchQuery?: string; // for quersyBox
     linearViewIsExpanded?: boolean; // is linear view expanded
+    isLabel?: boolean;         // whether the document is a label or not (video / audio)
+    useLinkSmallAnchor?: boolean;  // whether links to this document should use a miniature linkAnchorBox
+    audioStart?: number;       // the time frame where the audio should begin playing
+    audioEnd?: number;         // the time frame where the audio should stop playing  
     border?: string; //for searchbox
     hovercolor?: string;
 }
@@ -565,6 +569,7 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
+            dataDoc.aliases = new List<Doc>();
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -633,7 +638,7 @@ export namespace Docs {
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
+            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), { useLinkSmallAnchor: true, ...options }); // hideLinkButton: false, useLinkSmallAnchor: false,
             Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
             return instance;
         }
@@ -927,6 +932,8 @@ export namespace DocUtils {
         if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship, layoutKey: "layout_linkView", description }, id);
+        Doc.GetProto(linkDoc)["anchor1-useLinkSmallAnchor"] = source.doc.useLinkSmallAnchor;
+        Doc.GetProto(linkDoc)["anchor2-useLinkSmallAnchor"] = target.doc.useLinkSmallAnchor;
         linkDoc.linkDisplay = true;
         linkDoc.hidden = true;
         linkDoc.layout_linkView = Cast(Cast(Doc.UserDoc()["template-button-link"], Doc, null).dragFactory, Doc, null);
