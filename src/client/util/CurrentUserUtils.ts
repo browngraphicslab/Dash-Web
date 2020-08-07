@@ -248,8 +248,8 @@ export class CurrentUserUtils {
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
-                hidden: ComputedField.MakeFunction("self.target.noviceMode") as any,
-                target: doc,
+                hidden: ComputedField.MakeFunction("self.userDoc.noviceMode") as any,
+                userDoc: doc,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
@@ -387,7 +387,7 @@ export class CurrentUserUtils {
 
     static creatorBtnDescriptors(doc: Doc): {
         title: string, toolTip: string, icon: string, drag?: string, ignoreClick?: boolean,
-        click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc, hidden?: any,
+        click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc, noviceMode?: boolean
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
@@ -520,22 +520,23 @@ export class CurrentUserUtils {
             }
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
-        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag,
-            click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
-                _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
-                icon,
-                title,
-                toolTip,
-                ignoreClick,
-                dropAction: "copy",
-                onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
-                onClick: click ? ScriptField.MakeScript(click) : undefined,
-                ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
-                activeInkPen,
-                backgroundColor,
-                removeDropProperties: new List<string>(["dropAction"]),
-                dragFactory,
-            }));
+        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory, noviceMode }) => Docs.Create.FontIconDocument({
+            _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
+            icon,
+            title,
+            toolTip,
+            ignoreClick,
+            dropAction: "copy",
+            onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
+            onClick: click ? ScriptField.MakeScript(click) : undefined,
+            ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
+            activeInkPen,
+            backgroundColor,
+            removeDropProperties: new List<string>(["dropAction"]),
+            dragFactory,
+            userDoc: noviceMode ? undefined as any : doc,
+            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode")
+        }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
@@ -590,8 +591,8 @@ export class CurrentUserUtils {
                     onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
                 }));
             const userDoc = menuBtns[menuBtns.length - 1];
-            userDoc.target = doc;
-            userDoc.hidden = ComputedField.MakeFunction("self.target.noviceMode");
+            userDoc.userDoc = doc;
+            userDoc.hidden = ComputedField.MakeFunction("self.userDoc.noviceMode");
 
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
