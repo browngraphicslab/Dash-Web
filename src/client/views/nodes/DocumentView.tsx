@@ -565,14 +565,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @undoBatch
+    @undoBatch @action
     deleteClicked = (): void => {
         if (Doc.UserDoc().activeWorkspace === this.props.Document) {
             alert("Can't delete the active workspace");
         } else {
-            SelectionManager.DeselectAll();
-            this.props.Document.deleted = true;
-            this.props.removeDocument?.(this.props.Document);
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
@@ -584,6 +581,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     dv.props.removeDocument?.(dv.props.Document);
                 }
             });
+
+            this.props.Document.deleted = true;
+            this.props.removeDocument?.(this.props.Document);
         }
     }
 

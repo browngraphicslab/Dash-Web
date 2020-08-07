@@ -59,8 +59,6 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
 
     render() {
-
-        console.log(Doc.UserDoc());
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc)));
