@@ -74,7 +74,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 }
             } else if (!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
-                DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
             }
         }));
     }
@@ -91,7 +90,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             //action(() => Doc.BrushDoc(this.props.View.Document));
         } else if (!this.props.InMenu) {
             DocumentLinksButton.EditLink = this.props.View;
-            DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
         }
     }
 
@@ -147,8 +145,6 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @observable
     public static EditLink: DocumentView | undefined;
-    public static EditLinkLoc: number[] = [0, 0];
-
 
     @action clearLinks() {
         DocumentLinksButton.StartLink = undefined;

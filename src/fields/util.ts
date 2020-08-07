@@ -220,7 +220,7 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         // maps over the aliases of the document
         if (target.aliases) {
             DocListCast(target.aliases).map(alias => {
-                distributeAcls(key, acl, alias);
+                distributeAcls(key, acl, alias, inheritingFromCollection);
             });
         }
 

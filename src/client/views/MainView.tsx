@@ -175,10 +175,8 @@ export class MainView extends React.Component {
             fa.faFillDrip, fa.faLink, fa.faUnlink, fa.faBold, fa.faItalic, fa.faChevronLeft, fa.faUnderline, fa.faStrikethrough, fa.faSuperscript, fa.faSubscript,
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
-            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft);
-        //Pres trail icons (just for the sake of merging)
-        library.add(fa.faAngleUp, fa.faAngleDown, fa.faPlayCircle, fa.faClock,
-            fa.faRocket, fa.faExchangeAlt, faBuffer);
+            fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft, fa.faAngleUp,
+            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -439,7 +437,7 @@ export class MainView extends React.Component {
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
     //sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(0, -this._buttonBarHeight);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-55, 0);
 
     @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
@@ -790,7 +788,7 @@ export class MainView extends React.Component {
             <FormatShapePane />
             <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
-            {DocumentLinksButton.EditLink ? <LinkMenu location={DocumentLinksButton.EditLinkLoc} docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
+            {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
                 linkDoc={LinkDocPreview.LinkInfo.linkDoc} linkSrc={LinkDocPreview.LinkInfo.linkSrc} href={LinkDocPreview.LinkInfo.href}
                 addDocTab={LinkDocPreview.LinkInfo.addDocTab} /> : (null)}

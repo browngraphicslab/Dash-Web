@@ -2,13 +2,11 @@ import React = require("react");
 import { observer } from "mobx-react";
 import "./PropertiesView.scss";
 import { observable, action, computed, runInAction } from "mobx";
-import { Doc, Field, DocListCast, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt } from "../../../../fields/Doc";
-import { DocumentView } from "../../nodes/DocumentView";
+import { Doc, Field, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt, DocCastAsync } from "../../../../fields/Doc";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { EditableView } from "../../EditableView";
 import { KeyValueBox } from "../../nodes/KeyValueBox";
 import { Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { listSpec } from "../../../../fields/Schema";
 import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
 import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils } from "../../../../Utils";
 import { Id } from "../../../../fields/FieldSymbols";
@@ -16,23 +14,26 @@ import { Transform } from "../../../util/Transform";
 import { PropertiesButtons } from "../../PropertiesButtons";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip, Checkbox, Divider } from "@material-ui/core";
+import { Tooltip, Checkbox } from "@material-ui/core";
 import SharingManager from "../../../util/SharingManager";
 import { DocumentType } from "../../../documents/DocumentTypes";
-import FormatShapePane from "./FormatShapePane";
 import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
 import { InkField } from "../../../../fields/InkField";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from "react-color";
-import AntimodeMenu from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
 import { discovery_v1 } from "googleapis";
 import { PresBox } from "../../nodes/PresBox";
 import { DocumentManager } from "../../../util/DocumentManager";
+import FormatShapePane from "./FormatShapePane";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
+// import * as fa from '@fortawesome/free-solid-svg-icons';
+// import { library } from "@fortawesome/fontawesome-svg-core";
+
+// library.add(fa.faPlus, fa.faMinus, fa.faCog);
 
 interface PropertiesViewProps {
     width: number;
@@ -51,7 +52,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance._selectedArray.length >= 1) {
+        } else if (PresBox.Instance._selectedArray.length) {
             return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         } else { return undefined; }
     }
@@ -70,12 +71,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openLayout: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
+    // @observable selectedUser: string = "";
+    // @observable addButtonPressed: boolean = false;
+
     //Pres Trails booleans:
-    @observable openAddSlide: boolean = true;
-    @observable openPresentationTools: boolean = true;
-    @observable openPresTransitions: boolean = true;
-    @observable openPresProgressivize: boolean = true;
-    @observable openSlideOptions: boolean = true;
+    @observable openPresTransitions: boolean = false;
+    @observable openPresProgressivize: boolean = false;
+    @observable openAddSlide: boolean = false;
+    @observable openSlideOptions: boolean = false;
 
     @observable inActions: boolean = false;
     @observable _controlBtn: boolean = false;
@@ -289,13 +292,20 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         }
     }
 
+    /**
+     * Handles the changing of a user's permissions from the permissions panel.
+     */
     @undoBatch
     changePermissions = (e: any, user: string) => {
         SharingManager.Instance.shareFromPropertiesSidebar(user, e.currentTarget.value as SharingPermissions, this.selectedDoc!);
     }
 
-    getPermissionsSelect(user: string) {
+    /**
+     * @returns the options for the permissions dropdown.
+     */
+    getPermissionsSelect(user: string, permission: string) {
         return <select className="permissions-select"
+            defaultValue={permission}
             onChange={e => this.changePermissions(e, user)}>
             {Object.values(SharingPermissions).map(permission => {
                 return (
@@ -306,6 +316,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </select>;
     }
 
+    /**
+     * @returns the notification icon. On clicking, it should notify someone of a document been shared with them.
+     */
     @computed get notifyIcon() {
         return <Tooltip title={<><div className="dash-tooltip">Notify with message</div></>}>
             <div className="notify-button">
@@ -314,6 +327,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </Tooltip>;
     }
 
+    /**
+     * ... next to the owner that opens the main SharingManager interface on click.
+     */
     @computed get expansionIcon() {
         return <Tooltip title={<><div className="dash-tooltip">{"Show more permissions"}</div></>}>
             <div className="expansion-button" onPointerDown={() => {
@@ -326,17 +342,26 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </Tooltip>;
     }
 
-    sharingItem(name: string, effectiveAcl: symbol, permission?: string) {
-        return <div className="propertiesView-sharingTable-item">
+    /**
+     * @returns a row of the permissions panel
+     */
+    sharingItem(name: string, effectiveAcl: symbol, permission: string) {
+        return <div className="propertiesView-sharingTable-item"
+        // style={{ backgroundColor: this.selectedUser === name ? "#bcecfc" : "" }}
+        // onPointerDown={action(() => this.selectedUser = this.selectedUser === name ? "" : name)}
+        >
             <div className="propertiesView-sharingTable-item-name" style={{ width: name !== "Me" ? "85px" : "80px" }}> {name} </div>
             {/* {name !== "Me" ? this.notifyIcon : null} */}
             <div className="propertiesView-sharingTable-item-permission">
-                {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name) : permission}
+                {effectiveAcl === AclAdmin && permission !== "Owner" ? this.getPermissionsSelect(name, permission) : permission}
                 {permission === "Owner" ? this.expansionIcon : null}
             </div>
         </div>;
     }
 
+    /**
+     * @returns the sharing and permissiosn panel.
+     */
     @computed get sharingTable() {
         const AclMap = new Map<symbol, string>([
             [AclPrivate, SharingPermissions.None],
@@ -349,13 +374,22 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         const effectiveAcl = GetEffectiveAcl(this.selectedDoc!);
         const tableEntries = [];
 
+        // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
         if (this.selectedDoc![AclSym]) {
             for (const [key, value] of Object.entries(this.selectedDoc![AclSym])) {
                 const name = key.substring(4).replace("_", ".");
-                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author) tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
+                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author/* && sidebarUsersDisplayed![name] !== false*/) tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
             }
         }
 
+        //     if (Doc.UserDoc().sidebarUsersDisplayed) {
+        //         for (const [name, value] of Object.entries(sidebarUsersDisplayed!)) {
+        //             if (value === true && !this.selectedDoc![`ACL-${name.substring(8).replace(".", "_")}`]) tableEntries.push(this.sharingItem(name.substring(8), effectiveAcl, SharingPermissions.None));
+        //         }
+        //     }
+        // })
+
+        // shifts the current user and the owner to the top of the doc.
         tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
         if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), effectiveAcl, "Owner"));
 
@@ -757,8 +791,18 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         </div>;
     }
 
-    render() {
+    /**
+     * Handles adding and removing members from the sharing panel
+     */
+    // handleUserChange = (selectedUser: string, add: boolean) => {
+    //     if (!Doc.UserDoc().sidebarUsersDisplayed) Doc.UserDoc().sidebarUsersDisplayed = new Doc;
+    //     DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
+    //         sidebarUsersDisplayed![`display-${selectedUser}`] = add;
+    //         !add && runInAction(() => this.selectedUser = "");
+    //     });
+    // }
 
+    render() {
         if (!this.selectedDoc && !this.isPres) {
             return <div className="propertiesView" style={{ width: this.props.width }}>
                 <div className="propertiesView-title" style={{ width: this.props.width }}>
@@ -810,6 +854,36 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         {!this.openSharing ? (null) :
                             <div className="propertiesView-sharing-content">
                                 {this.sharingTable}
+                                {/* <div className="change-buttons">
+                            <button
+                                onPointerDown={action(() => this.addButtonPressed = !this.addButtonPressed)}
+                            >
+                                <FontAwesomeIcon icon={fa.faPlus} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} />
+                            </button>
+                            <button
+                                id="sharingProperties-removeUser"
+                                onPointerDown={() => this.handleUserChange(this.selectedUser, false)}
+                                style={{ backgroundColor: this.selectedUser ? "#121721" : "#777777" }}
+                            ><FontAwesomeIcon icon={fa.faMinus} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} /></button>
+                            <button onClick={() => SharingManager.Instance.open(this.selectedDocumentView!)}><FontAwesomeIcon icon={fa.faCog} size={"sm"} style={{ marginTop: -3, marginLeft: -3 }} /></button>
+                            {this.addButtonPressed ?
+                                // <input type="text" onKeyDown={this.handleKeyPress} /> :
+                                <select onChange={e => this.handleUserChange(e.target.value, true)}>
+                                    <option selected disabled hidden>
+                                        Add users
+                                    </option>
+                                    {SharingManager.Instance.users.map(user =>
+                                        (<option value={user.user.email}>
+                                            {user.user.email}
+                                        </option>)
+                                    )}
+                                    {GroupManager.Instance.getAllGroups().map(group =>
+                                        (<option value={StrCast(group.groupName)}>
+                                            {StrCast(group.groupName)}
+                                        </option>))}
+                                </select> :
+                                null}
+                        </div> */}
                             </div>}
                     </div>
 
@@ -875,6 +949,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 </div>;
             }
             if (this.isPres) {
+                const selectedItem: boolean = PresBox.Instance._selectedArray.length > 0;
                 return <div className="propertiesView" style={{ width: this.props.width }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
@@ -885,62 +960,62 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance._selectedArray.length} selected
+                            {PresBox.Instance?._selectedArray.length} selected
                             <div className="propertiesView-selectedList">
-                                {PresBox.Instance.listOfSelected}
+                                {PresBox.Instance?.listOfSelected}
                             </div>
                         </div>
                     </div>
-                    <div className="propertiesView-settings">
-                        <div className="propertiesView-settings-title"
-                            onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
-                            style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
-                            &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
-                        <div className="propertiesView-settings-title-icon">
-                                <FontAwesomeIcon icon={this.openAddSlide ? "caret-down" : "caret-right"} size="lg" color="white" />
-                            </div>
-                        </div>
-                        {this.openAddSlide ? <div className="propertiesView-settings-content">
-                            {PresBox.Instance.newDocumentDropdown}
-                        </div> : null}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
                             onPointerDown={() => runInAction(() => { this.openPresTransitions = !this.openPresTransitions; })}
                             style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresTransitions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openPresTransitions ? <div className="propertiesView-sharing-content">
+                        {this.openPresTransitions ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.transitionDropdown}
                         </div> : null}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
+                    </div>}
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
                             onPointerDown={() => runInAction(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"tasks"} /> &nbsp; Progressivize
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openPresProgressivize ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openPresProgressivize ? <div className="propertiesView-sharing-content">
+                        {this.openPresProgressivize ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.progressivizeDropdown}
                         </div> : null}
-                    </div>
-                    <div className="propertiesView-sharing">
-                        <div className="propertiesView-sharing-title"
+                    </div>}
+                    {!selectedItem ? (null) : <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
                             onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
-                        <div className="propertiesView-sharing-title-icon">
+                        <div className="propertiesView-presTrails-title-icon">
                                 <FontAwesomeIcon icon={this.openSlideOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openSlideOptions ? <div className="propertiesView-sharing-content">
+                        {this.openSlideOptions ? <div className="propertiesView-presTrails-content">
                             {PresBox.Instance.optionsDropdown}
+                        </div> : null}
+                    </div>}
+                    <div className="propertiesView-presTrails">
+                        <div className="propertiesView-presTrails-title"
+                            onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
+                            style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
+                            &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
+                        <div className="propertiesView-presTrails-title-icon">
+                                <FontAwesomeIcon icon={this.openAddSlide ? "caret-down" : "caret-right"} size="lg" color="white" />
+                            </div>
+                        </div>
+                        {this.openAddSlide ? <div className="propertiesView-presTrails-content">
+                            {PresBox.Instance.newDocumentDropdown}
                         </div> : null}
                     </div>
                     <div className="propertiesView-sharing">

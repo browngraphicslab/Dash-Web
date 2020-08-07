@@ -120,6 +120,19 @@
             font-size: 10px;
             padding: 10px;
             margin-left: 5px;
+
+            .change-buttons {
+                display: flex;
+
+                button {
+                    width: 5;
+                    height: 5;
+                }
+
+                input {
+                    width: 100%;
+                }
+            }
         }
     }
 
@@ -234,11 +247,15 @@
 
     .propertiesView-sharingTable {
 
+        // whatever's commented out - add it back in when adding the buttons
+
+        // border: 1.5px solid black;
         border: 1px solid black;
-        padding: 5px;
-        border-radius: 6px;
-        /* width: 170px; */
-        margin-right: 10px;
+        padding: 5px; // remove when adding buttons
+        border-radius: 6px; // remove when adding buttons
+        margin-right: 10px; // remove when adding buttons
+        // width: 100%;
+        // display: inline-table;
         background-color: #ececec;
         max-height: 130px;
         overflow-y: scroll;
@@ -246,9 +263,11 @@
         .propertiesView-sharingTable-item {
 
             display: flex;
+            // padding: 5px;
             padding: 3px;
             align-items: center;
             border-bottom: 0.5px solid grey;
+            cursor: pointer;
 
             &:hover .propertiesView-sharingTable-item-name {
                 overflow-x: unset;
@@ -397,6 +416,43 @@
             padding: 10px;
         }
 
+    }
+
+    .propertiesView-presTrails {
+        border-bottom: 1px solid black;
+        //padding: 8.5px;
+
+        .propertiesView-presTrails-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-presTrails-title-icon {
+                float: right;
+                right: 0;
+                position: absolute;
+                margin-left: 2px;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-presTrails-content {
+            font-size: 10px;
+            padding: 10px;
+            margin-left: 5px;
+        }
     }
 }
 

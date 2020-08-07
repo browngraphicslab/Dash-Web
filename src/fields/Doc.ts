@@ -508,9 +508,9 @@ export namespace Doc {
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
+        alias[AclSym] = doc[AclSym];
 
-        if (!doc.aliases) doc.aliases = new List<Doc>([alias]);
-        else Doc.AddDocToList(doc, "aliases", alias);
+        Doc.AddDocToList(doc[DataSym], "aliases", alias);
 
         return alias;
     }
