@@ -294,7 +294,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             bing={() => {
                                 const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                 if (cfield !== undefined) {
-                                    console.log(typeof (cfield));
                                     // if (typeof(cfield)===RichTextField)
                                     const a = cfield as RichTextField;
                                     if (a.Text !== undefined) {
@@ -896,7 +895,6 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
         }}><button onClick={() => {
             doc.searchMatch = false;
             setTimeout(() => doc.searchMatch = true, 0);
-            doc.searchIndex = NumCast(doc.searchIndex);
         }} style={{ padding: 2, left: 77 }}>
                 <FontAwesomeIcon icon="arrow-up" size="sm" />
             </button>
@@ -904,7 +902,6 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
                 {
                     doc.searchMatchAlt = false;
                     setTimeout(() => doc.searchMatchAlt = true, 0);
-                    doc.searchIndex = NumCast(doc.searchIndex);
                 }
             }} style={{ padding: 2 }}>
                 <FontAwesomeIcon icon="arrow-down" size="sm" />
@@ -922,7 +919,6 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
                 onClick={() => {
                     doc.searchMatch = false;
                     setTimeout(() => doc.searchMatch = true, 0);
-                    doc.searchIndex = NumCast(doc.searchIndex);
                 }}>
                 <FontAwesomeIcon icon="arrow-down" size="sm" />
             </button></div >;

@@ -1201,4 +1201,3 @@ export namespace DocUtils {
 
 Scripting.addGlobal("Docs", Docs);
 Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
-

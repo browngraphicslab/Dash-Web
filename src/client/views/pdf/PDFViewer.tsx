@@ -337,7 +337,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     nextAnnotation = () => {
         this.Index = Math.min(this.Index + 1, this.allAnnotations.length - 1);
         this.scrollToAnnotation(this.allAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y))[this.Index]);
-        this.Document.searchIndex = this.Index;
 
     }
 
@@ -411,7 +410,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 phraseSearch: true,
                 query: searchString
             });
-            this.Document.searchIndex = this.Index;
         }
         else if (this._mainCont.current) {
             const executeFind = () => {
@@ -425,7 +423,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             };
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
-            this.Document.searchIndex = this.Index;
         }
 
     }

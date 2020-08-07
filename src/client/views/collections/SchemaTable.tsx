@@ -318,27 +318,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
 
-
-    @action
-    nextHighlight = (e: React.MouseEvent, doc: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
-        doc.searchMatch = false;
-        console.log(doc.searchMatch);
-        setTimeout(() => doc.searchMatch = true, 0);
-        console.log(doc.searchMatch);
-
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
-
-    @action
-    nextHighlight2 = (doc: Doc) => {
-
-        doc.searchMatchAlt = false;
-        setTimeout(() => doc.searchMatchAlt = true, 0);
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
-
     constructor(props: SchemaTableProps) {
         super(props);
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
