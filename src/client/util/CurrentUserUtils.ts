@@ -387,7 +387,7 @@ export class CurrentUserUtils {
 
     static creatorBtnDescriptors(doc: Doc): {
         title: string, toolTip: string, icon: string, drag?: string, ignoreClick?: boolean,
-        click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc
+        click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc, noviceMode?: boolean
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
@@ -427,16 +427,16 @@ export class CurrentUserUtils {
             this.setupActiveMobileMenu(doc);
         }
         return [
-            { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
-            { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
+            { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc, noviceMode: true },
+            { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
             { toolTip: "Drag a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
-            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
+            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
             { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
             //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc },
-            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc },
+            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
+            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
 
-            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc },
+            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Drag a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Drag a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
@@ -465,7 +465,7 @@ export class CurrentUserUtils {
             }
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
-        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
+        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory, noviceMode }) => Docs.Create.FontIconDocument({
             _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
             icon,
             title,
@@ -479,6 +479,8 @@ export class CurrentUserUtils {
             backgroundColor,
             removeDropProperties: new List<string>(["dropAction"]),
             dragFactory,
+            target: noviceMode ? undefined as any : doc,
+            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.target.noviceMode")
         }));
 
         if (dragCreatorSet === undefined) {
