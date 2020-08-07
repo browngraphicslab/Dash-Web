@@ -1495,19 +1495,11 @@ interface CollectionFreeFormViewPannableContentsProps {
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
     @computed get zoomProgressivize() {
-        if (PresBox.Instance) return (
-            <>
-                {this.props.zoomProgressivize ? PresBox.Instance.zoomProgressivizeContainer : (null)}
-            </>
-        );
+        return PresBox.Instance && this.props.zoomProgressivize ? PresBox.Instance.zoomProgressivizeContainer : (null);
     }
 
     @computed get progressivize() {
-        if (PresBox.Instance) return (
-            <>
-                {this.props.progressivize ? PresBox.Instance.progressivizeChildDocs : (null)}
-            </>
-        );
+        return PresBox.Instance && this.props.progressivize ? PresBox.Instance.progressivizeChildDocs : (null);
     }
 
     @computed get presPaths() {
