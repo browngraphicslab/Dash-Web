@@ -189,7 +189,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     LibraryPath={emptyPath}
                     fitToBox={true}
-                    backgroundColor={() => "darkgrey"}
+                    backgroundColor={this.props.backgroundColor}
                     rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -238,7 +238,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         e.preventDefault();
         if (element) {
-            console.log(element.className);
             if (PresBox.Instance._eleArray.includes(element)) {
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             }
@@ -254,11 +253,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     }
 
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
-        // const ele: HTMLElement[] = PresBox.Instance._eleArray.map(doc => doc);
         const activeItem = this.rootDoc;
         const dragData = new DragManager.DocumentDragData(PresBox.Instance.sortArray().map(doc => doc));
-        // let value = this.getValue(this._heading);
-        // value = typeof value === "string" ? `"${value}"` : value;
         const dragItem: HTMLElement[] = [];
         PresBox.Instance._dragArray.map(ele => {
             const drag = ele;
@@ -330,14 +326,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <div className="presElementBox-number">
                         {`${this.indexInPres + 1}.`}
                     </div>
-                    <div ref={this._dragRef} className="presElementBox-name">
+                    <div ref={this._dragRef} className="presElementBox-name" style={{ maxWidth: (PresBox.Instance.toolbarWidth - 70) }}>
                         {`${this.targetDoc?.title}`}
                     </div>
                     <Tooltip title={<><div className="dash-tooltip">{"Movement speed"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.transition}</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Duration"}</div></>}><div className="presElementBox-time" style={{ display: PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>{this.duration}</div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{"Presentation pin view"}</div></>}><div className="presElementBox-time" style={{ fontWeight: 700, display: this.rootDoc.presPinView && PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>V</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
                         className="presElementBox-closeIcon"
-                        // onPointerDown={e => e.stopPropagation()}
                         onClick={e => {
                             this.props.removeDocument?.(this.rootDoc);
                             e.stopPropagation();
@@ -364,5 +360,3 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         );
     }
 }
-
-// this.layoutDoc.title !== "pres element template"

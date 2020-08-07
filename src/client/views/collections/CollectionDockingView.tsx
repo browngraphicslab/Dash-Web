@@ -870,20 +870,24 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return currentFrame;
     }
     renderMiniPres() {
-        return <div className="miniPres" style={{
-            width: 250, height: 30, background: '#323232'
-        }}>
-            <div className="miniPresOverlay" >
-                <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                <div className="miniPres-button" onClick={() => PresBox.Instance.startOrResetPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
-                <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
-                <div className="miniPres-divider"></div>
-                <div className="miniPres-button-text">Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}</div>
-                {/* <div className="miniPres-button-text">{this.getCurrentFrame}</div> */}
-                <div className="miniPres-divider"></div>
-                <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
+        return (
+            <div className="miniPres"
+                style={{ width: 250, height: 30, background: '#323232' }}
+            >
+                {<div className="miniPresOverlay">
+                    <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
+                    <div className="miniPres-button" onClick={() => PresBox.Instance.startAutoPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
+                    <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
+                    <div className="miniPres-divider"></div>
+                    <div className="miniPres-button-text">
+                        Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}
+                        {PresBox.Instance.playButtonFrames}
+                    </div>
+                    <div className="miniPres-divider"></div>
+                    <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
+                </div>}
             </div>
-        </div>;
+        );
     }
     renderMiniMap() {
         return <div className="miniMap" style={{

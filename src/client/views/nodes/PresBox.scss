@@ -1,3 +1,7 @@
+$light-blue: #AEDDF8;
+$dark-blue: #5B9FDD;
+$light-background: #ececec;
+
 .presBox-cont {
     position: absolute;
     display: block;
@@ -20,17 +24,13 @@
         margin-top: 3px;
     }
 
-    .presBox-toolbar {
-        display: none;
-    }
-
     .presBox-toolbar-dropdown {
         border-radius: 5px;
         background-color: white;
         transform: translate(8px, -5px);
         box-shadow: 1px 1px 4px 4px rgba(0, 0, 0, 0.25);
         z-index: 1000;
-        width: 315;
+        width: calc(100% - 50px);
         height: max-content;
         justify-self: center;
         letter-spacing: normal;
@@ -40,7 +40,7 @@
         font-size: 13;
     }
 
-    .presBox-toolbar.active {
+    .presBox-toolbar {
         position: relative;
         display: inline-flex;
         align-items: center;
@@ -59,7 +59,7 @@
         }
 
         .toolbar-button.active {
-            color: #AEDDF8;
+            color: $light-blue;
         }
 
         .toolbar-transitionButtons {
@@ -85,7 +85,6 @@
         display: flex;
         width: max-content;
         height: 25px;
-        /* background-color: pink; */
         justify-content: center;
         transform: rotate(90deg);
         align-items: center;
@@ -120,7 +119,7 @@
 
 .dropdown.active {
     transform: rotate(180deg);
-    color: #AEDDF8;
+    color: $light-blue;
     opacity: 0.8;
 }
 
@@ -128,10 +127,7 @@
     position: relative;
     display: inline;
     font-family: Roboto;
-    /* background-color: white; */
     color: black;
-    width: 100%;
-    height: max-content;
     z-index: 100;
     transition: 0.7s;
 
@@ -157,7 +153,6 @@
         margin-left: 5px;
         margin-top: 5px;
         margin-bottom: 5px;
-        /* border-radius: 5px; */
         margin-right: 5px;
         width: max-content;
         justify-content: center;
@@ -166,52 +161,6 @@
         padding-left: 10px;
     }
 
-    // .toolbar-slider {
-    //     position: relative;
-    //     align-self: center;
-    //     justify-self: left;
-    //     -webkit-appearance: none;
-    //     background-color: #5b9ddd;
-    //     overflow: hidden;
-    //     margin-top: 5px;
-    //     width: 100%;
-    //     max-width: 200px;
-        
-    // }
-
-    // .toolbar-slider:focus {
-    //     outline: none;
-    // }
-
-    // .effectDirection {
-    //     justify-self: center;
-    //     align-self: center;
-    //     align-items: center;
-    //     justify-content: center;
-    //     grid-template-columns: 13px 13px 13px;
-    //     display: grid;
-    // }
-
-    // .toolbar-slider::-webkit-slider-thumb {
-    //     -webkit-appearance: none;
-    //     background-color: #5b9ddd;
-    //     box-shadow: -100 vw 0 0 100vw pink;
-    //     width: 12px;
-    //     height: 12px;
-    // }
-
-    // .toolbar-slider::-webkit-slider-runnable-track {
-    //     position: relative;
-    //     align-self: center;
-    //     justify-self: left;
-    //     -webkit-appearance: none;
-    //     background-color: #5b9ddd;
-    //     margin-top: 5px;
-    //     border: solid 1px black;
-    //     border-radius: 10px;
-    //     height: 5px;
-    //     left: 0px;
-    // }
     .presBox-subheading {
         font-size: 11;
         font-weight: 400;
@@ -235,20 +184,20 @@
         .toolbar-slider:focus {
             outline: none;
         }
-        
+
         .toolbar-slider::-webkit-slider-runnable-track {
-          height: 10px;
-          -webkit-appearance: none;
-          margin-top: -1px;
+            height: 10px;
+            -webkit-appearance: none;
+            margin-top: -1px;
         }
-        
+
         .toolbar-slider::-webkit-slider-thumb {
-          width: 10px;
-          -webkit-appearance: none;
-          height: 10px;
-          cursor: ew-resize;
-          background: #5b9ddd;
-          box-shadow: -100vw 0 0 100vw #aedef8;
+            width: 10px;
+            -webkit-appearance: none;
+            height: 10px;
+            cursor: ew-resize;
+            background: #5b9ddd;
+            box-shadow: -100vw 0 0 100vw #aedef8;
         }
     }
 
@@ -298,7 +247,7 @@
         justify-self: left;
         margin-top: 5px;
         padding-left: 10px;
-        background-color: rgb(222, 222, 222);
+        background-color: $light-background;
         border: solid 1px black;
         min-width: 80px;
         max-width: 200px;
@@ -323,7 +272,7 @@
             cursor: pointer;
             position: relative;
             height: 100%;
-            background: #d5dce2;
+            background: $light-background;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -417,7 +366,7 @@
         font-size: 10.5;
         font-weight: 200;
         height: 20;
-        background-color: #dedede;
+        background-color: $light-background;
         border: solid 1px black;
         display: flex;
         margin-top: 5px;
@@ -487,7 +436,7 @@
 
             .presBox-dropdownOptions {
                 position: absolute;
-                top: 29px;
+                top: 24px;
                 left: -1px;
                 z-index: 200;
                 width: 85%;
@@ -509,10 +458,10 @@
             grid-template-columns: auto 20%;
             position: relative;
             border: solid 1px black;
-            background-color: #dedede;
+            background-color: $light-background;
             border-radius: 5px;
             font-size: 10;
-            height: 30;
+            height: 25;
             padding-left: 5px;
             align-items: center;
             margin-top: 5px;
@@ -583,6 +532,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+    padding-left: 7px;
+    padding-right: 7px;
     border-bottom-right-radius: 0;
     border-top-right-radius: 0;
 }
@@ -597,6 +548,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+    padding-left: 7px;
+    padding-right: 7px;
     border-bottom-left-radius: 0;
     border-top-left-radius: 0;
 }
@@ -633,7 +586,7 @@
     align-items: center;
     justify-content: center;
     transform: translate(0px, -1px);
-    background-color: #dedede;
+    background-color: $light-background;
     width: 40px;
     height: 15px;
     align-self: center;
@@ -647,7 +600,7 @@
 .layout-container {
     padding: 5px;
     display: grid;
-    background-color: #dedede;
+    background-color: $light-background;
     grid-template-columns: repeat(auto-fit, minmax(90px, 100px));
     width: 100%;
     border: solid 1px black;
@@ -722,6 +675,7 @@
     position: relative;
     width: 100%;
     background: gray;
+    min-height: 35px;
     padding-top: 5px;
     padding-bottom: 5px;
     display: grid;
@@ -746,7 +700,7 @@
         min-width: 150px;
     }
 
-    
+
 
     select {
         background: #323232;
@@ -782,8 +736,7 @@
 
     .presBox-button.present {
         display: flex;
-        min-width: 100px;
-        width: 100px;
+        width: max-content;
         position: absolute;
         right: 10px;
 
@@ -792,19 +745,21 @@
         }
     }
 
-        
+
     .miniPresOverlay {
         background-color: #323232;
         color: white;
         border-radius: 5px;
         grid-template-rows: 100%;
         height: 25;
-        width: 200;
+        width: max-content;
+        min-width: max-content;
         justify-content: space-evenly;
         align-items: center;
         display: flex;
         position: absolute;
         right: 10px;
+        transition: all 0.2s;
 
         .miniPres-button-text {
             display: flex;
@@ -812,6 +767,10 @@
             width: max-content;
             font-family: Roboto;
             font-weight: 400;
+            margin-left: 3px;
+            margin-right: 3px;
+            padding-right: 3px;
+            padding-left: 3px;
             letter-spacing: normal;
             border-radius: 5px;
             align-items: center;
@@ -825,10 +784,27 @@
             border-right: solid 1px #5a5a5a;
         }
 
+        .miniPres-button-frame {
+            justify-self: center;
+            align-self: center;
+            align-items: center;
+            display: grid;
+            grid-template-columns: auto auto auto;
+            justify-content: space-around;
+            font-size: 11;
+            margin-left: 7;
+            width: 30;
+            height: 85%;
+            background-color: rgba(91, 157, 221, 0.4);
+            border-radius: 5px;
+        }
+
         .miniPres-button {
             display: flex;
             height: 20;
             min-width: 20;
+            margin-left: 3px;
+            margin-right: 3px;
             border-radius: 100%;
             align-items: center;
             justify-content: center;
