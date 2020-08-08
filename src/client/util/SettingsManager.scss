@@ -39,29 +39,6 @@
     left: 235;
 }
 
-.grey-submit {
-    width: 71.1875px;
-    align-self: center;
-    background: #75787c;
-    outline: none;
-    border-radius: 5px;
-    border: 0px;
-    color: #fcfbf7;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-size: 75%;
-    padding: 10px;
-    transition: transform 0.2s;
-    margin: 2px;
-    margin-left: 85px;
-    height: 32px;
-
-    &:hover {
-        cursor: not-allowed;
-    }
-
-}
-
 .settings-section {
     display: flex;
     border-bottom: 1px solid grey;
