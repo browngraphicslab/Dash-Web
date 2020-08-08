@@ -248,7 +248,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @observable transform: Transform = Transform.Identity();
-    getTransform = () => { return this.transform; }
+    getTransform = () => this.transform;
     propertiesDocViewRef = (ref: HTMLDivElement) => {
         const observer = new _global.ResizeObserver(action((entries: any) => {
             const cliRect = ref.getBoundingClientRect();

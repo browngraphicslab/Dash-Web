@@ -2,7 +2,6 @@ import { observable, runInAction, action, computed } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { observer } from "mobx-react";
-import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "./SelectionManager";
 import "./SettingsManager.scss";
@@ -22,220 +21,135 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(fa.faTimes);
-
 @observer
 export default class SettingsManager extends React.Component<{}> {
     public static Instance: SettingsManager;
     static _settingsStyle = addStyleSheet();
-    @observable private isOpen = false;
-    @observable private dialogueBoxOpacity = 1;
-    @observable private overlayOpacity = 0.4;
-    @observable private settingsContent = "password";
-    @observable private errorText = "";
-    @observable private successText = "";
-    @observable private playgroundMode = false;
     private curr_password_ref = React.createRef<HTMLInputElement>();
     private new_password_ref = React.createRef<HTMLInputElement>();
     private new_confirm_ref = React.createRef<HTMLInputElement>();
-
+    @observable private isOpen = false;
+    @observable private passwordResultText = "";
+    @observable private playgroundMode = false;
 
     @computed get backgroundColor() { return Doc.UserDoc().defaultColor; }
-
-    public open = action(() => {
-        SelectionManager.DeselectAll();
-        this.isOpen = true;
-    });
-
-    public close = action(() => {
-        this.isOpen = false;
-    });
 
     constructor(props: {}) {
         super(props);
         SettingsManager.Instance = this;
     }
 
-    @action
-    private dispatchRequest = async () => {
+    public close = action(() => this.isOpen = false);
+    public open = action(() => (this.isOpen = true) && SelectionManager.DeselectAll());
+
+    private googleAuthorize = action(() => GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true));
+    private hypothesisAuthorize = action(() => HypothesisAuthenticationManager.Instance.fetchAccessToken(true));
+    private changePassword = async () => {
         const curr_pass = this.curr_password_ref.current?.value;
         const new_pass = this.new_password_ref.current?.value;
         const new_confirm = this.new_confirm_ref.current?.value;
 
         if (!(curr_pass && new_pass && new_confirm)) {
-            this.changeAlertText("Hey, we're missing some fields!", "");
-            return;
-        }
-
-        const passwordBundle = {
-            curr_pass,
-            new_pass,
-            new_confirm
-        };
-
-        const { error } = await Networking.PostToServer('/internalResetPassword', passwordBundle);
-        if (error) {
-            this.changeAlertText("Uh oh! " + error[0].msg + "...", "");
-            return;
-        }
-
-        this.changeAlertText("", "Password successfully updated!");
-    }
-
-    @action
-    private changeAlertText = (errortxt: string, successtxt: string) => {
-        this.errorText = errortxt;
-        this.successText = successtxt;
-    }
-
-    @action
-    onClick = (event: any) => {
-        this.settingsContent = event.currentTarget.value;
-        this.errorText = "";
-        this.successText = "";
-    }
-    @action
-    noviceToggle = (event: any) => {
-        Doc.UserDoc().noviceMode = !Doc.UserDoc().noviceMode;
-    }
-    @action
-    googleAuthorize = (event: any) => {
-        GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true);
-    }
-    @action
-    hypothesisAuthorize = (event: any) => {
-        HypothesisAuthenticationManager.Instance.fetchAccessToken(true);
-    }
-
-    @action
-    togglePlaygroundMode = () => {
-        this.playgroundMode = !this.playgroundMode;
-        if (this.playgroundMode) DocServer.Control.makeReadOnly();
-        else DocServer.Control.makeEditable();
-
-        addStyleSheetRule(SettingsManager._settingsStyle, "lm_header", { background: "pink !important" });
-    }
-
-    @action
-    changeMode = (e: any) => {
-        if (e.currentTarget.value === "Novice") {
-            Doc.UserDoc().noviceMode = true;
+            runInAction(() => this.passwordResultText = "Error: Hey, we're missing some fields!");
         } else {
-            Doc.UserDoc().noviceMode = false;
+            const passwordBundle = { curr_pass, new_pass, new_confirm };
+            const { error } = await Networking.PostToServer('/internalResetPassword', passwordBundle);
+            runInAction(() => this.passwordResultText = error ? "Error: " + error[0].msg + "..." : "Password successfully updated!");
         }
     }
 
-    @action
-    changeFontFamily = (e: any) => {
-        Doc.UserDoc().fontFamily = e.currentTarget.value;
+    @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
+    @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
+    @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
+    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().defaultColor = String(color.hex));
+    @undoBatch
+    playgroundModeToggle = action(() => {
+        this.playgroundMode = !this.playgroundMode;
+        if (this.playgroundMode) {
+            DocServer.Control.makeReadOnly();
+            addStyleSheetRule(SettingsManager._settingsStyle, "lm_header", { background: "pink !important" });
+        }
+        else DocServer.Control.makeEditable();
+    });
+
+    @computed get preferencesContent() {
+        const colorBox = <SketchPicker onChange={this.switchColor} color={StrCast(this.backgroundColor)}
+            presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
+                '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
+                '#FFFFFF', '#f1efeb', 'transparent']} />;
+
+        const colorFlyout = <div className="colorFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={colorBox}>
+                <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }} onPointerDown={e => e.stopPropagation()} >
+                    <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
+                </div>
+            </Flyout>
+        </div>;
+
+        const fontFamilies = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
+        const fontSizes = ["7pt", "8pt", "9pt", "10pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "32pt", "48pt", "72pt"];
+
+        return <div className="preferences-content">
+            <div className="preferences-color">
+                <div className="preferences-color-text">Background Color</div>
+                {colorFlyout}
+            </div>
+            <div className="preferences-font">
+                <div className="preferences-font-text">Default Font</div>
+                <select className="font-select" onChange={this.changeFontFamily}>
+                    {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
+                </select>
+                <select className="size-select" onChange={this.changeFontSize}>
+                    {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
+                </select>
+            </div>
+        </div>;
     }
 
-    @action
-    changeFontSize = (e: any) => {
-        Doc.UserDoc().fontSize = e.currentTarget.value;
-    }
-
-    @action @undoBatch
-    switchColor = (color: ColorState) => {
-        const val = String(color.hex);
-        Doc.UserDoc().defaultColor = val;
-        return true;
-    }
-
-    private get settingsInterface() {
-
-
-        const passwordContent = <div className="password-content">
+    @computed get passwordContent() {
+        return <div className="password-content">
             <div className="password-content-inputs">
                 <input className="password-inputs" type="password" placeholder="current password" ref={this.curr_password_ref} />
                 <input className="password-inputs" type="password" placeholder="new password" ref={this.new_password_ref} />
                 <input className="password-inputs" type="password" placeholder="confirm new password" ref={this.new_confirm_ref} />
             </div>
             <div className="password-content-buttons">
-                {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
-                {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
-                <button className="password-submit" onClick={this.dispatchRequest}>submit</button>
-                <a className="password-forgot" style={{ marginLeft: 65, marginTop: -20 }}
-                    href="/forgotPassword">forgot password?</a>
+                {!this.passwordResultText ?? <div className={`${this.passwordResultText.startsWith("Error") ? "error" : "success"}-text`}>{this.passwordResultText}</div>}
+                <button className="password-submit" onClick={this.changePassword}>submit</button>
+                <a className="password-forgot" href="/forgotPassword">forgot password?</a>
             </div>
         </div>;
+    }
 
-        const modesContent = <div className="modes-content">
-            <select className="modes-select"
-                onChange={e => this.changeMode(e)}>
-                <option key={"Novice"} value={"Novice"} selected={BoolCast(Doc.UserDoc().noviceMode)}>
-                    Novice
-                </option>
-                <option key={"Developer"} value={"Developer"} selected={!BoolCast(Doc.UserDoc().noviceMode)}>
-                    Developer
-                </option>
+    @computed get modesContent() {
+        return <div className="modes-content">
+            <select className="modes-select" onChange={this.selectUserMode} defaultValue={Doc.UserDoc().noviceMode ? "Novice" : "Developer"}>
+                <option key={"Novice"} value={"Novice"}> Novice </option>
+                <option key={"Developer"} value={"Developer"}> Developer</option>
             </select>
             <div className="modes-playground">
-                <input className="playground-check" type="checkbox"
-                    checked={this.playgroundMode}
-                    onChange={undoBatch(action(() => this.togglePlaygroundMode()))}
-                /><div className="playground-text">Playground Mode</div>
+                <input className="playground-check" type="checkbox" checked={this.playgroundMode} onChange={this.playgroundModeToggle} />
+                <div className="playground-text">Playground Mode</div>
             </div>
         </div>;
+    }
 
-        const accountsContent = <div className="accounts-content">
-            <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
-            <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
-            <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
+    @computed get accountsContent() {
+        return <div className="accounts-content">
+            <button onClick={this.googleAuthorize} value="data">Link to Google</button>
+            <button onClick={this.hypothesisAuthorize} value="data">Link to Hypothes.is</button>
+            <button onClick={GroupManager.Instance?.open}>Manage groups</button>
         </div>;
+    }
 
-        const colorBox = <SketchPicker onChange={this.switchColor}
-            presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
-                '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
-                '#FFFFFF', '#f1efeb', 'transparent']}
-            color={StrCast(this.backgroundColor)} />;
-
-        const colorFlyout = <div className="colorFlyout">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={colorBox}>
-                <div>
-                    <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }}
-                        onPointerDown={e => e.stopPropagation()} >
-                        <FontAwesomeIcon icon="palette" size="sm" color={StrCast(this.backgroundColor)} />
-                    </div>
-                </div>
-            </Flyout>
-        </div>;
-
-        const fontFamilies: string[] = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
-        const fontSizes: string[] = ["7pt", "8pt", "9pt", "10pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "32pt", "48pt", "72pt"];
-
-        const preferencesContent = <div className="preferences-content">
-            <div className="preferences-color">
-                <div className="preferences-color-text">Background Color</div> {colorFlyout}
-            </div>
-            <div className="preferences-font">
-                <div className="preferences-font-text">Default Font</div>
-                <select className="font-select"
-                    onChange={e => this.changeFontFamily(e)}>
-                    {fontFamilies.map((font) => {
-                        return <option key={font} value={font} selected={StrCast(Doc.UserDoc().fontFamily) === font}>
-                            {font}
-                        </option>;
-                    })}
-                </select>
-                <select className="size-select"
-                    onChange={e => this.changeFontSize(e)}>
-                    {fontSizes.map((size) => {
-                        return <option key={size} value={size} selected={StrCast(Doc.UserDoc().fontSize) === size}>
-                            {size}
-                        </option>;
-                    })}
-                </select>
-            </div>
-        </div>;
-
-        return (<div className="settings-interface">
+    private get settingsInterface() {
+        const pairs = [{ title: "Password", ele: this.passwordContent }, { title: "Modes", ele: this.modesContent },
+        { title: "Accounts", ele: this.accountsContent }, { title: "Preferences", ele: this.preferencesContent }];
+        return <div className="settings-interface">
             <div className="settings-top">
                 <div className="settings-title">Settings</div>
                 <div className="settings-username">{Doc.CurrentUserEmail}</div>
-                <button onClick={() => window.location.assign(Utils.prepend("/logout"))}
-                    style={{ right: 35, position: "absolute" }} >
+                <button className="logout-button" onClick={() => window.location.assign(Utils.prepend("/logout"))} >
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
                 <div className="close-button" onClick={this.close}>
@@ -243,36 +157,21 @@ export default class SettingsManager extends React.Component<{}> {
                 </div>
             </div>
             <div className="settings-content">
-                <div className="settings-section">
-                    <div className="settings-section-title">Password</div>
-                    <div className="settings-section-context">{passwordContent}</div>
+                {pairs.map(pair => <div className="settings-section" key={pair.title}>
+                    <div className="settings-section-title">{pair.title}</div>
+                    <div className="settings-section-context">{pair.ele}</div>
                 </div>
-                <div className="settings-section">
-                    <div className="settings-section-title">Modes</div>
-                    <div className="settings-section-context">{modesContent}</div>
-                </div>
-                <div className="settings-section">
-                    <div className="settings-section-title">Accounts</div>
-                    <div className="settings-section-context">{accountsContent}</div>
-                </div>
-                <div className="settings-section" style={{ paddingBottom: 4 }}>
-                    <div className="settings-section-title">Preferences</div>
-                    <div className="settings-section-context">{preferencesContent}</div>
-                </div>
+                )}
             </div>
-        </div>);
+        </div>;
     }
 
     render() {
-        return (
-            <MainViewModal
-                contents={this.settingsInterface}
-                isDisplayed={this.isOpen}
-                interactive={true}
-                closeOnExternalClick={this.close}
-                dialogueBoxStyle={{ width: "600px", height: "340px" }}
-            />
-        );
+        return <MainViewModal
+            contents={this.settingsInterface}
+            isDisplayed={this.isOpen}
+            interactive={true}
+            closeOnExternalClick={this.close}
+            dialogueBoxStyle={{ width: "600px", height: "340px" }} />;
     }
-
 }
