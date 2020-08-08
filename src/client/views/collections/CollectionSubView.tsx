@@ -506,5 +506,5 @@ import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
-import { Hypothesis } from "../../apis/hypothesis/HypothesisUtils";
+import { Hypothesis } from "../../util/HypothesisUtils";
 

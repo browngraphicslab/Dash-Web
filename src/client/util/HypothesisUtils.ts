@@ -1,16 +1,16 @@
-import { StrCast, Cast } from "../../../fields/Types";
-import { SearchUtil } from "../../util/SearchUtil";
+import { StrCast, Cast } from "../../fields/Types";
+import { SearchUtil } from "./SearchUtil";
 import { action, runInAction } from "mobx";
-import { Doc, Opt } from "../../../fields/Doc";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { Docs } from "../../documents/Documents";
-import { SelectionManager } from "../../util/SelectionManager";
-import { WebField } from "../../../fields/URLField";
-import { DocumentManager } from "../../util/DocumentManager";
-import { DocumentLinksButton } from "../../views/nodes/DocumentLinksButton";
-import { simulateMouseClick, Utils } from "../../../Utils";
-import { DocumentView } from "../../views/nodes/DocumentView";
-import { Id } from "../../../fields/FieldSymbols";
+import { Doc, Opt } from "../../fields/Doc";
+import { DocumentType } from "../documents/DocumentTypes";
+import { Docs } from "../documents/Documents";
+import { SelectionManager } from "./SelectionManager";
+import { WebField } from "../../fields/URLField";
+import { DocumentManager } from "./DocumentManager";
+import { DocumentLinksButton } from "../views/nodes/DocumentLinksButton";
+import { simulateMouseClick, Utils } from "../../Utils";
+import { DocumentView } from "../views/nodes/DocumentView";
+import { Id } from "../../fields/FieldSymbols";
 
 export namespace Hypothesis {
 

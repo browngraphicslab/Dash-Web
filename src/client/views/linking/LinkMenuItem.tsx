@@ -15,7 +15,7 @@ import { setupMoveUpEvents, emptyFunction, Utils, simulateMouseClick } from '../
 import { DocumentView } from '../nodes/DocumentView';
 import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
 import { LinkDocPreview } from '../nodes/LinkDocPreview';
-import { Hypothesis } from '../../apis/hypothesis/HypothesisUtils';
+import { Hypothesis } from '../../util/HypothesisUtils';
 import { Id } from '../../../fields/FieldSymbols';
 import { Tooltip } from '@material-ui/core';
 import { DocumentType } from '../../documents/DocumentTypes';

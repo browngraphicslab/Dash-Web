@@ -13,7 +13,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "./DocumentView";
 import { StrCast, Cast } from "../../../fields/Types";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
-import { Hypothesis } from "../../apis/hypothesis/HypothesisUtils";
+import { Hypothesis } from "../../util/HypothesisUtils";
 import { Id } from "../../../fields/FieldSymbols";
 import { TaskCompletionBox } from "./TaskCompletedBox";
 import React = require("react");

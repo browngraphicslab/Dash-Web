@@ -58,7 +58,7 @@ import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { Hypothesis } from '../apis/hypothesis/HypothesisUtils';
+import { Hypothesis } from '../util/HypothesisUtils';
 import { undoBatch } from '../util/UndoManager';
 import { WebBox } from './nodes/WebBox';
 import * as ReactDOM from 'react-dom';
