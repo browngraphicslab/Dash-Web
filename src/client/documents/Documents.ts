@@ -94,6 +94,7 @@ export interface DocumentOptions {
     title?: string;
     label?: string;
     hidden?: boolean;
+    userDoc?: Doc; // the userDocument
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
