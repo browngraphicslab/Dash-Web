@@ -25,12 +25,13 @@ export const Flyout = higflyout.default;
 export default class SettingsManager extends React.Component<{}> {
     public static Instance: SettingsManager;
     static _settingsStyle = addStyleSheet();
-    private curr_password_ref = React.createRef<HTMLInputElement>();
-    private new_password_ref = React.createRef<HTMLInputElement>();
-    private new_confirm_ref = React.createRef<HTMLInputElement>();
     @observable private isOpen = false;
     @observable private passwordResultText = "";
     @observable private playgroundMode = false;
+
+    @observable private curr_password = "";
+    @observable private new_password = "";
+    @observable private new_confirm = "";
 
     @computed get backgroundColor() { return Doc.UserDoc().defaultColor; }
 
@@ -45,14 +46,10 @@ export default class SettingsManager extends React.Component<{}> {
     private googleAuthorize = action(() => GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true));
     private hypothesisAuthorize = action(() => HypothesisAuthenticationManager.Instance.fetchAccessToken(true));
     private changePassword = async () => {
-        const curr_pass = this.curr_password_ref.current?.value;
-        const new_pass = this.new_password_ref.current?.value;
-        const new_confirm = this.new_confirm_ref.current?.value;
-
-        if (!(curr_pass && new_pass && new_confirm)) {
+        if (!(this.curr_password && this.new_password && this.new_confirm)) {
             runInAction(() => this.passwordResultText = "Error: Hey, we're missing some fields!");
         } else {
-            const passwordBundle = { curr_pass, new_pass, new_confirm };
+            const passwordBundle = { curr_pass: this.curr_password, new_pass: this.new_password, new_confirm: this.new_confirm };
             const { error } = await Networking.PostToServer('/internalResetPassword', passwordBundle);
             runInAction(() => this.passwordResultText = error ? "Error: " + error[0].msg + "..." : "Password successfully updated!");
         }
@@ -106,15 +103,25 @@ export default class SettingsManager extends React.Component<{}> {
         </div>;
     }
 
+    @action
+    changeVal = (e: React.ChangeEvent, pass: string) => {
+        const value = (e.target as any).value;
+        switch (pass) {
+            case "curr": this.curr_password = value; break;
+            case "new": this.new_password = value; break;
+            case "conf": this.new_confirm = value; break;
+        }
+    }
+
     @computed get passwordContent() {
         return <div className="password-content">
             <div className="password-content-inputs">
-                <input className="password-inputs" type="password" placeholder="current password" ref={this.curr_password_ref} />
-                <input className="password-inputs" type="password" placeholder="new password" ref={this.new_password_ref} />
-                <input className="password-inputs" type="password" placeholder="confirm new password" ref={this.new_confirm_ref} />
+                <input className="password-inputs" type="password" placeholder="current password" onChange={e => this.changeVal(e, "curr")} />
+                <input className="password-inputs" type="password" placeholder="new password" onChange={e => this.changeVal(e, "new")} />
+                <input className="password-inputs" type="password" placeholder="confirm new password" onChange={e => this.changeVal(e, "conf")} />
             </div>
             <div className="password-content-buttons">
-                {!this.passwordResultText ?? <div className={`${this.passwordResultText.startsWith("Error") ? "error" : "success"}-text`}>{this.passwordResultText}</div>}
+                {!this.passwordResultText ? (null) : <div className={`${this.passwordResultText.startsWith("Error") ? "error" : "success"}-text`}>{this.passwordResultText}</div>}
                 <button className="password-submit" onClick={this.changePassword}>submit</button>
                 <a className="password-forgot" href="/forgotPassword">forgot password?</a>
             </div>
