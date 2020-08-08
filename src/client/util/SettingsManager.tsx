@@ -138,7 +138,7 @@ export default class SettingsManager extends React.Component<{}> {
         Doc.UserDoc().fontSize = e.currentTarget.value;
     }
 
-    @action @undoBatch
+    @undoBatch @action
     switchColor = (color: ColorState) => {
         const val = String(color.hex);
         Doc.UserDoc().defaultColor = val;

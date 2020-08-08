@@ -3,6 +3,8 @@ import AntimodeMenu from "../../AntimodeMenu";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { unimplementedFunction } from "../../../../Utils";
+import { undoBatch } from "../../../util/UndoManager";
+import { Tooltip } from "@material-ui/core";
 
 @observer
 export default class MarqueeOptionsMenu extends AntimodeMenu {
@@ -23,34 +25,38 @@ export default class MarqueeOptionsMenu extends AntimodeMenu {
 
     render() {
         const buttons = [
-            <button
-                className="antimodeMenu-button"
-                title="Create a Collection"
-                key="group"
-                onPointerDown={this.createCollection}>
-                <FontAwesomeIcon icon="object-group" size="lg" />
-            </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Summarize Documents"
-                key="summarize"
-                onPointerDown={this.summarize}>
-                <FontAwesomeIcon icon="compress-arrows-alt" size="lg" />
-            </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Delete Documents"
-                key="delete"
-                onPointerDown={this.delete}>
-                <FontAwesomeIcon icon="trash-alt" size="lg" />
-            </button>,
-            <button
-                className="antimodeMenu-button"
-                title="Change to Text"
-                key="inkToText"
-                onPointerDown={this.inkToText}>
-                <FontAwesomeIcon icon="font" size="lg" />
-            </button>,
+            <Tooltip title={<><div className="dash-tooltip">Create a Collection</div></>} placement="bottom">
+                <button
+                    className="antimodeMenu-button"
+                    key="group"
+                    onPointerDown={this.createCollection}>
+                    <FontAwesomeIcon icon="object-group" size="lg" />
+                </button>
+            </Tooltip>,
+            <Tooltip title={<><div className="dash-tooltip">Summarize Documents</div></>} placement="bottom">
+                <button
+                    className="antimodeMenu-button"
+                    key="summarize"
+                    onPointerDown={this.summarize}>
+                    <FontAwesomeIcon icon="compress-arrows-alt" size="lg" />
+                </button>
+            </Tooltip>,
+            <Tooltip title={<><div className="dash-tooltip">Delete Documents</div></>} placement="bottom">
+                <button
+                    className="antimodeMenu-button"
+                    key="delete"
+                    onPointerDown={this.delete}>
+                    <FontAwesomeIcon icon="trash-alt" size="lg" />
+                </button>
+            </Tooltip>,
+            <Tooltip title={<><div className="dash-tooltip">Change to Text</div></>} placement="bottom">
+                <button
+                    className="antimodeMenu-button"
+                    key="inkToText"
+                    onPointerDown={this.inkToText}>
+                    <FontAwesomeIcon icon="font" size="lg" />
+                </button>
+            </Tooltip>,
         ];
         return this.getElement(buttons);
     }
