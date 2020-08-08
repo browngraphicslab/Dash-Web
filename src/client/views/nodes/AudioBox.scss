@@ -150,6 +150,21 @@
                 z-index: 1000;
                 overflow: hidden;
 
+                .audiobox-container {
+                    position: absolute;
+                    width: 10px;
+                    top: 2.5%;
+                    height: 0px;
+                    background: lightblue;
+                    border-radius: 5px;
+                    // box-shadow: black 2px 2px 1px;
+                    opacity: 0.3;
+                    z-index: 500;
+                    border-style: solid;
+                    border-color: darkblue;
+                    border-width: 1px;
+                }
+
                 .audiobox-current {
                     width: 1px;
                     height: 100%;

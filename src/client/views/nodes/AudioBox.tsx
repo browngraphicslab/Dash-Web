@@ -60,20 +60,26 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _start: number = 0;
     _hold: boolean = false;
     _left: boolean = false;
-    _markers: Array<any> = [];
     _first: boolean = false;
     _dragging = false;
 
     _count: Array<any> = [];
     _timeline: Opt<HTMLDivElement>;
     _duration = 0;
+    @observable _visible: boolean = false;
+    _containerX: number = 0;
+    _containerY: number = 0;
+    @observable _currX: number = 0;
+    @observable _currY: number = 0;
+    _invertedX: boolean = false;
+    _invertedY: boolean = false;
 
     private _isPointerDown = false;
     private _currMarker: any;
 
     @observable _position: number = 0;
     @observable _buckets: Array<number> = new Array<number>();
-    @observable private _height: number = NumCast(this.layoutDoc.height);
+    @observable _waveHeight = this.layoutDoc._height;
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
@@ -355,6 +361,74 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return (this._pauseEnd - this._pauseStart);
     }
 
+    // starting the drag event for marker resizing
+    @action
+    onPointerDownTimeline = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = true;
+        this._timeline?.setPointerCapture(e.pointerId);
+
+        this.start(this._ele!.currentTime);
+
+        const rect = (e.target as any).getBoundingClientRect();
+        this._containerX = this._currX = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+        this._containerY = this._currY = (e.clientY - rect.y) / rect.height;
+        console.log(rect.height);
+
+        document.removeEventListener("pointermove", this.onPointerMoveTimeline);
+        document.addEventListener("pointermove", this.onPointerMoveTimeline);
+        document.removeEventListener("pointerup", this.onPointerUpTimeline);
+        document.addEventListener("pointerup", this.onPointerUpTimeline);
+
+    }
+
+    // ending the drag event for marker resizing
+    @action
+    onPointerUpTimeline = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = false;
+
+        const rect = (e.target as any).getBoundingClientRect();
+        const time = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration)
+        this._visible ? this.end(time) : this._start = 0;
+        this._visible = false;
+
+        this._containerX = 0;
+        this._containerY = 0;
+        this._timeline?.releasePointerCapture(e.pointerId);
+
+        document.removeEventListener("pointermove", this.onPointerMoveTimeline);
+        document.removeEventListener("pointerup", this.onPointerUpTimeline);
+    }
+
+    // resizes the marker while dragging
+    @action
+    onPointerMoveTimeline = (e: PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        if (!this._isPointerDown) {
+            return;
+        }
+        this._visible = true;
+        const rect = (e.target as any).getBoundingClientRect();
+        console.log(rect.height);
+
+        this._currX = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+        this._currY = (e.clientY - rect.y) / rect.height;
+
+        (this._currX - this._containerX < 0) ? this._invertedX = true : this._invertedX = false;
+
+        this._currY - this._containerY < 0 ? this._invertedY = true : this._invertedY = false;
+        console.log(this._invertedY);
+    }
+
+    @computed get container() {
+        return <div className="audiobox-container" style={{ left: !this._invertedX ? `${NumCast(this._containerX) / NumCast(this.dataDoc.duration, 1) * 100}%` : `${this._currX / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${Math.abs(this._containerX - this._currX) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${Math.abs(this._currY - this._containerY) * 100}%`, top: !this._invertedY ? `${this._containerY * 100}%` : `${this._currY * 100}%` }}></div>
+    }
+
     // creates a new label 
     @action
     newMarker(marker: Doc) {
@@ -376,7 +450,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @action
     end(marker: number) {
         this._hold = false;
-        let newMarker = Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: false, useLinkSmallAnchor: true, hideLinkButton: true, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document });
+        const newMarker = this._invertedX ?
+            Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: false, useLinkSmallAnchor: true, hideLinkButton: true, audioStart: marker, audioEnd: this._start, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document })
+            :
+            Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: false, useLinkSmallAnchor: true, hideLinkButton: true, audioStart: this._start, audioEnd: marker, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document });
         newMarker.data = "";
         if (this.dataDoc[this.annotationKey]) {
             this.dataDoc[this.annotationKey].push(newMarker);
@@ -498,7 +575,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @computed get waveform() {
         return <Waveform
             color={"darkblue"}
-            height={this._height}
+            height={this._waveHeight}
             barWidth={0.1}
             // pos={this.layoutDoc.currentTimecode}
             pos={this.dataDoc.duration}
@@ -560,12 +637,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @action
     update = (width: number, height: number) => {
         if (height) {
-            this._height = 0.8 * NumCast(this.layoutDoc._height);
+            const height = 0.8 * NumCast(this.layoutDoc._height);
             let canvas2 = document.getElementsByTagName("canvas")[0];
             if (canvas2) {
                 let oldWidth = canvas2.width;
                 let oldHeight = canvas2.height;
-                canvas2.style.height = `${this._height}`;
+                canvas2.style.height = `${height}`;
                 canvas2.style.width = `${width}`;
 
                 let ratio1 = oldWidth / window.innerWidth;
@@ -580,7 +657,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             if (canvas1) {
                 let oldWidth = canvas1.width;
                 let oldHeight = canvas1.height;
-                canvas1.style.height = `${this._height}`;
+                canvas1.style.height = `${height}`;
                 canvas1.style.width = `${width}`;
 
                 let ratio1 = oldWidth / window.innerWidth;
@@ -593,7 +670,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 let parent = canvas1.parentElement;
                 if (parent) {
                     parent.style.width = `${width}`;
-                    parent.style.height = `${this._height}`;
+                    parent.style.height = `${height}`;
                 }
             }
         }
@@ -642,11 +719,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 if (e.button === 0 && !e.ctrlKey) {
                                     const rect = (e.target as any).getBoundingClientRect();
 
+
                                     if (e.target as HTMLElement !== document.getElementById("current")) {
                                         const wasPaused = this.audioState === "paused";
                                         this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
                                         wasPaused && this.pause();
                                     }
+
+                                    this.onPointerDownTimeline(e);
                                 }
                                 if (e.button === 0 && e.altKey) {
                                     this.newMarker(Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart)`) as any, useLinkSmallAnchor: true, hideLinkButton: true, isLabel: true, audioStart: this._ele!.currentTime, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }));
@@ -658,7 +738,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                     this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
                                 }
                             }}>
-                            <div className="waveform" id="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px" }}>
+                            <div className="waveform" id="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px", pointerEvents: "none" }}>
                                 {this.waveform}
                             </div>
                             {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) => {
@@ -666,7 +746,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 (!m.isLabel) ?
                                     (this.layoutDoc.hideMarkers) ? (null) :
                                         rect =
-                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`, top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
+                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
                                             <DocumentView {...this.props}
                                                 Document={m}
@@ -741,6 +821,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { const wasPaused = this.audioState === "paused"; this.playFrom(linkTime); e.stopPropagation(); e.preventDefault(); } }} />
                                     </div>;
                             })}
+                            {this._visible ? this.container : null}
+
                             <div className="audiobox-current" id="current" onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%`, pointerEvents: "none" }} />
                             {this.audio}
                         </div>
