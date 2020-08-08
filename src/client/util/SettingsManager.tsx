@@ -39,6 +39,9 @@ export default class SettingsManager extends React.Component<{}> {
     private new_password_ref = React.createRef<HTMLInputElement>();
     private new_confirm_ref = React.createRef<HTMLInputElement>();
 
+    @observable private curr_password: string = "";
+    @observable private new_password: string = "";
+    @observable private new_confirm: string = "";
 
     @computed get backgroundColor() { return Doc.UserDoc().defaultColor; }
 
@@ -142,25 +145,44 @@ export default class SettingsManager extends React.Component<{}> {
         return true;
     }
 
-    private get settingsInterface() {
+    @computed get allowSubmit() {
+        return this.curr_password.length > 3 &&
+            this.new_password.length > 3 &&
+            this.new_confirm.length > 3 && this.new_confirm === this.new_password &&
+            this.new_password !== this.curr_password ? true : false;
+    }
 
+    @action
+    changeVal = (e: any, pass: string) => {
+        if (pass === "curr") {
+            this.curr_password = e.target.value;
+        } else if (pass === "new") {
+            this.new_password = e.target.value;
+        } else if (pass === "conf") {
+            this.new_confirm = e.target.value;
+        }
+    }
 
-        const passwordContent = <div className="password-content">
+    @computed get passwordContent() {
+        return <div className="password-content">
             <div className="password-content-inputs">
-                <input className="password-inputs" type="password" placeholder="current password" ref={this.curr_password_ref} />
-                <input className="password-inputs" type="password" placeholder="new password" ref={this.new_password_ref} />
-                <input className="password-inputs" type="password" placeholder="confirm new password" ref={this.new_confirm_ref} />
+                <input className="password-inputs" type="password" placeholder="current password" onChange={e => this.changeVal(e, "curr")} ref={this.curr_password_ref} />
+                <input className="password-inputs" type="password" placeholder="new password" onChange={e => this.changeVal(e, "new")} ref={this.new_password_ref} />
+                <input className="password-inputs" type="password" placeholder="confirm new password" onChange={e => this.changeVal(e, "conf")} ref={this.new_confirm_ref} />
             </div>
             <div className="password-content-buttons">
                 {this.errorText ? <div className="error-text">{this.errorText}</div> : undefined}
                 {this.successText ? <div className="success-text">{this.successText}</div> : undefined}
-                <button className="password-submit" onClick={this.dispatchRequest}>submit</button>
+                {this.allowSubmit ? <button className="password-submit"
+                    onClick={this.dispatchRequest}>submit</button> : <div className="grey-submit"> submit </div>}
                 <a className="password-forgot" style={{ marginLeft: 65, marginTop: -20 }}
                     href="/forgotPassword">forgot password?</a>
             </div>
         </div>;
+    }
 
-        const modesContent = <div className="modes-content">
+    @computed get modesContent() {
+        return <div className="modes-content">
             <select className="modes-select"
                 onChange={e => this.changeMode(e)}>
                 <option key={"Novice"} value={"Novice"} selected={BoolCast(Doc.UserDoc().noviceMode)}>
@@ -177,22 +199,31 @@ export default class SettingsManager extends React.Component<{}> {
                 /><div className="playground-text">Playground Mode</div>
             </div>
         </div>;
+    }
 
-        const accountsContent = <div className="accounts-content">
-            <button onClick={this.googleAuthorize} value="data">{`Link to Google`}</button>
-            <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button>
-            <button onClick={() => GroupManager.Instance.open()}>Manage groups</button>
+    @computed get accountsContent() {
+        return <div className="accounts-content">
+            <button onClick={this.googleAuthorize}
+                style={{ paddingLeft: 20, paddingRight: 20, marginRight: 35 }}
+                value="data">{`Link to Google`}</button>
+            {/* <button onClick={this.hypothesisAuthorize} value="data">{`Link to Hypothes.is`}</button> */}
+            <button onClick={() => GroupManager.Instance.open()}
+                style={{ paddingLeft: 20, paddingRight: 20 }}>Manage groups</button>
         </div>;
+    }
 
-        const colorBox = <SketchPicker onChange={this.switchColor}
+    @computed get colorBox() {
+        return <SketchPicker onChange={this.switchColor}
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
                 '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
                 '#FFFFFF', '#f1efeb', 'transparent']}
             color={StrCast(this.backgroundColor)} />;
+    }
 
-        const colorFlyout = <div className="colorFlyout">
+    @computed get colorFlyout() {
+        return <div className="colorFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={colorBox}>
+                content={this.colorBox}>
                 <div>
                     <div className="colorFlyout-button" style={{ backgroundColor: StrCast(this.backgroundColor) }}
                         onPointerDown={e => e.stopPropagation()} >
@@ -201,13 +232,15 @@ export default class SettingsManager extends React.Component<{}> {
                 </div>
             </Flyout>
         </div>;
+    }
 
+    @computed get preferencesContent() {
         const fontFamilies: string[] = ["Times New Roman", "Arial", "Georgia", "Comic Sans MS", "Tahoma", "Impact", "Crimson Text"];
         const fontSizes: string[] = ["7pt", "8pt", "9pt", "10pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "32pt", "48pt", "72pt"];
 
         const preferencesContent = <div className="preferences-content">
             <div className="preferences-color">
-                <div className="preferences-color-text">Background Color</div> {colorFlyout}
+                <div className="preferences-color-text">Background Color</div> {this.colorFlyout}
             </div>
             <div className="preferences-font">
                 <div className="preferences-font-text">Default Font</div>
@@ -230,12 +263,22 @@ export default class SettingsManager extends React.Component<{}> {
             </div>
         </div>;
 
+        return preferencesContent;
+    }
+
+
+    @computed private get settingsInterface() {
+
         return (<div className="settings-interface">
             <div className="settings-top">
                 <div className="settings-title">Settings</div>
-                <div className="settings-username">{Doc.CurrentUserEmail}</div>
+                <div className="settings-username">
+                    <div style={{ fontSize: 9 }}> Signed in as: </div>
+                    <div> {Doc.CurrentUserEmail}</div>
+                </div>
                 <button onClick={() => window.location.assign(Utils.prepend("/logout"))}
-                    style={{ right: 35, position: "absolute" }} >
+                    //style={{ right: 35, position: "absolute" }} >
+                    style={{ left: 137, position: "absolute" }} >
                     {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                 </button>
                 <div className="close-button" onClick={this.close}>
@@ -245,19 +288,19 @@ export default class SettingsManager extends React.Component<{}> {
             <div className="settings-content">
                 <div className="settings-section">
                     <div className="settings-section-title">Password</div>
-                    <div className="settings-section-context">{passwordContent}</div>
+                    <div className="settings-section-context">{this.passwordContent}</div>
                 </div>
                 <div className="settings-section">
                     <div className="settings-section-title">Modes</div>
-                    <div className="settings-section-context">{modesContent}</div>
+                    <div className="settings-section-context">{this.modesContent}</div>
                 </div>
                 <div className="settings-section">
                     <div className="settings-section-title">Accounts</div>
-                    <div className="settings-section-context">{accountsContent}</div>
+                    <div className="settings-section-context">{this.accountsContent}</div>
                 </div>
                 <div className="settings-section" style={{ paddingBottom: 4 }}>
                     <div className="settings-section-title">Preferences</div>
-                    <div className="settings-section-context">{preferencesContent}</div>
+                    <div className="settings-section-context">{this.preferencesContent}</div>
                 </div>
             </div>
         </div>);
