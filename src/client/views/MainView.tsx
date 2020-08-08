@@ -880,14 +880,14 @@ export class MainView extends React.Component {
 
                 var success = false;
                 const onSuccess = () => {
-                    console.log("EDIT SUCCESS");
                     success = true;
                     clearTimeout(interval);
                     document.removeEventListener("editSuccess", onSuccess);
                 };
 
-                const interval = setInterval(() => { // keep trying to click until annotations have loaded and editing is successful
-                    console.log("clicked");
+                // For some reason, Hypothes.is annotations don't load until a click is registered on the page, 
+                // so we keep simulating clicks until annotations have loaded and editing is successful
+                const interval = setInterval(() => {
                     !success && simulateMouseClick(ele, 50, 50, 50, 50);
                 }, 500);
 

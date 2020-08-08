@@ -114,15 +114,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 } else if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
                     const sourceDoc = DocumentLinksButton.StartLink;
                     const targetDoc = this.props.View.props.Document;
-                    const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
-
-                    // currently possible to drag to complete links to annotations
-                    if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) {
-                        Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
-                        Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
-                        Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
-                        Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId, sourceDoc); // update and link placeholder annotation
-                    }
+                    const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, "long drag");
 
                     LinkManager.currentLink = linkDoc;
 
@@ -148,24 +140,29 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             }
         })));
     }
-    finishLinkClick = undoBatch(action((screenX: number, screenY: number) => {
-        if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
+
+    public static finishLinkClick = undoBatch(action((screenX: number, screenY: number, startLink: Doc, endLink: Doc, startIsAnnotation: boolean, endLinkView?: DocumentView,) => {
+        if (startLink === endLink) {
             DocumentLinksButton.StartLink = undefined;
             DocumentLinksButton.AnnotationId = undefined;
             DocumentLinksButton.AnnotationUri = undefined;
-        } else if (!this.props.StartLink && DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
-            const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink }, { doc: this.props.View.props.Document }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
+            //!this.props.StartLink 
+        } else if (startLink !== endLink) {
+            const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
             // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
-            DocumentLinksButton.StartLink._link = this.props.View._link = linkDoc;
-            setTimeout(action(() => DocumentLinksButton.StartLink!._link = this.props.View._link = undefined), 0);
+            if (endLinkView) {
+                startLink._link = endLinkView._link = linkDoc;
+                setTimeout(action(() => startLink._link = endLinkView._link = undefined), 0);
+            }
             LinkManager.currentLink = linkDoc;
 
             if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) { // if linking from a Hypothes.is annotation
-                const targetDoc = this.props.View.props.Document;
                 Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
                 Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
                 Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
-                Hypothesis.makeLink(StrCast(targetDoc.title), Utils.prepend("/doc/" + targetDoc[Id]), DocumentLinksButton.AnnotationId, DocumentLinksButton.StartLink); // edit annotation to add a Dash hyperlink to the linked doc
+                const dashHyperlink = Utils.prepend("/doc/" + (startIsAnnotation ? endLink[Id] : startLink[Id]));
+                Hypothesis.makeLink(StrCast(startIsAnnotation ? endLink.title : startLink.title), dashHyperlink, DocumentLinksButton.AnnotationId,
+                    (startIsAnnotation ? startLink : endLink)); // edit annotation to add a Dash hyperlink to the linked doc
             }
 
             if (linkDoc) {
@@ -247,7 +244,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         border: DocumentLinksButton.StartLink ? "" : "none"
                     }}
                     onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}
-                    onClick={e => DocumentLinksButton.StartLink ? this.finishLinkClick(e.screenX, e.screenY) : emptyFunction} /> : (null)
+                    onClick={e => DocumentLinksButton.StartLink ? DocumentLinksButton.finishLinkClick(e.screenX, e.screenY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View) : emptyFunction} /> : (null)
             }
             {
                 DocumentLinksButton.StartLink === this.props.View.props.Document && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}

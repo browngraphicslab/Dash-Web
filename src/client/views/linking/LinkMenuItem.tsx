@@ -173,8 +173,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @undoBatch
     @action
     deleteLink = (): void => {
-        this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(StrCast(this.props.linkDoc.annotationId), Utils.prepend("/doc/" + this.props.sourceDoc[Id])); // delete hyperlink in annotation
-        this.props.linkDoc.linksToAnnotation && console.log("annotationId", this.props.linkDoc.annotationId);
+        this.props.linkDoc.linksToAnnotation && Hypothesis.deleteLink(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         LinkManager.Instance.deleteLink(this.props.linkDoc);
 
         runInAction(() => {
