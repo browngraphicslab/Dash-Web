@@ -304,7 +304,7 @@ export namespace Database {
          */
         export enum AuxiliaryCollections {
             GooglePhotosUploadHistory = "uploadedFromGooglePhotos",
-            GoogleAccess = "googleAuthentication"
+            GoogleAccess = "googleAuthentication",
         }
 
         /**

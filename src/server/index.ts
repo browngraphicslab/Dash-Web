@@ -8,7 +8,6 @@ import DeleteManager from "./ApiManagers/DeleteManager";
 import DownloadManager from './ApiManagers/DownloadManager';
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import HypothesisManager from "./ApiManagers/HypothesisManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import { SearchManager } from './ApiManagers/SearchManager';
 import SessionManager from "./ApiManagers/SessionManager";
@@ -72,7 +71,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         new DeleteManager(),
         new UtilManager(),
         new GeneralGoogleManager(),
-        new HypothesisManager(),
         new GooglePhotosManager(),
     ];
 

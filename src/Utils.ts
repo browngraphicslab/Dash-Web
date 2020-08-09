@@ -514,7 +514,7 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
-export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number, rightClick = true) {
     ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
         new PointerEvent(event, {
             view: window,
@@ -528,7 +528,7 @@ export function simulateMouseClick(element: Element, x: number, y: number, sx: n
             screenY: sy,
         })));
 
-    element.dispatchEvent(
+    rightClick && element.dispatchEvent(
         new MouseEvent("contextmenu", {
             view: window,
             bubbles: true,

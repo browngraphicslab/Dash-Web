@@ -53,6 +53,9 @@ async function deserializeScript(script: ScriptField) {
     if (script.script.originalScript === 'convertToButtons(dragData)') {
         return (script as any).script = (ScriptField.ConvertToButtons ?? (ScriptField.ConvertToButtons = ComputedField.MakeFunction('convertToButtons(dragData)', { dragData: "DocumentDragData" })))?.script;
     }
+    if (script.script.originalScript === 'self.userDoc.noviceMode') {
+        return (script as any).script = (ScriptField.NoviceMode ?? (ScriptField.NoviceMode = ComputedField.MakeFunction('self.userDoc.noviceMode')))?.script;
+    }
     const captures: ProxyField<Doc> = (script as any).captures;
     if (captures) {
         const doc = (await captures.value())!;
@@ -85,6 +88,7 @@ export class ScriptField extends ObjectField {
     public static OpenOnRight: Opt<ScriptField>;
     public static DeiconifyView: Opt<ScriptField>;
     public static ConvertToButtons: Opt<ScriptField>;
+    public static NoviceMode: Opt<ScriptField>;
     constructor(script: CompiledScript, setterscript?: CompiledScript) {
         super();
 
