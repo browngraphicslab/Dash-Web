@@ -24,14 +24,18 @@
 
 .formatShapePane-inputBtn {
     width: inherit;
-     position: absolute;
+    position: absolute;
 }
 
-.sketch-picker {
-    background: #323232;
-
-    .flexbox-fit {
+.btn-group-palette {
+    .sketch-picker {
         background: #323232;
+        width: 160px !important;
+        height: 80% !important;
+
+        .flexbox-fit {
+            background: #323232;
+        }
     }
 }
 

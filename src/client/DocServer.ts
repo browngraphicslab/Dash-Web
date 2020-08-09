@@ -1,6 +1,6 @@
 import * as io from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
-import { Opt, Doc, fetchProto, FieldsSym } from '../fields/Doc';
+import { Opt, Doc, fetchProto, FieldsSym, UpdatingFromServer } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';
@@ -156,23 +156,23 @@ export namespace DocServer {
 
         let _isReadOnly = false;
         export function makeReadOnly() {
-            if (_isReadOnly) return;
-            _isReadOnly = true;
-            _CreateField = field => {
-                _cache[field[Id]] = field;
-            };
-            _UpdateField = emptyFunction;
-            _RespondToUpdate = emptyFunction;
+            if (!_isReadOnly) {
+                _isReadOnly = true;
+                _CreateField = field => _cache[field[Id]] = field;
+                _UpdateField = emptyFunction;
+                _RespondToUpdate = emptyFunction;
+            }
         }
 
         export function makeEditable() {
-            if (!_isReadOnly) return;
-            location.reload();
-            // _isReadOnly = false;
-            // _CreateField = _CreateFieldImpl;
-            // _UpdateField = _UpdateFieldImpl;
-            // _respondToUpdate = _respondToUpdateImpl;
-            // _cache = {};
+            if (_isReadOnly) {
+                location.reload();
+                // _isReadOnly = false;
+                // _CreateField = _CreateFieldImpl;
+                // _UpdateField = _UpdateFieldImpl;
+                // _respondToUpdate = _respondToUpdateImpl;
+                // _cache = {};
+            }
         }
 
         export function isReadOnly() { return _isReadOnly; }
@@ -228,6 +228,7 @@ export namespace DocServer {
                 // deserialize
                 const field = await SerializationHelper.Deserialize(fieldJson);
                 if (force && field instanceof Doc && cached instanceof Doc) {
+                    cached[UpdatingFromServer] = true;
                     Array.from(Object.keys(field)).forEach(key => {
                         const fieldval = field[key];
                         if (fieldval instanceof ObjectField) {
@@ -235,6 +236,8 @@ export namespace DocServer {
                         }
                         cached[key] = field[key];
                     });
+                    cached[UpdatingFromServer] = false;
+                    return cached;
                 }
                 else if (field !== undefined) {
                     _cache[id] = field;
@@ -369,6 +372,9 @@ export namespace DocServer {
                         } else if (cached instanceof Promise) {
                             proms.push(cached as any);
                         }
+                    } else if (field) {
+                        proms.push(_cache[field.id] as any);
+                        fieldMap[field.id] = field;
                     }
                 }
             });
@@ -448,7 +454,7 @@ export namespace DocServer {
     }
 
     function _UpdateFieldImpl(id: string, diff: any) {
-        Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+        (!DocServer.Control.isReadOnly()) && Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
     let _UpdateField: (id: string, diff: any) => void = errorFunc;

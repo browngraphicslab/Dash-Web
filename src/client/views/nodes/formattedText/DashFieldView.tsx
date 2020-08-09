@@ -190,7 +190,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             }
             list.map(c => c.heading).indexOf(this._fieldKey) === -1 && list.push(new SchemaHeaderField(this._fieldKey, "#f1efeb"));
             list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
-            alias._pivotField = this._fieldKey;
+            alias._pivotField = this._fieldKey.startsWith("#") ? "#" : this._fieldKey;
             this.props.tbox.props.addDocTab(alias, "onRight");
         }
     }
@@ -205,9 +205,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     {this._fieldKey}
                 </span>}
 
-            {/* <div className="dashFieldView-fieldSpan"> */}
-            {this.fieldValueContent}
-            {/* </div> */}
+            {this.props.fieldKey.startsWith("#") ? (null) : this.fieldValueContent}
 
             {!this._showEnumerables ? (null) : <div className="dashFieldView-enumerables" onPointerDown={this.onPointerDownEnumerables} />}
 

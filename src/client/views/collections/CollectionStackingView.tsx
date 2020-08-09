@@ -45,7 +45,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get columnHeaders() { return Cast(this.layoutDoc._columnHeaders, listSpec(SchemaHeaderField)); }
     @computed get pivotField() { return StrCast(this.layoutDoc._pivotField); }
-    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout); }
+    @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.hidden).map(pair => pair.layout); }
     @computed get xMargin() { return NumCast(this.layoutDoc._xMargin, 2 * Math.min(this.gridGap, .05 * this.props.PanelWidth())); }
     @computed get yMargin() { return Math.max(this.layoutDoc._showTitle && !this.layoutDoc._showTitleHover ? 30 : 0, NumCast(this.layoutDoc._yMargin, 0)); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.layoutDoc._gridGap, 10); }
@@ -184,7 +184,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (found) {
             const top = found.getBoundingClientRect().top;
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
-            smoothScroll(500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
         afterFocus && setTimeout(() => {
             if (afterFocus?.()) { }
@@ -208,7 +208,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             NativeHeight={returnZero}
             NativeWidth={returnZero}
             fitToBox={false}
-            dontRegisterView={this.props.dontRegisterView}
+            dontRegisterView={BoolCast(this.layoutDoc.dontRegisterChildViews, this.props.dontRegisterView)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.layoutDoc.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
@@ -227,6 +227,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             addDocTab={this.addDocTab}
             bringToFront={returnFalse}
             ContentScaling={returnOne}
+            scriptContext={this.props.scriptContext}
             pinToPres={this.props.pinToPres}
         />;
     }
@@ -286,19 +287,31 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                 }
             });
             if (super.onInternalDrop(e, de)) {
-                const newDoc = de.complete.docDragData.droppedDocuments[0];
+                const newDocs = de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 if (docs) {
-                    if (targInd === -1) targInd = docs.length;
-                    else targInd = docs.indexOf(this.filteredChildren[targInd]);
-                    const srcInd = docs.indexOf(newDoc);
-                    docs.splice(srcInd, 1);
-                    docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, newDoc);
+                    newDocs.map((doc, i) => {
+                        console.log(doc.title);
+                        if (i === 0) {
+                            if (targInd === -1) targInd = docs.length;
+                            else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                            const srcInd = docs.indexOf(doc);
+                            docs.splice(srcInd, 1);
+                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                        } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
+                            if (targInd === -1) targInd = docs.length;
+                            else targInd = docs.indexOf(newDocs[0]) + 1;
+                            const srcInd = docs.indexOf(doc);
+                            docs.splice(srcInd, 1);
+                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                        }
+                    });
                 }
             }
         }
         return false;
     }
+
     @undoBatch
     @action
     onExternalDrop = async (e: React.DragEvent): Promise<void> => {
@@ -481,7 +494,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     })}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
-                    onWheel={e => this.props.active() && e.stopPropagation()} >
+                    onWheel={e => this.props.active(true) && e.stopPropagation()} >
                     {this.renderedSections}
                     {!this.showAddAGroup ? (null) :
                         <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

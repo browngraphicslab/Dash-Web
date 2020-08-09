@@ -29,13 +29,17 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
 
         const options: UserOptions[] = this.props.group ? GroupManager.Instance.options.filter(option => !(JSON.parse(StrCast(this.props.group.members)) as string[]).includes(option.value)) : [];
 
+        const hasEditAccess = GroupManager.Instance.hasEditAccess(this.props.group);
+
         return (!this.props.group ? null :
             <div className="editing-interface">
                 <div className="editing-header">
                     <input
                         className="group-title"
+                        style={{ marginLeft: !hasEditAccess ? "-14%" : 0 }}
                         value={StrCast(this.props.group.groupName)}
                         onChange={e => this.props.group.groupName = e.currentTarget.value}
+                        disabled={!hasEditAccess}
                     >
                     </input>
                     <div className={"memberView-closeButton"} onClick={action(this.props.onCloseButtonClick)}>
@@ -65,12 +69,15 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                         null}
                     <div
                         className="sort-emails"
+                        style={{ paddingTop: hasEditAccess ? 0 : 35 }}
                         onClick={action(() => this.memberSort = this.memberSort === "ascending" ? "descending" : this.memberSort === "descending" ? "none" : "ascending")}>
                         Emails {this.memberSort === "ascending" ? "↑" : this.memberSort === "descending" ? "↓" : ""} {/* → */}
                     </div>
                 </div>
                 <hr />
-                <div className="editing-contents">
+                <div className="editing-contents"
+                    style={{ height: hasEditAccess ? "62%" : "85%" }}
+                >
                     {members.map(member => (
                         <div
                             className="editing-row"
@@ -79,7 +86,7 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                             <div className="user-email">
                                 {member}
                             </div>
-                            {GroupManager.Instance.hasEditAccess(this.props.group) ?
+                            {hasEditAccess ?
                                 <div className={"remove-button"} onClick={() => GroupManager.Instance.removeMemberFromGroup(this.props.group, member)}>
                                     <FontAwesomeIcon icon={fa.faTrashAlt} size={"sm"} />
                                 </div>

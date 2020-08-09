@@ -12,6 +12,7 @@ import { NumCast, StrCast, Cast } from "../../../fields/Types";
 import { ImageField } from "../../../fields/URLField";
 import { TraceMobx } from "../../../fields/util";
 import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -298,7 +299,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             oneLine: true,
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this._color
         };
         const newEditableViewProps = {
             GetValue: () => "",
@@ -306,7 +306,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
             toggle: this.toggleVisibility,
-            color: this._color
         };
         const headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
@@ -332,11 +331,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             {this._paletteOn ? this.renderColorPicker() : (null)}
                         </div>
                     }
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        (null) :
-                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
-                            <FontAwesomeIcon icon="trash" size="lg" />
-                        </button>}
+                    {<button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
+                        <FontAwesomeIcon icon="trash" size="lg" />
+                    </button>}
                     {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionOptions">
                             <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
@@ -350,12 +347,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
-
+        const type = this.props.parent.props.Document.type;
         return <>
             {this.props.parent.Document._columnsHideIfEmpty ? (null) : headingView}
             {
                 this.collapsed ? (null) :
-                    <div style={{ marginTop: 5 }}>
+                    <div>
                         <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                             style={{
                                 padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
@@ -370,9 +367,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
                             {singleColumn ? (null) : this.props.parent.columnDragger}
                         </div>
-                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                        {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled' && type !== DocumentType.PRES) ?
                             <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                                style={{ width: style.columnWidth / style.numGroupColumns }}>
+                                style={{ width: style.columnWidth / style.numGroupColumns, marginBottom: 70 }}>
                                 <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                             </div> : null}
                     </div>

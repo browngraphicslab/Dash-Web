@@ -39,7 +39,15 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
 
     @computed get contents() {
         return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" ? undefined : "none" }} >
-            <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine} />
+            <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine}
+                addDocument={(doc: Doc | Doc[]) => {
+                    (doc instanceof Doc ? [doc] : doc).map((d) => DocUtils.iconify(d));
+                    return this.props.addDocument(doc);
+                }}
+                moveDocument={(doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
+                    (doc instanceof Doc ? [doc] : doc).map((d) => Doc.deiconifyView(d));
+                    return this.props.moveDocument(doc, targetCollection, addDoc);
+                }} />
         </div>;
     }
     toggleStarburst = action(() => {
@@ -72,24 +80,13 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }
     });
 
-    @undoBatch
-    @action
-    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.onInternalDrop(e, de)) {
-            if (de.complete.docDragData) {
-                DocUtils.pileup(this.childDocs);
-            }
-        }
-        return true;
-    }
-
     _undoBatch: UndoManager.Batch | undefined;
     pointerDown = (e: React.PointerEvent) => {
         let dist = 0;
         SnappingManager.SetIsDragging(true);
         // this._lastTap should be set to 0, and this._doubleTap should be set to false in the class header
         setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
-            if (this.layoutEngine() === "pass" && this.childDocs.length && this.props.isSelected(true)) {
+            if (this.layoutEngine() === "pass" && this.childDocs.length && e.shiftKey) {
                 dist += Math.sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
                 if (dist > 100) {
                     if (!this._undoBatch) {
@@ -110,11 +107,11 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             if (!this.childDocs.length) {
                 this.props.ContainingCollectionView?.removeDocument(this.props.Document);
             }
-        }, emptyFunction, false, this.layoutEngine() === "pass" && this.props.isSelected(true)); // this sets _doubleTap
+        }, emptyFunction, e.shiftKey && this.layoutEngine() === "pass", this.layoutEngine() === "pass" && e.shiftKey); // this sets _doubleTap
     }
 
     onClick = (e: React.MouseEvent) => {
-        if (e.button === 0 && this._doubleTap) {
+        if (e.button === 0) {//} && this._doubleTap) {
             SelectionManager.DeselectAll();
             this.toggleStarburst();
             e.stopPropagation();
@@ -124,7 +121,6 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     render() {
 
         return <div className={"collectionPileView"} onClick={this.onClick} onPointerDown={this.pointerDown}
-            ref={this.createDashEventsTarget}
             style={{ width: this.props.PanelWidth(), height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
             {this.contents}
         </div>;

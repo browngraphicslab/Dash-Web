@@ -6,7 +6,6 @@ import { exec } from 'child_process';
 
 // const recommender = new Recommender();
 // recommender.testModel();
-import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export default class UtilManager extends ApiManager {
 

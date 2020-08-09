@@ -18,13 +18,14 @@ import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
+import { MenuIconBox } from "./MenuIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
-import { QueryBox } from "./QueryBox";
+import { SearchBox } from "../search/SearchBox";
 import { ColorBox } from "./ColorBox";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { LinkAnchorBox } from "./LinkAnchorBox";
@@ -35,7 +36,6 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
-import { RecommendationsBox } from "../RecommendationsBox";
 import { TraceMobx, GetEffectiveAcl } from "../../../fields/util";
 import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
@@ -190,11 +190,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 blacklistedAttrs={[]}
                 renderInWrapper={false}
                 components={{
-                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, MenuIconBox, LabelBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
+                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, SearchBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                    RecommendationsBox, ScreenshotBox, HTMLtag, ComparisonBox
+                    ScreenshotBox, HTMLtag, ComparisonBox
                 }}
                 bindings={bindings}
                 jsx={layoutFrame}

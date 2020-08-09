@@ -6,14 +6,14 @@ import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
 import { StrCast, Cast, NumCast } from '../../../fields/Types';
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
 import { Tooltip } from '@material-ui/core';
 const FontIconSchema = createSchema({
-    icon: "string"
+    icon: "string",
 });
 
 type FontIconDocument = makeInterface<[typeof FontIconSchema]>;
@@ -59,16 +59,17 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
 
     render() {
-        const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
-        const refLayout = Doc.Layout(referenceDoc);
-        const button = <button className="fontIconBox-outerDiv" ref={this._ref} onContextMenu={this.specificContextMenu}
-            style={{
-                padding: Cast(this.layoutDoc._xPadding, "number", null),
-                background: StrCast(refLayout._backgroundColor, StrCast(refLayout.backgroundColor)),
-                boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
-            }}>
-            <FontAwesomeIcon className="fontIconBox-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={StrCast(this.layoutDoc.color, this._foregroundColor)} size="sm" />
-            {!this.rootDoc.title ? (null) : <div className="fontIconBox-label" style={{ width: this.rootDoc.label ? "max-content" : undefined }}> {StrCast(this.rootDoc.label, StrCast(this.rootDoc.title).substring(0, 6))} </div>}
+        const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
+        const color = StrCast(this.layoutDoc.color, this._foregroundColor);
+        const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc)));
+        const shape = StrCast(this.layoutDoc.iconShape, "round");
+        const button = <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
+            style={{ boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined, backgroundColor: this.layoutDoc.iconShape === "square" ? backgroundColor : "" }}>
+            <div className="menuButton-wrap">
+                {<FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={StrCast(this.dataDoc.icon, "user") as any} color={color}
+                    size={this.layoutDoc.iconShape === "square" ? "sm" : "lg"} />}
+                {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+            </div>
         </button>;
         return !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>

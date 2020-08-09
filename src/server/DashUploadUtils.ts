@@ -1,23 +1,22 @@
-import { unlinkSync, createWriteStream, readFileSync, rename, writeFile, existsSync } from 'fs';
-import { Utils } from '../Utils';
-import * as path from 'path';
-import * as sharp from 'sharp';
-import request = require('request-promise');
-import { ExifImage } from 'exif';
-import { Opt } from '../fields/Doc';
-import { AcceptibleMedia, Upload } from './SharedMediaTypes';
-import { filesDirectory, publicDirectory } from '.';
-import { File } from 'formidable';
-import { basename } from "path";
-import { createIfNotExists } from './ActionUtilities';
-import { ParsedPDF } from "../server/PdfTypes";
-const parse = require('pdf-parse');
-import { Directory, serverPathToFile, clientPathToFile, pathToDirectory } from './ApiManagers/UploadManager';
 import { red } from 'colors';
+import { ExifImage } from 'exif';
+import { File } from 'formidable';
+import { createWriteStream, existsSync, readFileSync, rename, unlinkSync, writeFile } from 'fs';
+import * as path from 'path';
+import { basename } from "path";
+import * as sharp from 'sharp';
 import { Stream } from 'stream';
-import { resolvedPorts } from './server_Initialization';
-const requestImageSize = require("../client/util/request-image-size");
+import { filesDirectory, publicDirectory } from '.';
+import { Opt } from '../fields/Doc';
+import { ParsedPDF } from "../server/PdfTypes";
+import { Utils } from '../Utils';
+import { createIfNotExists } from './ActionUtilities';
+import { clientPathToFile, Directory, pathToDirectory, serverPathToFile } from './ApiManagers/UploadManager';
 import { resolvedServerUrl } from "./server_Initialization";
+import { AcceptibleMedia, Upload } from './SharedMediaTypes';
+import request = require('request-promise');
+const parse = require('pdf-parse');
+const requestImageSize = require("../client/util/request-image-size");
 
 export enum SizeSuffix {
     Small = "_s",

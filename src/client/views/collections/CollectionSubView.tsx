@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt, Field } from "../../../fields/Doc";
+import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -55,17 +55,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
     class CollectionSubView extends DocComponent<X & SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
-        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+        protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
-                this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
+                this._multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
         }
         protected CreateDropTarget(ele: HTMLDivElement) { //used in schema view
@@ -74,7 +74,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         componentWillUnmount() {
             this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this._multiTouchDisposer?.();
         }
 
         @computed get dataDoc() {
@@ -112,9 +112,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
+            let rawdocs: (Doc | Promise<Doc>)[] = DocListCast(this.props.Document._searchDocs);
 
-            let rawdocs: (Doc | Promise<Doc>)[] = [];
-            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+            if (rawdocs.length !== 0) {
+            } else if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
             } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
                 rawdocs = Cast(this.dataField, listSpec(Doc), null);
@@ -126,11 +127,66 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
 
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
-            const docFilters = this.docFilters();
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+            const searchDocs = DocListCast(this.props.Document._searchDocs);
+            // if (searchDocs !== undefined && searchDocs.length > 0) {
+            //     let newdocs: Doc[] = [];
+            //     childDocs.forEach((el) => {
+            //         searchDocs.includes(el) ? newdocs.push(el) : undefined;
+            //     });
+            //     childDocs = newdocs;
+            // }
+
+            let docsforFilter: Doc[] = childDocs;
+            if (searchDocs !== undefined && searchDocs.length > 0) {
+                docsforFilter = [];
+                // let newdocs: Doc[] = [];
+                // let newarray: Doc[] = [];
+                //while (childDocs.length > 0) {
+                //newarray = [];
+                childDocs.forEach((d) => {
+                    if (d.data !== undefined) {
+                        console.log(d);
+                        let newdocs = DocListCast(d.data);
+                        if (newdocs.length > 0) {
+                            let vibecheck: boolean | undefined = undefined;
+                            let newarray: Doc[] = [];
+                            while (newdocs.length > 0) {
+                                newarray = [];
+                                newdocs.forEach((t) => {
+                                    if (d.data !== undefined) {
+                                        const newdocs = DocListCast(t.data);
+                                        newdocs.forEach((newdoc) => {
+                                            newarray.push(newdoc);
+                                        });
+                                    }
+                                    if (searchDocs.includes(t)) {
+                                        vibecheck = true;
+                                    }
+                                });
+                                newdocs = newarray;
+                            }
+                            if (vibecheck === true) {
+                                docsforFilter.push(d);
+                            }
+                        }
+                    }
+                    if (searchDocs.includes(d)) {
+                        docsforFilter.push(d);
+                    }
+                });
+                //childDocs = newarray;
+                //}
+            }
+            childDocs = docsforFilter;
+
+
+            const docFilters = this.docFilters();
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
-            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, docFilters, docRangeFilters, viewSpecScript);
+            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 
         @action
@@ -185,18 +241,20 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
-            ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
-                const dropaction = docDragData.dropAction || docDragData.userDropAction;
-                if (dropaction && dropaction !== "move") {
-                    added = this.addDocument(docDragData.droppedDocuments);
-                } else if (docDragData.moveDocument) {
+                const dropAction = docDragData.dropAction || docDragData.userDropAction;
+                if ((!dropAction || dropAction === "move") && docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
                     const res = addedDocs.length ? this.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document) || de.embedKey || !this.props.isAnnotationOverlay ? this.addDocument : returnFalse) : res;
+                    if (movedDocs.length) {
+                        const canAdd = this.props.Document._viewType === CollectionViewType.Pile || de.embedKey || !this.props.isAnnotationOverlay ||
+                            Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
+                        added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
+                    } else added = res;
                 } else {
+                    ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
                 added && e.stopPropagation();
@@ -292,7 +350,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
-                            Doc.GetProto(htmlDoc)["data-text"] = text;
+                            Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
@@ -300,7 +358,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
                                     const y = NumCast(srcWeb._scrollTop) + (rect?.y || 0);
-                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    const anchor = Docs.Create.FreeformDocument([], { _backgroundColor: "transparent", _width: 75, _height: 40, x, y, annotationOn: srcWeb });
                                     anchor.context = srcWeb;
                                     const key = Doc.LayoutFieldKey(srcWeb);
                                     Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
@@ -349,8 +407,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     title: uriList,
                     _width: 400,
                     _height: 315,
-                    _nativeWidth: 600,
-                    _nativeHeight: 472.5
+                    _nativeWidth: 850,
+                    _nativeHeight: 962
                 }));
                 return;
             }
@@ -430,8 +488,7 @@ import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
-import { CollectionView } from "./CollectionView";
+import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
-

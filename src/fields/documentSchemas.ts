@@ -94,6 +94,7 @@ export const documentSchema = createSchema({
     followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
     hideLinkButton: "boolean",  // whether the blue link counter button should be hidden
     hideAllLinks: "boolean",    // whether all individual blue anchor dots should be hidden
+    linkDisplay: "boolean",     // whether a link connection should be shown between link anchor endpoints.
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)

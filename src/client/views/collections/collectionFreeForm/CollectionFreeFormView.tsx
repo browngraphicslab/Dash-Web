@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
@@ -46,6 +46,7 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { PresBox } from "../../nodes/PresBox";
 import { SearchUtil } from "../../../util/SearchUtil";
 import { LinkManager } from "../../../util/LinkManager";
 
@@ -57,7 +58,6 @@ export const panZoomSchema = createSchema({
     currentTimecode: "number",
     displayTimecode: "number",
     currentFrame: "number",
-    arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
     fitToBox: "boolean",
@@ -77,7 +77,7 @@ export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
     childPointerEvents?: boolean;
-    scaleField?: string; // used by formattedTextBox when displaying a sidebar freeform view which needs its own scale field
+    scaleField?: string;
     noOverlay?: boolean; // used to suppress docs in the overlay (z) layer (ie, for minimap since overlay doesn't scale)
 };
 
@@ -214,7 +214,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutDoc = Doc.Layout(d);
             if (this.Document.currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.opacity);
+                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.opacity);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];
@@ -892,7 +892,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this.props.focus(doc);
             } else {
                 const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
-                const offset = annotOn && (contextHgt / 2 * 96 / 72);
+                const offset = annotOn && (contextHgt / 2);
                 this.props.Document._scrollY = NumCast(doc.y) - offset;
             }
 
@@ -912,7 +912,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             //     !doc.z && NumCast(this.layoutDoc.scale) < 1 && this.scaleAtPt(DocumentView._focusHack, 1); // [NumCast(doc.x), NumCast(doc.y)], 1);
             // } else {
             if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
-                if (!doc.z) this.setPan(newPanX, newPanY, "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+                // glr: freeform transform speed can be set by adjusting presTransition field - needs a way of knowing when presentation is not active...
+                if (!doc.z) this.setPan(newPanX, newPanY, doc.presTransition || doc.presTransition === 0 ? `transform ${doc.presTransition}ms` : "transform 500ms", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
             }
             Doc.BrushDoc(this.props.Document);
             this.props.focus(this.props.Document);
@@ -1005,10 +1006,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this.props.addDocTab(doc, where);
     });
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
-        const result = this.Document.arrangeScript?.script.run(params, console.log);
-        if (result?.success) {
-            return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
-        }
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, opacity } = this.Document.currentFrame === undefined ? params.pair.layout :
             CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentFrame || 0);
@@ -1149,7 +1146,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     componentDidMount() {
         super.componentDidMount?.();
-        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation },
+        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
 
@@ -1244,13 +1241,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const appearanceItems = appearance && "subitems" in appearance ? appearance.subitems : [];
         appearanceItems.push({ description: "Reset View", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document[this.scaleFieldKey] = 1; }, icon: "compress-arrows-alt" });
         appearanceItems.push({ description: `${this.fitToContent ? "Make Zoomable" : "Scale to Window"}`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
-        appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
+        !Doc.UserDoc().noviceMode ? appearanceItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" }) : null;
         !appearance && ContextMenu.Instance.addItem({ description: "Appearance...", subitems: appearanceItems, icon: "eye" });
 
         const viewctrls = ContextMenu.Instance.findByDescription("UI Controls...");
         const viewCtrlItems = viewctrls && "subitems" in viewctrls ? viewctrls.subitems : [];
-        viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
-        viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+
+
+        !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" }) : null;
+        !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" }) : null;
         !viewctrls && ContextMenu.Instance.addItem({ description: "UI Controls...", subitems: viewCtrlItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
@@ -1260,7 +1259,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.ContainingCollectionView &&
             optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
-        appearanceItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
+        optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {
             optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
             optionItems.push({ description: `${this.Document._freeformLOD ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._freeformLOD = !this.Document._freeformLOD, icon: "table" });
@@ -1295,7 +1294,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         setTimeout(() => {
                             SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
                                 docs.docs.forEach(d => LinkManager.Instance.addLink(d));
-                            })
+                            });
                         }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
                     }
                 }
@@ -1402,6 +1401,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 <CollectionFreeFormViewPannableContents
                     centeringShiftX={this.centeringShiftX}
                     centeringShiftY={this.centeringShiftY}
+                    presPaths={BoolCast(this.Document.presPathView)}
+                    progressivize={BoolCast(this.Document.editProgressivize)}
+                    zoomProgressivize={BoolCast(this.Document.editZoomProgressivize)}
                     transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                     viewDefDivClick={this.props.viewDefDivClick}
                     zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1485,11 +1487,51 @@ interface CollectionFreeFormViewPannableContentsProps {
     viewDefDivClick?: ScriptField;
     children: () => JSX.Element[];
     transition?: string;
+    presPaths?: boolean;
+    progressivize?: boolean;
+    zoomProgressivize?: boolean;
 }
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
+    @computed get zoomProgressivize() {
+        return PresBox.Instance && this.props.zoomProgressivize ? PresBox.Instance.zoomProgressivizeContainer : (null);
+    }
+
+    @computed get progressivize() {
+        return PresBox.Instance && this.props.progressivize ? PresBox.Instance.progressivizeChildDocs : (null);
+    }
+
+    @computed get presPaths() {
+        const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
+        return !(PresBox.Instance) ? (null) : (<>
+            {!this.props.presPaths ? (null) : <><div>{PresBox.Instance.order}</div>
+                <svg className={presPaths}>
+                    <defs>
+                        <marker id="arrow" markerWidth="3" overflow="visible" markerHeight="3" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
+                        </marker>
+                        <marker id="square" markerWidth="3" markerHeight="3" overflow="visible"
+                            refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                            <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#69a6db" />
+                        </marker>
+                        <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
+                            orient="auto" overflow="visible">
+                            <rect x="1" y="1" width="5" height="5" fill="#69a6db" />
+                        </marker>
+
+                        <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="7"
+                            orient="auto" overflow="visible">
+                            <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
+                        </marker>
+                    </defs>;
+                    {PresBox.Instance.paths}
+                </svg></>}
+        </>);
+    }
+
     render() {
+        // trace();
         const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : "-none");
         const cenx = this.props.centeringShiftX();
         const ceny = this.props.centeringShiftY();
@@ -1502,6 +1544,9 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                 transition: this.props.transition
             }}>
             {this.props.children()}
+            {this.presPaths}
+            {this.progressivize}
+            {this.zoomProgressivize}
         </div>;
     }
 }

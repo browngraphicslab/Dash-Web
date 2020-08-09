@@ -1,13 +1,13 @@
 @import "../views/globalCssVariables";
 
 .settings-interface {
-    background-color: whitesmoke !important;
+    //background-color: whitesmoke !important;
     color: grey;
     width: 450px;
     height: 300px;
 
     button {
-        background: $lighter-alt-accent;
+        background: #315a96;
         outline: none;
         border-radius: 5px;
         border: 0px;
@@ -22,20 +22,193 @@
     }
 }
 
+.settings-title {
+    font-size: 25px;
+    font-weight: bold;
+    padding-right: 10px;
+    color: black;
+}
+
+.settings-username {
+    font-size: 14px;
+    padding-right: 15px;
+    color: black;
+    margin-top: 10px;
+}
+
+.settings-section {
+    display: flex;
+    border-bottom: 1px solid grey;
+    padding-bottom: 8px;
+    padding-top: 6px;
+
+    .settings-section-title {
+        font-size: 16;
+        font-weight: bold;
+        text-align: left;
+        color: black;
+        width: 80;
+        margin-right: 50px;
+    }
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+
+.password-content {
+    display: flex;
+
+    .password-content-inputs {
+        width: 100;
+
+        .password-inputs {
+            border: none;
+            margin-bottom: 8px;
+            width: 180;
+            color: black;
+            border-radius: 5px;
+        }
+    }
+
+    .password-content-buttons {
+        margin-left: 84px;
+        width: 100;
+
+        .password-submit {
+            margin-left: 85px;
+        }
+
+        .password-forgot {
+            margin-left: 65px;
+            margin-top: -20px;
+            white-space: nowrap;
+        }
+    }
+}
+
+.accounts-content {
+    display: flex;
+}
+
+.modes-content {
+    display: flex;
+
+    .modes-select {
+        width: 170px;
+        margin-right: 65px;
+        color: black;
+        border-radius: 5px;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
+    .modes-playground {
+        display: flex;
+
+        .playground-check {
+            margin-right: 5px;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+
+        .playground-text {
+            color: black;
+        }
+    }
+}
+
+.colorFlyout {
+    margin-top: 2px;
+    margin-right: 25px;
+
+    &:hover {
+        cursor: pointer;
+    }
+
+    .colorFlyout-button {
+        width: 20px;
+        height: 20px;
+        border: 0.5px solid black;
+        border-radius: 5px;
+    }
+}
+
+.preferences-content {
+    display: flex;
+    margin-top: 4px;
+
+    .preferences-color {
+        display: flex;
+
+        .preferences-color-text {
+            color: black;
+            font-size: 11;
+            margin-top: 4;
+            margin-right: 4;
+        }
+    }
+
+    .preferences-font {
+        display: flex;
+
+        .preferences-font-text {
+            color: black;
+            font-size: 11;
+            margin-top: 4;
+            margin-right: 4;
+        }
+
+        .font-select {
+            width: 100px;
+            color: black;
+            font-size: 9;
+            margin-right: 6;
+            border-radius: 5px;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+
+        .size-select {
+            width: 60px;
+            color: black;
+            font-size: 9;
+            border-radius: 5px;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+}
+
 .settings-interface {
     display: flex;
     flex-direction: column;
 
     button {
-        width: 100%;
+        width: auto;
         align-self: center;
-        background: $darker-alt-accent;
-        margin-top: 4px;
+        background: #252b33;
+        margin-right: 15px;
+
+        //margin-top: 4px;
+
+        &:hover {
+            background: $main-accent;
+        }
     }
 
-    .delete-button {
-        background: rgb(227, 86, 86);
-    }
+    // .delete-button {
+    //     background: rgb(227, 86, 86);
+    // }
 
     .close-button {
         position: absolute;
@@ -44,57 +217,35 @@
         cursor: pointer;
     }
 
-    .settings-heading {
-        letter-spacing: .5em;
+    .settings-content {
+        background: #e4e4e4;
+        border-radius: 6px;
+        padding: 10px;
+        width: 560px;
+    }
+
+    .settings-top {
+        display: flex;
+        margin-bottom: 10px;
     }
 
 
-    .settings-body {
-        display: flex;
-        justify-content: space-between;
-        margin-top: -10;
+    .error-text {
+        color: #C40233;
+        width: 300;
+        margin-left: -20;
+        font-size: 10;
+        margin-bottom: 4;
+        margin-top: -3;
+    }
 
-        .settings-type {
-            display: flex;
-            flex-direction: column;
-            flex-basis: 45%;
-
-        }
-
-        .settings-content {
-            padding-left: 1em;
-            padding-right: 1em;
-            display: flex;
-            flex-direction: column;
-            flex-basis: 70%;
-            justify-content: space-around;
-            text-align: left;
-
-            ::placeholder {
-                color: $intermediate-color;
-            }
-
-            input {
-                border-radius: 5px;
-                border: none;
-                padding: 4px;
-                min-width: 100%;
-                margin: 2px 0;
-            }
-
-            .error-text {
-                color: #C40233;
-            }
-
-            .success-text {
-                color: #009F6B;
-            }
-
-            p {
-                padding: 0 0 .1em .2em;
-            }
-
-        }
+    .success-text {
+        width: 300;
+        margin-left: -20;
+        font-size: 10;
+        margin-bottom: 4;
+        margin-top: -3;
+        color: #009F6B;
     }
 
     .focus-span {
@@ -102,11 +253,12 @@
     }
 
     h1 {
-        color: $dark-color;
+        color: #121721;
         text-transform: uppercase;
         letter-spacing: 2px;
-        font-size: 120%;
+        font-size: 19;
         margin-top: 0;
+        font-weight: bold;
     }
 
     .container {
@@ -133,8 +285,6 @@
             color: black;
         }
 
-
-
     }
 }
 
@@ -151,7 +301,7 @@
     .settings-interface button {
         width: 100%;
         font-size: 30px;
-        background: #b2cef8;
+        background: #315a96;
     }
 
     .settings-interface .settings-heading {

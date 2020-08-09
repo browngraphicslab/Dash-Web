@@ -12,12 +12,90 @@
         width: 100%;
         height: 100%;
         position: absolute;
+
         .miniThumb {
             background: #25252525;
             position: absolute;
         }
     }
 }
+
+.miniPres:hover {
+    opacity: 1;
+}
+
+.miniPres {
+    position: absolute;
+    overflow: hidden;
+    right: 10;
+    top: 10;
+    opacity: 0.1;
+    transition: all 0.4s;
+    /* border: solid 1px; */
+    color: white;
+    /* box-shadow: black 0.4vw 0.4vw 0.8vw; */
+    
+    .miniPresOverlay {
+        display: grid;
+        grid-template-columns: auto auto auto auto auto auto auto auto;
+        grid-template-rows: 100%;
+        height: 100%;
+        justify-items: center;
+        align-items: center;
+
+        .miniPres-button-text {
+            display: flex;
+            height: 20;
+            font-weight: 400;
+            min-width: 100%;
+            border-radius: 5px;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-button-frame {
+            justify-self: center;
+            align-self: center;
+            align-items: center;
+            display: grid;
+            grid-template-columns: auto auto auto;
+            justify-content: space-around;
+            font-size: 11;
+            margin-left: 7;
+            width: 30;
+            height: 85%;
+            background-color: rgba(91, 157, 221, 0.4);
+            border-radius: 5px;
+        }
+
+        .miniPres-divider {
+            width: 0.5px;
+            height: 80%;
+            border-right: solid 2px #5a5a5a;
+        }
+
+        .miniPres-button {
+            display: flex;
+            height: 20;
+            min-width: 20;
+            border-radius: 100%;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .miniPres-button:hover {
+            background-color: #5a5a5a;
+        }
+
+        .miniPres-button-text:hover {
+            background-color: #5a5a5a;
+        }
+    }
+}
+
+
 .lm_title {
     margin-top: 3px;
     border-radius: 5px;
@@ -27,6 +105,7 @@
     transform: translate(0px, -3px);
     cursor: grab;
 }
+
 .lm_title.focus-visible {
     cursor: text;
 }
@@ -34,23 +113,39 @@
 .lm_title_wrap {
     overflow: hidden;
     height: 19px;
-    margin-top: -3px;
-    display:inline-block;
+    margin-top: -2px;
+    display: inline-block;
 }
+
 .lm_active .lm_title {
     border: solid 1px lightgray;
 }
+
 .lm_header .lm_tab .lm_close_tab {
     position: absolute;
     text-align: center;
 }
 
 .lm_header .lm_tab {
-    padding-right : 20px;
+    padding-right: 20px;
+    margin-top: -1px;
+    border-bottom: 1px black;
+    .collectionDockingView-gear {
+        display: none;
+    }
+}
+
+.lm_header .lm_tab.lm_active {
+    padding-right: 20px;
+    margin-top: 1px;
+    border-bottom: unset;
+    .collectionDockingView-gear {
+        display: inline-block;
+    }
 }
 
 .lm_popout {
-    display:none;
+    display: none;
 }
 
 .messageCounter {
@@ -73,14 +168,15 @@
     position: absolute;
     top: 0;
     left: 0;
+
     // overflow: hidden;  // bcz: menus don't show up when this is on (e.g., the parentSelectorMenu)
     .collectionDockingView-gear {
         padding-left: 5px;
         height: 15px;
         width: 18px;
-        display: inline-block;
         margin: auto;
     }
+
     .collectionDockingView-dragAsDocument {
         touch-action: none;
         position: absolute;

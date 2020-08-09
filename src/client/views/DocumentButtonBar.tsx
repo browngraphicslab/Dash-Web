@@ -198,7 +198,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
-                style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
+                style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}
                 onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
@@ -276,12 +276,12 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
-                <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
+                <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={true} />
             </div>
-            {DocumentLinksButton.StartLink ? <div className="documentButtonBar-button">
-                <DocumentLinksButton View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
-            </div> : null}
-            <div className="documentButtonBar-button">
+            {DocumentLinksButton.StartLink || !Doc.UserDoc()["documentLinksButton-hideEnd"] ? <div className="documentButtonBar-button">
+                <DocumentLinksButton links={this.view0.allLinks} View={this.view0} AlwaysOn={true} InMenu={true} StartLink={false} />
+            </div> : (null)}
+            {/* <div className="documentButtonBar-button">
                 {this.templateButton}
             </div>
             <div className="documentButtonBar-button">
@@ -289,16 +289,16 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div>
             <div className="documentButtonBar-button">
                 {this.contextButton}
-            </div>
+            </div> */}
             <div className="documentButtonBar-button">
                 {this.pinButton}
             </div>
-            <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
+            {/* <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPull ? "none" : "" }}>
                 {this.considerGoogleDocsPull}
-            </div>
+            </div> */}
         </div>;
     }
 }

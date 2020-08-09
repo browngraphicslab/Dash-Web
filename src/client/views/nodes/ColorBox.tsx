@@ -61,6 +61,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
             <SketchPicker onChange={ColorBox.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
                 color={StrCast(ActiveInkPen()?.backgroundColor,
                     StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
+
             <div style={{ display: "grid", gridTemplateColumns: "20% 80%", paddingTop: "10px" }}>
                 <div> {ActiveInkWidth() ?? 2}</div>
                 <input type="range" defaultValue={ActiveInkWidth() ?? 2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

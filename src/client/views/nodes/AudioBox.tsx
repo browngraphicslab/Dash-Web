@@ -23,9 +23,8 @@ import { Networking } from "../../Network";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 import { List } from "../../../fields/List";
 import { Scripting } from "../../util/Scripting";
-import Waveform from "react-audio-waveform"
-import axios from "axios"
-import { DragManager } from "../../util/DragManager";
+import Waveform from "react-audio-waveform";
+import axios from "axios";
 const _global = (window /* browser */ || global /* node */) as any;
 
 declare class MediaRecorder {
@@ -76,13 +75,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @observable _currX: number = 0;
     @observable _position: number = 0;
     @observable _buckets: Array<number> = new Array<number>();
-    @observable _waveHeight = this.layoutDoc._height;
+    @observable _waveHeight: number | undefined = this.layoutDoc._height;
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
-
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
     async slideTemplate() { return (await Cast((await Cast(Doc.UserDoc().slidesBtn, Doc) as Doc).dragFactory, Doc) as Doc); }
 
@@ -498,7 +496,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
         const rect = await (e.target as any).getBoundingClientRect();
 
-        let newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+        const newTime = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
 
         this.changeMarker(this._currMarker, newTime);
     }
@@ -506,11 +504,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // updates the marker with the new time
     @action
     changeMarker = (m: any, time: any) => {
-        for (let i = 0; i < this.dataDoc[this.annotationKey].length; i++) {
-            if (this.isSame(this.dataDoc[this.annotationKey][i], m)) {
-                this._left ? this.dataDoc[this.annotationKey][i].audioStart = time : this.dataDoc[this.annotationKey][i].audioEnd = time;
+        DocListCast(this.dataDoc[this.annotationKey]).forEach((marker: Doc) => {
+            if (this.isSame(marker, m)) {
+                this._left ? marker.audioStart = time : marker.audioEnd = time;
             }
-        }
+        });
     }
 
     // checks if the two markers are the same with start and end time
@@ -526,7 +524,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         const increment = NumCast(this.layoutDoc.duration) / 500;
         this._count = [];
         for (let i = 0; i < 500; i++) {
-            this._count.push([increment * i, 0])
+            this._count.push([increment * i, 0]);
         }
 
     }
@@ -537,7 +535,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             this._first = false;
             this.markers();
         }
-        let max = 0
+        let max = 0;
 
         for (let i = 0; i < 500; i++) {
             if (this._count[i][0] >= m.audioStart && this._count[i][0] <= m.audioEnd) {
@@ -559,7 +557,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         if (this.dataDoc.markerAmount < max) {
             this.dataDoc.markerAmount = max;
         }
-        return max - 1
+        return max - 1;
     }
 
     // returns the audio waveform
@@ -568,7 +566,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             color={"darkblue"}
             height={this._waveHeight}
             barWidth={0.1}
-            // pos={this.layoutDoc.currentTimecode}
+            // pos={this.layoutDoc.currentTimecode} need to correctly resize parent to make this work (not very necessary for function)
             pos={this.dataDoc.duration}
             duration={this.dataDoc.duration}
             peaks={this._buckets.length === 100 ? this._buckets : undefined}
@@ -578,27 +576,27 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // decodes the audio file into peaks for generating the waveform
     @action
     buckets = async () => {
-        let audioCtx = new (window.AudioContext)();
+        const audioCtx = new (window.AudioContext)();
 
         axios({ url: this.path, responseType: "arraybuffer" })
             .then(response => {
-                let audioData = response.data;
+                const audioData = response.data;
 
                 audioCtx.decodeAudioData(audioData, action(buffer => {
-                    let decodedAudioData = buffer.getChannelData(0);
+                    const decodedAudioData = buffer.getChannelData(0);
                     const NUMBER_OF_BUCKETS = 100;
-                    let bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
+                    const bucketDataSize = Math.floor(decodedAudioData.length / NUMBER_OF_BUCKETS);
 
                     for (let i = 0; i < NUMBER_OF_BUCKETS; i++) {
-                        let startingPoint = i * bucketDataSize;
-                        let endingPoint = i * bucketDataSize + bucketDataSize;
+                        const startingPoint = i * bucketDataSize;
+                        const endingPoint = i * bucketDataSize + bucketDataSize;
                         let max = 0;
                         for (let j = startingPoint; j < endingPoint; j++) {
                             if (decodedAudioData[j] > max) {
                                 max = decodedAudioData[j];
                             }
                         }
-                        let size = Math.abs(max);
+                        const size = Math.abs(max);
                         this._buckets.push(size / 2);
                     }
 
@@ -636,29 +634,29 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 canvas2.style.height = `${height}`;
                 canvas2.style.width = `${width}`;
 
-                let ratio1 = oldWidth / window.innerWidth;
-                let ratio2 = oldHeight / window.innerHeight;
-                let context = canvas2.getContext('2d');
+                const ratio1 = oldWidth / window.innerWidth;
+                const ratio2 = oldHeight / window.innerHeight;
+                const context = canvas2.getContext('2d');
                 if (context) {
-                    context.scale(ratio1, ratio2)
+                    context.scale(ratio1, ratio2);
                 }
             }
 
-            let canvas1 = document.getElementsByTagName("canvas")[1];
+            const canvas1 = document.getElementsByTagName("canvas")[1];
             if (canvas1) {
-                let oldWidth = canvas1.width;
-                let oldHeight = canvas1.height;
+                const oldWidth = canvas1.width;
+                const oldHeight = canvas1.height;
                 canvas1.style.height = `${height}`;
                 canvas1.style.width = `${width}`;
 
-                let ratio1 = oldWidth / window.innerWidth;
-                let ratio2 = oldHeight / window.innerHeight;
-                let context = canvas1.getContext('2d');
+                const ratio1 = oldWidth / window.innerWidth;
+                const ratio2 = oldHeight / window.innerHeight;
+                const context = canvas1.getContext('2d');
                 if (context) {
-                    context.scale(ratio1, ratio2)
+                    context.scale(ratio1, ratio2);
                 }
 
-                let parent = canvas1.parentElement;
+                const parent = canvas1.parentElement;
                 if (parent) {
                     parent.style.width = `${width}`;
                     parent.style.height = `${height}`;
@@ -737,7 +735,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 (!m.isLabel) ?
                                     (this.layoutDoc.hideMarkers) ? (null) :
                                         rect =
-                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"} title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`} key={i} id={"audiobox-marker-container1"} style={{ left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%` }} onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation() }} >
+                                        <div key={i} id={"audiobox-marker-container1"} className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container1"}
+                                            title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`}
+                                            style={{
+                                                left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`,
+                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`,
+                                                top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`
+                                            }}
+                                            onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
                                             <DocumentView {...this.props}
                                                 Document={m}
