@@ -156,10 +156,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 }
             });
         this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
-        setTimeout(() => {
-            const rect = this._timeline?.getBoundingClientRect();
-            rect && this.update(rect.width, rect.height);
-        }, 1000);
     }
 
     // for updating the timecode
@@ -376,7 +372,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return <div className="audiobox-container" style={{
             left: `${NumCast(this._markerStart) / this.audioDuration * 100}%`,
             width: `${Math.abs(this._markerStart - this._markerEnd) / this.audioDuration * 100}%`, height: "100%", top: "0%"
-        }}></div>
+        }}></div>;
     }
 
     // creates a new marker
@@ -386,7 +382,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
             title: ComputedField.MakeFunction(`formatToTime(self.audioStart) + "-" + formatToTime(self.audioEnd)`) as any, isLabel: false,
             useLinkSmallAnchor: true, hideLinkButton: true, audioStart, audioEnd, _showSidebar: false,
             _autoHeight: true, annotationOn: this.props.Document
-        })
+        });
         this.addMark(newMarker);
     }
 
@@ -515,55 +511,6 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         return this.buckets();
     }
 
-    // for updating the width and height of the waveform with timeline ref
-    timelineRef = (timeline: HTMLDivElement) => {
-        const observer = new _global.ResizeObserver(action((entries: any) => {
-            Array.from(entries).map(e => e as any).filter(e => e.contentRect.width).forEach(e => {
-                this.update(e.contentRect.width, e.contentRect.height);
-                this._position = e.contentRect.width;
-            })
-        }));
-        timeline && observer.observe(timeline);
-
-        this._timeline = timeline;
-    }
-
-    // update the width and height of the audio waveform
-    @action
-    update = (width: number, height: number) => {
-        const scaleCanvas = (canvas: HTMLCanvasElement) => {
-            let oldWidth = canvas.width;
-            let oldHeight = canvas.height;
-            canvas.style.height = `${height}`;
-            canvas.style.width = `${width}`;
-
-            const ratio1 = oldWidth / window.innerWidth;
-            const ratio2 = oldHeight / window.innerHeight;
-            const context = canvas.getContext('2d');
-            if (context) {
-                context.scale(ratio1, ratio2);
-            }
-        }
-        if (height) {
-            const height = 0.8 * NumCast(this.layoutDoc._height);
-            let canvas2 = this._timeline?.getElementsByTagName("canvas")[0];
-            if (canvas2) {
-                scaleCanvas(canvas2);
-            }
-
-            const canvas1 = this._timeline?.getElementsByTagName("canvas")[1];
-            if (canvas1) {
-                scaleCanvas(canvas1);
-
-                const parent = canvas1.parentElement;
-                if (parent) {
-                    parent.style.width = `${width}`;
-                    parent.style.height = `${height}`;
-                }
-            }
-        }
-    }
-
     rangeScript = () => AudioBox.RangeScript;
     labelScript = () => AudioBox.LabelScript;
 
@@ -585,8 +532,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 onClick={this.layoutDoc.playOnClick ? script : undefined}
                 ignoreAutoHeight={false}
                 bringToFront={emptyFunction}
-                scriptContext={this} />
-        }
+                scriptContext={this} />;
+        };
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}
             style={{ pointerEvents: !interactive ? "none" : undefined }}>
             {!this.path ?
@@ -613,7 +560,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                     <div className="audiobox-dictation"></div>
                     <div className="audiobox-player" >
                         <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                        <div className="audiobox-timeline" ref={this.timelineRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }}
+                        <div className="audiobox-timeline" onClick={e => { e.stopPropagation(); e.preventDefault(); }}
                             onPointerDown={e => {
                                 e.stopPropagation();
                                 e.preventDefault();
