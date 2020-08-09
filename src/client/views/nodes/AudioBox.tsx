@@ -7,7 +7,7 @@ import { AudioField, nullAudio } from "../../../fields/URLField";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../fields/Schema";
 import { documentSchema } from "../../../fields/documentSchemas";
-import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero, formatTime } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero, formatTime, setupMoveUpEvents } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action, trace, toJS } from "mobx";
 import { DateField } from "../../../fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -25,6 +25,7 @@ import { List } from "../../../fields/List";
 import { Scripting } from "../../util/Scripting";
 import Waveform from "react-audio-waveform"
 import axios from "axios"
+import { DragManager } from "../../util/DragManager";
 const _global = (window /* browser */ || global /* node */) as any;
 
 declare class MediaRecorder {
@@ -66,17 +67,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _count: Array<any> = [];
     _timeline: Opt<HTMLDivElement>;
     _duration = 0;
-    @observable _visible: boolean = false;
     _containerX: number = 0;
-    _containerY: number = 0;
-    @observable _currX: number = 0;
-    @observable _currY: number = 0;
     _invertedX: boolean = false;
-    _invertedY: boolean = false;
-
     private _isPointerDown = false;
     private _currMarker: any;
 
+    @observable _visible: boolean = false;
+    @observable _currX: number = 0;
     @observable _position: number = 0;
     @observable _buckets: Array<number> = new Array<number>();
     @observable _waveHeight = this.layoutDoc._height;
@@ -373,14 +370,11 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
         const rect = (e.target as any).getBoundingClientRect();
         this._containerX = this._currX = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-        this._containerY = this._currY = (e.clientY - rect.y) / rect.height;
-        console.log(rect.height);
 
         document.removeEventListener("pointermove", this.onPointerMoveTimeline);
         document.addEventListener("pointermove", this.onPointerMoveTimeline);
         document.removeEventListener("pointerup", this.onPointerUpTimeline);
         document.addEventListener("pointerup", this.onPointerUpTimeline);
-
     }
 
     // ending the drag event for marker resizing
@@ -391,12 +385,13 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._isPointerDown = false;
 
         const rect = (e.target as any).getBoundingClientRect();
-        const time = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration)
-        this._visible ? this.end(time) : this._start = 0;
+        const time = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+
+        // if drag is greater than 15px (didn't use setupMoveEvent)
+        (this._visible && Math.abs(this._currX - this._containerX) * rect.width / NumCast(this.dataDoc.duration) > 15) ? this.end(time) : this._start = 0;
         this._visible = false;
 
         this._containerX = 0;
-        this._containerY = 0;
         this._timeline?.releasePointerCapture(e.pointerId);
 
         document.removeEventListener("pointermove", this.onPointerMoveTimeline);
@@ -414,19 +409,15 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
         this._visible = true;
         const rect = (e.target as any).getBoundingClientRect();
-        console.log(rect.height);
 
         this._currX = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-        this._currY = (e.clientY - rect.y) / rect.height;
 
         (this._currX - this._containerX < 0) ? this._invertedX = true : this._invertedX = false;
-
-        this._currY - this._containerY < 0 ? this._invertedY = true : this._invertedY = false;
-        console.log(this._invertedY);
     }
 
+    // returns the selection container 
     @computed get container() {
-        return <div className="audiobox-container" style={{ left: !this._invertedX ? `${NumCast(this._containerX) / NumCast(this.dataDoc.duration, 1) * 100}%` : `${this._currX / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${Math.abs(this._containerX - this._currX) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${Math.abs(this._currY - this._containerY) * 100}%`, top: !this._invertedY ? `${this._containerY * 100}%` : `${this._currY * 100}%` }}></div>
+        return <div className="audiobox-container" style={{ left: !this._invertedX ? `${NumCast(this._containerX) / NumCast(this.dataDoc.duration, 1) * 100}%` : `${this._currX / NumCast(this.dataDoc.duration, 1) * 100}%`, width: `${Math.abs(this._containerX - this._currX) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: "100%", top: "0%" }}></div>
     }
 
     // creates a new label 
