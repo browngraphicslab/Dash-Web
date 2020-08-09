@@ -11,7 +11,6 @@ import { CurrentUserUtils } from "./CurrentUserUtils";
 import { Utils, addStyleSheet, addStyleSheetRule, removeStyleSheetRule } from "../../Utils";
 import { Doc } from "../../fields/Doc";
 import GroupManager from "./GroupManager";
-import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 import { DocServer } from "../DocServer";
 import { BoolCast, StrCast, NumCast } from "../../fields/Types";
@@ -44,7 +43,6 @@ export default class SettingsManager extends React.Component<{}> {
     public open = action(() => (this.isOpen = true) && SelectionManager.DeselectAll());
 
     private googleAuthorize = action(() => GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true));
-    private hypothesisAuthorize = action(() => HypothesisAuthenticationManager.Instance.fetchAccessToken(true));
     private changePassword = async () => {
         if (!(this.curr_password && this.new_password && this.new_confirm)) {
             runInAction(() => this.passwordResultText = "Error: Hey, we're missing some fields!");
@@ -144,7 +142,6 @@ export default class SettingsManager extends React.Component<{}> {
     @computed get accountsContent() {
         return <div className="accounts-content">
             <button onClick={this.googleAuthorize} value="data">Link to Google</button>
-            <button onClick={this.hypothesisAuthorize} value="data">Link to Hypothes.is</button>
             <button onClick={GroupManager.Instance?.open}>Manage groups</button>
         </div>;
     }
