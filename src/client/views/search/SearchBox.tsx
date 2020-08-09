@@ -313,6 +313,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
+                    d ? console.log(Cast(d.context, Doc)) : null;
                     if (d.data !== undefined) {
                         newarray.push(...DocListCast(d.data));
                     }

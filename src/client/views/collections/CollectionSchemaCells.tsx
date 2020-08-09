@@ -33,6 +33,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DateField } from "../../../fields/DateField";
 import { RichTextField } from "../../../fields/RichTextField";
+import { DocumentManager } from "../../util/DocumentManager";
 const path = require('path');
 
 library.add(faExpand);
@@ -216,12 +217,20 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const doc = FieldValue(Cast(field, Doc));
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
-        const onItemDown = (e: React.PointerEvent) => {
-            //fieldIsDoc && 
-            SetupDrag(this._focusRef,
-                () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
-                this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+        const onItemDown = async (e: React.PointerEvent) => {
+            //DocumentManager.Instance.FollowLink(undefined, this.props.rowProps.original, doc => this.props.addDocTab(doc, "onRight"), false);
+            let doc = Doc.GetProto(this.props.rowProps.original);
+            const targetContext = doc.links;
+            //const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+            console.log(targetContext);
+            DocumentManager.Instance.jumpToDocument(this.props.rowProps.original, false, undefined, undefined);
+
+            //target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
+            //fieldIsDoc &&     
+            // SetupDrag(this._focusRef,
+            //     () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+            //     this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
+            //     this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
         const onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SnappingManager.GetIsDragging() && (type === "document" || type === undefined)) {
@@ -307,7 +316,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
                 ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
-                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
+                    <div className="collectionSchemaView-cellContents"
+                        ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         {!search ?
                             <EditableView
                                 positions={positions.length > 0 ? positions : undefined}
