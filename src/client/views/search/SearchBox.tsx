@@ -750,7 +750,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @observable filter = false;
 
-    //Make id layour document
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
@@ -759,19 +758,20 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         cols > 5 ? length = 1076 : length = cols * 205 + 51;
         let height = 0;
         const rows = this.children;
-        rows > 8 ? height = 31 + 31 * 8 : height = 31 * rows + 31;
+        rows > 6 ? height = 31 + 31 * 6 : height = 31 * rows + 31;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div className="searchBox-bar">
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
                     <div style={{ display: "flex", alignItems: "center" }}>
-                        <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
-                            style={{ color: "black", padding: 1, left: 35, position: "relative" }} />
-
+                        <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>} ><div>
+                            <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
+                                style={{ cursor: "hand", color: "black", padding: 1, left: 35, position: "relative" }} />
+                        </div></Tooltip>
                         <div style={{ cursor: "default", left: 250, position: "relative", }}>
                             <Tooltip title={<div className="dash-tooltip" >only display documents matching search</div>} ><div>
                                 <FontAwesomeIcon icon={"filter"} size="lg"
-                                    style={{ padding: 1, backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
+                                    style={{ cursor: "hand", padding: 1, backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
                                     onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
                                     onClick={action(() => {
                                         ///DONT Change without emailing andy r first.

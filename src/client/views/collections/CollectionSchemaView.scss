@@ -43,6 +43,49 @@
     // }
 }
 
+.collectionSchemaView-searchContainer {
+    border-width: $COLLECTION_BORDER_WIDTH;
+    border-color: $intermediate-color;
+    border-style: solid;
+    border-radius: $border-radius;
+    box-sizing: border-box;
+    position: relative;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin-top: 0;
+    transition: top 0.5s;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    touch-action: none;
+
+    div {
+        touch-action: none;
+    }
+
+
+    .collectionSchemaView-tableContainer {
+        width: 100%;
+        height: 100%;
+    }
+
+    .collectionSchemaView-dividerDragger {
+        position: relative;
+        height: 100%;
+        width: 20px;
+        z-index: 20;
+        right: 0;
+        top: 0;
+        background: gray;
+        cursor: col-resize;
+    }
+
+    // .documentView-node:first-child {
+    //     background: $light-color;
+    // }
+}
+
 .ReactTable {
     width: 100%;
     background: white;
@@ -165,7 +208,7 @@
 
 
 .collectionSchema-header-menu {
-    height: 100%;
+    height: auto;
     z-index: 100;
     position: absolute;
     background:white;

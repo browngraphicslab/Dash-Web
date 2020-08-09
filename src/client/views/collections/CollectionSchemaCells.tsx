@@ -159,6 +159,29 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     //     e.stopPropagation();
     // }
 
+    returnHighlights(bing: (() => string), positions?: number[]) {
+        const results = [];
+        const contents = bing();
+
+        if (positions !== undefined) {
+            StrCast(this.props.Document._searchString)
+            const length = StrCast(this.props.Document._searchString).length;
+
+            results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(0, positions[0]) : "enter value"}</span>);
+            positions.forEach((num, cur) => {
+                results.push(<span style={{ backgroundColor: "#FFFF00", color: contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : "enter value"}</span>);
+                let end = 0;
+                cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
+                results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : "enter value"}</span>);
+            }
+            );
+            return results;
+        }
+        else {
+            return <span style={{ color: contents ? "black" : "grey" }}>{contents ? contents?.valueOf() : "enter value"}</span>;
+        }
+    }
+
     renderCellWithType(type: string | undefined) {
         const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -274,24 +297,95 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 positions.pop();
             }
         }
+        let search = false;
+        if (this.props.Document._searchDoc !== undefined) {
+            search = true;
+        }
+
+
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
                 ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
-                        <EditableView
-                            positions={positions.length > 0 ? positions : undefined}
-                            search={StrCast(this.props.Document._searchString) ? StrCast(this.props.Document._searchString) : undefined}
-                            editing={this._isEditing}
-                            isEditingCallback={this.isEditingCallback}
-                            display={"inline"}
-                            contents={contents ? contents : type === "number" ? "0" : "undefined"}
-                            highlight={positions.length > 0 ? true : undefined}
-                            //contents={StrCast(contents)}
-                            height={"auto"}
-                            maxHeight={Number(MAX_ROW_HEIGHT)}
-                            placeholder={"enter value"}
-                            bing={() => {
+                        {!search ?
+                            <EditableView
+                                positions={positions.length > 0 ? positions : undefined}
+                                search={StrCast(this.props.Document._searchString) ? StrCast(this.props.Document._searchString) : undefined}
+                                editing={this._isEditing}
+                                isEditingCallback={this.isEditingCallback}
+                                display={"inline"}
+                                contents={contents ? contents : type === "number" ? "0" : "undefined"}
+                                highlight={positions.length > 0 ? true : undefined}
+                                //contents={StrCast(contents)}
+                                height={"auto"}
+                                maxHeight={Number(MAX_ROW_HEIGHT)}
+                                placeholder={"enter value"}
+                                bing={() => {
+                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                    if (cfield !== undefined) {
+                                        // if (typeof(cfield)===RichTextField)
+                                        const a = cfield as RichTextField;
+                                        if (a.Text !== undefined) {
+                                            return (a.Text);
+                                        }
+                                        else if (StrCast(cfield)) {
+                                            return StrCast(cfield);
+                                        }
+                                        else {
+                                            return String(NumCast(cfield));
+                                        }
+                                    }
+                                }}
+                                GetValue={() => {
+                                    if (type === "number" && (contents === 0 || contents === "0")) {
+                                        return "0";
+                                    } else {
+                                        const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                        if (type === "number") {
+                                            return StrCast(cfield);
+                                        }
+                                        const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
+                                        const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
+                                        const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
+                                            Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
+                                        return val;
+
+                                    }
+
+                                }}
+                                SetValue={action((value: string) => {
+                                    let retVal = false;
+
+                                    if (value.startsWith(":=")) {
+                                        retVal = this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                    } else {
+                                        const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                        if (script.compiled) {
+                                            retVal = this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
+                                        }
+
+                                    }
+                                    if (retVal) {
+                                        this._isEditing = false; // need to set this here. otherwise, the assignment of the field will invalidate & cause render() to be called with the wrong value for 'editing'
+                                        this.props.setIsEditing(false);
+                                    }
+                                    return retVal;
+
+                                    //return true;
+                                })}
+                                OnFillDown={async (value: string) => {
+                                    const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                    if (script.compiled) {
+                                        DocListCast(this.props.Document[this.props.fieldKey]).
+                                            forEach((doc, i) => value.startsWith(":=") ?
+                                                this.props.setComputed(value.substring(2), doc, this.props.rowProps.column.id!, i, this.props.col) :
+                                                this.applyToDoc(doc, i, this.props.col, script.run));
+                                    }
+                                }}
+                            />
+                            :
+                            this.returnHighlights(() => {
                                 const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                 if (cfield !== undefined) {
                                     // if (typeof(cfield)===RichTextField)
@@ -306,56 +400,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                         return String(NumCast(cfield));
                                     }
                                 }
-                            }}
-                            GetValue={() => {
-                                if (type === "number" && (contents === 0 || contents === "0")) {
-                                    return "0";
-                                } else {
-                                    const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                    if (type === "number") {
-                                        return StrCast(cfield);
-                                    }
-                                    const cscript = cfield instanceof ComputedField ? cfield.script.originalScript : undefined;
-                                    const cfinalScript = cscript?.split("return")[cscript.split("return").length - 1];
-                                    const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
-                                        Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
-                                    return val;
-
+                                else {
+                                    return "";
                                 }
-
-                            }}
-                            SetValue={action((value: string) => {
-                                let retVal = false;
-
-                                if (value.startsWith(":=")) {
-                                    retVal = this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
-                                } else {
-                                    const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                    if (script.compiled) {
-                                        retVal = this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
-                                    }
-
-                                }
-                                if (retVal) {
-                                    this._isEditing = false; // need to set this here. otherwise, the assignment of the field will invalidate & cause render() to be called with the wrong value for 'editing'
-                                    this.props.setIsEditing(false);
-                                }
-                                return retVal;
-
-                                //return true;
-                            })}
-                            OnFillDown={async (value: string) => {
-                                const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
-                                if (script.compiled) {
-                                    DocListCast(this.props.Document[this.props.fieldKey]).
-                                        forEach((doc, i) => value.startsWith(":=") ?
-                                            this.props.setComputed(value.substring(2), doc, this.props.rowProps.column.id!, i, this.props.col) :
-                                            this.applyToDoc(doc, i, this.props.col, script.run));
-                                }
-                            }}
-                        />
-
-
+                            }, positions)
+                        }
                     </div >
                     {/* {fieldIsDoc ? docExpander : null} */}
                 </div>

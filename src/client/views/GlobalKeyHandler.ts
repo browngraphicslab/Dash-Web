@@ -331,6 +331,8 @@ export default class KeyManager {
                             undoBatch(() => {
                                 targetDataDoc[fieldKey] = new List<Doc>([...docList, ...added]);
                                 targetDataDoc[fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                                const lastModified = "lastModified";
+                                targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                             })();
                         }
                     }

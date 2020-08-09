@@ -330,7 +330,9 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
-            const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+            let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+            let blockedkeys = ["proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+            keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
             if (keyOptions.length) {
                 this.onSelect(keyOptions[0]);
             } else if (this._searchTerm !== "" && this.props.canAddNew) {
@@ -375,9 +377,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         }
         const searchTerm = this._searchTerm.trim() === "New field" ? "" : this._searchTerm;
 
-        const keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+        let keyOptions = searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
         const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
+
+        let blockedkeys = ["proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
 
         const options = keyOptions.map(key => {
             return <div key={key} className="key-option" style={{
@@ -418,7 +423,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.defaultMenuHeight = 0;
             return <></>;
         }
-        const keyOptions: string[] = [];
+        let keyOptions: string[] = [];
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         this.props.docs?.forEach((doc) => {

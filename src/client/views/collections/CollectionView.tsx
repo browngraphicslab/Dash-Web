@@ -46,6 +46,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { ContextMenuProps } from '../ContextMenuItem';
+import { table } from 'console';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -182,6 +183,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     // targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
                     targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                    const lastModified = "lastModified";
+                    targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                 }
             }
         }

@@ -218,19 +218,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: col.color, padding: "2px",
                         display: "flex", cursor: "default", height: "100%",
                     }}>
-                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px" }} />
+                    <FontAwesomeIcon onClick={e => this.props.openHeader(col, e.clientX, e.clientY)} icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
                     {/* <div className="keys-dropdown"
                         style={{ display: "inline", zIndex: 1000 }}> */}
                     {keysDropdown}
                     {/* </div> */}
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit" }}>
+                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit", cursor: "hand" }}>
                         <FontAwesomeIcon icon={sortIcon} size="lg" />
                     </div>
-                    {/* <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
-                        style={{ float: "right", paddingRight: "6px", zIndex: 1, background: "inherit" }}>
-                        <FontAwesomeIcon icon={"compass"} size="sm" />
-                    </div> */}
                 </div>;
 
             return {
