@@ -181,6 +181,14 @@
                     z-index: -1000;
                     bottom: 0;
                     pointer-events: none;
+                    div {
+                        height: 100% !important;
+                        width: 100%  !important;
+                    }
+                    canvas { 
+                        height: 100% !important;
+                        width: 100%  !important;
+                    }
                 }
 
                 .audiobox-linker,
