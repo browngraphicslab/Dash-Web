@@ -739,8 +739,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                             title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`}
                                             style={{
                                                 left: `${NumCast(m.audioStart) / NumCast(this.dataDoc.duration, 1) * 100}%`,
-                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`,
-                                                top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`
+                                                top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`,
+                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / NumCast(this.dataDoc.duration, 1) * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
                                             }}
                                             onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
                                             <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
