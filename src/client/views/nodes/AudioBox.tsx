@@ -719,15 +719,15 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
                                     this.onPointerDownTimeline(e);
                                 }
-                                if (e.button === 0 && e.altKey) {
+                                if (e.button === 0 && e.shiftKey) {
                                     this.newMarker(Docs.Create.LabelDocument({ title: ComputedField.MakeFunction(`formatToTime(self.audioStart)`) as any, useLinkSmallAnchor: true, hideLinkButton: true, isLabel: true, audioStart: this._ele!.currentTime, _showSidebar: false, _autoHeight: true, annotationOn: this.props.Document }));
                                 }
 
-                                if (e.button === 0 && e.shiftKey) {
-                                    const rect = (e.target as any).getBoundingClientRect();
-                                    this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-                                    this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
-                                }
+                                // if (e.button === 0 && e.shiftKey) {
+                                //     const rect = (e.target as any).getBoundingClientRect();
+                                //     this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                //     this._hold ? this.end(this._ele!.currentTime) : this.start(this._ele!.currentTime);
+                                // }
                             }}>
                             <div className="waveform" id="waveform" style={{ height: `${100}%`, width: "100%", bottom: "0px", pointerEvents: "none" }}>
                                 {this.waveform}
