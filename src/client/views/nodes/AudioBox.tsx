@@ -62,6 +62,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     _dragging = false;
 
     _count: Array<any> = [];
+    _audioRef = React.createRef<HTMLDivElement>();
     _timeline: Opt<HTMLDivElement>;
     _duration = 0;
     _markerStart: number = 0;
@@ -71,12 +72,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     @observable _markerEnd: number = 0;
     @observable _position: number = 0;
     @observable _buckets: Array<number> = new Array<number>();
-    @observable _waveHeight: number | undefined = this.layoutDoc._height;
+    @observable _waveHeight: Opt<number> = this.layoutDoc._height;
     @observable private _paused: boolean = false;
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
-    public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
+    public static SetScrubTime = action((timeInMillisFrom1970: number) => { AudioBox._scrubTime = 0; AudioBox._scrubTime = timeInMillisFrom1970; });
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
     @computed get audioDuration() { return NumCast(this.dataDoc.duration); }
     async slideTemplate() { return (await Cast((await Cast(Doc.UserDoc().slidesBtn, Doc) as Doc).dragFactory, Doc) as Doc); }
@@ -155,6 +156,10 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 }
             });
         this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
+        setTimeout(() => {
+            const rect = this._timeline?.getBoundingClientRect();
+            rect && this.update(rect.width, rect.height);
+        }, 1000);
     }
 
     // for updating the timecode
@@ -541,12 +546,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         }
         if (height) {
             const height = 0.8 * NumCast(this.layoutDoc._height);
-            let canvas2 = document.getElementsByTagName("canvas")[0];
+            let canvas2 = this._timeline?.getElementsByTagName("canvas")[0];
             if (canvas2) {
                 scaleCanvas(canvas2);
             }
 
-            const canvas1 = document.getElementsByTagName("canvas")[1];
+            const canvas1 = this._timeline?.getElementsByTagName("canvas")[1];
             if (canvas1) {
                 scaleCanvas(canvas1);
 
@@ -582,7 +587,8 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 bringToFront={emptyFunction}
                 scriptContext={this} />
         }
-        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
+        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}
+            style={{ pointerEvents: !interactive ? "none" : undefined }}>
             {!this.path ?
                 <div className="audiobox-buttons">
                     <div className="audiobox-dictation" onClick={this.onFile}>
@@ -614,7 +620,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                                 if (e.button === 0 && !e.ctrlKey) {
                                     const rect = (e.target as any).getBoundingClientRect();
 
-                                    if (e.target as HTMLElement !== document.getElementById("current")) {
+                                    if (e.target !== this._audioRef.current) {
                                         const wasPaused = this.audioState === "paused";
                                         this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
                                         wasPaused && this.pause();
@@ -688,7 +694,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                             })}
                             {this._visible ? this.container : null}
 
-                            <div className="audiobox-current" id="current" onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / this.audioDuration * 100}%`, pointerEvents: "none" }} />
+                            <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / this.audioDuration * 100}%`, pointerEvents: "none" }} />
                             {this.audio}
                         </div>
                         <div className="current-time">
