@@ -164,15 +164,16 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
     }
 
-    public static setupZoom(doc: Doc, zoomProgressivize: boolean = false) {
+
+    public static setupZoom(doc: Doc, targDoc: Doc, zoomProgressivize: boolean = false) {
         const width = new List<number>();
         const height = new List<number>();
         const top = new List<number>();
         const left = new List<number>();
-        width.push(NumCast(doc.width));
-        height.push(NumCast(doc.height));
-        top.push(NumCast(doc.height) / -2);
-        left.push(NumCast(doc.width) / -2);
+        width.push(NumCast(targDoc._width));
+        height.push(NumCast(targDoc._height));
+        top.push(NumCast(targDoc._height) / -2);
+        left.push(NumCast(targDoc._width) / -2);
         doc["viewfinder-width-indexed"] = width;
         doc["viewfinder-height-indexed"] = height;
         doc["viewfinder-top-indexed"] = top;

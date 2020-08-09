@@ -1583,6 +1583,15 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
+    // @action
+    // pan = (e: PointerEvent | React.Touch | { moveX: number, moveY: number }): void => {
+    //     const scale = this.props.getLocalTransform().inverse().Scale;
+    //     const newPanX = Math.min((1 - 1 / scale) * this.props.nativeWidth, Math.max(0, moveX));
+    //     const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight), Math.max(0, panY));
+    // }
+
+    @observable private _movementRight: number = 0;
+
     //Adjusts the value in NodeStore
     onPointerMove = (e: PointerEvent): void => {
         const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
@@ -1594,14 +1603,15 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         if (doc && tagDocView) {
 
             const scale = this.props.zoomScaling();
-
             const scale2 = tagDocView.childScaling();
             const scale3 = tagDocView.props.ScreenToLocalTransform().Scale;
             const scale1 = NumCast(targetDoc._viewScale);
             // const scale = this.props.zoomScaling();
             console.log("_viewScale: " + scale1);
             console.log("_StLT: " + scale3);
-            console.log("zoomScaling: " + scale3);
+            console.log("zoomScaling: " + scale);
+            console.log("movementX: " + e.movementX);
+            console.log("movementX * scale: " + e.movementX * scale);
             let height = doc.offsetHeight;
             let width = doc.offsetWidth;
             let top = doc.offsetTop;
@@ -1674,10 +1684,23 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                 const newLeft = left += (e.movementX * scale);
                 doc.style.left = newLeft + 'px';
             }
-            PresBox.Instance.updateList(targetDoc, targetDoc["viewfinder-width-indexed"], width);
-            PresBox.Instance.updateList(targetDoc, targetDoc["viewfinder-height-indexed"], height);
-            PresBox.Instance.updateList(targetDoc, targetDoc["viewfinder-top-indexed"], top);
-            PresBox.Instance.updateList(targetDoc, targetDoc["viewfinder-left-indexed"], left);
+            this.updateList(targetDoc, activeItem["viewfinder-width-indexed"], width);
+            this.updateList(targetDoc, activeItem["viewfinder-height-indexed"], height);
+            this.updateList(targetDoc, activeItem["viewfinder-top-indexed"], top);
+            this.updateList(targetDoc, activeItem["viewfinder-left-indexed"], left);
+        }
+    }
+
+    @action
+    updateList = (doc: Doc, list: any, val: number) => {
+        const x: List<number> = list;
+        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
+            x[NumCast(doc.currentFrame)] = val;
+            list = x;
+        } else {
+            x.length = NumCast(doc.currentFrame) + 1;
+            x[NumCast(doc.currentFrame)] = val;
+            list = x;
         }
     }
 
@@ -1685,14 +1708,14 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
     @computed get zoomProgressivizeContainer() {
         const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        if (targetDoc) {
-            const vfLeft: number = PresBox.Instance.checkList(targetDoc, targetDoc["viewfinder-left-indexed"]);
-            const vfWidth: number = PresBox.Instance.checkList(targetDoc, targetDoc["viewfinder-width-indexed"]);
-            const vfTop: number = PresBox.Instance.checkList(targetDoc, targetDoc["viewfinder-top-indexed"]);
-            const vfHeight: number = PresBox.Instance.checkList(targetDoc, targetDoc["viewfinder-height-indexed"]);
+        if (activeItem && activeItem.zoomProgressivize) {
+            const vfLeft: number = PresBox.Instance.checkList(activeItem, activeItem["viewfinder-left-indexed"]);
+            const vfWidth: number = PresBox.Instance.checkList(activeItem, activeItem["viewfinder-width-indexed"]);
+            const vfTop: number = PresBox.Instance.checkList(activeItem, activeItem["viewfinder-top-indexed"]);
+            const vfHeight: number = PresBox.Instance.checkList(activeItem, activeItem["viewfinder-height-indexed"]);
             return (
                 <>
-                    {!targetDoc.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerMid} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                    {!activeItem.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerMid} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
                         <div className='resizers'>
                             <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerTL}></div>
                             <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerTR}></div>
@@ -1706,7 +1729,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
     }
 
     @computed get zoomProgressivize() {
-        return PresBox.Instance && this.props.zoomProgressivize ? PresBox.Instance.zoomProgressivizeContainer : (null);
+        return PresBox.Instance && this.props.zoomProgressivize ? this.zoomProgressivizeContainer : (null);
     }
 
     @computed get progressivize() {

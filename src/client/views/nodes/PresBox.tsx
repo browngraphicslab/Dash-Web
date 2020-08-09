@@ -27,6 +27,7 @@ import { CollectionFreeFormViewChrome } from "../collections/CollectionMenu";
 import { actionAsync } from "mobx-utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { AudioBox } from "./AudioBox";
+import { DocumentView } from "./DocumentView";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -118,7 +119,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const lastFrame = Cast(presTargetDoc.lastFrame, "number", null);
         const curFrame = NumCast(presTargetDoc.currentFrame);
         let internalFrames: boolean = false;
-        if (presTargetDoc.presProgressivize || presTargetDoc.zoomProgressivize || presTargetDoc.scrollProgressivize) internalFrames = true;
+        if (presTargetDoc.presProgressivize || activeItem.zoomProgressivize || presTargetDoc.scrollProgressivize) internalFrames = true;
         // Case 1: There are still other frames and should go through all frames before going to next slide
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
             presTargetDoc._viewTransition = "all 1s";
@@ -126,9 +127,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             presTargetDoc.currentFrame = curFrame + 1;
             if (presTargetDoc.scrollProgressivize) CollectionFreeFormDocumentView.updateScrollframe(presTargetDoc, currentFrame);
             if (presTargetDoc.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
-            if (presTargetDoc.zoomProgressivize) this.zoomProgressivizeNext(presTargetDoc);
+            if (activeItem.zoomProgressivize) this.zoomProgressivizeNext(presTargetDoc);
             // Case 2: Audio or video therefore wait to play the audio or video before moving on
-        } else if ((presTargetDoc.type === DocumentType.AUDIO) && !this._moveOnFromAudio) {
+        } else if ((presTargetDoc.type === DocumentType.AUDIO) && !this._moveOnFromAudio && this.layoutDoc.presStatus !== 'auto') {
             AudioBox.Instance.playFrom(0);
             this._moveOnFromAudio = true;
             // Case 3: No more frames in current doc and next slide is defined, therefore move to next slide
@@ -169,8 +170,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (presTargetDoc?.lastFrame !== undefined) {
                 presTargetDoc.currentFrame = 0;
             }
-            this.navigateToElement(this.childDocs[index]); //Handles movement to element
             this._selectedArray = [this.childDocs[index]]; //Update selected array
+            //Handles movement to element
+            if (this.layoutDoc._viewType === "stacking") this.navigateToElement(this.childDocs[index]);
             this.onHideDocument(); //Handles hide after/before
         }
     });
@@ -192,8 +194,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.turnOffEdit();
 
         if (this.itemIndex >= 0) {
-            if (targetDoc) {
-                if (srcContext) this.layoutDoc.presCollection = srcContext;
+            if (srcContext && targetDoc) {
+                this.layoutDoc.presCollection = srcContext;
             } else if (targetDoc) this.layoutDoc.presCollection = targetDoc;
         }
         if (collectionDocView) {
@@ -207,7 +209,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const willZoom = false;
 
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
-        if (targetDoc.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
+        if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
             this.zoomProgressivizeNext(targetDoc);
         } else if (docToJump === curDoc) {
             //checking if curDoc has navigation open
@@ -245,22 +247,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      * Uses the viewfinder to progressivize through the different views of a single collection.
      * @param presTargetDoc: document for which internal zoom is used
      */
-    zoomProgressivizeNext = (presTargetDoc: Doc) => {
-        const srcContext = Cast(presTargetDoc.context, Doc, null);
-        const docView = DocumentManager.Instance.getDocumentView(presTargetDoc);
-        const vfLeft: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-left-indexed"]);
-        const vfWidth: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-width-indexed"]);
-        const vfTop: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-top-indexed"]);
-        const vfHeight: number = this.checkList(presTargetDoc, presTargetDoc["viewfinder-height-indexed"]);
+    zoomProgressivizeNext = (activeItem: Doc) => {
+        const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
+        const srcContext = Cast(targetDoc.context, Doc, null);
+        const docView = DocumentManager.Instance.getDocumentView(targetDoc);
+        const vfLeft: number = !activeItem ? 0 : this.checkList(targetDoc, activeItem["viewfinder-left-indexed"]);
+        const vfWidth: number = !activeItem ? 0 : this.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
+        const vfTop: number = !activeItem ? 0 : this.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
+        const vfHeight: number = !activeItem ? 0 : this.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
         // Case 1: document that is not a Golden Layout tab
         if (srcContext) {
             const srcDocView = DocumentManager.Instance.getDocumentView(srcContext);
             if (srcDocView) {
-                const layoutdoc = Doc.Layout(presTargetDoc);
+                const layoutdoc = Doc.Layout(targetDoc);
                 const panelWidth: number = srcDocView.props.PanelWidth();
                 const panelHeight: number = srcDocView.props.PanelHeight();
-                const newPanX = NumCast(presTargetDoc.x) + NumCast(layoutdoc._width) / 2;
-                const newPanY = NumCast(presTargetDoc.y) + NumCast(layoutdoc._height) / 2;
+                const newPanX = NumCast(targetDoc.x) + NumCast(layoutdoc._width) / 2;
+                const newPanY = NumCast(targetDoc.y) + NumCast(layoutdoc._height) / 2;
                 const newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
                 srcContext._panX = newPanX + (vfLeft + (vfWidth / 2));
                 srcContext._panY = newPanY + (vfTop + (vfHeight / 2));
@@ -272,9 +275,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             const panelWidth: number = docView.props.PanelWidth();
             const panelHeight: number = docView.props.PanelHeight();
             const newScale = 0.9 * Math.min(Number(panelWidth) / vfWidth, Number(panelHeight) / vfHeight);
-            presTargetDoc._panX = vfLeft + (vfWidth / 2);
-            presTargetDoc._panY = vfTop + (vfWidth / 2);
-            presTargetDoc._viewScale = newScale;
+            targetDoc._panX = vfLeft + (vfWidth / 2);
+            targetDoc._panY = vfTop + (vfWidth / 2);
+            targetDoc._viewScale = newScale;
         }
         const resize = document.getElementById('resizable');
         if (resize) {
@@ -990,7 +993,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Case in which the document has keyframes to navigate to next key frame
     @undoBatch
     @action
-    nextKeyframe = (tagDoc: Doc): void => {
+    nextKeyframe = (tagDoc: Doc, activeItem: Doc): void => {
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
         const currentFrame = Cast(tagDoc.currentFrame, "number", null);
         if (currentFrame === undefined) {
@@ -1002,20 +1005,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
         tagDoc.currentFrame = Math.max(0, (currentFrame || 0) + 1);
         tagDoc.lastFrame = Math.max(NumCast(tagDoc.currentFrame), NumCast(tagDoc.lastFrame));
-        if (tagDoc.zoomProgressivize) {
+        if (activeItem.zoomProgressivize) {
             const resize = document.getElementById('resizable');
             if (resize) {
-                resize.style.width = this.checkList(tagDoc, tagDoc["viewfinder-width-indexed"]) + 'px';
-                resize.style.height = this.checkList(tagDoc, tagDoc["viewfinder-height-indexed"]) + 'px';
-                resize.style.top = this.checkList(tagDoc, tagDoc["viewfinder-top-indexed"]) + 'px';
-                resize.style.left = this.checkList(tagDoc, tagDoc["viewfinder-left-indexed"]) + 'px';
+                resize.style.width = this.checkList(tagDoc, activeItem["viewfinder-width-indexed"]) + 'px';
+                resize.style.height = this.checkList(tagDoc, activeItem["viewfinder-height-indexed"]) + 'px';
+                resize.style.top = this.checkList(tagDoc, activeItem["viewfinder-top-indexed"]) + 'px';
+                resize.style.left = this.checkList(tagDoc, activeItem["viewfinder-left-indexed"]) + 'px';
             }
         }
     }
 
     @undoBatch
     @action
-    prevKeyframe = (tagDoc: Doc): void => {
+    prevKeyframe = (tagDoc: Doc, activeItem: Doc): void => {
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
         const currentFrame = Cast(tagDoc.currentFrame, "number", null);
         if (currentFrame === undefined) {
@@ -1024,13 +1027,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
         CollectionFreeFormDocumentView.gotoKeyframe(childDocs.slice());
         tagDoc.currentFrame = Math.max(0, (currentFrame || 0) - 1);
-        if (tagDoc.zoomProgressivize) {
+        if (activeItem.zoomProgressivize) {
             const resize = document.getElementById('resizable');
             if (resize) {
-                resize.style.width = this.checkList(tagDoc, tagDoc["viewfinder-width-indexed"]) + 'px';
-                resize.style.height = this.checkList(tagDoc, tagDoc["viewfinder-height-indexed"]) + 'px';
-                resize.style.top = this.checkList(tagDoc, tagDoc["viewfinder-top-indexed"]) + 'px';
-                resize.style.left = this.checkList(tagDoc, tagDoc["viewfinder-left-indexed"]) + 'px';
+                resize.style.width = this.checkList(tagDoc, activeItem["viewfinder-width-indexed"]) + 'px';
+                resize.style.height = this.checkList(tagDoc, activeItem["viewfinder-height-indexed"]) + 'px';
+                resize.style.top = this.checkList(tagDoc, activeItem["viewfinder-top-indexed"]) + 'px';
+                resize.style.left = this.checkList(tagDoc, activeItem["viewfinder-left-indexed"]) + 'px';
             }
         }
     }
@@ -1072,7 +1075,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: (targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform') || targetDoc.type === DocumentType.IMG ? "inline-flex" : "none" }}>
                                 <div className="ribbon-button" style={{ backgroundColor: activeItem.zoomProgressivize ? "#aedef8" : "" }} onClick={this.progressivizeZoom}>Internal zoom</div>
-                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
+                                <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: activeItem.editZoomProgressivize ? "#aedef8" : "" }} onClick={this.editZoomProgressivize}>Viewfinder</div>
                                 {/* <div className="ribbon-button" style={{ display: activeItem.zoomProgressivize ? "flex" : "none", backgroundColor: targetDoc.editSnapZoomProgressivize ? "#aedef8" : "" }} onClick={this.editSnapZoomProgressivize}>Snapshot</div> */}
                             </div>
                             {/* <div className="ribbon-doubleButton" style={{ display: targetDoc.type === DocumentType.COL && targetDoc._viewType === 'freeform' ? "inline-flex" : "none" }}>
@@ -1088,14 +1091,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             Frames
                             <div className="ribbon-doubleButton">
                                 <div className="ribbon-frameSelector">
-                                    <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc); }}>
+                                    <div key="back" title="back frame" className="backKeyframe" onClick={e => { e.stopPropagation(); this.prevKeyframe(targetDoc, activeItem); }}>
                                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                                     </div>
                                     <div key="num" title="toggle view all" className="numKeyframe" style={{ backgroundColor: targetDoc.editing ? "#5a9edd" : "#5a9edd" }}
                                         onClick={action(() => targetDoc.editing = !targetDoc.editing)} >
                                         {NumCast(targetDoc.currentFrame)}
                                     </div>
-                                    <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc); }}>
+                                    <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc, activeItem); }}>
                                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                                     </div>
                                 </div>
@@ -1144,8 +1147,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         if (!targetDoc.editZoomProgressivize) {
             targetDoc.editZoomProgressivize = true;
+            activeItem.editZoomProgressivize = true;
         } else {
             targetDoc.editZoomProgressivize = false;
+            activeItem.editZoomProgressivize = false;
         }
     }
 
@@ -1168,7 +1173,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         activeItem.scrollProgressivize = !activeItem.scrollProgressivize;
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
-        targetDoc.scrollProgressivize = !targetDoc.zoomProgressivize;
+        targetDoc.scrollProgressivize = !targetDoc.scrollProgressivize;
         CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc.currentFrame), true);
         if (targetDoc.editScrollProgressivize) {
             targetDoc.editScrollProgressivize = false;
@@ -1185,9 +1190,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         activeItem.zoomProgressivize = !activeItem.zoomProgressivize;
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         targetDoc.zoomProgressivize = !targetDoc.zoomProgressivize;
-        CollectionFreeFormDocumentView.setupZoom(targetDoc, true);
-        if (targetDoc.editZoomProgressivize) {
-            targetDoc.editZoomProgressivize = false;
+        CollectionFreeFormDocumentView.setupZoom(activeItem, targetDoc, true);
+        if (activeItem.editZoomProgressivize) {
+            activeItem.editZoomProgressivize = false;
             targetDoc.currentFrame = 0;
             targetDoc.lastFrame = 0;
         }
@@ -1296,25 +1301,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const x: List<number> = list;
         if (x && x.length >= NumCast(doc.currentFrame) + 1) {
             return x[NumCast(doc.currentFrame)];
-        } else {
+        } else if (doc) {
             x.length = NumCast(doc.currentFrame) + 1;
             x[NumCast(doc.currentFrame)] = x[NumCast(doc.currentFrame) - 1];
             return x[NumCast(doc.currentFrame)];
         }
 
-    }
-
-    @action
-    updateList = (doc: Doc, list: any, val: number) => {
-        const x: List<number> = list;
-        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
-            x[NumCast(doc.currentFrame)] = val;
-            list = x;
-        } else {
-            x.length = NumCast(doc.currentFrame) + 1;
-            x[NumCast(doc.currentFrame)] = val;
-            list = x;
-        }
     }
 
     @computed get progressivizeChildDocs() {
