@@ -30,10 +30,13 @@
 }
 
 .settings-username {
-    font-size: 14px;
+    font-size: 12px;
     padding-right: 15px;
     color: black;
-    margin-top: 10px;
+    margin-top: 4px;
+    /* right: 135; */
+    position: absolute;
+    left: 235;
 }
 
 .settings-section {
@@ -215,6 +218,11 @@
         right: 1em;
         top: 1em;
         cursor: pointer;
+    }
+
+    .logout-button {
+        right: 35;
+        position: absolute;
     }
 
     .settings-content {

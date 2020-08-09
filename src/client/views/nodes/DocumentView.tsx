@@ -565,12 +565,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @undoBatch
+    @undoBatch @action
     deleteClicked = (): void => {
         if (Doc.UserDoc().activeWorkspace === this.props.Document) {
             alert("Can't delete the active workspace");
         } else {
+            const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+            const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
+
+            selected.map(dv => {
+                const effectiveAcl = GetEffectiveAcl(dv.props.Document);
+                if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
+                    recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
+                    dv.props.removeDocument?.(dv.props.Document);
+                }
+            });
+
             this.props.Document.deleted = true;
             this.props.removeDocument?.(this.props.Document);
         }

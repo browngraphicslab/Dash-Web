@@ -22,13 +22,13 @@ import { InkField } from "../../../../fields/InkField";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from "react-color";
 import "./FormatShapePane.scss";
-import { discovery_v1 } from "googleapis";
 import { PresBox } from "../../nodes/PresBox";
 import { DocumentManager } from "../../../util/DocumentManager";
 import FormatShapePane from "./FormatShapePane";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
+const _global = (window /* browser */ || global /* node */) as any;
 
 // import * as fa from '@fortawesome/free-solid-svg-icons';
 // import { library } from "@fortawesome/fontawesome-svg-core";
@@ -52,7 +52,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance._selectedArray.length) {
+        } else if (PresBox.Instance && PresBox.Instance._selectedArray.length) {
             return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         } else { return undefined; }
     }
@@ -247,12 +247,23 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         return false;
     }
 
+    @observable transform: Transform = Transform.Identity();
+    getTransform = () => this.transform;
+    propertiesDocViewRef = (ref: HTMLDivElement) => {
+        const observer = new _global.ResizeObserver(action((entries: any) => {
+            const cliRect = ref.getBoundingClientRect();
+            this.transform = new Transform(-cliRect.x, -cliRect.y, 1);
+        }));
+        ref && observer.observe(ref);
+    }
+
+    previewBackground = () => "lightgrey";
     @computed get layoutPreview() {
         if (this.selectedDoc) {
             const layoutDoc = Doc.Layout(this.selectedDoc);
             const panelHeight = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfHeight : this.docHeight;
             const panelWidth = StrCast(Doc.LayoutField(layoutDoc)).includes("FormattedTextBox") ? this.rtfWidth : this.docWidth;
-            return <div style={{ display: "inline-block", height: panelHeight() }} key={this.selectedDoc[Id]}>
+            return <div ref={this.propertiesDocViewRef} style={{ pointerEvents: "none", display: "inline-block", height: panelHeight() }} key={this.selectedDoc[Id]}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDoc={this.dataDoc}
@@ -260,7 +271,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnFalse}
                     treeViewDoc={undefined}
-                    backgroundColor={() => "lightgrey"}
+                    backgroundColor={this.previewBackground}
                     fitToBox={true}
                     FreezeDimensions={true}
                     NativeWidth={layoutDoc.type ===
@@ -270,7 +281,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     PanelWidth={panelWidth}
                     PanelHeight={panelHeight}
                     focus={returnFalse}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    ScreenToLocalTransform={this.getTransform}
                     docFilters={returnEmptyFilter}
                     ContainingCollectionDoc={undefined}
                     ContainingCollectionView={undefined}
@@ -320,7 +331,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      * @returns the notification icon. On clicking, it should notify someone of a document been shared with them.
      */
     @computed get notifyIcon() {
-        return <Tooltip title={<><div className="dash-tooltip">Notify with message</div></>}>
+        return <Tooltip title={<div className="dash-tooltip">Notify with message</div>}>
             <div className="notify-button">
                 <FontAwesomeIcon className="notify-button-icon" icon="bell" color="white" size="sm" />
             </div>
@@ -331,7 +342,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      * ... next to the owner that opens the main SharingManager interface on click.
      */
     @computed get expansionIcon() {
-        return <Tooltip title={<><div className="dash-tooltip">{"Show more permissions"}</div></>}>
+        return <Tooltip title={<div className="dash-tooltip">{"Show more permissions"}</div>}>
             <div className="expansion-button" onPointerDown={() => {
                 if (this.selectedDocumentView) {
                     SharingManager.Instance.open(this.selectedDocumentView);
@@ -346,7 +357,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      * @returns a row of the permissions panel
      */
     sharingItem(name: string, effectiveAcl: symbol, permission: string) {
-        return <div className="propertiesView-sharingTable-item"
+        return <div className="propertiesView-sharingTable-item" key={name + permission}
         // style={{ backgroundColor: this.selectedUser === name ? "#bcecfc" : "" }}
         // onPointerDown={action(() => this.selectedUser = this.selectedUser === name ? "" : name)}
         >
@@ -378,7 +389,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.selectedDoc![AclSym]) {
             for (const [key, value] of Object.entries(this.selectedDoc![AclSym])) {
                 const name = key.substring(4).replace("_", ".");
-                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author/* && sidebarUsersDisplayed![name] !== false*/) tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
+                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author/* && sidebarUsersDisplayed![name] !== false*/) {
+                    tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
+                }
             }
         }
 
@@ -484,17 +497,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed
     get controlPointsButton() {
         return <div className="inking-button">
-            <Tooltip title={<><div className="dash-tooltip">{"Edit points"}</div></>}>
+            <Tooltip title={<div className="dash-tooltip">{"Edit points"}</div>}>
                 <div className="inking-button-points" onPointerDown={action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn)} style={{ backgroundColor: FormatShapePane.Instance._controlBtn ? "black" : "" }}>
                     <FontAwesomeIcon icon="bezier-curve" color="white" size="lg" />
                 </div>
             </Tooltip>
-            <Tooltip title={<><div className="dash-tooltip">{FormatShapePane.Instance._lock ? "Unlock ratio" : "Lock ratio"}</div></>}>
+            <Tooltip title={<div className="dash-tooltip">{FormatShapePane.Instance._lock ? "Unlock ratio" : "Lock ratio"}</div>}>
                 <div className="inking-button-lock" onPointerDown={action(() => FormatShapePane.Instance._lock = !FormatShapePane.Instance._lock)} >
                     <FontAwesomeIcon icon={FormatShapePane.Instance._lock ? "lock" : "unlock"} color="white" size="lg" />
                 </div>
             </Tooltip>
-            <Tooltip title={<><div className="dash-tooltip">{"Rotate 90˚"}</div></>}>
+            <Tooltip title={<div className="dash-tooltip">{"Rotate 90˚"}</div>}>
                 <div className="inking-button-rotate" onPointerDown={action(() => this.rotate(Math.PI / 2))}>
                     <FontAwesomeIcon icon="undo" color="white" size="lg" />
                 </div>
@@ -632,16 +645,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set colorStk(value) { value && (this._lastLine = value); this.selectedDoc && (this.selectedDoc.color = value ? value : undefined); }
 
     colorButton(value: string, type: string, setter: () => {}) {
-        return <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-            content={type === "fill" ? this.fillPicker : this.linePicker}>
-            <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
-                <div className="color-button-preview" style={{
-                    backgroundColor: value ?? "121212", width: 15, height: 15,
-                    display: value === "" || value === "transparent" ? "none" : ""
-                }} />
-                {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
-            </div>
-        </Flyout>;
+        // return <div className="properties-flyout" onPointerEnter={e => this.changeScrolling(false)}
+        //     onPointerLeave={e => this.changeScrolling(true)}>
+        //     <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+        //         content={type === "fill" ? this.fillPicker : this.linePicker}>
+        return <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
+            <div className="color-button-preview" style={{
+                backgroundColor: value ?? "121212", width: 15, height: 15,
+                display: value === "" || value === "transparent" ? "none" : ""
+            }} />
+            {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14 }}>☒</p> : ""}
+        </div>;
+        //     </Flyout>
+        // </div>;
 
     }
 
@@ -686,8 +702,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="stroke-button">{this.lineButton}</div>
                 </div>
             </div>
-            {/* {this._fillBtn ? this.fillPicker : ""}
-            {this._lineBtn ? this.linePicker : ""} */}
+            {this._fillBtn ? this.fillPicker : ""}
+            {this._lineBtn ? this.linePicker : ""}
         </div>;
     }
 
@@ -813,7 +829,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
-                    // overflowY: this.inActions ? "visible" : "scroll"
+                    //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
@@ -918,11 +934,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <div className="propertiesView-fields-title"
                             onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
                             style={{ backgroundColor: this.openFields ? "black" : "" }}>
-                            <div className="propertiesView-fields-title-name">
-                                Fields {"&"} Tags
+                            Fields {"&"} Tags
                             <div className="propertiesView-fields-title-icon">
-                                    <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
-                                </div>
+                                <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">
@@ -943,18 +957,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                                 <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {this.openLayout ? <div className="propertiesView-layout-content">{this.layoutPreview}</div> : null}
+                        {this.openLayout ? <div className="propertiesView-layout-content"  >{this.layoutPreview}</div> : null}
                     </div>
                 </div>;
             }
             if (this.isPres) {
-                const selectedItem: boolean = PresBox.Instance._selectedArray.length > 0;
-                return <div className="propertiesView" style={{ width: this.props.width }} >
-                    <div className="propertiesView-title" style={{ width: this.props.width }}>
+                const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
+                return <div className="propertiesView">
+                    <div className="propertiesView-title">
                         Presentation
-                    <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                            <FontAwesomeIcon icon="times" color="black" size="sm" />
-                        </div>
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}

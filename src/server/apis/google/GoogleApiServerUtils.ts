@@ -40,7 +40,6 @@ export namespace GoogleApiServerUtils {
     export enum Service {
         Documents = "Documents",
         Slides = "Slides",
-        Hypothesis = "Hypothesis"
     }
 
     /**

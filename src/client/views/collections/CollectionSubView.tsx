@@ -402,14 +402,28 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
-                this.addDocument(Docs.Create.WebDocument(uriList, {
-                    ...options,
-                    title: uriList,
-                    _width: 400,
-                    _height: 315,
-                    _nativeWidth: 850,
-                    _nativeHeight: 962
-                }));
+                const existingWebDoc = await Hypothesis.findWebDoc(uriList);
+                if (existingWebDoc) {
+                    const alias = Doc.MakeAlias(existingWebDoc);
+                    alias.x = options.x;
+                    alias.y = options.y;
+                    alias._nativeWidth = 850;
+                    alias._nativeHeight = 962;
+                    alias._width = 400;
+                    this.addDocument(alias);
+                } else {
+                    const newDoc = Docs.Create.WebDocument(uriList, {
+                        ...options,
+                        title: uriList.split("#annotations:")[0],
+                        _width: 400,
+                        _height: 315,
+                        _nativeWidth: 850,
+                        _nativeHeight: 962,
+                        UseCors: true
+                    });
+                    newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
+                    this.addDocument(newDoc);
+                }
                 return;
             }
 
@@ -492,3 +506,5 @@ import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
+import { Hypothesis } from "../../util/HypothesisUtils";
+

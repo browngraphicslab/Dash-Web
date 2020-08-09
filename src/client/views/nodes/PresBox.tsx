@@ -34,7 +34,8 @@ const PresBoxDocument = makeInterface(documentSchema);
 @observer
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
-    static Instance: PresBox;
+
+    public static Instance: PresBox;
 
     @observable _isChildActive = false;
     @observable _moveOnFromAudio: boolean = true;
