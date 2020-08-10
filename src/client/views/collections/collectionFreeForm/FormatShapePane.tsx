@@ -173,11 +173,7 @@ export default class FormatShapePane extends AntimodeMenu {
                         const newPoints: { X: number, Y: number }[] = [];
                         var counter = 0;
                         for (var k = 0; k < index; k++) {
-                            for (var l = 0; l < control.length; l++) {
-                                if (pts[k].X === control[l].X && pts[k].Y === control[l].Y) {
-                                    counter++;
-                                }
-                            }
+                            control.forEach(pt => (pts[k].X === pt.X && pts[k].Y === pt.Y) && counter++);
                         }
                         //decide where to put the new coordinate
                         const spNum = Math.floor(counter / 2) * 4 + 2;

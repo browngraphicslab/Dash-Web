@@ -359,7 +359,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     changeFollowBehavior = action((follow: string) => {
         this.openDropdown = false;
         Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;
-    })
+    });
 
     @computed
     get followingDropdown() {
