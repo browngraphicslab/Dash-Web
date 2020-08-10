@@ -382,7 +382,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("onRight")}>
-                        Always open in right tab
+                        Always open in new pane on right
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("inTab")}>
