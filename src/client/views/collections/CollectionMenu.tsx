@@ -85,7 +85,8 @@ export default class CollectionMenu extends AntimodeMenu {
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
         const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
-            <button className="antimodeMenu-button" key="properties" onPointerDown={this.toggleProperties}>
+            <button className="antimodeMenu-button" key="properties" style={{ backgroundColor: "#424242" }}
+                onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
             </button>
         </Tooltip>;
@@ -581,7 +582,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         style={{ backgroundColor: this._colorBtn ? "121212" : "", zIndex: 1001 }}>
                         {/* <FontAwesomeIcon icon="pen-nib" size="lg" /> */}
                         <div className="color-previewII" style={{ backgroundColor: color }} />
-                        {color === "" ? <p style={{ fontSize: 45, color: "red", marginTop: -16, marginLeft: -5, position: "fixed" }}>☒</p> : ""}
+                        {color === "" ? <p style={{ fontSize: 45, color: "red", marginTop: -44, marginLeft: -5, position: "fixed" }}>☒</p> : ""}
 
                     </button>)}
             </div>;

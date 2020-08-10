@@ -475,7 +475,7 @@ class TreeView extends React.Component<TreeViewProps> {
             </div >
             {headerElements}
             <div className="treeViewItem-openRight" onClick={this.openRight}>
-                <FontAwesomeIcon title="open in pane on right" icon="external-link-alt" size="sm" />
+                <FontAwesomeIcon title="open in new a pane" icon="external-link-alt" size="sm" />
             </div>
         </>;
     }

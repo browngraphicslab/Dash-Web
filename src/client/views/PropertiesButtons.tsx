@@ -750,6 +750,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.sharingButton}
             </div>
+            <div className="propertiesButtons-button">
+                {this.contextButton}
+            </div>
             <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
             </div>
@@ -773,9 +776,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
             <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
                 {this.maskButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.contextButton}
             </div>
         </div>
         </div>;

@@ -698,7 +698,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open In a New Pane</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
                     </div></Tooltip>
                     {rotButton}
