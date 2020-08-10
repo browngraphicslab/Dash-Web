@@ -770,6 +770,7 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
+        Doc.UserDoc().defaultAclPrivate && (copy["ACL-Public"] = "Not Shared");
         return copy;
     }
 
@@ -794,6 +795,7 @@ export namespace Doc {
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
+            Doc.UserDoc().defaultAclPrivate && (applied["ACL-Public"] = "Not Shared");
             return applied;
         }
         return undefined;

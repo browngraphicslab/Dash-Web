@@ -577,6 +577,8 @@ export namespace Docs {
             viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
+            if (Doc.UserDoc()?.defaultAclPrivate) viewDoc["ACL-Public"] = dataDoc["ACL-Public"] = "Not Shared";
+
             return Doc.assign(viewDoc, delegateProps, true);
         }
 
