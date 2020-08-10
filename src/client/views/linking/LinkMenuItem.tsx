@@ -162,7 +162,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
 
         if (linkDoc.followLinkLocation && linkDoc.followLinkLocation !== "Default") {
-            this.props.addDocTab(this.props.destinationDoc, StrCast(linkDoc.followLinkLocation));
+            const annotationOn = this.props.destinationDoc.annotationOn as Doc;
+            this.props.addDocTab(annotationOn instanceof Doc ? annotationOn : this.props.destinationDoc, StrCast(linkDoc.followLinkLocation));
+            if (annotationOn) {
+                setTimeout(() => {
+                    const dv = DocumentManager.Instance.getFirstDocumentView(this.props.destinationDoc);
+                    dv?.props.focus(this.props.destinationDoc, false);
+                });
+            }
         } else {
             DocumentManager.Instance.FollowLink(this.props.linkDoc, this.props.sourceDoc, doc => this.props.addDocTab(doc, "onRight"), false);
         }
