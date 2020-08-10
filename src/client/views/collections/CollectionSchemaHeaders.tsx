@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, observable } from "mobx";
+import { action, observable, computed } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
 import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar } from '@fortawesome/free-solid-svg-icons';
@@ -9,9 +9,21 @@ import { ColumnType } from "./CollectionSchemaView";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
-import { Doc } from "../../../fields/Doc";
-import { StrCast } from "../../../fields/Types";
+import { Transform } from '../../util/Transform';
+import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { StrCast, Cast } from "../../../fields/Types";
 import { optionFocusAriaMessage } from "react-select/src/accessibility";
+import { TraceMobx } from "../../../fields/util";
+import { CollectionTreeView } from "./CollectionTreeView";
+import { returnEmptyFilter, returnFalse, emptyPath, returnZero, emptyFunction, returnOne } from "../../../Utils";
+import { RichTextField } from "../../../fields/RichTextField";
+import { Docs } from "../../documents/Documents";
+import { List } from "../../../fields/List";
+import { listSpec } from "../../../fields/Schema";
+import { ScriptField, ComputedField } from "../../../fields/ScriptField";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { CollectionView } from "./CollectionView";
+
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -287,7 +299,12 @@ export interface KeysDropdownProps {
     setIsEditing: (isEditing: boolean) => void;
     width?: string;
     docs?: Doc[];
-
+    Document?: Doc;
+    dataDoc?: Doc;
+    fieldKey?: string;
+    ContainingCollectionDoc?: Doc;
+    ContainingCollectionView?: CollectionView;
+    active?: (outsideReaction?: boolean) => boolean;
 }
 @observer
 export class KeysDropdown extends React.Component<KeysDropdownProps> {
@@ -426,7 +443,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         let keyOptions: string[] = [];
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
-        this.props.docs?.forEach((doc) => {
+        let docs = DocListCast(this.props.dataDoc![this.props.fieldKey!]);
+        docs.forEach((doc) => {
             const key = StrCast(doc[this._key]);
             if (keyOptions.includes(key) === false && key.includes(temp)) {
                 keyOptions.push(key);
@@ -438,7 +456,11 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
             }}
-                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelectValue(key); }}>{key}</div>;
+            >
+                <input type="checkbox" onChange={(e) => { e.target.checked === true ? Doc.setDocFilter(this.props.Document!, this._key, key, "check") : Doc.setDocFilter(this.props.Document!, this._key, key, undefined) }} ></input>
+                {key}
+
+            </div>;
         });
         if (options.length === 0) {
             this.defaultMenuHeight = 0;
@@ -457,7 +479,171 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         return options;
     }
 
+
+    // @action
+    // renderFilterOptions = (): JSX.Element[] | JSX.Element => {
+    //     this.facetClick(this._key);
+    //     return <div>
+    //         {this.filterView}
+    //     </div>
+    // }
     @observable defaultMenuHeight = 0;
+
+
+    facetClick = (facetHeader: string) => {
+        facetHeader = this._key;
+        let newFacet: Opt<Doc>;
+        if (this.props.Document !== undefined) {
+            const facetCollection = this.props.Document;
+            // const found = DocListCast(facetCollection[this.props.fieldKey + "-filter"]).findIndex(doc => doc.title === facetHeader);
+            // if (found !== -1) {
+            //     console.log("found not n-1");
+            //     (facetCollection[this.props.fieldKey + "-filter"] as List<Doc>).splice(found, 1);
+            //     const docFilter = Cast(this.props.Document._docFilters, listSpec("string"));
+            //     if (docFilter) {
+            //         let index: number;
+            //         while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
+            //             docFilter.splice(index, 3);
+            //         }
+            //     }
+            //     const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"));
+            //     if (docRangeFilters) {
+            //         let index: number;
+            //         while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
+            //             docRangeFilters.splice(index, 3);
+            //         }
+            //     }
+            // }
+
+
+
+            console.log("found is n-1");
+            const allCollectionDocs = DocListCast(this.props.dataDoc![this.props.fieldKey!]);
+            var rtfields = 0;
+            const facetValues = Array.from(allCollectionDocs.reduce((set, child) => {
+                const field = child[facetHeader] as Field;
+                const fieldStr = Field.toString(field);
+                if (field instanceof RichTextField || (typeof (field) === "string" && fieldStr.split(" ").length > 2)) rtfields++;
+                return set.add(fieldStr);
+            }, new Set<string>()));
+
+            let nonNumbers = 0;
+            let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
+            facetValues.map(val => {
+                const num = Number(val);
+                if (Number.isNaN(num)) {
+                    nonNumbers++;
+                } else {
+                    minVal = Math.min(num, minVal);
+                    maxVal = Math.max(num, maxVal);
+                }
+            });
+            if (facetHeader === "text" || rtfields / allCollectionDocs.length > 0.1) {
+                console.log("Case1");
+                newFacet = Docs.Create.TextDocument("", { _width: 100, _height: 25, treeViewExpandedView: "layout", title: facetHeader, treeViewOpen: true, forceActive: true, ignoreClick: true });
+                Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                newFacet.target = this.props.Document;
+                newFacet._textBoxPadding = 4;
+                const scriptText = `setDocFilter(this.target, "${facetHeader}", text, "match")`;
+                newFacet.onTextChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, text: "string" });
+            } else if (nonNumbers / facetValues.length < .1) {
+                console.log("Case2");
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader, treeViewExpandedView: "layout", treeViewOpen: true });
+                const newFacetField = Doc.LayoutFieldKey(newFacet);
+                const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
+                Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                const extendedMinVal = minVal - Math.min(1, Math.abs(maxVal - minVal) * .05);
+                const extendedMaxVal = maxVal + Math.min(1, Math.abs(maxVal - minVal) * .05);
+                newFacet[newFacetField + "-min"] = ranged === undefined ? extendedMinVal : ranged[0];
+                newFacet[newFacetField + "-max"] = ranged === undefined ? extendedMaxVal : ranged[1];
+                Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = extendedMinVal;
+                Doc.GetProto(newFacet)[newFacetField + "-maxThumb"] = extendedMaxVal;
+                newFacet.target = this.props.Document;
+                const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
+                newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
+                Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
+            } else {
+                console.log("Case3");
+                newFacet = new Doc();
+                newFacet.title = facetHeader;
+                newFacet.treeViewOpen = true;
+                newFacet.type = DocumentType.COL;
+                const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.props.dataDoc! };
+                this.props.Document.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, {}, capturedVariables);
+                // this.props.Document.data
+            }
+            //newFacet && Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
+        }
+    }
+
+
+    get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; }
+
+    @computed get scriptField() {
+        console.log("we kinda made it");
+        const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
+        const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+        return script ? () => script : undefined;
+    }
+    filterBackground = () => "rgba(105, 105, 105, 0.432)";
+
+
+    // @computed get filterView() {
+    //     TraceMobx();
+    //     if (this.props.Document !== undefined) {
+    //         //const facetCollection = this.props.Document;
+    //         // const flyout = (
+    //         //     <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+    //         //         {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+    //         //             <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey + "-filter"]).some(d => d.title === facet)} />
+    //         //             <span className="checkmark" />
+    //         //             {facet}
+    //         //         </label>)}
+    //         //     </div>
+    //         // );
+    //         return <div className="altcollectionTimeView-treeView">
+    //             <div className="altcollectionTimeView-tree" key="tree">
+    //                 <CollectionTreeView
+    //                     PanelPosition={""}
+    //                     Document={this.props.Document}
+    //                     DataDoc={this.props.Document}
+    //                     fieldKey={this.props.fieldKey!}
+    //                     CollectionView={undefined}
+    //                     docFilters={returnEmptyFilter}
+    //                     ContainingCollectionDoc={this.props.ContainingCollectionDoc!}
+    //                     ContainingCollectionView={this.props.ContainingCollectionView!}
+    //                     PanelWidth={() => 200}
+    //                     PanelHeight={() => 200}
+    //                     NativeHeight={returnZero}
+    //                     NativeWidth={returnZero}
+    //                     LibraryPath={emptyPath}
+    //                     rootSelected={returnFalse}
+    //                     renderDepth={1}
+    //                     dropAction={undefined}
+    //                     ScreenToLocalTransform={Transform.Identity}
+    //                     addDocTab={returnFalse}
+    //                     pinToPres={returnFalse}
+    //                     isSelected={returnFalse}
+    //                     select={returnFalse}
+    //                     bringToFront={emptyFunction}
+    //                     active={this.props.active!}
+    //                     whenActiveChanged={returnFalse}
+    //                     treeViewHideTitle={true}
+    //                     ContentScaling={returnOne}
+    //                     focus={returnFalse}
+    //                     treeViewHideHeaderFields={true}
+    //                     onCheckedClick={this.scriptField}
+    //                     ignoreFields={this.ignoreFields}
+    //                     annotationsKey={""}
+    //                     dontRegisterView={true}
+    //                     backgroundColor={this.filterBackground}
+    //                     moveDocument={returnFalse}
+    //                     removeDocument={returnFalse}
+    //                     addDocument={returnFalse} />
+    //             </div>
+    //         </div>;
+    //     }
+    // }
 
     render() {
         return (
@@ -470,7 +656,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                         e.stopPropagation();
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" style={{
-                    width: this.props.width, maxWidth: this.props.width, overflow: "scroll", height: this.defaultMenuHeight,
+                    width: this.props.width, maxWidth: this.props.width, overflow: "scroll", height: "auto",
                 }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this._searchTerm.includes(":") ?

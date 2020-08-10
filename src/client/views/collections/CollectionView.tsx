@@ -513,56 +513,56 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </label>)}
             </div>
         );
-        return !this._facetWidth || this.props.dontRegisterView ? (null) :
-            <div className="collectionTimeView-treeView" style={{ width: `${this.facetWidth()}px`, overflow: this.facetWidth() < 15 ? "hidden" : undefined }}>
-                <div className="collectionTimeView-addFacet" style={{ width: `${this.facetWidth()}px` }} onPointerDown={e => e.stopPropagation()}>
-                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
-                        <div className="collectionTimeView-button">
-                            <FontAwesomeIcon icon={faEdit} size={"lg"} />
-                            <span className="collectionTimeView-span">Facet Filters</span>
-                        </div>
-                    </Flyout>
-                </div>
-                <div className="collectionTimeView-tree" key="tree">
-                    <CollectionTreeView
-                        PanelPosition={""}
-                        Document={facetCollection}
-                        DataDoc={facetCollection}
-                        fieldKey={`${this.props.fieldKey}-filter`}
-                        CollectionView={this}
-                        docFilters={returnEmptyFilter}
-                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                        ContainingCollectionView={this.props.ContainingCollectionView}
-                        PanelWidth={this.facetWidth}
-                        PanelHeight={this.props.PanelHeight}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        LibraryPath={emptyPath}
-                        rootSelected={this.props.rootSelected}
-                        renderDepth={1}
-                        dropAction={this.props.dropAction}
-                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                        addDocTab={returnFalse}
-                        pinToPres={returnFalse}
-                        isSelected={returnFalse}
-                        select={returnFalse}
-                        bringToFront={emptyFunction}
-                        active={this.props.active}
-                        whenActiveChanged={returnFalse}
-                        treeViewHideTitle={true}
-                        ContentScaling={returnOne}
-                        focus={returnFalse}
-                        treeViewHideHeaderFields={true}
-                        onCheckedClick={this.scriptField}
-                        ignoreFields={this.ignoreFields}
-                        annotationsKey={""}
-                        dontRegisterView={true}
-                        backgroundColor={this.filterBackground}
-                        moveDocument={returnFalse}
-                        removeDocument={returnFalse}
-                        addDocument={returnFalse} />
-                </div>
-            </div>;
+
+        return !this._facetWidth || this.props.dontRegisterView ? (null) : <div className="collectionTimeView-treeView" style={{ width: `${this.facetWidth()}px`, overflow: this.facetWidth() < 15 ? "hidden" : undefined }}>
+            <div className="collectionTimeView-addFacet" style={{ width: `${this.facetWidth()}px` }} onPointerDown={e => e.stopPropagation()}>
+                <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
+                    <div className="collectionTimeView-button">
+                        <FontAwesomeIcon icon={faEdit} size={"lg"} />
+                        <span className="collectionTimeView-span">Facet Filters</span>
+                    </div>
+                </Flyout>
+            </div>
+            <div className="collectionTimeView-tree" key="tree">
+                <CollectionTreeView
+                    PanelPosition={""}
+                    Document={facetCollection}
+                    DataDoc={facetCollection}
+                    fieldKey={`${this.props.fieldKey}-filter`}
+                    CollectionView={this}
+                    docFilters={returnEmptyFilter}
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                    ContainingCollectionView={this.props.ContainingCollectionView}
+                    PanelWidth={this.facetWidth}
+                    PanelHeight={this.props.PanelHeight}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    LibraryPath={emptyPath}
+                    rootSelected={this.props.rootSelected}
+                    renderDepth={1}
+                    dropAction={this.props.dropAction}
+                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                    addDocTab={returnFalse}
+                    pinToPres={returnFalse}
+                    isSelected={returnFalse}
+                    select={returnFalse}
+                    bringToFront={emptyFunction}
+                    active={this.props.active}
+                    whenActiveChanged={returnFalse}
+                    treeViewHideTitle={true}
+                    ContentScaling={returnOne}
+                    focus={returnFalse}
+                    treeViewHideHeaderFields={true}
+                    onCheckedClick={this.scriptField}
+                    ignoreFields={this.ignoreFields}
+                    annotationsKey={""}
+                    dontRegisterView={true}
+                    backgroundColor={this.filterBackground}
+                    moveDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    addDocument={returnFalse} />
+            </div>
+        </div>;
     }
 
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
@@ -595,11 +595,12 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
-                <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
-                    style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
-            }
-            {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView}
+            {/* {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) : */}
+            <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
+                style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
+            {/* } */}
+            {/* {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView} */}
+            {this.filterView};
         </div>);
     }
 }

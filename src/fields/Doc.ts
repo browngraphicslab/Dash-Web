@@ -1036,6 +1036,8 @@ export namespace Doc {
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
     export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) {
+        console.log("WE REALLY MADE IT");
+        console.log(container, key, value, modifiers);
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i += 3) {

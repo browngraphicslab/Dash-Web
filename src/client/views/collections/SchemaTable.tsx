@@ -177,9 +177,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
+        this.props.active
 
         const cols = this.props.columns.map(col => {
-
             const keysDropdown = <KeysDropdown
                 keyValue={col.heading}
                 possibleKeys={possibleKeys}
@@ -189,6 +189,14 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 onSelect={this.props.changeColumns}
                 setIsEditing={this.props.setHeaderIsEditing}
                 docs={this.props.childDocs}
+                Document={this.props.Document}
+                dataDoc={this.props.dataDoc}
+                fieldKey={this.props.fieldKey}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                ContainingCollectionView={this.props.ContainingCollectionView}
+                active={this.props.active}
+
+
                 // try commenting this out
                 width={"100%"}
             />;

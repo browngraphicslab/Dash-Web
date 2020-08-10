@@ -195,7 +195,7 @@ export class MainView extends React.Component {
             let check = false;
             const icon = "icon";
             targets.forEach((thing) => {
-                if (thing.className.toString() === "collectionSchemaView-searchContainer" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "collectionSchema-header-menuOptions") {
+                if (thing.className.toString() === "collectionSchemaView-searchContainer" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "collectionSchema-header-menuOptions" || thing.className.toString() === "altcollectionTimeView-treeView") {
                     check = true;
                 }
             });
