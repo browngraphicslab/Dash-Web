@@ -372,6 +372,9 @@ export namespace DocServer {
                         } else if (cached instanceof Promise) {
                             proms.push(cached as any);
                         }
+                    } else if (_cache[field.id] instanceof Promise) {
+                        proms.push(_cache[field.id] as any);
+                        (_cache[field.id] as any).then((f: any) => fieldMap[field.id] = f);
                     } else if (field) {
                         proms.push(_cache[field.id] as any);
                         fieldMap[field.id] = field;
