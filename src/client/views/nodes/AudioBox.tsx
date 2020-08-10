@@ -128,14 +128,12 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         // for play when link is selected
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
-                if (this.layoutDoc.playOnSelect) {
-                    const sel = selected.length ? selected[0].props.Document : undefined;
-                    const link = sel && DocListCast(this.dataDoc.links).forEach(l => (l.anchor1 === sel || l.anchor2 === sel) && this.playLink(l), false);
-                    // for links created during recording 
-                    if (!link) {
-                        this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
-                        this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
-                    }
+                const sel = selected.length ? selected[0].props.Document : undefined;
+                const link = sel && DocListCast(this.dataDoc.links).forEach(l => (l.anchor1 === sel || l.anchor2 === sel) && this.playLink(sel), false);
+                // for links created during recording 
+                if (!link) {
+                    this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
+                    this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
                 }
             });
         this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
