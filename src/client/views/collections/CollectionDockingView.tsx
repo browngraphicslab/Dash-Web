@@ -517,7 +517,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     if (Date.now() - tab.titleElement[0].lastClick < 1000) tab.titleElement[0].select();
                     tab.titleElement[0].lastClick = Date.now();
                     tab.titleElement[0].focus();
-                }
+                };
                 tab.titleElement[0].onchange = (e: any) => {
                     tab.titleElement[0].size = e.currentTarget.value.length + 1;
                     Doc.GetProto(doc).title = e.currentTarget.value, true;
