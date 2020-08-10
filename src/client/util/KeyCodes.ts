@@ -131,6 +131,6 @@ export class KeyCodes {
     public static NUM_7: number = 55;
     public static NUM_8: number = 56;
     public static NUM_9: number = 57;
-    public static SUBSTRACT: number = 189;
+    public static SUBTRACT: number = 189;
     public static ADD: number = 187;
 }

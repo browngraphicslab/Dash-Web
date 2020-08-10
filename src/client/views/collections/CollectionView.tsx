@@ -199,7 +199,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
             const toRemove = value.filter(v => docs.includes(v));
             if (toRemove.length !== 0) {
-                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc));
+                const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                toRemove.forEach(doc => {
+                    Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
+                    recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                });
                 return true;
             }
         }

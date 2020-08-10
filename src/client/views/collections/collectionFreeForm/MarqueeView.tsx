@@ -345,14 +345,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
-
-        selected.map(doc => {
-            const effectiveAcl = GetEffectiveAcl(doc);
-            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
-                recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                this.props.removeDocument(doc);
-            }
-        });
+        this.props.removeDocument(selected);
 
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);

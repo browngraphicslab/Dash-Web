@@ -167,6 +167,9 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
         // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
 
+        // if it's your alias then you can manipulate the x, y, width, height
+        if ((target.aliasOf || target.__fields?.aliasOf) && Doc.CurrentUserEmail === (target.__fields?.author || target.author) && (in_prop && ["_width", "_height", "x", "y"].includes(in_prop.toString()))) return AclEdit;
+
         let effectiveAcl = AclPrivate;
         const HierarchyMapping = new Map<symbol, number>([
             [AclPrivate, 0],
@@ -218,9 +221,10 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         changed = true;
 
         // maps over the aliases of the document
-        if (target.aliases) {
-            DocListCast(target.aliases).map(alias => {
-                distributeAcls(key, acl, alias, inheritingFromCollection);
+        const aliases = DocListCast(target.aliases);
+        if (aliases.length) {
+            aliases.map(alias => {
+                alias !== target && distributeAcls(key, acl, alias, inheritingFromCollection);
             });
         }
 
