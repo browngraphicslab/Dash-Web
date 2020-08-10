@@ -182,8 +182,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             childDocs = docsforFilter;
 
-
-            const docFilters = this.docFilters();
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
             return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, this.docFilters(), docRangeFilters, viewSpecScript);

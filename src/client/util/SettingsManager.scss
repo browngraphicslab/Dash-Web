@@ -99,8 +99,8 @@
     display: flex;
 
     .modes-select {
-        width: 170px;
-        margin-right: 65px;
+        // width: 170px;
+        margin-right: 10px;
         color: black;
         border-radius: 5px;
 
@@ -109,10 +109,12 @@
         }
     }
 
-    .modes-playground {
+    .modes-playground,
+    .default-acl {
         display: flex;
 
-        .playground-check {
+        .playground-check,
+        .acl-check {
             margin-right: 5px;
 
             &:hover {
@@ -122,7 +124,13 @@
 
         .playground-text {
             color: black;
+            margin-right: 10px;
         }
+
+        .acl-text {
+            color: black;
+        }
+
     }
 }
 
