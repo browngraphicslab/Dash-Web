@@ -195,7 +195,9 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         let play;
         clearTimeout(play);
         this._duration = endTime - seekTimeInSeconds;
-        if (this._ele && AudioBox.Enabled) {
+        if (Number.isNaN(this._ele?.duration)) {
+            setTimeout(() => this.playFrom(seekTimeInSeconds, endTime), 500);
+        } else if (this._ele && AudioBox.Enabled) {
             if (seekTimeInSeconds < 0) {
                 if (seekTimeInSeconds > -1) {
                     setTimeout(() => this.playFrom(0), -seekTimeInSeconds * 1000);
