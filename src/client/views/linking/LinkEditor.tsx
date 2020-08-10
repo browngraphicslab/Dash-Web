@@ -287,7 +287,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     @observable openDropdown: boolean = false;
     @observable showInfo: boolean = false;
     @computed get infoIcon() { if (this.showInfo) { return "chevron-up"; } return "chevron-down"; }
-    @observable private buttonColor: string = "black";
+    @observable private buttonColor: string = "";
 
 
     //@observable description = this.props.linkDoc.description ? StrCast(this.props.linkDoc.description) : "DESCRIPTION";
@@ -303,7 +303,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (LinkManager.currentLink) {
             LinkManager.currentLink.description = value;
             this.buttonColor = "rgb(62, 133, 55)";
-            setTimeout(action(() => this.buttonColor = "black"), 750);
+            setTimeout(action(() => this.buttonColor = ""), 750);
             return true;
         }
     }
@@ -345,7 +345,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     ></input>
                 </div>
                 <div className="linkEditor-description-add-button"
-                    style={{ backgroundColor: this.buttonColor }}
+                    style={{ background: this.buttonColor }}
                     onPointerDown={this.onDown}>Set</div>
             </div></div>;
     }
@@ -355,11 +355,11 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this.openDropdown = !this.openDropdown;
     }
 
-    @undoBatch @action
-    changeFollowBehavior = (follow: string) => {
+    @undoBatch
+    changeFollowBehavior = action((follow: string) => {
         this.openDropdown = false;
         Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;
-    }
+    })
 
     @computed
     get followingDropdown() {
@@ -382,12 +382,18 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("onRight")}>
-                        Always open in right tab
+                        Always open in new pane on right
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("inTab")}>
                         Always open in new tab
                         </div>
+                    {this.props.linkDoc.linksToAnnotation ?
+                        <div className="linkEditor-followingDropdown-option"
+                            onPointerDown={() => this.changeFollowBehavior("openExternal")}>
+                            Always open in external page
+                        </div>
+                        : null}
                 </div>
             </div>
         </div>;

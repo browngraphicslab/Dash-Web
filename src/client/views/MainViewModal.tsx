@@ -21,7 +21,9 @@ export default class MainViewModal extends React.Component<MainViewOverlayProps>
         const dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
         const overlayOpacity = p.overlayDisplayedOpacity || 0.4;
         return !p.isDisplayed ? (null) : (
-            <div style={{ pointerEvents: p.isDisplayed && p.interactive ? "all" : "none" }}>
+            <div style={{
+                pointerEvents: p.isDisplayed && p.interactive ? "all" : "none"
+            }}>
                 <div
                     className={"dialogue-box"}
                     style={{

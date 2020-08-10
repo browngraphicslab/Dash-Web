@@ -508,9 +508,9 @@ export namespace Doc {
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         alias.author = Doc.CurrentUserEmail;
+        alias[AclSym] = doc[AclSym];
 
-        if (!doc.aliases) doc.aliases = new List<Doc>([alias]);
-        else Doc.AddDocToList(doc, "aliases", alias);
+        Doc.AddDocToList(doc[DataSym], "aliases", alias);
 
         return alias;
     }
@@ -627,7 +627,7 @@ export namespace Doc {
 
         const zip = new JSZip();
 
-        zip.file("doc.json", docString);
+        zip.file(doc.title + ".json", docString);
 
         // // Generate a directory within the Zip file structure
         // var img = zip.folder("images");
@@ -639,7 +639,7 @@ export namespace Doc {
         zip.generateAsync({ type: "blob" })
             .then((content: any) => {
                 // Force down of the Zip file
-                saveAs(content, "download.zip");
+                saveAs(content, doc.title + ".zip"); // glr: Possibly change the name of the document to match the title?
             });
     }
     //
@@ -770,6 +770,7 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
+        Doc.UserDoc().defaultAclPrivate && (copy["ACL-Public"] = "Not Shared");
         return copy;
     }
 
@@ -794,6 +795,7 @@ export namespace Doc {
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
+            Doc.UserDoc().defaultAclPrivate && (applied["ACL-Public"] = "Not Shared");
             return applied;
         }
         return undefined;

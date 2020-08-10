@@ -129,9 +129,9 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
             StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
 
-        var controlPoints: { X: number, Y: number, I: number }[] = [];
-        var handlePoints: { X: number, Y: number, I: number, dot1: number, dot2: number }[] = [];
-        var handleLine: { X1: number, Y1: number, X2: number, Y2: number, X3: number, Y3: number, dot1: number, dot2: number }[] = [];
+        const controlPoints: { X: number, Y: number, I: number }[] = [];
+        const handlePoints: { X: number, Y: number, I: number, dot1: number, dot2: number }[] = [];
+        const handleLine: { X1: number, Y1: number, X2: number, Y2: number, X3: number, Y3: number, dot1: number, dot2: number }[] = [];
         if (data.length >= 4) {
             for (var i = 0; i <= data.length - 4; i += 4) {
                 controlPoints.push({ X: data[i].X, Y: data[i].Y, I: i });

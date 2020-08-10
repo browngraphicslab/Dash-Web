@@ -74,7 +74,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (e.key === "?") {
             ContextMenu.Instance.setDefaultItem("?", (str: string) => {
                 const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, {
-                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
+                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false,
                     title: "bing", UseCors: true
                 });
                 this.props.addDocTab(textDoc, "onRight");
@@ -339,10 +339,21 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._visible = false;
     }
 
+    @undoBatch
     @action
     delete = () => {
-        this.props.removeDocument(this.marqueeSelect(false));
+        const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+        const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
+
+        selected.map(doc => {
+            const effectiveAcl = GetEffectiveAcl(doc);
+            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
+                recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                this.props.removeDocument(doc);
+            }
+        });
+
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
@@ -379,7 +390,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    @action
+    @undoBatch @action
     collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
@@ -404,7 +415,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    @action
+    @undoBatch @action
     syntaxHighlight = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "i" : true) {
@@ -480,7 +491,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
     }
 
-    @action
+    @undoBatch @action
     summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);

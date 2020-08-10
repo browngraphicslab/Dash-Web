@@ -4,7 +4,7 @@ import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
-import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { DataSym, Doc, HeightSym, WidthSym, DocListCastAsync } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -28,6 +28,7 @@ import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocUtils } from "../../documents/Documents";
+import { MainViewNotifs } from "../MainViewNotifs";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -184,7 +185,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (found) {
             const top = found.getBoundingClientRect().top;
             const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
-            smoothScroll(500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+            smoothScroll(doc.presTransition || doc.presTransition === 0 ? NumCast(doc.presTransition) : 500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
         afterFocus && setTimeout(() => {
             if (afterFocus?.()) { }
@@ -287,19 +288,35 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                 }
             });
             if (super.onInternalDrop(e, de)) {
-                const newDoc = de.complete.docDragData.droppedDocuments[0];
+                const newDocs = de.complete.docDragData.droppedDocuments;
                 const docs = this.childDocList;
                 if (docs) {
-                    if (targInd === -1) targInd = docs.length;
-                    else targInd = docs.indexOf(this.filteredChildren[targInd]);
-                    const srcInd = docs.indexOf(newDoc);
-                    docs.splice(srcInd, 1);
-                    docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, newDoc);
+                    newDocs.map((doc, i) => {
+                        console.log(doc.title);
+                        if (i === 0) {
+                            if (targInd === -1) targInd = docs.length;
+                            else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                            const srcInd = docs.indexOf(doc);
+                            docs.splice(srcInd, 1);
+                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                            DocListCastAsync(docs).then(resolvedDocs => {
+                                const pos = resolvedDocs?.findIndex(shareDoc => shareDoc.icon === "users") || 0; // hopefully find out if the sharing doc has been moved
+                                if (MainViewNotifs.NotifsCol && pos !== -1) MainViewNotifs.NotifsCol.position = pos;
+                            });
+                        } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
+                            if (targInd === -1) targInd = docs.length;
+                            else targInd = docs.indexOf(newDocs[0]) + 1;
+                            const srcInd = docs.indexOf(doc);
+                            docs.splice(srcInd, 1);
+                            docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
+                        }
+                    });
                 }
             }
         }
         return false;
     }
+
     @undoBatch
     @action
     onExternalDrop = async (e: React.DragEvent): Promise<void> => {

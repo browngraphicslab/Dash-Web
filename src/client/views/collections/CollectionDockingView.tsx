@@ -30,6 +30,8 @@ import { SnappingManager } from '../../util/SnappingManager';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { listSpec } from '../../../fields/Schema';
 import { clamp } from 'lodash';
+import { PresBox } from '../nodes/PresBox';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkTool } from '../../../fields/InkField';
 const _global = (window /* browser */ || global /* node */) as any;
@@ -511,7 +513,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
             const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             if (doc instanceof Doc) {
-                tab.titleElement[0].onclick = (e: any) => tab.titleElement[0].focus();
+                tab.titleElement[0].onclick = (e: any) => {
+                    if (Date.now() - tab.titleElement[0].lastClick < 1000) tab.titleElement[0].select();
+                    tab.titleElement[0].lastClick = Date.now();
+                    tab.titleElement[0].focus();
+                }
                 tab.titleElement[0].onchange = (e: any) => {
                     tab.titleElement[0].size = e.currentTarget.value.length + 1;
                     Doc.GetProto(doc).title = e.currentTarget.value, true;
@@ -689,8 +695,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return (this.props as any).glContainer.parent.parent;
     }
     get _tab(): any {
-        const tab = (this.props as any).glContainer.tab.element[0] as HTMLElement;
-        return tab.getElementsByClassName("lm_title")?.[0];
+        const tab = (this.props as any).glContainer.tab?.element[0] as HTMLElement;
+        return tab?.getElementsByClassName("lm_title")?.[0];
     }
     constructor(props: any) {
         super(props);
@@ -755,7 +761,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, "white") }),
             (data) => {
                 const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
-                this._tab.style.backgroundColor = selected ? data.color : "";
+                this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
             }
         );
     }
@@ -862,6 +868,31 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return false;
         }), emptyFunction, emptyFunction);
     }
+    getCurrentFrame = (): number => {
+        const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
+        const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
+        return currentFrame;
+    }
+    renderMiniPres() {
+        return (
+            <div className="miniPres"
+                style={{ width: 250, height: 30, background: '#323232' }}
+            >
+                {<div className="miniPresOverlay">
+                    <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
+                    <div className="miniPres-button" onClick={() => PresBox.Instance.startAutoPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
+                    <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
+                    <div className="miniPres-divider"></div>
+                    <div className="miniPres-button-text">
+                        Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}
+                        {PresBox.Instance.playButtonFrames}
+                    </div>
+                    <div className="miniPres-divider"></div>
+                    <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
+                </div>}
+            </div>
+        );
+    }
     renderMiniMap() {
         return <div className="miniMap" style={{
             width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
@@ -944,6 +975,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
             {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
+            {document._viewType === CollectionViewType.Freeform && this._document?.miniPres ? this.renderMiniPres() : (null)}
         </>;
     }
 

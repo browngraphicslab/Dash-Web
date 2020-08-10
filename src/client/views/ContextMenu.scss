@@ -7,7 +7,7 @@
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
     flex-direction: column;
     background: whitesmoke;
-    padding-top: 10px; 
+    padding-top: 10px;
     padding-bottom: 10px;
     border-radius: 15px;
     border: solid #BBBBBBBB 1px;
@@ -72,6 +72,7 @@
         margin-left: 5px;
     }
 }
+
 .contextMenu-description {
     // width: 11vw; //10vw
     background: whitesmoke;
@@ -100,6 +101,8 @@
     border-color: $intermediate-color; //  rgb(187, 186, 186);
     border-bottom-style: solid;
     border-top-style: solid;
+
+    cursor: pointer;
 }
 
 .contextMenu-itemSelected {

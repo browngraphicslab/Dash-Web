@@ -611,7 +611,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
-        const canDelete = SelectionManager.SelectedDocuments().map(docView => GetEffectiveAcl(docView.props.ContainingCollectionDoc)).some(permission => permission === AclAdmin || permission === AclEdit);
+        const canDelete = SelectionManager.SelectedDocuments().some(docView => {
+            const docAcl = GetEffectiveAcl(docView.props.Document);
+            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc);
+            return [docAcl, collectionAcl].some(acl => [AclAdmin, AclEdit].includes(acl));
+        });
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
             <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">

@@ -29,6 +29,8 @@ export namespace SearchUtil {
         rows?: number;
         fq?: string;
         allowAliases?: boolean;
+        "facet"?: string;
+        "facet.field"?: string;
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;

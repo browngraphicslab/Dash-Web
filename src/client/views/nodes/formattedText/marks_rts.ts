@@ -31,7 +31,7 @@ export const marks: { [index: string]: MarkSpec } = {
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { allLinks: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.getAttribute("targetids") }], location: dom.getAttribute("location"), };
+                return { allLinks: [{ href: dom.getAttribute("href"), title: dom.getAttribute("title"), linkId: dom.getAttribute("linkids"), targetId: dom.dataset.targetids }], location: dom.getAttribute("location"), };
             }
         }],
         toDOM(node: any) {
@@ -40,10 +40,10 @@ export const marks: { [index: string]: MarkSpec } = {
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, href: node.attrs.allLinks[0].href, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
                 node.attrs.allLinks.length === 1 ?
-                    ["a", { ...node.attrs, class: linkids, targetids, style: `text-decoration: ${linkids === " " ? "underline" : undefined}`, title: `${node.attrs.title}`, href: node.attrs.allLinks[0].href }, 0] :
+                    ["a", { ...node.attrs, class: linkids, dataTargetids: targetids, title: `${node.attrs.title}`, href: node.attrs.allLinks[0].href, style: `text-decoration: ${linkids === " " ? "underline" : undefined}` }, 0] :
                     ["div", { class: "prosemirror-anchor" },
                         ["span", { class: "prosemirror-linkBtn" },
-                            ["a", { ...node.attrs, class: linkids, targetids, title: `${node.attrs.title}` }, 0],
+                            ["a", { ...node.attrs, class: linkids, dataTargetids: targetids, title: `${node.attrs.title}` }, 0],
                             ["input", { class: "prosemirror-hrefoptions" }],
                         ],
                         ["div", { class: "prosemirror-links" }, ...node.attrs.allLinks.map((item: { href: string, title: string }) =>

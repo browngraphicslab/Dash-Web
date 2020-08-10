@@ -45,14 +45,22 @@ export interface FieldViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
+    presMultiSelect?: (doc: Doc) => void; //added for selecting multiple documents in a presentation
     ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    PanelPosition?: string;
+    overflow?: boolean;
     NativeHeight: () => number;
     NativeWidth: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
+
     ChromeHeight?: () => number;
+    childLayoutTemplate?: () => Opt<Doc>;
+    highlighting?: string[];
+    lines?: string[];
+    doc?: Doc;
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
     height?: number;
     width?: number;

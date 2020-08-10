@@ -8,7 +8,7 @@ import { Doc, DocListCast, DocListCastAsync, DataSym } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { listSpec } from "../../fields/Schema";
 import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
+import { Cast, PromiseValue, StrCast, NumCast, BoolCast } from "../../fields/Types";
 import { nullAudio } from "../../fields/URLField";
 import { DragManager } from "./DragManager";
 import { Scripting } from "./Scripting";
@@ -45,7 +45,7 @@ export class CurrentUserUtils {
         if (doc["template-button-query"] === undefined) {
             const queryTemplate = Docs.Create.MulticolumnDocument(
                 [
-                    Docs.Create.QueryDocument({ title: "query", _height: 200 }),
+                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200 }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100 })
                 ],
                 { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true }
@@ -248,8 +248,8 @@ export class CurrentUserUtils {
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument(requiredTypes, {
                 title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
-                hidden: ComputedField.MakeFunction("self.target.noviceMode") as any,
-                target: doc,
+                hidden: ComputedField.MakeFunction("self.userDoc.noviceMode") as any,
+                userDoc: doc,
                 _autoHeight: true, _width: 500, _columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
@@ -387,7 +387,7 @@ export class CurrentUserUtils {
 
     static creatorBtnDescriptors(doc: Doc): {
         title: string, toolTip: string, icon: string, drag?: string, ignoreClick?: boolean,
-        click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc
+        click?: string, ischecked?: string, activeInkPen?: Doc, backgroundColor?: string, dragFactory?: Doc, noviceMode?: boolean
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
@@ -415,31 +415,28 @@ export class CurrentUserUtils {
         if (doc.emptyButton === undefined) {
             doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button" });
         }
-        if (doc.emptySearch === undefined) {
-            doc.emptySearch = Docs.Create.QueryDocument({ _width: 200, title: "empty search" });
-        }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
                 ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
                 { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
         }
         return [
-            { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
-            { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
+            { toolTip: "Drag a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc, noviceMode: true },
+            { toolTip: "Drag a web page", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
             { toolTip: "Drag a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
-            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc },
+            { toolTip: "Drag a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
             { toolTip: "Drag a screengrabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
             //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc },
-            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc },
+            { toolTip: "Drag a audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
+            { toolTip: "Drag a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
 
-            { toolTip: "Drag a presentation view", title: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc },
+            { toolTip: "Drag a presentation view", title: "Present", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Drag a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Drag a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
@@ -450,8 +447,9 @@ export class CurrentUserUtils {
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-            { toolTip: "Drag a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Drag a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
+            { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
@@ -468,7 +466,7 @@ export class CurrentUserUtils {
             }
         }
         const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
-        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
+        const creatorBtns = buttons.map(({ title, toolTip, icon, ignoreClick, drag, click, ischecked, activeInkPen, backgroundColor, dragFactory, noviceMode }) => Docs.Create.FontIconDocument({
             _nativeWidth: 50, _nativeHeight: 50, _width: 50, _height: 50,
             icon,
             title,
@@ -482,6 +480,8 @@ export class CurrentUserUtils {
             backgroundColor,
             removeDropProperties: new List<string>(["dropAction"]),
             dragFactory,
+            userDoc: noviceMode ? undefined as any : doc,
+            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode")
         }));
 
         if (dragCreatorSet === undefined) {
@@ -512,6 +512,14 @@ export class CurrentUserUtils {
         ];
     }
 
+    static setupSearchPanel(doc: Doc) {
+        if (doc["search-panel"] === undefined) {
+            doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({
+                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true,
+                childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack",
+            })) as any as Doc;
+        }
+    }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
             const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
@@ -527,8 +535,8 @@ export class CurrentUserUtils {
                     onClick: ScriptField.MakeScript(click, { scriptContext: "any" }),
                 }));
             const userDoc = menuBtns[menuBtns.length - 1];
-            userDoc.target = doc;
-            userDoc.hidden = ComputedField.MakeFunction("self.target.noviceMode");
+            userDoc.userDoc = doc;
+            userDoc.hidden = ComputedField.MakeFunction("self.userDoc.noviceMode");
 
             doc.menuStack = new PrefetchProxy(Docs.Create.StackingDocument(menuBtns, {
                 title: "menuItemPanel",
@@ -546,7 +554,7 @@ export class CurrentUserUtils {
                     btn.color = "white";
                     btn._backgroundColor = "";
                 }));
-            })
+            });
         });
         return doc.menuStack as Doc;
     }
@@ -652,7 +660,7 @@ export class CurrentUserUtils {
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
     // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
-    static async setupToolsBtnPanel(doc: Doc, sidebarContainer: Doc) {
+    static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
@@ -750,6 +758,8 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
     }
+
+
     static setupUserDoc(doc: Doc) {
         if (doc["sidebar-userDoc"] === undefined) {
             doc.treeViewOpen = true;
@@ -763,19 +773,19 @@ export class CurrentUserUtils {
     }
 
     static setupSidebarContainer(doc: Doc) {
-        if (doc["sidebar"] === undefined) {
+        if (doc.sidebar === undefined) {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
             sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
-            doc["sidebar"] = new PrefetchProxy(sidebarContainer);
+            doc.sidebar = new PrefetchProxy(sidebarContainer);
         }
-        return doc["sidebar"] as Doc;
+        return doc.sidebar as Doc;
     }
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static async setupSidebarButtons(doc: Doc) {
-        const sidebarContainer = CurrentUserUtils.setupSidebarContainer(doc);
-        await CurrentUserUtils.setupToolsBtnPanel(doc, sidebarContainer);
+        CurrentUserUtils.setupSidebarContainer(doc);
+        await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupWorkspaces(doc);
         CurrentUserUtils.setupCatalog(doc);
         CurrentUserUtils.setupRecentlyClosed(doc);
@@ -813,6 +823,11 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
+        if (doc["template-presentation"] === undefined) {
+            doc["template-presentation"] = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
+                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
+            }));
+        }
         if (doc.activePresentation === undefined) {
             doc.activePresentation = Docs.Create.PresDocument(new List<Doc>(), {
                 title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias",
@@ -822,9 +837,9 @@ export class CurrentUserUtils {
     }
 
     // Right sidebar is where mobile uploads are contained
-    static setupRightSidebar(doc: Doc) {
+    static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Uploads" }));
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias" }));
         }
     }
 
@@ -890,14 +905,17 @@ export class CurrentUserUtils {
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
+        doc.defaultColor = StrCast(doc.defaultColor, "white");
+        doc.noviceMode = BoolCast(doc.noviceMode, true);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
-        this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
+        this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         this.setupDefaultPresentation(doc); // presentation that's initially triggered

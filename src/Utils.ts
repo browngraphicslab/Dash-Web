@@ -378,6 +378,15 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
+export function formatTime(time: number) {
+    time = Math.round(time);
+    const hours = Math.floor(time / 60 / 60);
+    const minutes = Math.floor(time / 60) - (hours * 60);
+    const seconds = time % 60;
+
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+}
+
 export function aggregateBounds(boundsList: { x: number, y: number, width?: number, height?: number }[], xpad: number, ypad: number) {
     const bounds = boundsList.map(b => ({ x: b.x, y: b.y, r: b.x + (b.width || 0), b: b.y + (b.height || 0) })).reduce((bounds, b) => ({
         x: Math.min(b.x, bounds.x), y: Math.min(b.y, bounds.y),
@@ -505,7 +514,7 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
-export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number, rightClick = true) {
     ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
         new PointerEvent(event, {
             view: window,
@@ -519,7 +528,7 @@ export function simulateMouseClick(element: Element, x: number, y: number, sx: n
             screenY: sy,
         })));
 
-    element.dispatchEvent(
+    rightClick && element.dispatchEvent(
         new MouseEvent("contextmenu", {
             view: window,
             bubbles: true,
@@ -538,7 +547,7 @@ export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
-    upEvent: (e: PointerEvent) => void,
+    upEvent: (e: PointerEvent, movement: number[]) => void,
     clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
     stopPropagation: boolean = true,
     stopMovePropagation: boolean = true
@@ -562,7 +571,7 @@ export function setupMoveUpEvents(
     const _upEvent = (e: PointerEvent): void => {
         (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
         (target as any)._lastTap = Date.now();
-        upEvent(e);
+        upEvent(e, [e.clientX - (target as any)._downX, e.clientY - (target as any)._downY]);
         if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
             clickEvent(e, (target as any)._doubleTap);
         }

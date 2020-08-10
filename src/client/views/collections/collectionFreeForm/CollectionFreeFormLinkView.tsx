@@ -54,15 +54,15 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
                 // really hacky stuff to make the LinkAnchorBox display where we want it to:
-                //   if there's an element in the DOM with a classname containing the link's id and a targetids attribute containing the other end of the link, 
+                //   if there's an element in the DOM with a classname containing the link's id and a data-targetids attribute containing the other end of the link, 
                 //   then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
                 //   otherwise, we just use the computed nearest point on the document boundary to the target Document
                 const linkId = this.props.LinkDocs[0][Id]; // this link's Id
                 const AanchorId = (this.props.LinkDocs[0][afield] as Doc)[Id]; // anchor a's id
                 const BanchorId = (this.props.LinkDocs[0][bfield] as Doc)[Id]; // anchor b's id
                 const linkEles = Array.from(window.document.getElementsByClassName(linkId));
-                const targetAhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(AanchorId));
-                const targetBhyperlink = linkEles.find((ele: any) => ele.getAttribute("targetids")?.includes(BanchorId));
+                const targetAhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes(AanchorId));
+                const targetBhyperlink = linkEles.find((ele: any) => ele.dataset.targetids?.includes(BanchorId));
                 if (!targetBhyperlink) {
                     this.props.A.rootDoc[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
                     this.props.A.rootDoc[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;

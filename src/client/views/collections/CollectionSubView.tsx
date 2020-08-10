@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
 import { basename } from 'path';
 import CursorField from "../../../fields/CursorField";
-import { Doc, Opt, Field } from "../../../fields/Doc";
+import { Doc, Opt, Field, DocListCast } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -112,9 +112,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
+            let rawdocs: (Doc | Promise<Doc>)[] = DocListCast(this.props.Document._searchDocs);
 
-            let rawdocs: (Doc | Promise<Doc>)[] = [];
-            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+            if (rawdocs.length !== 0) {
+            } else if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
             } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
                 rawdocs = Cast(this.dataField, listSpec(Doc), null);
@@ -126,11 +127,64 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
 
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
-            const docFilters = this.docFilters();
-            const viewSpecScript = ScriptCast(this.props.Document.viewSpecScript);
+            const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+            const searchDocs = DocListCast(this.props.Document._searchDocs);
+            // if (searchDocs !== undefined && searchDocs.length > 0) {
+            //     let newdocs: Doc[] = [];
+            //     childDocs.forEach((el) => {
+            //         searchDocs.includes(el) ? newdocs.push(el) : undefined;
+            //     });
+            //     childDocs = newdocs;
+            // }
+
+            let docsforFilter: Doc[] = childDocs;
+            if (searchDocs !== undefined && searchDocs.length > 0) {
+                docsforFilter = [];
+                // let newdocs: Doc[] = [];
+                // let newarray: Doc[] = [];
+                //while (childDocs.length > 0) {
+                //newarray = [];
+                childDocs.forEach((d) => {
+                    if (d.data !== undefined) {
+                        console.log(d);
+                        let newdocs = DocListCast(d.data);
+                        if (newdocs.length > 0) {
+                            let vibecheck: boolean | undefined = undefined;
+                            let newarray: Doc[] = [];
+                            while (newdocs.length > 0) {
+                                newarray = [];
+                                newdocs.forEach((t) => {
+                                    if (d.data !== undefined) {
+                                        const newdocs = DocListCast(t.data);
+                                        newdocs.forEach((newdoc) => {
+                                            newarray.push(newdoc);
+                                        });
+                                    }
+                                    if (searchDocs.includes(t)) {
+                                        vibecheck = true;
+                                    }
+                                });
+                                newdocs = newarray;
+                            }
+                            if (vibecheck === true) {
+                                docsforFilter.push(d);
+                            }
+                        }
+                    }
+                    if (searchDocs.includes(d)) {
+                        docsforFilter.push(d);
+                    }
+                });
+                //childDocs = newarray;
+                //}
+            }
+            childDocs = docsforFilter;
+
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
 
-            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, docFilters, docRangeFilters, viewSpecScript);
+            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 
         @action
@@ -346,14 +400,28 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 // }
             }
             if (uriList) {
-                this.addDocument(Docs.Create.WebDocument(uriList, {
-                    ...options,
-                    title: uriList,
-                    _width: 400,
-                    _height: 315,
-                    _nativeWidth: 600,
-                    _nativeHeight: 472.5
-                }));
+                const existingWebDoc = await Hypothesis.findWebDoc(uriList);
+                if (existingWebDoc) {
+                    const alias = Doc.MakeAlias(existingWebDoc);
+                    alias.x = options.x;
+                    alias.y = options.y;
+                    alias._nativeWidth = 850;
+                    alias._nativeHeight = 962;
+                    alias._width = 400;
+                    this.addDocument(alias);
+                } else {
+                    const newDoc = Docs.Create.WebDocument(uriList, {
+                        ...options,
+                        title: uriList.split("#annotations:")[0],
+                        _width: 400,
+                        _height: 315,
+                        _nativeWidth: 850,
+                        _nativeHeight: 962,
+                        UseCors: true
+                    });
+                    newDoc.data = new WebField(uriList.split("#annotations:")[0]); // clean hypothes.is URLs that reference a specific annotation (eg. https://en.wikipedia.org/wiki/Cartoon#annotations:t7qAeNbCEeqfG5972KR2Ig)
+                    this.addDocument(newDoc);
+                }
                 return;
             }
 
@@ -436,4 +504,5 @@ import { CollectionView, CollectionViewType } from "./CollectionView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { OverlayView } from "../OverlayView";
 import { setTimeout } from "timers";
+import { Hypothesis } from "../../util/HypothesisUtils";
 

@@ -2,18 +2,23 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { emptyFunction, setupMoveUpEvents, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { TraceMobx } from "../../../fields/util";
-import { emptyFunction, returnFalse, setupMoveUpEvents, emptyPath } from "../../../Utils";
-import { DocUtils } from "../../documents/Documents";
+import { DocUtils, Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import './DocumentLinksButton.scss';
 import { DocumentView } from "./DocumentView";
+import { StrCast, Cast } from "../../../fields/Types";
 import { LinkDescriptionPopup } from "./LinkDescriptionPopup";
+import { Hypothesis } from "../../util/HypothesisUtils";
+import { Id } from "../../../fields/FieldSymbols";
 import { TaskCompletionBox } from "./TaskCompletedBox";
 import React = require("react");
+import './DocumentLinksButton.scss';
+
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -30,7 +35,12 @@ interface DocumentLinksButtonProps {
 export class DocumentLinksButton extends React.Component<DocumentLinksButtonProps, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
 
-    @observable public static StartLink: DocumentView | undefined;
+    @observable public static StartLink: Doc | undefined;
+    @observable public static AnnotationId: string | undefined;
+    @observable public static AnnotationUri: string | undefined;
+
+    @observable public static invisibleWebDoc: Opt<Doc>;
+    public static invisibleWebRef = React.createRef<HTMLDivElement>();
 
     @action @undoBatch
     onLinkButtonMoved = (e: PointerEvent) => {
@@ -67,14 +77,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
         setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, action((e, doubleTap) => {
             if (doubleTap && this.props.InMenu && this.props.StartLink) {
                 //action(() => Doc.BrushDoc(this.props.View.Document));
-                if (DocumentLinksButton.StartLink === this.props.View) {
+                if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                     DocumentLinksButton.StartLink = undefined;
                 } else {
-                    DocumentLinksButton.StartLink = this.props.View;
+                    DocumentLinksButton.StartLink = this.props.View.props.Document;
                 }
             } else if (!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
-                DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
             }
         }));
     }
@@ -82,52 +91,80 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     @action @undoBatch
     onLinkClick = (e: React.MouseEvent): void => {
         if (this.props.InMenu && this.props.StartLink) {
-            if (DocumentLinksButton.StartLink === this.props.View) {
+            DocumentLinksButton.AnnotationId = undefined;
+            DocumentLinksButton.AnnotationUri = undefined;
+            if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                 DocumentLinksButton.StartLink = undefined;
             } else {
-                DocumentLinksButton.StartLink = this.props.View;
+                DocumentLinksButton.StartLink = this.props.View.props.Document;
             }
 
             //action(() => Doc.BrushDoc(this.props.View.Document));
         } else if (!this.props.InMenu) {
             DocumentLinksButton.EditLink = this.props.View;
-            DocumentLinksButton.EditLinkLoc = [e.clientX + 10, e.clientY];
         }
     }
 
     completeLink = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, returnFalse, emptyFunction, undoBatch(action((e, doubleTap) => {
-            if (doubleTap && this.props.InMenu && !this.props.StartLink) {
-                if (DocumentLinksButton.StartLink === this.props.View) {
+            if (doubleTap && !this.props.StartLink) {
+                if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                     DocumentLinksButton.StartLink = undefined;
-                } else if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
-                    const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+                    DocumentLinksButton.AnnotationId = undefined;
+                } else if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
+                    const sourceDoc = DocumentLinksButton.StartLink;
+                    const targetDoc = this.props.View.props.Document;
+                    const linkDoc = DocUtils.MakeLink({ doc: sourceDoc }, { doc: targetDoc }, "long drag");
+
                     LinkManager.currentLink = linkDoc;
-                    if (linkDoc) {
-                        TaskCompletionBox.textDisplayed = "Link Created";
-                        TaskCompletionBox.popupX = e.screenX;
-                        TaskCompletionBox.popupY = e.screenY - 133;
-                        TaskCompletionBox.taskCompleted = true;
 
-                        LinkDescriptionPopup.popupX = e.screenX;
-                        LinkDescriptionPopup.popupY = e.screenY - 100;
-                        LinkDescriptionPopup.descriptionPopup = true;
+                    runInAction(() => {
+                        if (linkDoc) {
+                            TaskCompletionBox.textDisplayed = "Link Created";
+                            TaskCompletionBox.popupX = e.screenX;
+                            TaskCompletionBox.popupY = e.screenY - 133;
+                            TaskCompletionBox.taskCompleted = true;
 
-                        setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
-                    }
+                            LinkDescriptionPopup.popupX = e.screenX;
+                            LinkDescriptionPopup.popupY = e.screenY - 100;
+                            LinkDescriptionPopup.descriptionPopup = true;
+
+                            LinkDescriptionPopup.popupX = e.screenX;
+                            LinkDescriptionPopup.popupY = e.screenY - 100;
+                            LinkDescriptionPopup.descriptionPopup = true;
+
+                            setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
+                        }
+                    });
                 }
             }
         })));
     }
-    finishLinkClick = undoBatch(action((screenX: number, screenY: number) => {
-        if (DocumentLinksButton.StartLink === this.props.View) {
+
+    public static finishLinkClick = undoBatch(action((screenX: number, screenY: number, startLink: Doc, endLink: Doc, startIsAnnotation: boolean, endLinkView?: DocumentView,) => {
+        if (startLink === endLink) {
             DocumentLinksButton.StartLink = undefined;
-        } else if (this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View) {
-            const linkDoc = DocUtils.MakeLink({ doc: DocumentLinksButton.StartLink.props.Document }, { doc: this.props.View.props.Document }, "long drag");
+            DocumentLinksButton.AnnotationId = undefined;
+            DocumentLinksButton.AnnotationUri = undefined;
+            //!this.props.StartLink 
+        } else if (startLink !== endLink) {
+            const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
             // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
-            DocumentLinksButton.StartLink!._link = this.props.View._link = linkDoc;
-            setTimeout(action(() => DocumentLinksButton.StartLink!._link = this.props.View._link = undefined), 0);
+            if (endLinkView) {
+                startLink._link = endLinkView._link = linkDoc;
+                setTimeout(action(() => startLink._link = endLinkView._link = undefined), 0);
+            }
             LinkManager.currentLink = linkDoc;
+
+            if (DocumentLinksButton.AnnotationId && DocumentLinksButton.AnnotationUri) { // if linking from a Hypothes.is annotation
+                Doc.GetProto(linkDoc as Doc).linksToAnnotation = true;
+                Doc.GetProto(linkDoc as Doc).annotationId = DocumentLinksButton.AnnotationId;
+                Doc.GetProto(linkDoc as Doc).annotationUri = DocumentLinksButton.AnnotationUri;
+                const dashHyperlink = Utils.prepend("/doc/" + (startIsAnnotation ? endLink[Id] : startLink[Id]));
+                Hypothesis.makeLink(StrCast(startIsAnnotation ? endLink.title : startLink.title), dashHyperlink, DocumentLinksButton.AnnotationId,
+                    (startIsAnnotation ? startLink : endLink)); // edit annotation to add a Dash hyperlink to the linked doc
+            }
+
             if (linkDoc) {
                 TaskCompletionBox.textDisplayed = "Link Created";
                 TaskCompletionBox.popupX = screenX;
@@ -139,16 +176,13 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     LinkDescriptionPopup.popupY = screenY - 100;
                     LinkDescriptionPopup.descriptionPopup = true;
                 }
-
-                setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
+                setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
             }
         }
     }));
 
     @observable
     public static EditLink: DocumentView | undefined;
-    public static EditLinkLoc: number[] = [0, 0];
-
 
     @action clearLinks() {
         DocumentLinksButton.StartLink = undefined;
@@ -181,7 +215,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
         const linkButton = <div ref={this._linkButton} style={{ minWidth: 20, minHeight: 20, position: "absolute", left: this.props.Offset?.[0] }}>
             <div className={"documentLinksButton"} style={{
-                backgroundColor: this.props.InMenu ? "black" : "",
+                backgroundColor: this.props.InMenu ? "" : "#add8e6",
                 color: this.props.InMenu ? "white" : "black",
                 width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px", fontWeight: "bold"
             }}
@@ -202,23 +236,26 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     link : links.length}
 
             </div>
-            {DocumentLinksButton.StartLink && this.props.InMenu && !this.props.StartLink &&
-                DocumentLinksButton.StartLink !== this.props.View ? <div className={"documentLinksButton-endLink"}
+            {this.props.InMenu && !this.props.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document ?
+                <div className={"documentLinksButton-endLink"}
                     style={{
                         width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
                         backgroundColor: DocumentLinksButton.StartLink ? "" : "grey",
                         border: DocumentLinksButton.StartLink ? "" : "none"
                     }}
                     onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}
-                    onClick={e => DocumentLinksButton.StartLink ? this.finishLinkClick(e.screenX, e.screenY) : emptyFunction} /> : (null)}
-            {DocumentLinksButton.StartLink === this.props.View && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
-                style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
-                onPointerDown={this.clearLinks} onClick={this.clearLinks}
-            /> : (null)}
-        </div>;
+                    onClick={e => DocumentLinksButton.StartLink ? DocumentLinksButton.finishLinkClick(e.screenX, e.screenY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View) : emptyFunction} /> : (null)
+            }
+            {
+                DocumentLinksButton.StartLink === this.props.View.props.Document && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}
+                    style={{ width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px" }}
+                    onPointerDown={this.clearLinks} onClick={this.clearLinks}
+                /> : (null)
+            }
+        </div >;
 
         return (!links.length) && !this.props.AlwaysOn ? (null) :
-            this.props.InMenu ?
+            this.props.InMenu && (DocumentLinksButton.StartLink || this.props.StartLink) ?
                 <Tooltip title={<><div className="dash-tooltip">{title}</div></>}>
                     {linkButton}
                 </Tooltip> : !!!DocumentLinksButton.EditLink && !this.props.InMenu ?
@@ -227,6 +264,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     </Tooltip> :
                     linkButton;
     }
+
     render() {
         return this.linkButton;
     }

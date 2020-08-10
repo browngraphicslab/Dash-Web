@@ -1,13 +1,12 @@
 import { action } from "mobx";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc, DocListCast, AclEdit, AclAdmin } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkTool } from "../../fields/InkField";
 import { List } from "../../fields/List";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, PromiseValue } from "../../fields/Types";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
-import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import { DocServer } from "../DocServer";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DictationManager } from "../util/DictationManager";
@@ -24,6 +23,7 @@ import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
 import GroupManager from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
+import { GetEffectiveAcl } from "../../fields/util";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -106,10 +106,11 @@ export default class KeyManager {
                 doDeselect && SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
-                HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();
-                CollectionFreeFormViewChrome.Instance.clearKeep();
+                CollectionFreeFormViewChrome.Instance?.clearKeep();
+                window.getSelection()?.empty();
+                document.body.focus();
                 break;
             case "delete":
             case "backspace":
@@ -118,8 +119,18 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                UndoManager.RunInBatch(() =>
-                    SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
+
+                const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                const selected = SelectionManager.SelectedDocuments().slice();
+                UndoManager.RunInBatch(() => {
+                    selected.map(dv => {
+                        const effectiveAcl = GetEffectiveAcl(dv.props.Document);
+                        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
+                            recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
+                            dv.props.removeDocument?.(dv.props.Document);
+                        }
+                    });
+                }, "delete");
                 SelectionManager.DeselectAll();
                 break;
             case "arrowleft":

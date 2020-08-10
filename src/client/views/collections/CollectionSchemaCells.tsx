@@ -32,6 +32,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { DateField } from "../../../fields/DateField";
+import { RichTextField } from "../../../fields/RichTextField";
 const path = require('path');
 
 library.add(faExpand);
@@ -188,12 +189,20 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             ContentScaling: returnOne
         };
 
-        const field = props.Document[props.fieldKey];
+        let matchedKeys = [props.fieldKey];
+        if (props.fieldKey.startsWith("*")) {
+            const allKeys = Array.from(Object.keys(props.Document));
+            allKeys.push(...Array.from(Object.keys(Doc.GetProto(props.Document))));
+            matchedKeys = allKeys.filter(key => key.includes(props.fieldKey.substring(1)));
+        }
+        const fieldKey = matchedKeys.length ? matchedKeys[0] : props.fieldKey;
+        const field = props.Document[fieldKey];
         const doc = FieldValue(Cast(field, Doc));
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
         const onItemDown = (e: React.PointerEvent) => {
-            fieldIsDoc && SetupDrag(this._focusRef,
+            //fieldIsDoc && 
+            SetupDrag(this._focusRef,
                 () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
                 this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
                 this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
@@ -208,7 +217,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
 
         let contents: any = "incorrect type";
-        if (type === undefined) contents = <FieldView {...props} />;
+        if (type === undefined) contents = <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
         if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
@@ -240,25 +249,72 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //         <FontAwesomeIcon icon="expand" size="sm" />
         //     </div>
         // );   
-        trace();
-
-
-
+        const positions = [];
+        if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+            let term = "";
+            if (cfield !== undefined) {
+                if (cfield.Text !== undefined) {
+                    term = cfield.Text;
+                }
+                else if (StrCast(cfield)) {
+                    term = StrCast(cfield);
+                }
+                else {
+                    term = String(NumCast(cfield));
+                }
+            }
+            term = term.toLowerCase();
+            const search = StrCast(this.props.Document._searchString).toLowerCase();
+            let start = term.indexOf(search);
+            let tally = 0;
+            if (start !== -1) {
+                positions.push(start);
+            }
+            while (start < contents.length && start !== -1) {
+                term = term.slice(start + search.length + 1);
+                tally += start + search.length + 1;
+                start = term.indexOf(search);
+                positions.push(tally + start);
+            }
+            if (positions.length > 1) {
+                positions.pop();
+            }
+        }
         return (
-            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
+                ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
-
-
                         <EditableView
+                            positions={positions.length > 0 ? positions : undefined}
+                            search={StrCast(this.props.Document._searchString) ? StrCast(this.props.Document._searchString) : undefined}
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
                             display={"inline"}
                             contents={contents ? contents : type === "number" ? "0" : "undefined"}
+                            highlight={positions.length > 0 ? true : undefined}
                             //contents={StrCast(contents)}
                             height={"auto"}
                             maxHeight={Number(MAX_ROW_HEIGHT)}
                             placeholder={"enter value"}
+                            bing={() => {
+                                const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                if (cfield !== undefined) {
+                                    console.log(typeof (cfield));
+                                    // if (typeof(cfield)===RichTextField)
+                                    const a = cfield as RichTextField;
+                                    if (a.Text !== undefined) {
+                                        return (a.Text);
+                                    }
+                                    else if (StrCast(cfield)) {
+                                        return StrCast(cfield);
+                                    }
+                                    else {
+                                        return String(NumCast(cfield));
+                                    }
+                                }
+                            }}
                             GetValue={() => {
                                 if (type === "number" && (contents === 0 || contents === "0")) {
                                     return "0";
@@ -272,6 +328,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     const val = cscript !== undefined ? (cfinalScript?.endsWith(";") ? `:=${cfinalScript?.substring(0, cfinalScript.length - 2)}` : cfinalScript) :
                                         Field.IsField(cfield) ? Field.toScriptString(cfield) : "";
                                     return val;
+
                                 }
 
                             }}
@@ -827,3 +884,69 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
         );
     }
 }
+
+
+@observer
+export class CollectionSchemaButtons extends CollectionSchemaCell {
+
+    render() {
+        // const reference = React.createRef<HTMLDivElement>();
+        // const onItemDown = (e: React.PointerEvent) => {
+        //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
+        //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+        // };
+        const doc = this.props.rowProps.original;
+        let buttons: JSX.Element | undefined = undefined;
+        buttons = <div style={{
+            paddingTop: 8,
+            paddingLeft: 3,
+        }}><button onClick={() => {
+            doc.searchMatch = false;
+            setTimeout(() => doc.searchMatch = true, 0);
+            doc.searchIndex = NumCast(doc.searchIndex);
+        }} style={{ padding: 2, left: 77 }}>
+                <FontAwesomeIcon icon="arrow-up" size="sm" />
+            </button>
+            <button onClick={() => {
+                {
+                    doc.searchMatchAlt = false;
+                    setTimeout(() => doc.searchMatchAlt = true, 0);
+                    doc.searchIndex = NumCast(doc.searchIndex);
+                }
+            }} style={{ padding: 2 }}>
+                <FontAwesomeIcon icon="arrow-down" size="sm" />
+            </button></div>;
+        const type = StrCast(doc.type);
+        if (type === "pdf") {
+            buttons = <div><button
+                style={{
+                    position: "relative",
+                    height: 30,
+                    width: 28,
+                    left: 1,
+                }}
+
+                onClick={() => {
+                    doc.searchMatch = false;
+                    setTimeout(() => doc.searchMatch = true, 0);
+                    doc.searchIndex = NumCast(doc.searchIndex);
+                }}>
+                <FontAwesomeIcon icon="arrow-down" size="sm" />
+            </button></div >;
+        }
+        else if (type !== "rtf") {
+            buttons = undefined;
+        }
+
+        if (BoolCast(this.props.Document._searchDoc) === true) {
+
+        }
+        else {
+            buttons = undefined;
+        }
+        return (
+            <div> {buttons}</div>
+        );
+    }
+}
+
