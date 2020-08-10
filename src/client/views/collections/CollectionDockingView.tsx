@@ -513,7 +513,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
             const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             if (doc instanceof Doc) {
-                tab.titleElement[0].onclick = (e: any) => tab.titleElement[0].focus();
+                tab.titleElement[0].onclick = (e: any) => {
+                    if (Date.now() - tab.titleElement[0].lastClick < 1000) tab.titleElement[0].select();
+                    tab.titleElement[0].lastClick = Date.now();
+                    tab.titleElement[0].focus();
+                }
                 tab.titleElement[0].onchange = (e: any) => {
                     tab.titleElement[0].size = e.currentTarget.value.length + 1;
                     Doc.GetProto(doc).title = e.currentTarget.value, true;
@@ -691,8 +695,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return (this.props as any).glContainer.parent.parent;
     }
     get _tab(): any {
-        const tab = (this.props as any).glContainer.tab.element[0] as HTMLElement;
-        return tab.getElementsByClassName("lm_title")?.[0];
+        const tab = (this.props as any).glContainer.tab?.element[0] as HTMLElement;
+        return tab?.getElementsByClassName("lm_title")?.[0];
     }
     constructor(props: any) {
         super(props);
@@ -757,7 +761,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, "white") }),
             (data) => {
                 const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
-                this._tab.style.backgroundColor = selected ? data.color : "";
+                this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
             }
         );
     }

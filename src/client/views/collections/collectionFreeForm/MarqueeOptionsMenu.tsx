@@ -25,34 +25,30 @@ export default class MarqueeOptionsMenu extends AntimodeMenu {
 
     render() {
         const buttons = [
-            <Tooltip title={<><div className="dash-tooltip">Create a Collection</div></>} placement="bottom">
+            <Tooltip key="group" title={<><div className="dash-tooltip">Create a Collection</div></>} placement="bottom">
                 <button
                     className="antimodeMenu-button"
-                    key="group"
                     onPointerDown={this.createCollection}>
                     <FontAwesomeIcon icon="object-group" size="lg" />
                 </button>
             </Tooltip>,
-            <Tooltip title={<><div className="dash-tooltip">Summarize Documents</div></>} placement="bottom">
+            <Tooltip key="summarize" title={<><div className="dash-tooltip">Summarize Documents</div></>} placement="bottom">
                 <button
                     className="antimodeMenu-button"
-                    key="summarize"
                     onPointerDown={this.summarize}>
                     <FontAwesomeIcon icon="compress-arrows-alt" size="lg" />
                 </button>
             </Tooltip>,
-            <Tooltip title={<><div className="dash-tooltip">Delete Documents</div></>} placement="bottom">
+            <Tooltip key="delete" title={<><div className="dash-tooltip">Delete Documents</div></>} placement="bottom">
                 <button
                     className="antimodeMenu-button"
-                    key="delete"
                     onPointerDown={this.delete}>
                     <FontAwesomeIcon icon="trash-alt" size="lg" />
                 </button>
             </Tooltip>,
-            <Tooltip title={<><div className="dash-tooltip">Change to Text</div></>} placement="bottom">
+            <Tooltip key="inkToText" title={<><div className="dash-tooltip">Change to Text</div></>} placement="bottom">
                 <button
                     className="antimodeMenu-button"
-                    key="inkToText"
                     onPointerDown={this.inkToText}>
                     <FontAwesomeIcon icon="font" size="lg" />
                 </button>
