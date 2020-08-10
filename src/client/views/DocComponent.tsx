@@ -158,7 +158,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                     if (this.props.Document[AclSym]) {
                         added.forEach(d => {
                             for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                                distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
+                                if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
+                                else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                             }
                         });
                     }
