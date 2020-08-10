@@ -146,7 +146,7 @@ export default class SettingsManager extends React.Component<{}> {
     @computed get accountsContent() {
         return <div className="accounts-content">
             <button onClick={this.googleAuthorize} value="data">Link to Google</button>
-            <button onClick={GroupManager.Instance?.open}>Manage groups</button>
+            <button onClick={() => GroupManager.Instance?.open()}>Manage groups</button>
         </div>;
     }
 

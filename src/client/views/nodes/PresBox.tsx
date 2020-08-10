@@ -83,6 +83,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
     @computed get isPres(): boolean {
         if (this.selectedDoc?.type === DocumentType.PRES) {
+            document.removeEventListener("keydown", this.keyEvents, true);
             document.addEventListener("keydown", this.keyEvents, true);
             return true;
         } else {
@@ -91,6 +92,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
+    componentWillUnmount() {
+        document.removeEventListener("keydown", this.keyEvents, true);
+    }
 
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
@@ -517,28 +521,40 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Key for when the presentaiton is active (according to Selection Manager)
     @action
     keyEvents = (e: KeyboardEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-
+        let handled = false;
+        const anchorNode = document.activeElement as HTMLDivElement;
+        if (anchorNode && anchorNode.className?.includes("lm_title")) return;
         if (e.keyCode === 27) { // Escape key
             if (this.layoutDoc.presStatus === "edit") this._selectedArray = [];
             else this.layoutDoc.presStatus = "edit";
+            handled = true;
         } if ((e.metaKey || e.altKey) && e.keyCode === 65) { // Ctrl-A to select all
-            if (this.layoutDoc.presStatus === "edit") this._selectedArray = this.childDocs;
+            if (this.layoutDoc.presStatus === "edit") {
+                this._selectedArray = this.childDocs;
+                handled = true;
+            }
         } if (e.keyCode === 37 || e.keyCode === 38) { // left(37) / a(65) / up(38) to go back
             this.back();
+            handled = true;
         } if (e.keyCode === 39 || e.keyCode === 40) { // right (39) / d(68) / down(40) to go to next
             this.next();
+            handled = true;
         } if (e.keyCode === 32) { // spacebar to 'present' or autoplay
             if (this.layoutDoc.presStatus !== "edit") this.startAutoPres(0);
             else this.layoutDoc.presStatus = "manual";
+            handled = true;
         }
         if (e.keyCode === 8) { // delete selected items
             if (this.layoutDoc.presStatus === "edit") {
                 this._selectedArray.forEach((doc, i) => {
                     this.removeDocument(doc);
                 });
+                handled = true;
             }
+        }
+        if (handled) {
+            e.stopPropagation();
+            e.preventDefault();
         }
     }
 

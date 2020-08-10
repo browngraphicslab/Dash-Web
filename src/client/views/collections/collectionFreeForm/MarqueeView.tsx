@@ -383,7 +383,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    @action
+    @undoBatch @action
     collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
@@ -408,7 +408,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    @action
+    @undoBatch @action
     syntaxHighlight = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "i" : true) {
@@ -484,7 +484,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
     }
 
-    @action
+    @undoBatch @action
     summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);

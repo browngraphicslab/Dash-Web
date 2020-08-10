@@ -733,19 +733,8 @@ export default class GestureOverlay extends Touchable {
 
                 this._points.push({ X: left, Y: top });
                 this._points.push({ X: left, Y: top });
-                // this._points.push({ X: left, Y: top });
-
-                // this._points.push({ X: left, Y: top });
-                // this._points.push({ X: left, Y: top });
-
-                // this._points.push({ X: left, Y: top - 1 });
                 break;
             case "triangle":
-                // this._points.push({ X: left, Y: bottom });
-                // this._points.push({ X: right, Y: bottom });
-                // this._points.push({ X: (right + left) / 2, Y: top });
-                // this._points.push({ X: left, Y: bottom });
-                // this._points.push({ X: left, Y: bottom - 1 });
                 this._points.push({ X: left, Y: bottom });
                 this._points.push({ X: left, Y: bottom });
 
@@ -779,59 +768,11 @@ export default class GestureOverlay extends Touchable {
                 }
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top - 1 });
-                // this._points.push({ X: centerX, Y: top });
-                // this._points.push({ X: centerX + radius / 2, Y: top });
-
-                // this._points.push({ X: right, Y: top + radius / 2 });
-                // this._points.push({ X: right, Y: top + radius });
-                // this._points.push({ X: right, Y: top + radius });
-                // this._points.push({ X: right, Y: bottom - radius / 2 });
-
-                // this._points.push({ X: right - radius / 2, Y: bottom });
-                // this._points.push({ X: right - radius, Y: bottom });
-                // this._points.push({ X: right - radius, Y: bottom });
-                // this._points.push({ X: left + radius / 2, Y: bottom });
-
-                // this._points.push({ X: left, Y: bottom - radius / 2 });
-                // this._points.push({ X: left, Y: bottom - radius });
-                // this._points.push({ X: left, Y: bottom - radius });
-                // this._points.push({ X: left, Y: top + radius / 2 });
-
-                // this._points.push({ X: left + radius / 2, Y: top });
-                // this._points.push({ X: left + radius, Y: top });
-
-
-
-
-
-
 
                 break;
             case "line":
-                // const firstx = this._points[0].X;
-                // const firsty = this._points[0].Y;
-                // const lastx = this._points[this._points.length - 1].X;
-                // const lasty = this._points[this._points.length - 1].Y;
-                // const fourth = (lastx - firstx) / 4;
-                // const m = (lasty - firsty) / (lastx - firstx);
-                // const b = firsty - m * firstx;
                 this._points.push({ X: firstx, Y: firsty });
                 this._points.push({ X: firstx, Y: firsty });
-
-                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
-                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
-                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
-                this._points.push({ X: firstx + fourth, Y: m * (firstx + fourth) + b });
-
-                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
-                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
-                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
-                this._points.push({ X: firstx + 2 * fourth, Y: m * (firstx + 2 * fourth) + b });
-
-                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
-                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
-                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
-                this._points.push({ X: firstx + 3 * fourth, Y: m * (firstx + 3 * fourth) + b });
 
                 this._points.push({ X: firstx + 4 * fourth, Y: m * (firstx + 4 * fourth) + b });
                 this._points.push({ X: firstx + 4 * fourth, Y: m * (firstx + 4 * fourth) + b });
