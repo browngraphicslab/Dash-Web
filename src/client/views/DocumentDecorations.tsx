@@ -68,8 +68,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _prevY = 0;
     private _centerPoints: { X: number, Y: number }[] = [];
     private _inkDocs: { x: number, y: number, width: number, height: number }[] = [];
-    private _natWid = 0;
-    private _natHei = 0;
 
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";

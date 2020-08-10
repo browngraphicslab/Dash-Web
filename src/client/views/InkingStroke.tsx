@@ -107,10 +107,10 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const top = Math.min(...ys) - strokeWidth / 2;
         const right = Math.max(...xs) + strokeWidth / 2;
         const bottom = Math.max(...ys) + strokeWidth / 2;
-        const width = right - left;
-        const height = bottom - top;
-        const scaleX = (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
-        const scaleY = (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
+        const width = Math.max(right - left);
+        const height = Math.max(1, bottom - top);
+        const scaleX = width === strokeWidth ? 1 : (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
+        const scaleY = height === strokeWidth ? 1 : (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
         const strokeColor = StrCast(this.layoutDoc.color, "");
 
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
