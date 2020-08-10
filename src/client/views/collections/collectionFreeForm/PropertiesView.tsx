@@ -52,7 +52,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else if (PresBox.Instance?._selectedArray.length) {
+        } else if (PresBox.Instance && PresBox.Instance._selectedArray.length) {
             return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
         } else { return undefined; }
     }
@@ -248,7 +248,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     }
 
     @observable transform: Transform = Transform.Identity();
-    getTransform = () => { return this.transform; }
+    getTransform = () => this.transform;
     propertiesDocViewRef = (ref: HTMLDivElement) => {
         const observer = new _global.ResizeObserver(action((entries: any) => {
             const cliRect = ref.getBoundingClientRect();
@@ -645,16 +645,19 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     set colorStk(value) { value && (this._lastLine = value); this.selectedDoc && (this.selectedDoc.color = value ? value : undefined); }
 
     colorButton(value: string, type: string, setter: () => {}) {
-        return <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-            content={type === "fill" ? this.fillPicker : this.linePicker}>
-            <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
-                <div className="color-button-preview" style={{
-                    backgroundColor: value ?? "121212", width: 15, height: 15,
-                    display: value === "" || value === "transparent" ? "none" : ""
-                }} />
-                {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14, position: "fixed" }}>☒</p> : ""}
-            </div>
-        </Flyout>;
+        // return <div className="properties-flyout" onPointerEnter={e => this.changeScrolling(false)}
+        //     onPointerLeave={e => this.changeScrolling(true)}>
+        //     <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+        //         content={type === "fill" ? this.fillPicker : this.linePicker}>
+        return <div className="color-button" key="color" onPointerDown={undoBatch(action(e => setter()))}>
+            <div className="color-button-preview" style={{
+                backgroundColor: value ?? "121212", width: 15, height: 15,
+                display: value === "" || value === "transparent" ? "none" : ""
+            }} />
+            {value === "" || value === "transparent" ? <p style={{ fontSize: 25, color: "red", marginTop: -14 }}>☒</p> : ""}
+        </div>;
+        //     </Flyout>
+        // </div>;
 
     }
 
@@ -699,8 +702,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="stroke-button">{this.lineButton}</div>
                 </div>
             </div>
-            {/* {this._fillBtn ? this.fillPicker : ""}
-            {this._lineBtn ? this.linePicker : ""} */}
+            {this._fillBtn ? this.fillPicker : ""}
+            {this._lineBtn ? this.linePicker : ""}
         </div>;
     }
 
@@ -826,7 +829,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             if (this.selectedDoc && !this.isPres) {
                 return <div className="propertiesView" style={{
                     width: this.props.width,
-                    // overflowY: this.inActions ? "visible" : "scroll"
+                    //overflowY: this.scrolling ? "scroll" : "visible"
                 }} >
                     <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Properties
@@ -931,11 +934,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         <div className="propertiesView-fields-title"
                             onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
                             style={{ backgroundColor: this.openFields ? "black" : "" }}>
-                            <div className="propertiesView-fields-title-name">
-                                Fields {"&"} Tags
+                            Fields {"&"} Tags
                             <div className="propertiesView-fields-title-icon">
-                                    <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
-                                </div>
+                                <FontAwesomeIcon icon={this.openFields ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
                         {!novice && this.openFields ? <div className="propertiesView-fields-checkbox">
@@ -962,12 +963,9 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
-                return <div className="propertiesView" style={{ width: this.props.width }} >
-                    <div className="propertiesView-title" style={{ width: this.props.width }}>
+                return <div className="propertiesView">
+                    <div className="propertiesView-title">
                         Presentation
-                    <div className="propertiesView-title-icon" onPointerDown={this.props.onDown}>
-                            <FontAwesomeIcon icon="times" color="black" size="sm" />
-                        </div>
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}

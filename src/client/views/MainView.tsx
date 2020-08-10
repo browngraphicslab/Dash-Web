@@ -14,9 +14,8 @@ import { listSpec } from '../../fields/Schema';
 import { ScriptField } from '../../fields/ScriptField';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils, simulateMouseClick } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
-import HypothesisAuthenticationManager from '../apis/HypothesisAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
@@ -59,7 +58,10 @@ import { TaskCompletionBox } from './nodes/TaskCompletedBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { Hypothesis } from '../util/HypothesisUtils';
 import { undoBatch } from '../util/UndoManager';
+import { WebBox } from './nodes/WebBox';
+import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
 
 @observer
@@ -127,6 +129,7 @@ export class MainView extends React.Component {
                 }
             });
         });
+        document.addEventListener("linkAnnotationToDash", Hypothesis.linkListener);
     }
 
     componentWillUnMount() {
@@ -134,6 +137,7 @@ export class MainView extends React.Component {
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
         window.removeEventListener("paste", KeyManager.Instance.paste as any);
+        document.removeEventListener("linkAnnotationToDash", Hypothesis.linkListener);
     }
 
     constructor(props: Readonly<{}>) {
@@ -772,6 +776,37 @@ export class MainView extends React.Component {
         </div>;
     }
 
+    @computed get invisibleWebBox() { // see note under the makeLink method in HypothesisUtils.ts
+        return !DocumentLinksButton.invisibleWebDoc ? null :
+            <div style={{ position: 'absolute', left: 50, top: 50, display: 'block', width: '500px', height: '1000px' }} ref={DocumentLinksButton.invisibleWebRef}>
+                <WebBox
+                    fieldKey={"data"}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    Document={DocumentLinksButton.invisibleWebDoc}
+                    LibraryPath={emptyPath}
+                    dropAction={"move"}
+                    isSelected={returnFalse}
+                    select={returnFalse}
+                    rootSelected={returnFalse}
+                    renderDepth={0}
+                    addDocTab={returnFalse}
+                    pinToPres={returnFalse}
+                    ScreenToLocalTransform={Transform.Identity}
+                    bringToFront={returnFalse}
+                    active={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    focus={returnFalse}
+                    PanelWidth={() => 500}
+                    PanelHeight={() => 800}
+                    NativeHeight={() => 500}
+                    NativeWidth={() => 800}
+                    ContentScaling={returnOne}
+                    docFilters={returnEmptyFilter}
+                />
+            </div>;
+    }
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
 
@@ -781,7 +816,6 @@ export class MainView extends React.Component {
             <SettingsManager />
             <GroupManager />
             <GoogleAuthenticationManager />
-            <HypothesisAuthenticationManager />
             <DocumentDecorations />
             {this.search}
             <CollectionMenu />
@@ -806,7 +840,60 @@ export class MainView extends React.Component {
             <OverlayView />
             <TimelineMenu />
             {this.snapLines}
+            <div ref={this.makeWebRef} style={{ position: 'absolute', left: -1000, top: -1000, display: 'block', width: '200px', height: '800px' }} />
         </div >);
+    }
+
+    makeWebRef = (ele: HTMLDivElement) => {
+        reaction(() => DocumentLinksButton.invisibleWebDoc,
+            invisibleDoc => {
+                ReactDOM.unmountComponentAtNode(ele);
+                invisibleDoc && ReactDOM.render(<span title="Drag as document" className="invisible-webbox" >
+                    <div style={{ position: 'absolute', left: -1000, top: -1000, display: 'block', width: '200px', height: '800px' }} ref={DocumentLinksButton.invisibleWebRef}>
+                        <WebBox
+                            fieldKey={"data"}
+                            ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}
+                            Document={invisibleDoc}
+                            LibraryPath={emptyPath}
+                            dropAction={"move"}
+                            isSelected={returnFalse}
+                            select={returnFalse}
+                            rootSelected={returnFalse}
+                            renderDepth={0}
+                            addDocTab={returnFalse}
+                            pinToPres={returnFalse}
+                            ScreenToLocalTransform={Transform.Identity}
+                            bringToFront={returnFalse}
+                            active={returnFalse}
+                            whenActiveChanged={returnFalse}
+                            focus={returnFalse}
+                            PanelWidth={() => 500}
+                            PanelHeight={() => 800}
+                            NativeHeight={() => 500}
+                            NativeWidth={() => 800}
+                            ContentScaling={returnOne}
+                            docFilters={returnEmptyFilter}
+                        />
+                    </div>;
+                </span>, ele);
+
+                var success = false;
+                const onSuccess = () => {
+                    success = true;
+                    clearTimeout(interval);
+                    document.removeEventListener("editSuccess", onSuccess);
+                };
+
+                // For some reason, Hypothes.is annotations don't load until a click is registered on the page, 
+                // so we keep simulating clicks until annotations have loaded and editing is successful
+                const interval = setInterval(() => {
+                    !success && simulateMouseClick(ele, 50, 50, 50, 50);
+                }, 500);
+
+                setTimeout(() => !success && clearInterval(interval), 10000); // give up if no success after 10s
+                document.addEventListener("editSuccess", onSuccess);
+            });
     }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });

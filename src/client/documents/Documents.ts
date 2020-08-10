@@ -94,6 +94,7 @@ export interface DocumentOptions {
     title?: string;
     label?: string;
     hidden?: boolean;
+    userDoc?: Doc; // the userDocument
     toolTip?: string; // tooltip to display on hover
     style?: string;
     page?: number;
@@ -721,7 +722,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, _lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: false, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -864,6 +865,12 @@ export namespace DocUtils {
                 const facet = filterFacets[facetKey];
                 const satisfiesFacet = Object.keys(facet).some(value => {
                     if (facet[value] === "match") {
+                        if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
+                            const allKeys = Array.from(Object.keys(d));
+                            allKeys.push(...Object.keys(Doc.GetProto(d)));
+                            const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
+                            return keys.some(key => Field.toString(d[key] as Field).includes(value));
+                        }
                         return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
                     }
                     return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
@@ -941,7 +948,6 @@ export namespace DocUtils {
 
         return linkDoc;
     }
-
 
     export function DocumentFromField(target: Doc, fieldKey: string, proto?: Doc, options?: DocumentOptions): Doc | undefined {
         let created: Doc | undefined;
