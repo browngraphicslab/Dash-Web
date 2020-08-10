@@ -865,6 +865,12 @@ export namespace DocUtils {
                 const facet = filterFacets[facetKey];
                 const satisfiesFacet = Object.keys(facet).some(value => {
                     if (facet[value] === "match") {
+                        if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
+                            const allKeys = Array.from(Object.keys(d));
+                            allKeys.push(...Object.keys(Doc.GetProto(d)));
+                            const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
+                            return keys.some(key => Field.toString(d[key] as Field).includes(value));
+                        }
                         return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
                     }
                     return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);

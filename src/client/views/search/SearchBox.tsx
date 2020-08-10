@@ -628,7 +628,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        const headers = new Set<string>(["title", "author", "lastModified", "text"]);
+        const headers = new Set<string>(["title", "author", "*lastModified", "text"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             if (this.noresults === "") {
                 this.noresults = "No search results :(";

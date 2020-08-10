@@ -189,7 +189,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             ContentScaling: returnOne
         };
 
-        const field = props.Document[props.fieldKey];
+        let matchedKeys = [props.fieldKey];
+        if (props.fieldKey.startsWith("*")) {
+            const allKeys = Array.from(Object.keys(props.Document));
+            allKeys.push(...Array.from(Object.keys(Doc.GetProto(props.Document))));
+            matchedKeys = allKeys.filter(key => key.includes(props.fieldKey.substring(1)));
+        }
+        const fieldKey = matchedKeys.length ? matchedKeys[0] : props.fieldKey;
+        const field = props.Document[fieldKey];
         const doc = FieldValue(Cast(field, Doc));
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
@@ -210,7 +217,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
 
         let contents: any = "incorrect type";
-        if (type === undefined) contents = <FieldView {...props} />;
+        if (type === undefined) contents = <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
         if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
