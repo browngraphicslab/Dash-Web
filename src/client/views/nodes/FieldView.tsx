@@ -38,7 +38,7 @@ export interface FieldViewProps {
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc | Doc[]) => boolean;
     moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
-    backgroundColor?: (document: Doc) => string | undefined;
+    backgroundColor?: (document: Doc, renderDepth: number) => string | undefined;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     active: (outsideReaction?: boolean) => boolean;
