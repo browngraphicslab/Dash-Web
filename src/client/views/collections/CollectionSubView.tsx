@@ -343,7 +343,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             let srcWeb: Doc | undefined;
                             if (SelectionManager.SelectedDocuments().length) {
                                 srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
-                                srcUrl = (srcWeb.data as WebField).url.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
+                                srcUrl = (srcWeb.data as WebField).url?.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
                             }
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
@@ -351,7 +351,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0].contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
