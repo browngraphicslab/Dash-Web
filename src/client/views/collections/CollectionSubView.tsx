@@ -128,13 +128,18 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            const searchDocs = DocListCast(this.props.Document._searchDocs);
+            let searchDocs = DocListCast(this.props.Document._searchDocs);
 
 
             let docsforFilter: Doc[] = childDocs;
+
             if (searchDocs !== undefined && searchDocs.length > 0) {
                 docsforFilter = [];
-
+                const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+                console.log(searchDocs);
+                searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript)
+                console.log(this.docFilters());
+                console.log(searchDocs);
                 childDocs.forEach((d) => {
                     if (d.data !== undefined) {
                         let newdocs = DocListCast(d.data);
@@ -165,12 +170,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         docsforFilter.push(d);
                     }
                 });
-
+                return docsforFilter;
             }
-            childDocs = docsforFilter;
-
+            console.log("you fool");
+            console.log(childDocs);
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-
             return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 

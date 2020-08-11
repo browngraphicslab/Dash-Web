@@ -23,6 +23,8 @@ import { listSpec } from "../../../fields/Schema";
 import { ScriptField, ComputedField } from "../../../fields/ScriptField";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CollectionView } from "./CollectionView";
+import { SearchBox } from "../search/SearchBox";
+import { createParameter } from "typescript";
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -450,16 +452,26 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 keyOptions.push(key);
             }
         });
-        //checked={() =>{Cast(this.props.Document!._docRangeFilters, listSpec("string"))!.includes(key)}}
 
         const options = keyOptions.map(key => {
             //Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
+            let bool = false;
+            let filters = Cast(this.props.Document!._docFilters, listSpec("string"));
+            console.log(filters);
+            if (filters !== undefined) {
+                bool = filters.includes(key) && filters[filters.indexOf(key) + 1] === "check";
+                console.log(filters.includes(key));
+            }
             return <div key={key} className="key-option" style={{
-                border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
+                border: "1px solid lightgray", paddingLeft: 5, textAlign: "left",
+                width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
             }}
             >
-                <input type="checkbox" onChange={(e) => { e.target.checked === true ? Doc.setDocFilter(this.props.Document!, this._key, key, "check") : Doc.setDocFilter(this.props.Document!, this._key, key, undefined) }} ></input>
-                {key}
+                <input type="checkbox" onChange={(e) => { e.target.checked === true ? Doc.setDocFilter(this.props.Document!, this._key, key, "check") : Doc.setDocFilter(this.props.Document!, this._key, key, undefined); e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs![0], this._key, key, "check") : Doc.setDocFilter(docs![0], this._key, key, undefined); }}
+                    checked={bool} ></input>
+                <span style={{ paddingLeft: 4 }}>
+                    {key}
+                </span>
 
             </div>;
         });
