@@ -53,7 +53,7 @@ export interface TreeViewProps {
     indentDocument?: () => void;
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
-    backgroundColor?: (doc: Doc) => string | undefined;
+    backgroundColor?: (doc: Doc, renderDepth: number) => string | undefined;
     outerXf: () => { translateX: number, translateY: number };
     treeViewDoc: Doc;
     parentKey: string;
@@ -397,7 +397,7 @@ class TreeView extends React.Component<TreeViewProps> {
             title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
             onClick={this.bulletClick}
             style={{ color: StrCast(this.doc.color, checked === "unchecked" ? "white" : "inherit"), opacity: checked === "unchecked" ? undefined : 0.4 }}>
-            {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down"))} />}
+            {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs?.length ? "caret-square-right" : "caret-right") : (this.childDocs?.length ? "caret-square-down" : "caret-down"))} />}
         </div>;
     }
 
@@ -533,7 +533,7 @@ class TreeView extends React.Component<TreeViewProps> {
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
-        backgroundColor: undefined | ((document: Doc) => string | undefined),
+        backgroundColor: undefined | ((document: Doc, renderDepth: number) => string | undefined),
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: (outsideReaction?: boolean) => boolean,
