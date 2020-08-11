@@ -533,7 +533,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     getDataStatus() { return this._deletedDocsStatus; }
 
-    private NumResults = 25;
+    private NumResults = 50;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
         console.log("Get");
