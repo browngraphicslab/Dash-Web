@@ -410,6 +410,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._snapX = thisPt.thisX;
         this._snapY = thisPt.thisY;
         let dragBottom = false;
+        let dragRight = false;
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
@@ -457,6 +458,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             case "documentDecorations-rightResizer":
                 unfreeze();
                 dW = move[0];
+                dragRight = true;
                 break;
         }
 
@@ -474,7 +476,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     if (nwidth / nheight !== width / height) {
                         height = nheight / nwidth * width;
                     }
-                    if (!e.ctrlKey && (!dragBottom || !element.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
+                    if (e.ctrlKey || (!dragBottom || !element.layoutDoc._fitWidth)) { // ctrl key enables modification of the nativeWidth or nativeHeight durin the interaction
                         if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                         else dW = dH * nwidth / nheight;
                     }
@@ -484,33 +486,34 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
+                const fieldKey = Doc.LayoutFieldKey(doc);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    doc._nativeWidth = nwidth = doc._width || 0;
-                    doc._nativeHeight = nheight = doc._height || 0;
+                    doc[DataSym][fieldKey + "-nativeWidth"] = doc._nativeWidth = nwidth = doc._width || 0;
+                    doc[DataSym][fieldKey + "-nativeHeight"] = doc._nativeHeight = nheight = doc._height || 0;
                 }
                 const anno = Cast(doc.annotationOn, Doc, null);
                 if (e.ctrlKey && anno) {
                     dW !== 0 && runInAction(() => {
                         const dataDoc = anno[DataSym];
-                        const fieldKey = Doc.LayoutFieldKey(anno);
-                        const nw = NumCast(dataDoc[fieldKey + "-nativeWidth"]);
-                        const nh = NumCast(dataDoc[fieldKey + "-nativeHeight"]);
-                        dataDoc[fieldKey + "-nativeWidth"] = nw + (dW > 0 ? 10 : -10);
-                        dataDoc[fieldKey + "-nativeHeight"] = nh + (dW > 0 ? 10 : -10) * nh / nw;
+                        const annoFieldKey = Doc.LayoutFieldKey(anno);
+                        const nw = NumCast(dataDoc[annoFieldKey + "-nativeWidth"]);
+                        const nh = NumCast(dataDoc[annoFieldKey + "-nativeHeight"]);
+                        dataDoc[annoFieldKey + "-nativeWidth"] = nw + (dW > 0 ? 10 : -10);
+                        dataDoc[annoFieldKey + "-nativeHeight"] = nh + (dW > 0 ? 10 : -10) * nh / nw;
                     });
                 }
                 else if (nwidth > 0 && nheight > 0) {
-                    if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect || e.ctrlKey) {
-                            doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
+                    if (Math.abs(dW) > Math.abs(dH) || dragRight) {
+                        if (!fixedAspect || (dragRight && e.ctrlKey)) {
+                            doc[DataSym][fieldKey + "-nativeWidth"] = doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
                         doc._width = actualdW;
                         if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
                         else if (!fixedAspect || !e.ctrlKey) doc._height = actualdH;
                     }
                     else {
-                        if (!fixedAspect || e.ctrlKey || (dragBottom && element.layoutDoc._fitWidth)) {
-                            doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
+                        if (!fixedAspect || (dragBottom && (e.ctrlKey || element.layoutDoc._fitWidth))) {
+                            doc[DataSym][fieldKey + "-nativeHeight"] = doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
                         doc._height = actualdH;
                         if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;

@@ -185,7 +185,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.RTF, DocumentType.VID, DocumentType.WEB];
+    public _allIcons: string[] = [DocumentType.INK, DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.RTF, DocumentType.VID, DocumentType.WEB];
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;
@@ -473,13 +473,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        const types = this.filterTypes;
-        const baseExpr = "NOT baseProto_b:true";
+        const types = ["preselement", "docholder", "collection", "search", "searchitem", "script", "fonticonbox", "button", "label"]; // this.filterTypes;
+        const baseExpr = "NOT baseProto_b:true AND NOT system_b:true";
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
         const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
-        // const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
+        const typeExpr = !types ? "" : ` ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, includeIcons].join(" AND ").replace(/AND $/, "");
+        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
         return query;
     }
 
@@ -513,7 +513,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
                             const line = lines.get(doc[Id]) || [];
-                            const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
+                            const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)).filter(k => k) : [];
                             doc ? console.log(Cast(doc.context, Doc)) : null;
                             if (this.findCommonElements(hlights)) {
                             }
@@ -642,7 +642,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         // only hit right at the beginning
         // visibleElements is all of the elements (even the ones you can't see)
-        else if (this._visibleElements.length !== this._numTotalResults) {
+        if (this._visibleElements.length !== this._numTotalResults) {
             // undefined until a searchitem is put in there
             this._visibleElements = Array<JSX.Element>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
             this._visibleDocuments = Array<Doc>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
