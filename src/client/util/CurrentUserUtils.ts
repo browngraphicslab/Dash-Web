@@ -912,8 +912,8 @@ export class CurrentUserUtils {
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
-        doc["default-collection-background"] = StrCast(doc["default-collection-background"], "white");
-        doc["default-collection-nested-background"] = Cast(doc["default-collection-nested-background"], "string", null);
+        doc.activeCollectionBackground = StrCast(doc.activeCollectionBackground, "white");
+        doc.activeCollectionNestedBackground = Cast(doc.activeCollectionNestedBackground, "string", null);
         doc.noviceMode = BoolCast(doc.noviceMode, true);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); //
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); //

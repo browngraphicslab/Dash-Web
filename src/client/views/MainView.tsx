@@ -342,7 +342,7 @@ export class MainView extends React.Component {
                 || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
                 return "lightgrey";
             }
-            return renderDepth > 0 ? StrCast(Doc.UserDoc()["default-collection-nested-background"]) : StrCast(Doc.UserDoc()["default-collection-background"]);
+            return StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {
             switch (doc?.type) {
