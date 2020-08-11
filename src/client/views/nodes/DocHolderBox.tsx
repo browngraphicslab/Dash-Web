@@ -184,7 +184,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
-                background: this.props.backgroundColor?.(containedDoc),
+                background: this.props.backgroundColor?.(containedDoc, this.props.renderDepth),
                 border: `#00000021 solid ${this.xPad}px`,
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,
