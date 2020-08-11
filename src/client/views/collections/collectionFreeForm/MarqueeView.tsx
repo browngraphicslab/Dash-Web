@@ -74,7 +74,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (e.key === "?") {
             ContextMenu.Instance.setDefaultItem("?", (str: string) => {
                 const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, {
-                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
+                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false,
                     title: "bing", UseCors: true
                 });
                 this.props.addDocTab(textDoc, "onRight");
@@ -390,7 +390,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    @action
+    @undoBatch @action
     collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
@@ -415,7 +415,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    @action
+    @undoBatch @action
     syntaxHighlight = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "i" : true) {
@@ -491,7 +491,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         }
     }
 
-    @action
+    @undoBatch @action
     summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);

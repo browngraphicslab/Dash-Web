@@ -7,7 +7,6 @@ import { List } from "../../fields/List";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, PromiseValue } from "../../fields/Types";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
-import HypothesisAuthenticationManager from "../apis/HypothesisAuthenticationManager";
 import { DocServer } from "../DocServer";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DictationManager } from "../util/DictationManager";
@@ -107,10 +106,11 @@ export default class KeyManager {
                 doDeselect && SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 GoogleAuthenticationManager.Instance.cancel();
-                HypothesisAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();
-                CollectionFreeFormViewChrome.Instance.clearKeep();
+                CollectionFreeFormViewChrome.Instance?.clearKeep();
+                window.getSelection()?.empty();
+                document.body.focus();
                 break;
             case "delete":
             case "backspace":

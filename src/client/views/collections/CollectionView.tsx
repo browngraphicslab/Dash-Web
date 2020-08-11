@@ -152,7 +152,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 if (this.props.Document[AclSym]) {
                     added.forEach(d => {
                         for (const [key, value] of Object.entries(this.props.Document[AclSym])) {
-                            if (d.author === Doc.CurrentUserEmail && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
+                            if (d.author === key.substring(4).replace("_", ".") && !d.aliasOf) distributeAcls(key, SharingPermissions.Admin, d, true);
                             else distributeAcls(key, this.AclMap.get(value) as SharingPermissions, d, true);
                         }
                     });
@@ -595,12 +595,11 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {/* {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) : */}
-            <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
-                style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "55%" }} />
-            {/* } */}
-            {/* {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView} */}
-            {this.filterView};
+            {(Doc.UserDoc()?.noviceMode || !this.props.isSelected() && !this.props.Document.forceActive) || this.props.Document.hideFilterView ? (null) :
+                <div className="collectionView-filterDragger" title="library View Dragger" onPointerDown={this.onPointerDown}
+                    style={{ right: this.facetWidth() - 1, top: this.props.Document._viewType === CollectionViewType.Docking ? "25%" : "60%" }} />
+            }
+            {Doc.UserDoc()?.noviceMode || this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);
     }
 }

@@ -169,18 +169,18 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             StrCast(this.props.Document._searchString)
             const length = StrCast(this.props.Document._searchString).length;
 
-            results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(0, positions[0]) : "enter value"}</span>);
+            results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(0, positions[0]) : "undefined"}</span>);
             positions.forEach((num, cur) => {
-                results.push(<span style={{ backgroundColor: "#FFFF00", color: contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : "enter value"}</span>);
+                results.push(<span style={{ backgroundColor: "#FFFF00", color: contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : "undefined"}</span>);
                 let end = 0;
                 cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
-                results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : "enter value"}</span>);
+                results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : "undefined"}</span>);
             }
             );
             return results;
         }
         else {
-            return <span style={{ color: contents ? "black" : "grey" }}>{contents ? contents?.valueOf() : "enter value"}</span>;
+            return <span style={{ color: contents ? "black" : "grey" }}>{contents ? contents?.valueOf() : "undefined"}</span>;
         }
     }
 
@@ -214,7 +214,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             ContentScaling: returnOne
         };
 
-        const field = props.Document[props.fieldKey];
+        let matchedKeys = [props.fieldKey];
+        if (props.fieldKey.startsWith("*")) {
+            const allKeys = Array.from(Object.keys(props.Document));
+            allKeys.push(...Array.from(Object.keys(Doc.GetProto(props.Document))));
+            matchedKeys = allKeys.filter(key => key.includes(props.fieldKey.substring(1)));
+        }
+        const fieldKey = matchedKeys.length ? matchedKeys[0] : props.fieldKey;
+        const field = props.Document[fieldKey];
         const doc = FieldValue(Cast(field, Doc));
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
@@ -247,7 +254,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
 
         let contents: any = "incorrect type";
-        if (type === undefined) contents = <FieldView {...props} />;
+        if (type === undefined) contents = <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
         if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
@@ -335,7 +342,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 //contents={StrCast(contents)}
                                 height={"auto"}
                                 maxHeight={Number(MAX_ROW_HEIGHT)}
-                                placeholder={"enter value"}
+                                placeholder={"undefined"}
                                 bing={() => {
                                     const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                     if (cfield !== undefined) {

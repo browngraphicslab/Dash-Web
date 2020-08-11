@@ -355,11 +355,11 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this.openDropdown = !this.openDropdown;
     }
 
-    @undoBatch @action
-    changeFollowBehavior = (follow: string) => {
+    @undoBatch
+    changeFollowBehavior = action((follow: string) => {
         this.openDropdown = false;
         Doc.GetProto(this.props.linkDoc).followLinkLocation = follow;
-    }
+    });
 
     @computed
     get followingDropdown() {
@@ -382,12 +382,18 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("onRight")}>
-                        Always open in right tab
+                        Always open in new pane on right
                         </div>
                     <div className="linkEditor-followingDropdown-option"
                         onPointerDown={() => this.changeFollowBehavior("inTab")}>
                         Always open in new tab
                         </div>
+                    {this.props.linkDoc.linksToAnnotation ?
+                        <div className="linkEditor-followingDropdown-option"
+                            onPointerDown={() => this.changeFollowBehavior("openExternal")}>
+                            Always open in external page
+                        </div>
+                        : null}
                 </div>
             </div>
         </div>;

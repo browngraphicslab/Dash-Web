@@ -643,7 +643,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
         return <div className={name}
             style={{
-                overflow: this.props.overflow === true ? "auto" : undefined,
+                overflow: this.props.overflow === true ? "scroll" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >

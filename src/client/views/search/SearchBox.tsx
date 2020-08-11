@@ -235,7 +235,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     filterDocsByType(docs: Doc[]) {
         const finalDocs: Doc[] = [];
-        const blockedTypes: string[] = ["preselement", "docholder", "collection", "search", "searchitem", "script", "fonticonbox", "button", "label"];
+        const blockedTypes: string[] = ["preselement", "docholder", "search", "searchitem", "script", "fonticonbox", "button", "label"];
         docs.forEach(doc => {
             const layoutresult = Cast(doc.type, "string");
             if (layoutresult && !blockedTypes.includes(layoutresult)) {
@@ -630,7 +630,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        const headers = new Set<string>(["title", "author", "lastModified", "text"]);
+        const headers = new Set<string>(["title", "author", "*lastModified"]);
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             if (this.noresults === "") {
                 this.noresults = "No search results :(";
@@ -920,7 +920,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     removeDocument={returnFalse}
                                     PanelHeight={this.open === true ? () => height : () => 0}
                                     PanelWidth={this.open === true ? () => length : () => 0}
-                                    overflow={cols > 5 || rows > 8 ? true : false}
+                                    overflow={cols > 5 || rows > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />

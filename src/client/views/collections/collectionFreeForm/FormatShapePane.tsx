@@ -163,6 +163,78 @@ export default class FormatShapePane extends AntimodeMenu {
 
     @undoBatch
     @action
+    addPoints = (x: number, y: number, pts: { X: number, Y: number }[], index: number, control: { X: number, Y: number }[]) => {
+        this.selectedInk?.forEach(action(inkView => {
+            if (this.selectedInk?.length === 1) {
+                const doc = Document(inkView.rootDoc);
+                if (doc.type === DocumentType.INK) {
+                    const ink = Cast(doc.data, InkField)?.inkData;
+                    if (ink) {
+                        const newPoints: { X: number, Y: number }[] = [];
+                        var counter = 0;
+                        for (var k = 0; k < index; k++) {
+                            control.forEach(pt => (pts[k].X === pt.X && pts[k].Y === pt.Y) && counter++);
+                        }
+                        //decide where to put the new coordinate
+                        const spNum = Math.floor(counter / 2) * 4 + 2;
+
+                        for (var i = 0; i < spNum; i++) {
+                            newPoints.push({ X: ink[i].X, Y: ink[i].Y });
+                        }
+                        for (var j = 0; j < 4; j++) {
+                            newPoints.push({ X: x, Y: y });
+
+                        }
+                        for (var i = spNum; i < ink.length; i++) {
+                            newPoints.push({ X: ink[i].X, Y: ink[i].Y });
+                        }
+                        this._currPoint = -1;
+                        doc.data = new InkField(newPoints);
+                    }
+                }
+            }
+        }));
+    }
+
+    @undoBatch
+    @action
+    deletePoints = () => {
+        this.selectedInk?.forEach(action(inkView => {
+            if (this.selectedInk?.length === 1 && this._currPoint !== -1) {
+                const doc = Document(inkView.rootDoc);
+                if (doc.type === DocumentType.INK) {
+                    const ink = Cast(doc.data, InkField)?.inkData;
+                    if (ink && ink.length > 4) {
+                        const newPoints: { X: number, Y: number }[] = [];
+
+                        console.log(ink.length, this._currPoint, Math.floor((this._currPoint + 2) / 4));
+
+                        const toRemove = Math.floor(((this._currPoint + 2) / 4));
+                        for (var i = 0; i < ink.length; i++) {
+                            if (Math.floor((i + 2) / 4) !== toRemove) {
+                                console.log(i, toRemove);
+                                newPoints.push({ X: ink[i].X, Y: ink[i].Y });
+                            }
+                        }
+                        this._currPoint = -1;
+                        doc.data = new InkField(newPoints);
+                        if (newPoints.length === 4) {
+                            const newerPoints: { X: number, Y: number }[] = [];
+                            newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
+                            newerPoints.push({ X: newPoints[0].X, Y: newPoints[0].Y });
+                            newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
+                            newerPoints.push({ X: newPoints[3].X, Y: newPoints[3].Y });
+                            doc.data = new InkField(newerPoints);
+
+                        }
+                    }
+                }
+            }
+        }));
+    }
+
+    @undoBatch
+    @action
     rotate = (angle: number) => {
         const _centerPoints: { X: number, Y: number }[] = [];
         SelectionManager.SelectedDocuments().forEach(action(inkView => {

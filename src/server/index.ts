@@ -8,7 +8,6 @@ import DeleteManager from "./ApiManagers/DeleteManager";
 import DownloadManager from './ApiManagers/DownloadManager';
 import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
-import HypothesisManager from "./ApiManagers/HypothesisManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import { SearchManager } from './ApiManagers/SearchManager';
 import SessionManager from "./ApiManagers/SessionManager";
@@ -72,7 +71,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         new DeleteManager(),
         new UtilManager(),
         new GeneralGoogleManager(),
-        new HypothesisManager(),
         new GooglePhotosManager(),
     ];
 
@@ -105,7 +103,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
-        console.log(detector.is("iPhone"));
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
 

@@ -30,10 +30,13 @@
 }
 
 .settings-username {
-    font-size: 14px;
+    font-size: 12px;
     padding-right: 15px;
     color: black;
-    margin-top: 10px;
+    margin-top: 4px;
+    /* right: 135; */
+    position: absolute;
+    left: 235;
 }
 
 .settings-section {
@@ -96,8 +99,8 @@
     display: flex;
 
     .modes-select {
-        width: 170px;
-        margin-right: 65px;
+        // width: 170px;
+        margin-right: 10px;
         color: black;
         border-radius: 5px;
 
@@ -106,10 +109,12 @@
         }
     }
 
-    .modes-playground {
+    .modes-playground,
+    .default-acl {
         display: flex;
 
-        .playground-check {
+        .playground-check,
+        .acl-check {
             margin-right: 5px;
 
             &:hover {
@@ -119,7 +124,13 @@
 
         .playground-text {
             color: black;
+            margin-right: 10px;
         }
+
+        .acl-text {
+            color: black;
+        }
+
     }
 }
 
@@ -215,6 +226,11 @@
         right: 1em;
         top: 1em;
         cursor: pointer;
+    }
+
+    .logout-button {
+        right: 35;
+        position: absolute;
     }
 
     .settings-content {

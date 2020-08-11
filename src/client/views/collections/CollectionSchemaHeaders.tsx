@@ -348,7 +348,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
             let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            let blockedkeys = ["proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+            let blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
             keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
             if (keyOptions.length) {
                 this.onSelect(keyOptions[0]);
@@ -450,9 +450,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 keyOptions.push(key);
             }
         });
-
+        //checked={() =>{Cast(this.props.Document!._docRangeFilters, listSpec("string"))!.includes(key)}}
 
         const options = keyOptions.map(key => {
+            //Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray", width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
             }}
@@ -656,7 +657,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                         e.stopPropagation();
                     }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" style={{
-                    width: this.props.width, maxWidth: this.props.width, overflow: "scroll", height: "auto",
+                    width: this.props.width, maxWidth: this.props.width, height: "auto",
                 }}
                     onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this._searchTerm.includes(":") ?
