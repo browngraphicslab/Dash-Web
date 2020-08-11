@@ -56,7 +56,7 @@ export default class SettingsManager extends React.Component<{}> {
     @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
-    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().defaultColor = String(color.hex));
+    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc()["default-collection-background"] = String(color.hex));
     @undoBatch
     playgroundModeToggle = action(() => {
         this.playgroundMode = !this.playgroundMode;

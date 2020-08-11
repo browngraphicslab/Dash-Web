@@ -258,7 +258,7 @@ export class MainView extends React.Component {
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: "Collection " + workspaceCount,
+            title: "Untitled Collection",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
@@ -332,7 +332,7 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    defaultBackgroundColors = (doc: Opt<Doc>) => {
+    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
         if (this.panelContent === doc?.title) return "lightgrey";
 
         if (doc?.type === DocumentType.COL) {
@@ -342,7 +342,7 @@ export class MainView extends React.Component {
                 || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
                 return "lightgrey";
             }
-            return StrCast(Doc.UserDoc().defaultColor);
+            return renderDepth > 0 ? StrCast(Doc.UserDoc()["default-collection-nested-background"]) : StrCast(Doc.UserDoc()["default-collection-background"]);
         }
         if (this.darkScheme) {
             switch (doc?.type) {

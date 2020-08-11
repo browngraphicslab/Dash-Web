@@ -21,6 +21,7 @@ import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { ContextMenuItem } from "../../ContextMenuItem";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -70,23 +71,19 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onKeyPress = (e: KeyboardEvent) => {
         //make textbox and add it to this collection
         // tslint:disable-next-line:prefer-const
-        let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
+        const cm = ContextMenu.Instance;
+        const [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === "?") {
-            ContextMenu.Instance.setDefaultItem("?", (str: string) => {
-                const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, {
-                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false,
-                    title: "bing", UseCors: true
-                });
-                this.props.addDocTab(textDoc, "onRight");
-            });
+            cm.setDefaultItem("?", (str: string) => this.props.addDocTab(
+                Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, { _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 850, isAnnotating: false, title: "bing", UseCors: true }), "onRight"));
 
-            ContextMenu.Instance.displayMenu(this._downX, this._downY);
+            cm.displayMenu(this._downX, this._downY);
             e.stopPropagation();
         } else
             if (e.key === ":") {
                 DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
 
-                ContextMenu.Instance.displayMenu(this._downX, this._downY);
+                cm.displayMenu(this._downX, this._downY);
                 e.stopPropagation();
             } else if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -359,24 +356,23 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, isBackground?: boolean) => {
-        const bounds = this.Bounds;
-        // const inkData = this.ink ? this.ink.inkData : undefined;
-        const newCollection = (creator || Docs.Create.FreeformDocument)(selected, {
-            x: bounds.left,
-            y: bounds.top,
-            _panX: 0,
-            _panY: 0,
-            isBackground,
-            backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined,
-            _width: bounds.width,
-            _height: bounds.height,
-            title: "a nested collection",
-        });
+    getCollection = action((selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, isBackground?: boolean) => {
+        const newCollection = creator ? creator(selected, { title: "nested stack", }) : ((doc: Doc) => {
+            Doc.GetProto(doc).data = new List<Doc>(selected);
+            Doc.GetProto(doc).title = "nested freeform";
+            doc._panX = doc._panY = 0;
+            return doc;
+        })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
+        newCollection.isBackground = isBackground;
+        newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined;
+        newCollection._width = this.Bounds.width;
+        newCollection._height = this.Bounds.height;
+        newCollection.x = this.Bounds.left;
+        newCollection.y = this.Bounds.top;
         selected.forEach(d => d.context = newCollection);
         this.hideMarquee();
         return newCollection;
-    }
+    });
 
     @action
     pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {

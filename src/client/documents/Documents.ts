@@ -174,6 +174,7 @@ export interface DocumentOptions {
     onPointerUp?: ScriptField;
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
+    clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
     UseCors?: boolean;
