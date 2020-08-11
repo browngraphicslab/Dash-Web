@@ -127,12 +127,13 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const targetDataDoc = this.dataDoc;
             const value = DocListCast(targetDataDoc[this.annotationKey]);
             const toRemove = value.filter(v => docs.includes(v));
-            // can't assign new List<Doc>(result) to this because you can't assign new values in addonly
+
             if (toRemove.length !== 0) {
                 const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
                 toRemove.forEach(doc => {
                     Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
                     recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                    doc.deleted = true;
                 });
                 return true;
             }

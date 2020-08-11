@@ -573,8 +573,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
             selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
-
-            this.props.Document.deleted = true;
             this.props.removeDocument?.(this.props.Document);
         }
     }
@@ -768,8 +766,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()) && moreItems.push({ description: "Toggle Always Show Link End", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
         }
 
-        // const effectiveAcl = GetEffectiveAcl(this.props.Document);
-        // (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) &&
         moreItems.push({ description: "Close", event: this.deleteClicked, icon: "trash" });
 
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
