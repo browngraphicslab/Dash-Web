@@ -1199,27 +1199,29 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.addDocTab(childDocs as any as Doc, "inParent");
         this.props.ContainingCollectionView?.removeDocument(this.props.Document);
     }));
-    layoutDocsInGrid = () => {
-        UndoManager.RunInBatch(() => {
-            const docs = this.childLayoutPairs;
-            const startX = this.Document._panX || 0;
-            let x = startX;
-            let y = this.Document._panY || 0;
-            let i = 0;
-            const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
-            const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
-            docs.forEach(pair => {
-                pair.layout.x = x;
-                pair.layout.y = y;
-                x += width + 20;
-                if (++i === 6) {
-                    i = 0;
-                    x = startX;
-                    y += height + 20;
-                }
-            });
-        }, "arrange contents");
-    }
+
+
+    @undoBatch
+    layoutDocsInGrid = action(() => {
+        const docs = this.childLayoutPairs;
+        const startX = this.Document._panX || 0;
+        let x = startX;
+        let y = this.Document._panY || 0;
+        let i = 0;
+        const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
+        const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
+        docs.forEach(pair => {
+            pair.layout.x = x;
+            pair.layout.y = y;
+            x += width + 20;
+            if (++i === 6) {
+                i = 0;
+                x = startX;
+                y += height + 20;
+            }
+        });
+    });
+
     @undoBatch
     @action
     toggleNativeDimensions = () => {
