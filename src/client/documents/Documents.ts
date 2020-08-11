@@ -53,6 +53,7 @@ import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
 
 export interface DocumentOptions {
+    system?: boolean;
     _autoHeight?: boolean;
     _panX?: number;
     _panY?: number;
@@ -530,7 +531,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -552,6 +553,8 @@ export namespace Docs {
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
+
+            protoProps.system = delegateProps.system;
 
             if (!("author" in protoProps)) {
                 protoProps.author = Doc.CurrentUserEmail;
