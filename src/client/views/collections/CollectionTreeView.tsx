@@ -813,7 +813,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget" id="body"
                     style={{
-                        background: this.props.backgroundColor?.(this.doc),
+                        background: this.props.backgroundColor?.(this.doc, this.props.renderDepth),
                         paddingLeft: `${NumCast(this.doc._xPadding, 10)}px`,
                         paddingRight: `${NumCast(this.doc._xPadding, 10)}px`,
                         paddingTop: `${NumCast(this.doc._yPadding, 20)}px`,

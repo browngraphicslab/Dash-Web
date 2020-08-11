@@ -61,7 +61,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     render() {
         const label = StrCast(this.rootDoc.label, StrCast(this.rootDoc.title));
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc)));
+        const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc, this.props.renderDepth)));
         const shape = StrCast(this.layoutDoc.iconShape, "round");
         const button = <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
             style={{

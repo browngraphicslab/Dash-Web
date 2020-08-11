@@ -39,7 +39,6 @@ export namespace WebSocket {
             io = sio().listen(resolvedPorts.socket);
         }
         logPort("websocket", resolvedPorts.socket);
-        console.log();
 
         io.on("connection", function (socket: Socket) {
             _socket = socket;

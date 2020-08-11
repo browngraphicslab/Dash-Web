@@ -174,6 +174,7 @@ export interface DocumentOptions {
     onPointerUp?: ScriptField;
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
+    clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
     UseCors?: boolean;
@@ -1162,7 +1163,7 @@ export namespace DocUtils {
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
-            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set`, system: true }, enumeratedFieldKey);
             Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
         }
         const options = optionsCollection as Doc;
