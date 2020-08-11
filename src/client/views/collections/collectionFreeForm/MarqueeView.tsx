@@ -339,10 +339,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     @undoBatch
     @action
     delete = () => {
-        const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
-        this.props.removeDocument(selected);
+        selected.forEach(doc => this.props.removeDocument(doc));
 
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
