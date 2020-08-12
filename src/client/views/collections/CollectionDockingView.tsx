@@ -758,7 +758,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0) || "white") }),
+        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white") }),
             (data) => {
                 const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
                 this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
@@ -821,7 +821,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (this._mainCont && this._mainCont.children) {
             const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
             const scale = Utils.GetScreenTransform(this._mainCont).scale;
-            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
+            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }
         return Transform.Identity();
     }
