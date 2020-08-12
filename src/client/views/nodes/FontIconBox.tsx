@@ -11,7 +11,7 @@ import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Tooltip } from '@material-ui/core';
+import { Tooltip, makeStyles } from '@material-ui/core';
 const FontIconSchema = createSchema({
     icon: "string",
 });
@@ -63,6 +63,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
         const color = StrCast(this.layoutDoc.color, this._foregroundColor);
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor, StrCast(this.rootDoc.backgroundColor, this.props.backgroundColor?.(this.rootDoc, this.props.renderDepth)));
         const shape = StrCast(this.layoutDoc.iconShape, "round");
+
         const button = <button className={`menuButton-${shape}`} ref={this._ref} onContextMenu={this.specificContextMenu}
             style={{
                 boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined,
