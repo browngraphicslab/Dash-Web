@@ -391,7 +391,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias", _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0", system: true });
+                { title: "Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
@@ -834,10 +834,7 @@ export class CurrentUserUtils {
             }));
         }
         if (doc.activePresentation === undefined) {
-            doc.activePresentation = Docs.Create.PresDocument(new List<Doc>(), {
-                title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias",
-                _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0", system: true
-            });
+            doc.activePresentation = Doc.MakeCopy(doc.emptyPresentation as Doc, true);
         }
     }
 
@@ -926,11 +923,12 @@ export class CurrentUserUtils {
         this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
-        this.setupDefaultPresentation(doc); // presentation that's initially triggered
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
         doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
         doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
+
+        setTimeout(() => this.setupDefaultPresentation(doc), 0); // presentation that's initially triggered
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
         doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
