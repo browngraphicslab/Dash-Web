@@ -176,7 +176,8 @@ export namespace SolrManager {
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        // "proxy": ["_i", "fieldId"],
+        "proxy": ["_i", "fieldId"],
+        "prefetch_proxy": ["_i", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {

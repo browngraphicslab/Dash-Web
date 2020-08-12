@@ -119,7 +119,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             // transform: this.props.Document.linearViewIsExpanded ? "" : "rotate(45deg)"
         }}
             onPointerDown={e => e.stopPropagation()} >
-            <p>+</p>
+            <p>{BoolCast(this.props.Document.linearViewIsExpanded) ? "–" : "+"}</p>
         </label>;
 
         return <div className="collectionLinearView-outer">

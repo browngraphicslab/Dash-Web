@@ -53,6 +53,7 @@ import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
 
 export interface DocumentOptions {
+    system?: boolean;
     _autoHeight?: boolean;
     _panX?: number;
     _panY?: number;
@@ -173,6 +174,7 @@ export interface DocumentOptions {
     onPointerUp?: ScriptField;
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
+    clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
     UseCors?: boolean;
@@ -530,7 +532,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -552,6 +554,8 @@ export namespace Docs {
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
+
+            protoProps.system = delegateProps.system;
 
             if (!("author" in protoProps)) {
                 protoProps.author = Doc.CurrentUserEmail;
@@ -576,6 +580,8 @@ export namespace Docs {
 
             viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
+
+            if (Doc.UserDoc()?.defaultAclPrivate) viewDoc["ACL-Public"] = dataDoc["ACL-Public"] = "Not Shared";
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -865,6 +871,12 @@ export namespace DocUtils {
                 const facet = filterFacets[facetKey];
                 const satisfiesFacet = Object.keys(facet).some(value => {
                     if (facet[value] === "match") {
+                        if (facetKey.startsWith("*")) { //  fields starting with a '*' are used to match families of related fields.  ie, *lastModified will match text-lastModified, data-lastModified, etc
+                            const allKeys = Array.from(Object.keys(d));
+                            allKeys.push(...Object.keys(Doc.GetProto(d)));
+                            const keys = allKeys.filter(key => key.includes(facetKey.substring(1)));
+                            return keys.some(key => Field.toString(d[key] as Field).includes(value));
+                        }
                         return d[facetKey] === undefined || Field.toString(d[facetKey] as Field).includes(value);
                     }
                     return (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value);
@@ -1151,7 +1163,7 @@ export namespace DocUtils {
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
-            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set`, system: true }, enumeratedFieldKey);
             Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
         }
         const options = optionsCollection as Doc;
@@ -1201,4 +1213,3 @@ export namespace DocUtils {
 
 Scripting.addGlobal("Docs", Docs);
 Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
-

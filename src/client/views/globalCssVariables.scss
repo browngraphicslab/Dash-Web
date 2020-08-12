@@ -29,6 +29,7 @@ $search-thumnail-size: 130;
 $contextMenu-zindex: 100000; // context menu shows up over everything
 $radialMenu-zindex: 100000; // context menu shows up over everything
 
+$searchpanel-height: 32px;
 $mainTextInput-zindex: 999; // then text input overlay so that it's context menu will appear over decorations, etc
 $docDecorations-zindex: 998; // then doc decorations appear over everything else
 $remoteCursors-zindex: 997; // ... not sure what level the remote cursors should go -- is this right?
@@ -43,4 +44,5 @@ $MAX_ROW_HEIGHT: 44px;
     MAX_ROW_HEIGHT: $MAX_ROW_HEIGHT;
     SEARCH_THUMBNAIL_SIZE: $search-thumnail-size;
     ANTIMODEMENU_HEIGHT: $antimodemenu-height;
+    SEARCH_PANEL_HEIGHT: $searchpanel-height;
 }

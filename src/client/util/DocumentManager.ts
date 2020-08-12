@@ -152,7 +152,7 @@ export class DocumentManager {
             const first = getFirstDocView(annotatedDoc);
             if (first) {
                 annotatedDoc = first.props.Document;
-                docView?.props.focus(annotatedDoc, false);
+                first.props.focus(annotatedDoc, false);
             }
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
@@ -231,6 +231,7 @@ export class DocumentManager {
                     containerDoc.currentTimecode = targetTimecode;
                     const targetContext = await target?.context as Doc;
                     const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+                    console.log(targetNavContext);
                     DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc, undefined, doc, finished);
                 } else {
                     finished?.();

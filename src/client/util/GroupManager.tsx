@@ -366,7 +366,7 @@ export default class GroupManager extends React.Component<{}> {
                 interactive={true}
                 contents={contents}
                 dialogueBoxStyle={{ width: "90%", height: "70%" }}
-                closeOnExternalClick={action(() => { this.createGroupModalOpen = false; TaskCompletionBox.taskCompleted = false; })}
+                closeOnExternalClick={action(() => { this.createGroupModalOpen = false; this.selectedUsers = null; TaskCompletionBox.taskCompleted = false; })}
             />
         );
     }

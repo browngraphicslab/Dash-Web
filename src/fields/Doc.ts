@@ -770,6 +770,7 @@ export namespace Doc {
             }
         });
         copy.author = Doc.CurrentUserEmail;
+        Doc.UserDoc().defaultAclPrivate && (copy["ACL-Public"] = "Not Shared");
         return copy;
     }
 
@@ -794,6 +795,7 @@ export namespace Doc {
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
+            Doc.UserDoc().defaultAclPrivate && (applied["ACL-Public"] = "Not Shared");
             return applied;
         }
         return undefined;
@@ -804,7 +806,8 @@ export namespace Doc {
                 target[targetKey] = new PrefetchProxy(templateDoc);
             } else {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
-                Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+                const setDoc = [AclAdmin, AclEdit].includes(GetEffectiveAcl(Doc.GetProto(target))) ? Doc.GetProto(target) : target;
+                setDoc[targetKey] = new PrefetchProxy(templateDoc);
             }
         }
         return target;
@@ -1042,6 +1045,7 @@ export namespace Doc {
                 if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
                     if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
                     docFilters.splice(i, 3);
+                    container._docFilters = new List<string>(docFilters);
                     break;
                 }
             }
