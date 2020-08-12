@@ -122,20 +122,23 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
-            const docs = doc instanceof Doc ? [doc] : doc;
-            docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
-            const targetDataDoc = this.dataDoc;
-            const value = DocListCast(targetDataDoc[this.annotationKey]);
-            const toRemove = value.filter(v => docs.includes(v));
+            const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+            if (effectiveAcl === AclAdmin || effectiveAcl === AclEdit) {
+                const docs = doc instanceof Doc ? [doc] : doc;
+                docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
+                const targetDataDoc = this.dataDoc;
+                const value = DocListCast(targetDataDoc[this.annotationKey]);
+                const toRemove = value.filter(v => docs.includes(v));
 
-            if (toRemove.length !== 0) {
-                const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
-                toRemove.forEach(doc => {
-                    Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
-                    recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                    doc.deleted = true;
-                });
-                return true;
+                if (toRemove.length !== 0) {
+                    const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                    toRemove.forEach(doc => {
+                        Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey + "-annotations", doc);
+                        recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                        doc.deleted = true;
+                    });
+                    return true;
+                }
             }
 
             return false;

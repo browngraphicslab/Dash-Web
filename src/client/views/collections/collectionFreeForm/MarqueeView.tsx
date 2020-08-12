@@ -278,7 +278,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this._downX = x;
             this._downY = y;
-            const effectiveAcl = GetEffectiveAcl(this.props.Document);
+            const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
             if ([AclAdmin, AclEdit, AclAddonly].includes(effectiveAcl)) PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
             this.clearSelection();
         }

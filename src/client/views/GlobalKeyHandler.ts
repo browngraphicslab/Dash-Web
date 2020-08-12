@@ -1,6 +1,6 @@
 import { action } from "mobx";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast, AclEdit, AclAdmin } from "../../fields/Doc";
+import { Doc, DocListCast } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkTool } from "../../fields/InkField";
 import { List } from "../../fields/List";
@@ -23,7 +23,6 @@ import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
 import GroupManager from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
-import { GetEffectiveAcl } from "../../fields/util";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;

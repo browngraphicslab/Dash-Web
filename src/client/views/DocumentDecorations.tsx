@@ -607,9 +607,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             return (null);
         }
         const canDelete = SelectionManager.SelectedDocuments().some(docView => {
-            const docAcl = GetEffectiveAcl(docView.props.Document);
-            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc);
-            return [docAcl, collectionAcl].some(acl => [AclAdmin, AclEdit].includes(acl));
+            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]);
+            return collectionAcl === AclAdmin || collectionAcl === AclEdit;
         });
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
