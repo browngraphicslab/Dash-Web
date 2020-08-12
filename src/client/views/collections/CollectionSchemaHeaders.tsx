@@ -483,7 +483,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @observable filterOpen: boolean | undefined = undefined;
     render() {
-        console.log(this._isOpen, this._key, this._searchTerm);
         return (
             <div style={{ display: "flex" }}>
                 <FontAwesomeIcon onClick={e => { this.props.Document._searchDoc ? runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen; }) : this.props.openHeader(this.props.col, e.clientX, e.clientY); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
