@@ -3,7 +3,7 @@ import { IconProp, library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../fields/Doc";
 import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ScriptField } from "../../../fields/ScriptField";
@@ -277,10 +277,10 @@ export interface KeysDropdownProps {
     width?: string;
     docs?: Doc[];
     Document: Doc;
-    dataDoc: Doc;
+    dataDoc: Doc | undefined;
     fieldKey: string;
-    ContainingCollectionDoc: Doc;
-    ContainingCollectionView: CollectionView;
+    ContainingCollectionDoc: Doc | undefined;
+    ContainingCollectionView: Opt<CollectionView>;
     active?: (outsideReaction?: boolean) => boolean;
     openHeader: (column: any, screenx: number, screeny: number) => void;
     col: SchemaHeaderField;
@@ -310,7 +310,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
             let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            let blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+            const blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
             keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
             if (keyOptions.length) {
                 this.onSelect(keyOptions[0]);
@@ -362,7 +362,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
-        let blockedkeys = ["proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+        const blockedkeys = ["proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
         keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
 
         const options = keyOptions.map(key => {
@@ -391,7 +391,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         }
         else {
             if (this.props.docs) {
-                let panesize = this.props.docs.length * 30;
+                const panesize = this.props.docs.length * 30;
                 options.length * 20 + 8 - 10 > panesize ? this.defaultMenuHeight = panesize : this.defaultMenuHeight = options.length * 20 + 8;
             }
             else {
@@ -401,7 +401,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         return options;
     }
 
-    docSafe: Doc[] = []
+    docSafe: Doc[] = [];
 
     @action
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
@@ -409,23 +409,30 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.defaultMenuHeight = 0;
             return <></>;
         }
+
         let keyOptions: string[] = [];
+        const colpos = this._searchTerm.indexOf(":");
+        const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         if (this.docSafe.length === 0) {
-            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey!]);
+            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
         }
-        let docs = this.docSafe;
+        const docs = this.docSafe;
         docs.forEach((doc) => {
             const key = StrCast(doc[this._key]);
-            if (keyOptions.includes(key) === false) {
+            if (keyOptions.includes(key) === false && key.includes(temp)) {
                 keyOptions.push(key);
             }
         });
 
-        let filters = Cast(this.props.Document!._docFilters, listSpec("string"));
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
         for (let i = 0; i < (filters?.length ?? 0) - 1; i += 3) {
             if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i + 1]) === false) {
                 keyOptions.push(filters![i + 1]);
             }
+        }
+
+        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+            this.props.col.setColor("rgb(241, 239, 235)");
         }
 
         const options = keyOptions.map(key => {
@@ -442,8 +449,9 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             }}
             >
                 <input type="checkbox" onChange={(e) => {
-                    e.target.checked === true ? Doc.setDocFilter(this.props.Document!, this._key, key, "check") : Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
-                    e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs![0], this._key, key, "check") : Doc.setDocFilter(docs![0], this._key, key, undefined);
+                    e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, undefined);
+                    e.target.checked === true ? this.props.col.setColor("green") : "";
+                    e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, undefined);
                 }}
                     checked={bool} ></input>
                 <span style={{ paddingLeft: 4 }}>
@@ -457,7 +465,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         }
         else {
             if (this.props.docs) {
-                let panesize = this.props.docs.length * 30;
+                const panesize = this.props.docs.length * 30;
                 options.length * 20 + 8 - 10 > panesize ? this.defaultMenuHeight = panesize : this.defaultMenuHeight = options.length * 20 + 8;
             }
             else {
@@ -484,14 +492,13 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @observable filterOpen: boolean | undefined = undefined;
     render() {
-        console.log(this._isOpen, this._key, this._searchTerm);
         return (
             <div style={{ display: "flex" }}>
                 <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY) }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
 
-                <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
+                {/* <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
                     runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
-                }} />
+                }} /> */}
 
                 <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
                     <input className="keys-search" style={{ width: "100%" }}
@@ -505,7 +512,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                         width: this.props.width, maxWidth: this.props.width, height: "auto",
                     }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
-                        {this._key === this._searchTerm ? this.renderFilterOptions() : this.renderOptions()}
+                        {this._searchTerm.includes(":") ? this.renderFilterOptions() : this.renderOptions()}
                     </div>
                 </div >
             </div>

@@ -74,11 +74,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let searchx = 0;
         let searchy = 0;
         if (this.props.Document._searchDoc !== undefined) {
-            let el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
+            const el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
             if (el !== undefined) {
-                let rect = el.getBoundingClientRect();
+                const rect = el.getBoundingClientRect();
                 searchx = rect.x;
-                searchy = rect.y
+                searchy = rect.y;
             }
         }
         const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this._pointerX)) - searchx;
@@ -420,7 +420,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         super.CreateDropTarget(ele);
     }
 
-    isFocused = (doc: Doc): boolean => this.props.isSelected() && doc === this._focusedTable;
+    isFocused = (doc: Doc, outsideReaction: boolean): boolean => this.props.isSelected(outsideReaction) && doc === this._focusedTable;
 
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
@@ -631,7 +631,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             style={{
                 overflow: this.props.overflow === true ? "scroll" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
-                width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
+                width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
                 style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}

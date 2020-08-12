@@ -5,7 +5,7 @@ import { DateField } from "../../../fields/DateField";
 import { Doc, FieldResult, Opt, Field } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { ScriptField } from "../../../fields/ScriptField";
-import { AudioField, VideoField } from "../../../fields/URLField";
+import { AudioField, VideoField, WebField } from "../../../fields/URLField";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
@@ -135,9 +135,9 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <div> {field.map(f => Field.toString(f)).join(", ")}  </div>;
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
-        // else if (field instanceof HtmlField) {
-        //     return <WebBox {...this.props} />
-        // }
+        else if (field instanceof WebField) {
+            return <p>{Field.toString(field.url.href)}</p>;
+        }
         else if (!(field instanceof Promise)) {
             return <p>{Field.toString(field)}</p>;
         }

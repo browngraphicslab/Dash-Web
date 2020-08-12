@@ -63,12 +63,12 @@ export interface SchemaTableProps {
     addDocument: (document: Doc | Doc[]) => boolean;
     moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    active: (outsideReaction: boolean) => boolean;
+    active: (outsideReaction: boolean | undefined) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
-    isFocused: (document: Doc) => boolean;
+    isFocused: (document: Doc, outsideReaction: boolean) => boolean;
     setFocused: (document: Doc) => void;
     setPreviewDoc: (document: Doc) => void;
     columns: SchemaHeaderField[];
@@ -155,7 +155,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         const possibleKeys = this.props.documentKeys.filter(key => this.props.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1);
         const columns: Column<Doc>[] = [];
-        const tableIsFocused = this.props.isFocused(this.props.Document);
+        const tableIsFocused = this.props.isFocused(this.props.Document, false);
         const focusedRow = this._focusedCell.row;
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
@@ -177,7 +177,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
-        this.props.active
+        this.props.active;
 
         const cols = this.props.columns.map(col => {
             const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
@@ -342,7 +342,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             addDoc: this.tableAddDoc,
             removeDoc: this.props.deleteDocument,
             rowInfo,
-            rowFocused: !this.props.headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
+            rowFocused: !this.props.headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document, true),
             textWrapRow: this.toggleTextWrapRow,
             rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1,
             dropAction: StrCast(this.props.Document.childDropAction),
@@ -356,7 +356,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const row = rowInfo.index;
         //@ts-ignore
         const col = this.columns.map(c => c.heading).indexOf(column!.id);
-        const isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
+        const isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document, true);
         // TODO: editing border doesn't work :(
         return {
             style: {
@@ -376,7 +376,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
-        if (!this._cellIsEditing && !this.props.headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected(true)) {
+        if (!this._cellIsEditing && !this.props.headerIsEditing && this.props.isFocused(this.props.Document, true)) {// && this.props.isSelected(true)) {
             const direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this._focusedCell = this.changeFocusedCellByDirection(direction, this._focusedCell.row, this._focusedCell.col);
 
