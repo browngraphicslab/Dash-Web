@@ -472,7 +472,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
                 }
             }
             disposer();
