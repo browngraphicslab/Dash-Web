@@ -1045,6 +1045,7 @@ export namespace Doc {
                 if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
                     if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
                     docFilters.splice(i, 3);
+                    container._docFilters = new List<string>(docFilters);
                     break;
                 }
             }

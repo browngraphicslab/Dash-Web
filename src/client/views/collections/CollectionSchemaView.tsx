@@ -366,17 +366,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     closeHeader = () => { this._headerOpen = false; }
 
-    renderKeysDropDown = (col: any) => {
-        return <KeysDropdown
-            keyValue={col.heading}
-            possibleKeys={this.possibleKeys}
-            existingKeys={this.columns.map(c => c.heading)}
-            canAddNew={true}
-            addNew={false}
-            onSelect={this.changeColumns}
-            setIsEditing={this.setHeaderIsEditing}
-        />;
-    }
+
 
     @undoBatch
     @action
@@ -415,10 +405,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get renderMenuContent() {
         TraceMobx();
         return <div className="collectionSchema-header-menuOptions">
-            <div className="collectionSchema-headerMenu-group">
-                <label>Key:</label>
-                {this.renderKeysDropDown(this._col)}
-            </div>
             {this.renderTypes(this._col)}
             {this.renderSorting(this._col)}
             {this.renderColors(this._col)}
