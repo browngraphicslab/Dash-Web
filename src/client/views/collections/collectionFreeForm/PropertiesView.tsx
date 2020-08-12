@@ -970,15 +970,15 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance._selectedArray.length} selected
+                            {PresBox.Instance?._selectedArray.length} selected
                             <div className="propertiesView-selectedList">
-                                {PresBox.Instance.listOfSelected}
+                                {PresBox.Instance?.listOfSelected}
                             </div>
                         </div>
                     </div>
                     {!selectedItem ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openPresTransitions = !this.openPresTransitions; })}
+                            onPointerDown={action(() => { this.openPresTransitions = !this.openPresTransitions; })}
                             style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
                         <div className="propertiesView-presTrails-title-icon">
