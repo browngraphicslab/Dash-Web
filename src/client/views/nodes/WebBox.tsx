@@ -454,7 +454,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             view = <span className="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
             const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
-            view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={url} onLoad={this.iframeLoaded} />;
+            view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={url} onLoad={this.iframeLoaded}
+                // the 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' attributes are left out to prevent iframes from redirecting the top-level Dash page
+                sandbox={"allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"} />;
         } else {
             view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
