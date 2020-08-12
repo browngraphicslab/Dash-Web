@@ -15,6 +15,7 @@ import { faCog, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentView } from "../nodes/DocumentView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { Tooltip } from "@material-ui/core";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -121,16 +122,17 @@ export class DockingViewButtonSelector extends React.Component<{ views: () => Do
     }
 
     render() {
-        return <span title="Tap for menu, drag tab as document"
-            onPointerDown={e => {
+        return <Tooltip title={<><div className="dash-tooltip">Tap for toolbar, drag to create alias in another pane</div></>} placement="bottom">
+            <span onPointerDown={e => {
                 if (getComputedStyle(this._ref.current!).width !== "100%") {
                     e.stopPropagation(); e.preventDefault();
                 }
                 this.props.views()[0]?.select(false);
             }} className="buttonSelector">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
-                <FontAwesomeIcon icon={"arrows-alt"} size={"sm"} />
-            </Flyout>
-        </span>;
+                <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
+                    <FontAwesomeIcon icon={"arrows-alt"} size={"sm"} />
+                </Flyout>
+            </span>
+        </Tooltip>;
     }
 }

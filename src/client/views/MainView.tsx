@@ -439,9 +439,8 @@ export class MainView extends React.Component {
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-55, -this._buttonBarHeight);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
 
-    @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
