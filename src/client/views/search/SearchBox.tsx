@@ -339,7 +339,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         query = query.replace(/-\s+/g, '');
         query = query.replace(/-/g, "");
-        console.log(query);
         return query;
     }
 
@@ -621,7 +620,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private NumResults = 50;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
-        console.log("Get");
         if (this.lockPromise) {
             await this.lockPromise;
         }
@@ -632,7 +630,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
-                    console.log(res.numFound);
                     const highlighting = res.highlighting || {};
                     const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
                     const lines = new Map<string, string[]>();
@@ -644,18 +641,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
                     runInAction(() => {
                         filteredDocs.forEach((doc, i) => {
-                            console.log(i);
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
                             const line = lines.get(doc[Id]) || [];
                             const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)).filter(k => k) : [];
-                            doc ? console.log(Cast(doc.context, Doc)) : null;
                             // if (this.findCommonElements(hlights)) {
                             // }
                             if (index === undefined) {
                                 this._resultsSet.set(doc, this._results.length);
                                 this._results.push([doc, hlights, line]);
-                                console.log(i);
                             } else {
                                 this._results[index][1].push(...hlights);
                                 this._results[index][2].push(...line);
@@ -755,7 +749,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        const headers = new Set<string>(["title", "author", "text", "type", "data", "*lastModified"]);
+        const headers = new Set<string>(["title", "author", "text", "type", "data", "*lastModified", "context"]);
         // if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
         //     if (this.noresults === "") {
         //         this.noresults = "No search results :(";

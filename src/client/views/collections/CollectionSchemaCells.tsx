@@ -168,13 +168,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (positions !== undefined) {
             StrCast(this.props.Document._searchString);
             const length = StrCast(this.props.Document._searchString).length;
+            const color = contents ? "black" : "grey";
 
-            results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(0, positions[0]) : "undefined"}</span>);
+            results.push(<span key="-1" style={{ color }}>{contents?.slice(0, positions[0])}</span>);
             positions.forEach((num, cur) => {
-                results.push(<span style={{ backgroundColor: "#FFFF00", color: contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : "undefined"}</span>);
+                results.push(<span key={"start" + cur} style={{ backgroundColor: "#FFFF00", color }}>{contents?.slice(num, num + length)}</span>);
                 let end = 0;
                 cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
-                results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : "undefined"}</span>);
+                results.push(<span key={"end" + cur} style={{ color }}>{contents?.slice(num + length, end)}</span>);
             }
             );
             return results;
@@ -233,7 +234,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 if (aliasdoc.length > 0) {
                     targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
                 }
-                console.log(targetContext);
                 DocumentManager.Instance.jumpToDocument(this.props.rowProps.original, false, undefined, targetContext);
             }
             else {
