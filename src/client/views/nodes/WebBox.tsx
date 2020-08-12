@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin, DataSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
@@ -454,9 +454,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             view = <span className="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
             const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
-            view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={url} onLoad={this.iframeLoaded} />;
+            view = <iframe className="webBox-iframe" enable-annotation={"true"} ref={this._iframeRef} src={url} onLoad={this.iframeLoaded}
+                // the 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' attributes are left out to prevent iframes from redirecting the top-level Dash page
+                sandbox={"allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"} />;
         } else {
-            view = <iframe className="webBox-iframe" enable-annotation={true} ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
+            view = <iframe className="webBox-iframe" enable-annotation={"true"} ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
         return view;
     }
@@ -535,7 +537,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @action
     highlight = (color: string) => {
         // creates annotation documents for current highlights
-        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
         const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) ? this.makeAnnotationDocument(color) : undefined;
         annotationDoc && this.addDocument?.(annotationDoc);
         return annotationDoc ?? undefined;

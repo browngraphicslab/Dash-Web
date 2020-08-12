@@ -74,11 +74,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let searchx = 0;
         let searchy = 0;
         if (this.props.Document._searchDoc !== undefined) {
-            let el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
+            const el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
             if (el !== undefined) {
-                let rect = el.getBoundingClientRect();
+                const rect = el.getBoundingClientRect();
                 searchx = rect.x;
-                searchy = rect.y
+                searchy = rect.y;
             }
         }
         const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this._pointerX)) - searchx;
@@ -366,17 +366,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     closeHeader = () => { this._headerOpen = false; }
 
-    renderKeysDropDown = (col: any) => {
-        return <KeysDropdown
-            keyValue={col.heading}
-            possibleKeys={this.possibleKeys}
-            existingKeys={this.columns.map(c => c.heading)}
-            canAddNew={true}
-            addNew={false}
-            onSelect={this.changeColumns}
-            setIsEditing={this.setHeaderIsEditing}
-        />;
-    }
+
 
     @undoBatch
     @action
@@ -415,10 +405,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get renderMenuContent() {
         TraceMobx();
         return <div className="collectionSchema-header-menuOptions">
-            <div className="collectionSchema-headerMenu-group">
-                <label>Key:</label>
-                {this.renderKeysDropDown(this._col)}
-            </div>
             {this.renderTypes(this._col)}
             {this.renderSorting(this._col)}
             {this.renderColors(this._col)}
@@ -434,7 +420,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         super.CreateDropTarget(ele);
     }
 
-    isFocused = (doc: Doc): boolean => this.props.isSelected() && doc === this._focusedTable;
+    isFocused = (doc: Doc, outsideReaction: boolean): boolean => this.props.isSelected(outsideReaction) && doc === this._focusedTable;
 
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
