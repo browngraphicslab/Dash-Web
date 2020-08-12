@@ -1,36 +1,22 @@
 import React = require("react");
-import { action, observable, computed, runInAction } from "mobx";
-import { observer } from "mobx-react";
-import "./CollectionSchemaView.scss";
-import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar } from '@fortawesome/free-solid-svg-icons';
-import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
+import { IconProp, library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ColumnType } from "./CollectionSchemaView";
-import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
-import { undoBatch } from "../../util/UndoManager";
-import { Transform } from '../../util/Transform';
-import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
-import { StrCast, Cast } from "../../../fields/Types";
-import { optionFocusAriaMessage } from "react-select/src/accessibility";
-import { TraceMobx } from "../../../fields/util";
-import { CollectionTreeView } from "./CollectionTreeView";
-import { returnEmptyFilter, returnFalse, emptyPath, returnZero, emptyFunction, returnOne } from "../../../Utils";
-import { RichTextField } from "../../../fields/RichTextField";
-import { Docs } from "../../documents/Documents";
-import { List } from "../../../fields/List";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import { Doc, DocListCast } from "../../../fields/Doc";
 import { listSpec } from "../../../fields/Schema";
-import { ScriptField, ComputedField } from "../../../fields/ScriptField";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { CollectionView } from "./CollectionView";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
+import { undoBatch } from "../../util/UndoManager";
 import { SearchBox } from "../search/SearchBox";
-import { createParameter } from "typescript";
+import { ColumnType } from "./CollectionSchemaView";
+import "./CollectionSchemaView.scss";
+import { CollectionView } from "./CollectionView";
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes, faImage, faListUl, faCalendar);
 
 export interface HeaderProps {
     keyValue: SchemaHeaderField;
@@ -50,7 +36,7 @@ export interface HeaderProps {
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" :
+            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "sort-amount-down" :
                 this.props.keyType === ColumnType.Image ? "image" : this.props.keyType === ColumnType.List ? "list-ul" : this.props.keyType === ColumnType.Date ? "calendar" :
                     "align-justify";
         return (
