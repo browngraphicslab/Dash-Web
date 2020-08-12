@@ -836,10 +836,17 @@ export class CurrentUserUtils {
         }
     }
 
-    // Right sidebar is where mobile uploads are contained
+    // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
             doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias" }));
+        }
+    }
+
+    // Import sidebar is where shared documents are contained
+    static setupImportSidebar(doc: Doc) {
+        if (doc["sidebar-import"] === undefined) {
+            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", childDropAction: "alias" }));
         }
     }
 
@@ -913,6 +920,7 @@ export class CurrentUserUtils {
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
         this.setupSearchPanel(doc);

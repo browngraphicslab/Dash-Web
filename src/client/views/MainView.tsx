@@ -63,6 +63,9 @@ import { undoBatch } from '../util/UndoManager';
 import { WebBox } from './nodes/WebBox';
 import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
+import { SearchUtil } from '../util/SearchUtil';
+import { Networking } from '../Network';
+import * as rp from 'request-promise';
 
 @observer
 export class MainView extends React.Component {
@@ -545,6 +548,7 @@ export class MainView extends React.Component {
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
+                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; this.importDocument(); break;
                 case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
                 case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
@@ -557,6 +561,66 @@ export class MainView extends React.Component {
             } else this.flyoutWidth = 0;
         }
         return true;
+    }
+
+
+    importDocument = async () => {
+        const inputRef = React.createRef<HTMLInputElement>();
+        const sidebar = Cast(Doc.UserDoc()["sidebar-import"], Doc) as Doc;
+        let process = '';
+        let error = '';
+        try {
+            const col = sidebar;
+            await Docs.Prototypes.initialize();
+            const imgPrev = document.getElementById("img_preview");
+            if (imgPrev) {
+                const files: FileList | null = inputRef.current!.files;
+                if (files && files.length !== 0) {
+                    for (let index = 0; index < files.length; ++index) {
+                        const file = files[index];
+                        const res = await Networking.UploadFilesToServer(file);
+                        // For each item that the user has selected
+                        res.map(async ({ result }) => {
+                            const name = file.name;
+                            if (result instanceof Error) {
+                                return;
+                            }
+                            const path = Utils.prepend(result.accessPaths.agnostic.client);
+                            let doc = null;
+                            // Case 1: File is a video
+                            if (file.type === "video/mp4") {
+                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                                // Case 2: File is a PDF document
+                            } else if (file.type === "application/pdf") {
+                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: 400, _width: 400, _fitWidth: true, title: name });
+                                // Case 3: File is another document type (most likely Image)
+                            } else {
+                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: 400, _width: 400, title: name });
+                            }
+                            const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                            if (!res) {
+                                throw new Error("No user id returned");
+                            }
+                            const field = await DocServer.GetRefField(res);
+                            let pending: Opt<Doc>;
+                            if (field instanceof Doc) {
+                                pending = col;
+                            }
+                            if (pending) {
+                                const data = await Cast(pending.data, listSpec(Doc));
+                                if (data) data.push(doc);
+                                else pending.data = new List([doc]);
+                            }
+                        });
+                    }
+                    // Case in which the user pressed upload and no files were selected
+                } else {
+                    process = "No file selected";
+                }
+            }
+        } catch (error) {
+            error = JSON.stringify(error);
+        }
     }
 
     @action

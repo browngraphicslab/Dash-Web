@@ -55,6 +55,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @observable private presentTools: boolean = false;
     @observable private pathBoolean: boolean = false;
     @observable private expandBoolean: boolean = false;
+    @observable private openMovementDropdown: boolean = false;
+    @observable private openEffectDropdown: boolean = false;
 
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
     @computed get itemIndex() { return NumCast(this.rootDoc._itemIndex); }
@@ -99,6 +101,11 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
+    }
+
+    onComponentUnmount() {
+        document.removeEventListener("keydown", this.keyEvents, true);
+        console.log("when does this happen?");
     }
 
     updateCurrentPresentation = () => {
@@ -351,7 +358,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action togglePath = () => this.pathBoolean = !this.pathBoolean;
-    @action toggleExpand = () => this.expandBoolean = !this.expandBoolean;
+    @action toggleExpandMode = () => {
+        this.rootDoc.expandBoolean = !this.rootDoc.expandBoolean;
+        this.childDocs.forEach((doc) => {
+            if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
+            else if (!this.rootDoc.expandBoolean) doc.presExpandInlineButton = false;
+        });
+    };
 
     /**
      * The function that starts the presentation at the given index, also checking if actions should be applied
@@ -448,6 +461,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             } else {
                 doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
                 !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+                if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
             }
         });
         return true;
@@ -656,16 +670,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     // Converts seconds to ms and updates presTransition
-    setTransitionTime = (number: String) => {
-        const timeInMS = Number(number) * 1000;
+    setTransitionTime = (number: String, change?: number) => {
+        let timeInMS = Number(number) * 1000;
+        if (change) timeInMS += change;
+        if (timeInMS < 0) timeInMS = 100;
+        if (timeInMS > 10000) timeInMS = 10000;
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         if (targetDoc) targetDoc.presTransition = timeInMS;
     }
 
     // Converts seconds to ms and updates presDuration
-    setDurationTime = (number: String) => {
-        const timeInMS = Number(number) * 1000;
+    setDurationTime = (number: String, change?: number) => {
+        let timeInMS = Number(number) * 1000;
+        if (change) timeInMS += change;
+        if (timeInMS < 0) timeInMS = 100;
+        if (timeInMS > 20000) timeInMS = 20000;
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         if (targetDoc) targetDoc.presDuration = timeInMS;
@@ -676,19 +696,19 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
         if (activeItem && targetDoc) {
-            const transitionSpeed = targetDoc.presTransition ? String(Number(targetDoc.presTransition) / 1000) : 0.5;
+            let transitionSpeed = targetDoc.presTransition ? String(Number(targetDoc.presTransition) / 1000) : 0.5;
             let duration = targetDoc.presDuration ? String(Number(targetDoc.presDuration) / 1000) : 2;
             if (targetDoc.type === DocumentType.AUDIO) duration = NumCast(targetDoc.duration);
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
             activeItem.presMovement = activeItem.presMovement ? activeItem.presMovement : 'Zoom';
             return (
-                <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
                     <div className="ribbon-box">
                         Movement
-                        <div className="presBox-dropdown" onPointerDown={e => e.stopPropagation()}>
+                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5 }}>
                             {activeItem.presMovement}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2 }} icon={"angle-down"} />
-                            <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onClick={e => e.stopPropagation()}>
+                            <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
                                 <div className={`presBox-dropdownOption ${activeItem.presMovement === 'None' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('none')}>None</div>
                                 <div className={`presBox-dropdownOption ${activeItem.presMovement === 'Zoom' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('zoom')}>Pan and Zoom</div>
                                 <div className={`presBox-dropdownOption ${activeItem.presMovement === 'Pan' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.movementChanged('pan')}>Pan</div>
@@ -696,8 +716,21 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                         </div>
                         <div className="ribbon-doubleButton" style={{ display: activeItem.presMovement === 'Pan' || activeItem.presMovement === 'Zoom' ? "inline-flex" : "none" }}>
-                            <div className="presBox-subheading" >Transition Speed</div>
-                            <div className="ribbon-property"> {transitionSpeed} s </div>
+                            <div className="presBox-subheading">Transition Speed</div>
+                            <div className="ribbon-property">
+                                <input className="presBox-input"
+                                    type="text" value={transitionSpeed}
+                                    onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { if (Number(e.target.value) >= 0 && Number(e.target.value) <= 10 && !isNaN(Number(e.target.value)) || e.target.value === '') this.setTransitionTime(e.target.value) })} /> s
+                            </div>
+                            <div className="ribbon-propertyUpDown">
+                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(duration), 1000)}>
+                                    <FontAwesomeIcon icon={"caret-up"} />
+                                </div>
+                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(duration), -1000)}>
+                                    <FontAwesomeIcon icon={"caret-down"} />
+                                </div>
+                            </div>
                         </div>
                         <input type="range" step="0.1" min="0.1" max="10" value={transitionSpeed} className={`toolbar-slider ${activeItem.presMovement === 'Pan' || activeItem.presMovement === 'Zoom' ? "" : "none"}`} id="toolbar-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setTransitionTime(e.target.value); }} />
                         <div className={`slider-headers ${activeItem.presMovement === 'Pan' || activeItem.presMovement === 'Zoom' ? "" : "none"}`}>
@@ -714,9 +747,22 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         </div>
                         <div className="ribbon-doubleButton" >
                             <div className="presBox-subheading">Slide Duration</div>
-                            <div className="ribbon-property"> {duration} s </div>
+                            <div className="ribbon-property">
+                                <input className="presBox-input"
+                                    type="text" value={duration}
+                                    onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { if (Number(e.target.value) >= 0 && Number(e.target.value) <= 20 && !isNaN(Number(e.target.value)) || e.target.value === '') this.setDurationTime(e.target.value) })} /> s
+                            </div>
+                            <div className="ribbon-propertyUpDown">
+                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), 1000)}>
+                                    <FontAwesomeIcon icon={"caret-up"} />
+                                </div>
+                                <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), -1000)}>
+                                    <FontAwesomeIcon icon={"caret-down"} />
+                                </div>
+                            </div>
                         </div>
-                        <input type="range" step="0.1" min="0.1" max="10" value={duration} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
+                        <input type="range" step="0.1" min="0.1" max="20" value={duration} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "block" }} className={"toolbar-slider"} id="duration-slider" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { e.stopPropagation(); this.setDurationTime(e.target.value); }} />
                         <div className={"slider-headers"} style={{ display: targetDoc.type === DocumentType.AUDIO ? "none" : "grid" }}>
                             <div className="slider-text">Short</div>
                             <div className="slider-text">Medium</div>
@@ -725,12 +771,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     </div>
                     <div className="ribbon-box">
                         Effects
-                        <div className="presBox-dropdown"
-                            onPointerDown={e => e.stopPropagation()}
-                        >
+                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openEffectDropdown = !this.openEffectDropdown })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5 }}>
                             {effect}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2 }} icon={"angle-down"} />
-                            <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onClick={e => e.stopPropagation()}>
+                            <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} style={{ display: this.openEffectDropdown ? "grid" : "none" }} onPointerDown={e => e.stopPropagation()}>
                                 <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'None'}>None</div>
                                 <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Fade'}>Fade In</div>
                                 <div className={'presBox-dropdownOption'} onPointerDown={e => e.stopPropagation()} onClick={() => targetDoc.presEffect = 'Flip'}>Flip</div>
@@ -761,7 +805,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             Apply to all
                         </div>
                     </div>
-                </div>
+                </div >
             );
         }
     }
@@ -793,9 +837,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             }
         });
     }
-
-    private inputRef = React.createRef<HTMLInputElement>();
-
     @computed get optionsDropdown() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
@@ -871,13 +912,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get newDocumentDropdown() {
         return (
             <div>
-                <div className={"presBox-ribbon"} onClick={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                <div className={"presBox-ribbon"} onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                     <div className="ribbon-box">
                         Slide Title: <br></br>
-                        <input className="ribbon-textInput" placeholder="..." type="text" name="fname" ref={this.inputRef} onChange={(e) => {
-                            e.stopPropagation();
-                            runInAction(() => this.title = e.target.value);
-                        }}></input>
+                        <input className="ribbon-textInput" placeholder="..." type="text" name="fname"
+                            onFocus={() => {
+                                document.removeEventListener("keydown", this.keyEvents, true);
+                            }}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                runInAction(() => this.title = e.target.value);
+                            }}></input>
                     </div>
                     <div className="ribbon-box">
                         Choose type:
@@ -1298,16 +1344,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     }
 
     @action
-    checkList = (doc: Doc, list: any): number => {
+    checkList = (doc: Doc, list: any) => {
         const x: List<number> = list;
         if (x && x.length >= NumCast(doc.currentFrame) + 1) {
             return x[NumCast(doc.currentFrame)];
-        } else if (doc) {
+        } else if (doc && x) {
             x.length = NumCast(doc.currentFrame) + 1;
             x[NumCast(doc.currentFrame)] = x[NumCast(doc.currentFrame) - 1];
             return x[NumCast(doc.currentFrame)];
         }
-
     }
 
     @computed get progressivizeChildDocs() {
@@ -1404,8 +1449,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         <FontAwesomeIcon icon={"exchange-alt"} />
                     </div>
                 </Tooltip>
-                <Tooltip title={<><div className="dash-tooltip">{this.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
-                    <div style={{ opacity: this.childDocs.length > 0 ? 1 : 0.3 }} className={`toolbar-button ${this.expandBoolean ? "active" : ""}`} onClick={() => { if (this.childDocs.length > 0) this.toggleExpand(); this.childDocs.forEach((doc, ind) => { if (this.expandBoolean) doc.presExpandInlineButton = true; else doc.presExpandInlineButton = false; }); }}>
+                <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.expandBoolean ? "Minimize all" : "Expand all"}</div></>}>
+                    <div className={`toolbar-button ${this.rootDoc.expandBoolean ? "active" : ""}`} onClick={this.toggleExpandMode}>
                         <FontAwesomeIcon icon={"eye"} />
                     </div>
                 </Tooltip>

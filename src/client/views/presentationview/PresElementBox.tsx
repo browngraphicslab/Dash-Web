@@ -233,12 +233,22 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     private _itemRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+    @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        const element = document.elementFromPoint(e.clientX, e.clientY)?.parentElement;
+        const element1 = document.elementFromPoint(e.clientX, e.clientY)?.parentElement;
+        const element = e.target as any;
         e.stopPropagation();
         e.preventDefault();
         if (element) {
             if (PresBox.Instance._eleArray.includes(element)) {
+                setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
+            } else {
+                PresBox.Instance._selectedArray = [];
+                PresBox.Instance._selectedArray.push(this.rootDoc);
+                PresBox.Instance._eleArray = [];
+                PresBox.Instance._eleArray.push(this._itemRef.current!);
+                PresBox.Instance._dragArray = [];
+                PresBox.Instance._dragArray.push(this._dragRef.current!);
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             }
         }
