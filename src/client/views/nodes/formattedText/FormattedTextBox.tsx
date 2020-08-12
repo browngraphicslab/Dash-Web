@@ -304,18 +304,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     // for inserting timestamps 
     insertTime = () => {
+        let audioState;
         if (this._first) {
-            this._first = false;
             DocListCast(this.dataDoc.links).map((l, i) => {
                 let la1 = l.anchor1 as Doc;
                 let la2 = l.anchor2 as Doc;
                 this._linkTime = NumCast(l.anchor2_timecode);
+                audioState = la2.audioState;
                 if (Doc.AreProtosEqual(la2, this.dataDoc)) {
                     la1 = l.anchor2 as Doc;
                     la2 = l.anchor1 as Doc;
                     this._linkTime = NumCast(l.anchor1_timecode);
+                    audioState = la1.audioState;
                 }
-
             });
         }
         this._currentTime = Date.now();
@@ -336,7 +337,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             }
-            if (time) {
+            if (time && audioState === "recording") {
                 let value = "";
                 this._break = false;
                 value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
