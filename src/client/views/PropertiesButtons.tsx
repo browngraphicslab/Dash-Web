@@ -718,6 +718,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
+        const hasContext = this.selectedDoc.context ? true : false;
 
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
@@ -732,7 +733,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.pinWithViewButton}
             </div>
-            <div className="propertiesButtons-button">
+            <div className="propertiesButtons-button" style={{ display: hasContext ? "" : "none" }}>
                 {this.copyButton}
             </div>
             <div className="propertiesButtons-button">
