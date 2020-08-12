@@ -387,8 +387,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         });
 
         // if search term does not already exist as a group type, give option to create new group type
-        console.log("Start here");
-        console.log(this._key, this._searchTerm.slice(0, this._key.length));
+
         if (this._key !== this._searchTerm.slice(0, this._key.length)) {
             console.log("little further");
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
@@ -414,16 +413,20 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         }
         return options;
     }
+
+    docSafe: Doc[] = []
+
     @action
     renderFilterOptions = (): JSX.Element[] | JSX.Element => {
-        console.log("we here");
         if (!this._isOpen) {
             this.defaultMenuHeight = 0;
             return <></>;
         }
         let keyOptions: string[] = [];
-        let docs = DocListCast(this.props.dataDoc![this.props.fieldKey!]);
-
+        if (this.docSafe.length === 0) {
+            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey!]);
+        }
+        let docs = this.docSafe;
         docs.forEach((doc) => {
             const key = StrCast(doc[this._key]);
             if (keyOptions.includes(key) === false) {
