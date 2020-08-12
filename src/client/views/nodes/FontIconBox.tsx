@@ -5,13 +5,13 @@ import { createSchema, makeInterface } from '../../../fields/Schema';
 import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
-import { StrCast, Cast, NumCast } from '../../../fields/Types';
-import { Utils, emptyFunction } from "../../../Utils";
+import { StrCast, Cast } from '../../../fields/Types';
+import { Utils } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
-import { Tooltip, makeStyles } from '@material-ui/core';
+import { Tooltip } from '@material-ui/core';
 const FontIconSchema = createSchema({
     icon: "string",
 });
