@@ -827,7 +827,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                     ref={this.createTreeDropTarget}>
                     {this.props.treeViewHideTitle || this.doc.treeViewHideTitle ? (null) : <EditableView
                         contents={this.dataDoc.title}
-                        editing={false} k
+                        editing={false}
                         display={"block"}
                         maxHeight={72}
                         height={"auto"}
