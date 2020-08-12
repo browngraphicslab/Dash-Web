@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Dictionary } from "typescript-collections";
 import * as WebRequest from 'web-request';
-import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin } from "../../../fields/Doc";
+import { Doc, DocListCast, Opt, AclAddonly, AclEdit, AclAdmin, DataSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { HtmlField } from "../../../fields/HtmlField";
@@ -535,7 +535,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @action
     highlight = (color: string) => {
         // creates annotation documents for current highlights
-        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
         const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) ? this.makeAnnotationDocument(color) : undefined;
         annotationDoc && this.addDocument?.(annotationDoc);
         return annotationDoc ?? undefined;

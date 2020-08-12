@@ -3,7 +3,7 @@ import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faChec
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, AclEdit, AclAdmin } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast, BoolCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
@@ -30,7 +30,6 @@ import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { InkField } from '../../fields/InkField';
 import { PresBox } from './nodes/PresBox';
-import { GetEffectiveAcl } from "../../fields/util";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -432,16 +431,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     deleteDocument = () => {
-        const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
         const selected = SelectionManager.SelectedDocuments().slice();
-
-        selected.map(dv => {
-            const effectiveAcl = GetEffectiveAcl(dv.props.Document);
-            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
-                recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                dv.props.removeDocument?.(dv.props.Document);
-            }
-        });
+        selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
         this.selectedDoc && (this.selectedDoc.deleted = true);
         this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
         SelectionManager.DeselectAll();
