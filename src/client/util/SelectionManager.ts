@@ -85,10 +85,3 @@ export namespace SelectionManager {
         return Array.from(manager.SelectedDocuments.keys());
     }
 }
-
-
-Scripting.addGlobal(function selectDoc(doc: any) {
-    const view = DocumentManager.Instance.getDocumentView(doc);
-    view && SelectionManager.SelectDoc(view, false);
-    //Doc.UserDoc().activeSelection = new List([doc]); 
-});

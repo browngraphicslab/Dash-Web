@@ -108,7 +108,9 @@ export default class KeyManager {
                 GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 GroupManager.Instance.close();
-                CollectionFreeFormViewChrome.Instance.clearKeep();
+                CollectionFreeFormViewChrome.Instance?.clearKeep();
+                window.getSelection()?.empty();
+                document.body.focus();
                 break;
             case "delete":
             case "backspace":
@@ -329,6 +331,8 @@ export default class KeyManager {
                             undoBatch(() => {
                                 targetDataDoc[fieldKey] = new List<Doc>([...docList, ...added]);
                                 targetDataDoc[fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                                const lastModified = "lastModified";
+                                targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                             })();
                         }
                     }

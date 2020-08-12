@@ -91,15 +91,61 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
+    export function CreatePoints(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
         dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
-
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
         }
-        else if (points.length >= 5 && points[3].X === points[4].X) {
+        else if ((points.length >= 5 && points[3].X === points[4].X) || (points.length === 4)) {
+            for (var i = 0; i < points.length - 3; i += 4) {
+                const array = [[points[i].X, points[i].Y], [points[i + 1].X, points[i + 1].Y], [points[i + 2].X, points[i + 2].Y], [points[i + 3].X, points[i + 3].Y]];
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, array);
+                    pts.push({ X: point[0], Y: point[1] });
+                }
+            }
+        }
+        else if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
+            //pointer is up (first and last points are the same)
+            const newPoints = points.reduce((p, pts) => { p.push([pts.X, pts.Y]); return p; }, [] as number[][]);
+            newPoints.pop();
+
+            const bezierCurves = fitCurve(newPoints, parseInt(bezier));
+            for (const curve of bezierCurves) {
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, curve);
+                    pts.push({ X: point[0], Y: point[1] });
+                }
+            }
+        } else {
+            pts = points.slice();
+            // bcz: Ugh... this is ugly, but shapes apprently have an extra point added that is = (p[0].x,p[0].y+1) as some sort of flag.  need to remove it here.
+            if (pts.length > 2 && pts[pts.length - 2].X === pts[0].X && pts[pts.length - 2].Y === pts[0].Y) {
+                pts.pop();
+            }
+        }
+        if (isNaN(scalex)) {
+            scalex = 1;
+        }
+        if (isNaN(scaley)) {
+            scaley = 1;
+        }
+        console.log(pts.length);
+        return pts;
+    }
+
+
+
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
+        color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
+        dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
+        let pts: { X: number; Y: number; }[] = [];
+        if (shape) { //if any of the shape are true
+            pts = makePolygon(shape, points);
+        }
+        else if ((points.length >= 5 && points[3].X === points[4].X) || (points.length === 4)) {
             for (var i = 0; i < points.length - 3; i += 4) {
                 const array = [[points[i].X, points[i].Y], [points[i + 1].X, points[i + 1].Y], [points[i + 2].X, points[i + 2].Y], [points[i + 3].X, points[i + 3].Y]];
                 for (var t = 0; t < 1; t += 0.01) {
@@ -139,6 +185,15 @@ export namespace InteractionUtils {
         const dashArray = String(Number(width) * Number(dash));
         const defGuid = Utils.GenerateGuid();
         const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
+
+        const addables = pts.map((pts, i) =>
+            <svg height="10" width="10">
+                <circle cx={(pts.X - left - width / 2) * scalex + width / 2} cy={(pts.Y - top - width / 2) * scaley + width / 2} r={strokeWidth / 2} stroke="black" stroke-width={1} fill="blue"
+                    onDoubleClick={(e) => { console.log(i); }} pointerEvents="all" cursor="all-scroll"
+                />
+            </svg>);
+
+
         return (<svg fill={color}> {/* setting the svg fill sets the arrowStart fill */}
             {nodefs ? (null) : <defs>
                 {arrowStart !== "dot" && arrowEnd !== "dot" ? (null) : <marker id={`dot${defGuid}`} orient="auto" overflow="visible">
@@ -167,6 +222,7 @@ export namespace InteractionUtils {
                 markerStart={`url(#${arrowStart + "Start" + defGuid})`}
                 markerEnd={`url(#${arrowEnd + "End" + defGuid})`}
             />
+            {/* {addables} */}
 
         </svg>);
     }

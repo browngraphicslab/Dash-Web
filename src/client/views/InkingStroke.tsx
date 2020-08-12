@@ -52,8 +52,8 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         FormatShapePane.Instance.Pinned = true;
     }
 
-    private _prevX = 0;
-    private _prevY = 0;
+    public _prevX = 0;
+    public _prevY = 0;
     private _controlNum = 0;
     @action
     onControlDown = (e: React.PointerEvent, i: number): void => {
@@ -67,6 +67,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     @action
     changeCurrPoint = (i: number) => {
         FormatShapePane.Instance._currPoint = i;
+        document.addEventListener("keydown", this.delPts, true);
     }
 
     @action
@@ -86,6 +87,13 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this._controlUndo?.end();
         this._controlUndo = undefined;
     }
+    @action
+    delPts = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        if (e instanceof KeyboardEvent ? e.key === "-" : true) {
+            FormatShapePane.Instance.deletePoints();
+        }
+    }
+
 
     public static MaskDim = 50000;
     render() {
@@ -114,6 +122,12 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
             "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
+
+        //points for adding
+        const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
+            StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
 
         const controlPoints: { X: number, Y: number, I: number }[] = [];
         const handlePoints: { X: number, Y: number, I: number, dot1: number, dot2: number }[] = [];
@@ -146,11 +160,20 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         // }
         const dotsize = String(Math.max(width * scaleX, height * scaleY) / 40);
 
+        const addpoints = apoints.map((pts, i) =>
+
+            <svg height="10" width="10">
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="invisible" stroke-width={String(Number(dotsize) / 2)} fill="invisible"
+                    onPointerDown={(e) => { FormatShapePane.Instance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
+                />
+            </svg>);
+
         const controls = controlPoints.map((pts, i) =>
 
             <svg height="10" width="10">
                 <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" stroke-width={String(Number(dotsize) / 2)} fill="red"
-                    onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="all-scroll" />
+                    onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="all-scroll"
+                />
             </svg>);
         const handles = handlePoints.map((pts, i) =>
 
@@ -193,6 +216,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                 </defs>
                 {hpoints}
                 {points}
+                {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? addpoints : ""}
                 {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? controls : ""}
                 {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? handles : ""}
                 {FormatShapePane.Instance._controlBtn && this.props.isSelected() ? handleLines : ""}

@@ -513,7 +513,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
             const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             if (doc instanceof Doc) {
-                tab.titleElement[0].onclick = (e: any) => tab.titleElement[0].focus();
+                tab.titleElement[0].onclick = (e: any) => {
+                    if (Date.now() - tab.titleElement[0].lastClick < 1000) tab.titleElement[0].select();
+                    tab.titleElement[0].lastClick = Date.now();
+                    tab.titleElement[0].focus();
+                };
                 tab.titleElement[0].onchange = (e: any) => {
                     tab.titleElement[0].size = e.currentTarget.value.length + 1;
                     Doc.GetProto(doc).title = e.currentTarget.value, true;
@@ -691,8 +695,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return (this.props as any).glContainer.parent.parent;
     }
     get _tab(): any {
-        const tab = (this.props as any).glContainer.tab.element[0] as HTMLElement;
-        return tab.getElementsByClassName("lm_title")?.[0];
+        const tab = (this.props as any).glContainer.tab?.element[0] as HTMLElement;
+        return tab?.getElementsByClassName("lm_title")?.[0];
     }
     constructor(props: any) {
         super(props);
@@ -755,10 +759,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, "white") }),
+        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white") }),
             (data) => {
                 const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
-                this._tab.style.backgroundColor = selected ? data.color : "";
+                this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
             }
         );
     }
@@ -818,7 +822,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (this._mainCont && this._mainCont.children) {
             const { translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
             const scale = Utils.GetScreenTransform(this._mainCont).scale;
-            return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
+            return CollectionDockingView.Instance?.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }
         return Transform.Identity();
     }
@@ -893,7 +897,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     renderMiniMap() {
         return <div className="miniMap" style={{
             width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
-                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!))),
+                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!, 0))),
         }}>
             <CollectionFreeFormView
                 Document={this._document!}

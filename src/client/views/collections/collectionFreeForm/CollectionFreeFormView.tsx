@@ -378,7 +378,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     getClusterColor = (doc: Doc) => {
-        let clusterColor = this.props.backgroundColor?.(doc);
+        let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1);
         const cluster = NumCast(doc.cluster);
         if (this.Document.useClusters) {
             if (this._clusterSets.length <= cluster) {
@@ -1199,27 +1199,29 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.addDocTab(childDocs as any as Doc, "inParent");
         this.props.ContainingCollectionView?.removeDocument(this.props.Document);
     }));
-    layoutDocsInGrid = () => {
-        UndoManager.RunInBatch(() => {
-            const docs = this.childLayoutPairs;
-            const startX = this.Document._panX || 0;
-            let x = startX;
-            let y = this.Document._panY || 0;
-            let i = 0;
-            const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
-            const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
-            docs.forEach(pair => {
-                pair.layout.x = x;
-                pair.layout.y = y;
-                x += width + 20;
-                if (++i === 6) {
-                    i = 0;
-                    x = startX;
-                    y += height + 20;
-                }
-            });
-        }, "arrange contents");
-    }
+
+
+    @undoBatch
+    layoutDocsInGrid = action(() => {
+        const docs = this.childLayoutPairs;
+        const startX = this.Document._panX || 0;
+        let x = startX;
+        let y = this.Document._panY || 0;
+        let i = 0;
+        const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
+        const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
+        docs.forEach(pair => {
+            pair.layout.x = x;
+            pair.layout.y = y;
+            x += width + 20;
+            if (++i === 6) {
+                i = 0;
+                x = startX;
+                y += height + 20;
+            }
+        });
+    });
+
     @undoBatch
     @action
     toggleNativeDimensions = () => {
@@ -1257,7 +1259,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
             optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
         this.props.ContainingCollectionView &&
-            optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
+            optionItems.push({ description: "Undo Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {

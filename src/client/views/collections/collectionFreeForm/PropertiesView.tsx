@@ -978,7 +978,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>
                     {!selectedItem ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openPresTransitions = !this.openPresTransitions; })}
+                            onPointerDown={action(() => { this.openPresTransitions = !this.openPresTransitions; })}
                             style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
                         <div className="propertiesView-presTrails-title-icon">

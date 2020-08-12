@@ -40,7 +40,7 @@ export default class SettingsManager extends React.Component<{}> {
     }
 
     public close = action(() => this.isOpen = false);
-    public open = action(() => (this.isOpen = true) && SelectionManager.DeselectAll());
+    public open = action(() => this.isOpen = true);
 
     private googleAuthorize = action(() => GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true));
     private changePassword = async () => {
@@ -56,7 +56,7 @@ export default class SettingsManager extends React.Component<{}> {
     @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
-    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().defaultColor = String(color.hex));
+    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
     @undoBatch
     playgroundModeToggle = action(() => {
         this.playgroundMode = !this.playgroundMode;
@@ -136,13 +136,17 @@ export default class SettingsManager extends React.Component<{}> {
                 <input className="playground-check" type="checkbox" checked={this.playgroundMode} onChange={this.playgroundModeToggle} />
                 <div className="playground-text">Playground Mode</div>
             </div>
+            <div className="default-acl">
+                <input className="acl-check" type="checkbox" checked={BoolCast(Doc.UserDoc()?.defaultAclPrivate)} onChange={action(() => Doc.UserDoc().defaultAclPrivate = !Doc.UserDoc().defaultAclPrivate)} />
+                <div className="acl-text">Default access private</div>
+            </div>
         </div>;
     }
 
     @computed get accountsContent() {
         return <div className="accounts-content">
             <button onClick={this.googleAuthorize} value="data">Link to Google</button>
-            <button onClick={GroupManager.Instance?.open}>Manage groups</button>
+            <button onClick={() => GroupManager.Instance?.open()}>Manage groups</button>
         </div>;
     }
 

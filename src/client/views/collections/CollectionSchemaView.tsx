@@ -11,7 +11,7 @@ import { Doc } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { Cast, NumCast } from "../../../fields/Types";
+import { Cast, NumCast, BoolCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
 import { SnappingManager } from "../../util/SnappingManager";
@@ -71,8 +71,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _pointerY = 0;
     @observable _openTypes: boolean = false;
     @computed get menuCoordinates() {
-        const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this._pointerX));
-        const y = Math.max(0, Math.min(document.body.clientHeight - this._menuHeight, this._pointerY));
+        let searchx = 0;
+        let searchy = 0;
+        if (this.props.Document._searchDoc !== undefined) {
+            let el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
+            if (el !== undefined) {
+                let rect = el.getBoundingClientRect();
+                searchx = rect.x;
+                searchy = rect.y
+            }
+        }
+        const x = Math.max(0, Math.min(document.body.clientWidth - this._menuWidth, this._pointerX)) - searchx;
+        const y = Math.max(0, Math.min(document.body.clientHeight - this._menuHeight, this._pointerY)) - searchy;
         return this.props.ScreenToLocalTransform().transformPoint(x, y);
     }
 
@@ -611,14 +621,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     }
     render() {
+        let name = "collectionSchemaView-container";
+        if (this.props.Document._searchDoc !== undefined) {
+            name = "collectionSchemaView-searchContainer";
+        }
         TraceMobx();
         const menuContent = this.renderMenuContent;
         const menu = <div className="collectionSchema-header-menu" ref={this.setNode}
             onWheel={e => this.onZoomMenu(e)}
             onPointerDown={e => this.onHeaderClick(e)}
             style={{
-                position: "fixed", background: "white",
-                transform: `translate(${this.menuCoordinates[0] / this.scale}px, ${this.menuCoordinates[1] / this.scale}px)`
+                position: "fixed", background: "white", border: "black 1px solid",
+                transform: `translate(${(this.menuCoordinates[0] / this.scale)}px, ${(this.menuCoordinates[1] / this.scale)}px)`
             }}>
             <Measure offset onResize={action((r: any) => {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
@@ -627,9 +641,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 {({ measureRef }) => <div ref={measureRef}> {menuContent} </div>}
             </Measure>
         </div>;
-        return <div className="collectionSchemaView-container"
+        return <div className={name}
             style={{
-                overflow: this.props.overflow === true ? "auto" : undefined,
+                overflow: this.props.overflow === true ? "scroll" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >

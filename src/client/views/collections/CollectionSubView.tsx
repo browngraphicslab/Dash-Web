@@ -112,10 +112,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
         @computed get childDocs() {
-            let rawdocs: (Doc | Promise<Doc>)[] = DocListCast(this.props.Document._searchDocs);
-
-            if (rawdocs.length !== 0) {
-            } else if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+            let rawdocs: (Doc | Promise<Doc>)[] = [];
+            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
                 rawdocs = [this.dataField];
             } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
                 rawdocs = Cast(this.dataField, listSpec(Doc), null);
@@ -130,28 +128,23 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             let childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            const searchDocs = DocListCast(this.props.Document._searchDocs);
-            // if (searchDocs !== undefined && searchDocs.length > 0) {
-            //     let newdocs: Doc[] = [];
-            //     childDocs.forEach((el) => {
-            //         searchDocs.includes(el) ? newdocs.push(el) : undefined;
-            //     });
-            //     childDocs = newdocs;
-            // }
+            let searchDocs = DocListCast(this.props.Document._searchDocs);
+
 
             let docsforFilter: Doc[] = childDocs;
+
             if (searchDocs !== undefined && searchDocs.length > 0) {
                 docsforFilter = [];
-                // let newdocs: Doc[] = [];
-                // let newarray: Doc[] = [];
-                //while (childDocs.length > 0) {
-                //newarray = [];
+                const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+                console.log(searchDocs);
+                searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript)
+                console.log(this.docFilters());
+                console.log(searchDocs);
                 childDocs.forEach((d) => {
                     if (d.data !== undefined) {
-                        console.log(d);
                         let newdocs = DocListCast(d.data);
                         if (newdocs.length > 0) {
-                            let vibecheck: boolean | undefined = undefined;
+                            let displaycheck: boolean | undefined = undefined;
                             let newarray: Doc[] = [];
                             while (newdocs.length > 0) {
                                 newarray = [];
@@ -163,12 +156,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                         });
                                     }
                                     if (searchDocs.includes(t)) {
-                                        vibecheck = true;
+                                        displaycheck = true;
                                     }
                                 });
                                 newdocs = newarray;
                             }
-                            if (vibecheck === true) {
+                            if (displaycheck === true) {
                                 docsforFilter.push(d);
                             }
                         }
@@ -177,16 +170,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         docsforFilter.push(d);
                     }
                 });
-                //childDocs = newarray;
-                //}
+                return docsforFilter;
             }
-            childDocs = docsforFilter;
-
-
-            const docFilters = this.docFilters();
+            console.log("you fool");
+            console.log(childDocs);
             const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-
-            return this.props.Document.dontRegisterView ? docs : DocUtils.FilterDocs(docs, this.docFilters(), docRangeFilters, viewSpecScript);
+            return this.props.Document.dontRegisterView ? childDocs : DocUtils.FilterDocs(childDocs, this.docFilters(), docRangeFilters, viewSpecScript);
         }
 
         @action
@@ -345,7 +334,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             let srcWeb: Doc | undefined;
                             if (SelectionManager.SelectedDocuments().length) {
                                 srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
-                                srcUrl = (srcWeb.data as WebField).url.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
+                                srcUrl = (srcWeb.data as WebField).url?.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
                             }
                             const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
@@ -353,7 +342,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.GetProto(htmlDoc)["data-text"] = Doc.GetProto(htmlDoc).text = text;
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
-                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")?.[0].contentDocument?.getSelection()?.focusNode as any);
                                 if (focusNode) {
                                     const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
                                     const x = (rect?.x || 0);
@@ -483,7 +472,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
                 }
             }
             disposer();

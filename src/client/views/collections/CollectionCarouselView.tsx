@@ -64,7 +64,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{
-                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.backgroundColor?.(this.props.Document)),
+                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.backgroundColor?.(this.props.Document, this.props.renderDepth)),
                         color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
                         borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
                     }}>
