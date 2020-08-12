@@ -806,7 +806,8 @@ export namespace Doc {
                 target[targetKey] = new PrefetchProxy(templateDoc);
             } else {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
-                Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+                const setDoc = [AclAdmin, AclEdit].includes(GetEffectiveAcl(Doc.GetProto(target))) ? Doc.GetProto(target) : target;
+                setDoc[targetKey] = new PrefetchProxy(templateDoc);
             }
         }
         return target;

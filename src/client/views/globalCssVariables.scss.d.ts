@@ -6,6 +6,7 @@ interface IGlobalScss {
     MAX_ROW_HEIGHT: string;
     SEARCH_THUMBNAIL_SIZE: string;
     ANTIMODEMENU_HEIGHT: string;
+    SEARCH_PANEL_HEIGHT: string;
 }
 declare const globalCssVariables: IGlobalScss;
 
