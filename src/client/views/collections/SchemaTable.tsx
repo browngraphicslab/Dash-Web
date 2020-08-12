@@ -320,7 +320,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
         } else if (this.props.Document._schemaHeaders === undefined) {
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb")]);
+            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb")]);
         }
     }
 

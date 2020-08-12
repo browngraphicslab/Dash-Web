@@ -13,6 +13,7 @@ import { SearchBox } from "../search/SearchBox";
 import { ColumnType } from "./CollectionSchemaView";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
+import * as fa from '@fortawesome/free-solid-svg-icons';
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -486,7 +487,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         console.log(this._isOpen, this._key, this._searchTerm);
         return (
             <div style={{ display: "flex" }}>
-                <FontAwesomeIcon onClick={e => { this.props.Document._searchDoc ? runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen }) : this.props.openHeader(this.props.col, e.clientX, e.clientY) }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY) }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+
+                <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
+                    runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
+                }} />
+
                 <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
                     <input className="keys-search" style={{ width: "100%" }}
                         ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}

@@ -168,7 +168,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 result[0].searchMatch = undefined;
             });
 
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
             if (this.currentSelectedCollection !== undefined) {
                 this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
                 this.currentSelectedCollection = undefined;
@@ -805,12 +804,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
             }
         }
-        const schemaheaders: SchemaHeaderField[] = [];
         this.headerscale = headers.size;
-        headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")));
-        this.headercount = schemaheaders.length;
         if (Cast(this.props.Document._docFilters, listSpec("string"), []).length === 0) {
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
+            const oldSchemaHeaders = Cast(this.props.Document._schemaHeaders, listSpec("string"), []);
+            if (oldSchemaHeaders?.length && typeof oldSchemaHeaders[0] !== "object") {
+                const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
+                headers.forEach(header => {
+                    if (oldSchemaHeaders.includes(header) === false) {
+                        newSchemaHeaders.push(new SchemaHeaderField(header, "#f1efeb"))
+                    }
+                });
+                this.headercount = newSchemaHeaders.length;
+                this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
+            } else if (this.props.Document._schemaHeaders === undefined) {
+                this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb")]);
+            }
         }
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
