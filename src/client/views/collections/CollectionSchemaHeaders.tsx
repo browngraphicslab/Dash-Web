@@ -420,10 +420,16 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             }
         });
 
+        let filters = Cast(this.props.Document!._docFilters, listSpec("string"));
+        for (let i = 0; i < (filters?.length ?? 0) - 1; i += 3) {
+            if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i + 1]) === false) {
+                keyOptions.push(filters![i + 1]);
+            }
+        }
+
         const options = keyOptions.map(key => {
             //Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
             let bool = false;
-            let filters = Cast(this.props.Document!._docFilters, listSpec("string"));
             console.log(filters);
             if (filters !== undefined) {
                 bool = filters.includes(key) && filters[filters.indexOf(key) + 1] === "check";
@@ -434,7 +440,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
             }}
             >
-                <input type="checkbox" onChange={(e) => { e.target.checked === true ? Doc.setDocFilter(this.props.Document!, this._key, key, "check") : Doc.setDocFilter(this.props.Document!, this._key, key, undefined); e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs![0], this._key, key, "check") : Doc.setDocFilter(docs![0], this._key, key, undefined); }}
+                <input type="checkbox" onChange={(e) => {
+                    e.target.checked === true ? Doc.setDocFilter(this.props.Document!, this._key, key, "check") : Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
+                    e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs![0], this._key, key, "check") : Doc.setDocFilter(docs![0], this._key, key, undefined);
+                }}
                     checked={bool} ></input>
                 <span style={{ paddingLeft: 4 }}>
                     {key}

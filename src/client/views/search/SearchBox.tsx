@@ -24,8 +24,6 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { DocumentView } from '../nodes/DocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
-import { stringifyUrl } from "query-string";
-import { filterSeries } from "async";
 
 export const searchSchema = createSchema({
     id: "string",
@@ -281,8 +279,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 oldWords.forEach((word, i) => {
                     i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"")
                 });
-                let v = "(" + newWords.join(" ") + ")";
-                query = query + " AND " + v;
+                query = `(${query}) AND (${newWords.join(" ")})`;
             }
             else {
                 for (let i = 0; i < values.length; i++) {
@@ -294,16 +291,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     });
                     let v = "(" + newWords.join(" ") + ")";
                     if (i === 0) {
-                        query = query + " AND (" + v;
+                        query = `(${query}) AND (${v}`;
                         if (values.length === 1) {
                             query = query + ")";
                         }
                     }
                     else if (i === values.length - 1) {
-                        query = query + " " + v + ")";
+                        query = query + " OR " + v + ")";
                     }
                     else {
-                        query = query + " " + v;
+                        query = query + " OR " + v;
                     }
                 }
             }
@@ -607,7 +604,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        const types = ["preselement", "docholder", "collection", "search", "searchitem", "script", "fonticonbox", "button", "label"]; // this.filterTypes;
+        const types = ["preselement", "docholder", "search", "searchitem", "script", "fonticonbox", "button", "label"]; // this.filterTypes;
         const baseExpr = "NOT baseProto_b:true AND NOT system_b:true";
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
         const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
@@ -757,12 +754,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
         const headers = new Set<string>(["title", "author", "*lastModified", "type"]);
-        if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
-            if (this.noresults === "") {
-                this.noresults = "No search results :(";
-            }
-            return;
-        }
+        // if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
+        //     if (this.noresults === "") {
+        //         this.noresults = "No search results :(";
+        //     }
+        //     return;
+        // }
 
         if (this._numTotalResults <= this._maxSearchIndex) {
             this._numTotalResults = this._results.length;
