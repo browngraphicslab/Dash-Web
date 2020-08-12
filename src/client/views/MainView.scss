@@ -157,7 +157,7 @@
 
     width: 60px;
     background-color: #121721;
-    height: calc(100% - 32px);
+    height: calc(100% - $searchpanel-height);
     //overflow-y: scroll;
     //overflow-x: hidden;
 
@@ -215,7 +215,7 @@
 
 .mainView-searchPanel {
     width: 100%;
-    height: 32px;
+    height: $searchpanel-height;
     background-color: black;
     color: white;
     text-align: center;
