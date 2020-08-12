@@ -91,7 +91,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
-        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = nw * 96 / 72;
+        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = Math.max(NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]), nw * 96 / 72);
         this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }

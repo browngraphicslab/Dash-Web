@@ -199,7 +199,7 @@ export class MainView extends React.Component {
             let check = false;
             const icon = "icon";
             targets.forEach((thing) => {
-                if (thing.className.toString() === "collectionSchemaView-table" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "beta" || thing.className.toString() === "collectionSchemaView-menuOptions-wrapper") {
+                if (thing.className.toString() === "collectionSchemaView-searchContainer" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "collectionSchema-header-menuOptions" || thing.className.toString() === "altcollectionTimeView-treeView") {
                     check = true;
                 }
             });
@@ -258,7 +258,7 @@ export class MainView extends React.Component {
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: "Collection " + workspaceCount,
+            title: "Untitled Collection",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
@@ -332,7 +332,7 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    defaultBackgroundColors = (doc: Opt<Doc>) => {
+    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
         if (this.panelContent === doc?.title) return "lightgrey";
 
         if (doc?.type === DocumentType.COL) {
@@ -342,7 +342,7 @@ export class MainView extends React.Component {
                 || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
                 return "lightgrey";
             }
-            return StrCast(Doc.UserDoc().defaultColor);
+            return StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {
             switch (doc?.type) {

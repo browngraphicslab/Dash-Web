@@ -19,10 +19,10 @@ export class MenuIconBox extends DocComponent<FieldViewProps, MenuIconDocument>(
 
     render() {
 
-        const color = this.props.backgroundColor?.(this.props.Document) === "lightgrey" ? "black" : "white";
-        const menuBTN = <div className="menuButton" style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document) }}>
+        const color = this.props.backgroundColor?.(this.props.Document, this.props.renderDepth) === "lightgrey" ? "black" : "white";
+        const menuBTN = <div className="menuButton" style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document, this.props.renderDepth) }}>
             <div className="menuButton-wrap"
-                style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document) }} >
+                style={{ backgroundColor: this.props.backgroundColor?.(this.props.Document, this.props.renderDepth) }} >
                 <FontAwesomeIcon className="menuButton-icon" icon={StrCast(this.dataDoc.icon, "user") as any} color={color} size="lg" />
                 <div className="menuButton-label" style={{ color: color }}> {this.dataDoc.title} </div>
             </div>

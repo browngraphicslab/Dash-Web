@@ -758,7 +758,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, "white") }),
+        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance.props.backgroundColor?.(this._document, 0) || "white") }),
             (data) => {
                 const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
                 this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
@@ -896,7 +896,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     renderMiniMap() {
         return <div className="miniMap" style={{
             width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
-                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!))),
+                StrCast(this._document!.backgroundColor, CollectionDockingView.Instance.props.backgroundColor?.(this._document!, 0))),
         }}>
             <CollectionFreeFormView
                 Document={this._document!}
