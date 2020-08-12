@@ -54,6 +54,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable private _visibleElements: JSX.Element[] = [];
     @observable private _visibleDocuments: Doc[] = [];
 
+    static NUM_SEARCH_RESULTS_PER_PAGE = 25;
+
     private _resultsSet = new Map<Doc, number>();
     private _resultsRef = React.createRef<HTMLDivElement>();
     public inputRef = React.createRef<HTMLInputElement>();
@@ -245,11 +247,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         //alters the query so it looks in the correct fields
         //if this is true, th`en not all of the field boxes are checked
         //TODO: data
-        let initialfilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
+        const initialfilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
 
-        let type: string[] = [];
+        const type: string[] = [];
 
-        let filters: string[] = []
+        const filters: string[] = [];
 
         for (let i = 0; i < initialfilters.length; i = i + 3) {
             if (initialfilters[i + 2] !== undefined) {
@@ -259,7 +261,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
         }
 
-        let finalfilters: { [key: string]: string[] } = {};
+        const finalfilters: { [key: string]: string[] } = {};
 
         for (let i = 0; i < filters.length; i = i + 3) {
             if (finalfilters[filters[i]] !== undefined) {
@@ -270,26 +272,26 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
         }
 
-        for (var key in finalfilters) {
-            let values = finalfilters[key];
+        for (const key in finalfilters) {
+            const values = finalfilters[key];
             if (values.length === 1) {
-                let mod = "_t:"
+                const mod = "_t:";
                 const newWords: string[] = [];
                 const oldWords = values[0].split(" ");
                 oldWords.forEach((word, i) => {
-                    i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"")
+                    i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"");
                 });
                 query = `(${query}) AND (${newWords.join(" ")})`;
             }
             else {
                 for (let i = 0; i < values.length; i++) {
-                    let mod = "_t:"
+                    const mod = "_t:";
                     const newWords: string[] = [];
                     const oldWords = values[i].split(" ");
                     oldWords.forEach((word, i) => {
-                        i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"")
+                        i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"");
                     });
-                    let v = "(" + newWords.join(" ") + ")";
+                    const v = "(" + newWords.join(" ") + ")";
                     if (i === 0) {
                         query = `(${query}) AND (${v}`;
                         if (values.length === 1) {
@@ -348,7 +350,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     filterDocsByType(docs: Doc[]) {
         const finalDocs: Doc[] = [];
-        const blockedTypes: string[] = ["preselement", "docholder", "search", "searchitem", "script", "fonticonbox", "button", "label"];
+        const blockedTypes: string[] = [DocumentType.PRESELEMENT, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
         docs.forEach(doc => {
             const layoutresult = Cast(doc.type, "string");
             if (layoutresult && !blockedTypes.includes(layoutresult)) {
@@ -739,8 +741,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._curRequest = undefined;
     }
 
-    @observable _pageStart: number = 0
-    @observable _pageCount: number = 5;
+    @observable _pageStart: number = 0;
+    @observable _pageCount: number = SearchBox.NUM_SEARCH_RESULTS_PER_PAGE;
 
     @observable children: number = 0;
     @action
@@ -753,7 +755,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const endIndex = 30;
         //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
-        const headers = new Set<string>(["title", "author", "*lastModified", "type"]);
+        const headers = new Set<string>(["title", "author", "text", "type", "data", "*lastModified"]);
         // if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
         //     if (this.noresults === "") {
         //         this.noresults = "No search results :(";
@@ -838,7 +840,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
 
-    @computed get viewspec() { return Cast(this.props.Document._docFilters, listSpec("string"), []) }
+    @computed get viewspec() { return Cast(this.props.Document._docFilters, listSpec("string"), []); }
 
     getTransform = () => {
         return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
@@ -857,7 +859,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable filter = false;
 
     @action newpage() {
-        this._pageStart += 5;
+        this._pageStart += SearchBox.NUM_SEARCH_RESULTS_PER_PAGE;
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.resultsScrolled();
     }
@@ -1000,7 +1002,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                             docs.forEach((d) => {
                                                                 if (d.data !== undefined) {
                                                                     d._searchDocs = new List<Doc>();
-                                                                    d._docFilters = new List()
+                                                                    d._docFilters = new List();
                                                                     const newdocs = DocListCast(d.data);
                                                                     newdocs.forEach((newdoc) => {
                                                                         newarray.push(newdoc);

@@ -399,10 +399,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     search = (searchString: string, fwd: boolean, clear: boolean = false) => {
         if (clear) {
-            this._pdfViewer.findController.executeCommand('reset', { query: "" });
+            this._pdfViewer?.findController.executeCommand('reset', { query: "" });
         } else if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
-        } else if (this._pdfViewer.pageViewsReady) {
+        } else if (this._pdfViewer?.pageViewsReady) {
             this._pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: !fwd,
