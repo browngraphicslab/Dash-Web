@@ -162,7 +162,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
 
         // if the current user is the author of the document / the current user is a member of the admin group
         // but not if the doc in question is an alias - the current user will be the author of their alias rather than the original author
-        if ((Doc.CurrentUserEmail === (target.__fields?.author || target.author) && !(target.aliasOf || target.__fields?.aliasOf)) || currentUserGroups.includes("admin")) return AclAdmin;
+        if (Doc.CurrentUserEmail === (target.__fields?.author || target.author) || currentUserGroups.includes("admin")) return AclAdmin;
 
         // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;

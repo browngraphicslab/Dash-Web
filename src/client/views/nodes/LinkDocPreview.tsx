@@ -7,21 +7,16 @@ import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, re
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Transform } from "../../util/Transform";
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
-import React = require("react");
-import { DocumentView } from './DocumentView';
-import { sortAndDeduplicateDiagnostics } from 'typescript';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { LinkManager } from '../../util/LinkManager';
-import { DocumentLinksButton } from './DocumentLinksButton';
 import { ContextMenu } from '../ContextMenu';
-import { undoBatch } from '../../util/UndoManager';
+import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { DocumentLinksButton } from './DocumentLinksButton';
+import React = require("react");
 
 interface Props {
     linkDoc?: Doc;
     linkSrc?: Doc;
     href?: string;
-    backgroundColor: (doc: Doc) => string;
+    backgroundColor: (doc: Doc, renderDepth: number) => string;
     addDocTab: (document: Doc, where: string) => boolean;
     location: number[];
 }

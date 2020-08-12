@@ -88,7 +88,7 @@ class TreeView extends React.Component<TreeViewProps> {
     get doc() { return this.props.document; }
     get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
     get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
-    get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.doc.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
+    get defaultExpandedView() { return this.childDocs.length ? this.fieldKey : StrCast(this.doc.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     set treeViewOpen(c: boolean) {
         if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
@@ -108,6 +108,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
     @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
+    @computed get childAnnos() { return this.childDocList(this.fieldKey + "-annotations"); }
     @computed get boundsOfCollectionDocument() {
         return StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1 || !DocListCast(this.props.document[this.fieldKey]).length ? undefined :
             Doc.ComputeContentBounds(DocListCast(this.props.document[this.fieldKey]));
@@ -313,11 +314,11 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed get renderContent() {
         TraceMobx();
         const expandKey = this.treeViewExpandedView;
-        if (["links", this.fieldKey].includes(expandKey)) {
+        if (["links", "annotations", this.fieldKey].includes(expandKey)) {
             const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
             const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) =>
                 (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true), true);
-            const docs = expandKey === "links" ? this.childLinks : this.childDocs;
+            const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortAscending`;
             return <ul key={expandKey + "more"} onClick={(e) => {
                 this.doc[sortKey] = (this.doc[sortKey] ? false : (this.doc[sortKey] === false ? undefined : true));
@@ -424,7 +425,8 @@ class TreeView extends React.Component<TreeViewProps> {
                             this.doc.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode ? "layout" : "fields") :
                                 this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
                                     this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
-                                        this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
+                                        (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
+                                            this.childDocs.length ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
                         }
                         this.treeViewOpen = true;
                     })}>
@@ -453,6 +455,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 NativeHeight={returnZero}
                 NativeWidth={returnZero}
                 contextMenuItems={this.contextMenuItems}
+                opacity={returnOne}
                 renderDepth={1}
                 focus={returnTrue}
                 parentActive={returnTrue}
