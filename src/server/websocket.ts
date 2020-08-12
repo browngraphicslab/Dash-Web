@@ -230,7 +230,6 @@ export namespace WebSocket {
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
         "proxy": ["_i", "fieldId"],
-        // "proxy": ["", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {

@@ -324,6 +324,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
+                    documentView: this,
                     shiftKey: e.shiftKey
                 }, console.log);
                 if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {
@@ -924,7 +925,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
-        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
+        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}

@@ -177,9 +177,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
+        this.props.active
 
         const cols = this.props.columns.map(col => {
-
             const keysDropdown = <KeysDropdown
                 keyValue={col.heading}
                 possibleKeys={possibleKeys}
@@ -189,6 +189,14 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 onSelect={this.props.changeColumns}
                 setIsEditing={this.props.setHeaderIsEditing}
                 docs={this.props.childDocs}
+                Document={this.props.Document}
+                dataDoc={this.props.dataDoc}
+                fieldKey={this.props.fieldKey}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                ContainingCollectionView={this.props.ContainingCollectionView}
+                active={this.props.active}
+
+
                 // try commenting this out
                 width={"100%"}
             />;
@@ -218,19 +226,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: col.color, padding: "2px",
                         display: "flex", cursor: "default", height: "100%",
                     }}>
-                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px" }} />
+                    <FontAwesomeIcon onClick={e => this.props.openHeader(col, e.clientX, e.clientY)} icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
                     {/* <div className="keys-dropdown"
                         style={{ display: "inline", zIndex: 1000 }}> */}
                     {keysDropdown}
                     {/* </div> */}
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit" }}>
+                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit", cursor: "hand" }}>
                         <FontAwesomeIcon icon={sortIcon} size="lg" />
                     </div>
-                    {/* <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
-                        style={{ float: "right", paddingRight: "6px", zIndex: 1, background: "inherit" }}>
-                        <FontAwesomeIcon icon={"compass"} size="sm" />
-                    </div> */}
                 </div>;
 
             return {
@@ -317,27 +321,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return columns;
     }
 
-
-
-    @action
-    nextHighlight = (e: React.MouseEvent, doc: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
-        doc.searchMatch = false;
-        console.log(doc.searchMatch);
-        setTimeout(() => doc.searchMatch = true, 0);
-        console.log(doc.searchMatch);
-
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
-
-    @action
-    nextHighlight2 = (doc: Doc) => {
-
-        doc.searchMatchAlt = false;
-        setTimeout(() => doc.searchMatchAlt = true, 0);
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
 
     constructor(props: SchemaTableProps) {
         super(props);

@@ -105,11 +105,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                             if (br) break;
                         }
                     }
+                    let ypos = y;
                     ns.map(line => {
                         const indent = line.search(/\S|$/);
-                        const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
+                        const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: ypos, title: line });
                         this.props.addDocument(newBox);
-                        y += 40 * this.props.getTransform().Scale;
+                        ypos += 40 * this.props.getTransform().Scale;
                     });
                 })();
                 e.stopPropagation();
