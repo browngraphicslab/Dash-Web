@@ -324,6 +324,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
+                    documentView: this,
                     shiftKey: e.shiftKey
                 }, console.log);
                 if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {
