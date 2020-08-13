@@ -416,14 +416,14 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get deleteButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{"Delete Document"}</div></>} placement="top">
+            title={<><div className="dash-tooltip">Close Document</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     onPointerDown={this.deleteDocument}>
                     {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="trash-alt" size="lg" />}
+                        icon="times" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title"> delete </div>
+                <div className="propertiesButtons-title"> close </div>
             </div>
         </Tooltip>;
     }
