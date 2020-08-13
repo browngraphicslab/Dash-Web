@@ -532,15 +532,16 @@ export class MainView extends React.Component {
 
     _lastButton: Doc | undefined;
     @action
-    selectMenu = (button: Doc, str: string) => {
+    selectMenu = (button: Doc) => {
+        const title = StrCast(Doc.GetProto(button).title);
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
-        if (this.panelContent === str && this.flyoutWidth !== 0) {
+        if (this.panelContent === title && this.flyoutWidth !== 0) {
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
             let panelDoc: Doc | undefined;
-            switch (this.panelContent = str) {
+            switch (this.panelContent = title) {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
@@ -548,7 +549,7 @@ export class MainView extends React.Component {
                 case "Settings": SettingsManager.Instance.open(); break;
                 case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
                 case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
-                case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
+                case "User Doc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
             this.sidebarContent.proto = panelDoc;
             if (panelDoc) {
@@ -973,6 +974,7 @@ export class MainView extends React.Component {
         input.click();
     }
 }
+Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function copyWorkspace() {

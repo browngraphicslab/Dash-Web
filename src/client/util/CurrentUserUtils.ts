@@ -506,15 +506,15 @@ export class CurrentUserUtils {
         title: string, icon: string, click: string,
     }[] {
         return [
-            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
-            { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu(self, "Workspace")' },
-            { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu(self, "Catalog")' },
-            { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu(self, "Archive")' },
-            { title: "Import", icon: "upload", click: 'scriptContext.selectMenu(self, "Import")' },
-            { title: "Tools", icon: "wrench", click: 'scriptContext.selectMenu(self, "Tools")' },
-            { title: "Help", icon: "question-circle", click: 'scriptContext.selectMenu(self, "Help")' },
-            { title: "Settings", icon: "cog", click: 'scriptContext.selectMenu(self, "Settings")' },
-            { title: "User Doc", icon: "address-card", click: 'scriptContext.selectMenu(self, "UserDoc")' },
+            { title: "Sharing", icon: "users", click: 'selectMainMenu(self)' },
+            { title: "Workspace", icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Catalog", icon: "file", click: 'selectMainMenu(self)' },
+            { title: "Archive", icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Import", icon: "upload", click: 'selectMainMenu(self)' },
+            { title: "Tools", icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Help", icon: "question-circle", click: 'selectMainMenu(self)' },
+            { title: "Settings", icon: "cog", click: 'selectMainMenu(self)' },
+            { title: "User Doc", icon: "address-card", click: 'selectMainMenu(self)' },
         ];
     }
 
