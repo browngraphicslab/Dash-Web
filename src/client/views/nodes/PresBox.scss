@@ -3,6 +3,7 @@ $dark-blue: #5B9FDD;
 $light-background: #ececec;
 
 .presBox-cont {
+    cursor: auto;
     position: absolute;
     display: block;
     pointer-events: inherit;
@@ -50,6 +51,7 @@ $light-background: #ececec;
         background-color: #323232;
 
         .toolbar-button {
+            cursor: pointer;
             margin-left: 10px;
             margin-right: 10px;
             letter-spacing: 0;
@@ -153,12 +155,35 @@ $light-background: #ececec;
         margin-left: 5px;
         margin-top: 5px;
         margin-bottom: 5px;
-        margin-right: 5px;
         width: max-content;
         justify-content: center;
         align-items: center;
         padding-right: 10px;
         padding-left: 10px;
+    }
+
+    .ribbon-propertyUpDown {
+        height: 20;
+        width: 20;
+        margin-top: 5px;
+        display: grid;
+        grid-template-rows: 10px 10px;
+
+        .ribbon-propertyUpDownItem {
+            cursor: pointer;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            background: black;
+        }
+
+        .ribbon-propertyUpDownItem:hover {
+            background: darkgrey;
+            transform: scale(1.05);
+        }
     }
 
     .presBox-subheading {
@@ -254,6 +279,18 @@ $light-background: #ececec;
         width: 100%;
     }
 
+    .presBox-input {
+        width: 30;
+        height: 100%;
+        background: none;
+        border: none;
+        text-align: right;
+    }
+
+    .presBox-input:focus {
+        outline: none;
+    }
+
     .ribbon-frameSelector {
         border: black solid 1px;
         width: 60px;
@@ -281,6 +318,7 @@ $light-background: #ececec;
         }
 
         .numKeyframe {
+            cursor: pointer;
             font-size: 10;
             font-weight: 600;
             position: relative;
@@ -311,6 +349,7 @@ $light-background: #ececec;
 
 
         .ribbon-final-button {
+            cursor: pointer;
             position: relative;
             font-size: 11;
             font-weight: normal;
@@ -329,7 +368,13 @@ $light-background: #ececec;
             background-color: #979797;
         }
 
+        .ribbon-final-button:hover {
+            transform: scale(1.05);
+            transition: all 0.4s;
+        }
+
         .ribbon-final-button-hidden {
+            cursor: pointer;
             position: relative;
             font-size: 11;
             font-weight: normal;
@@ -347,6 +392,11 @@ $light-background: #ececec;
             border-radius: 10px;
             background-color: black;
         }
+
+        .ribbon-final-button-hidden:hover {
+            transform: scale(1.05);
+            transition: all 0.4s;
+        }
     }
 
     .selectedList {
@@ -363,6 +413,7 @@ $light-background: #ececec;
     }
 
     .ribbon-button {
+        cursor: pointer;
         font-size: 10.5;
         font-weight: 200;
         height: 20;
@@ -399,11 +450,9 @@ $light-background: #ececec;
         grid-template-rows: max-content auto;
         justify-self: center;
         margin-top: 10px;
-        /* padding-left: 10px; */
         padding-right: 10px;
         letter-spacing: normal;
         width: 100%;
-        /* max-width: 100%; */
         height: max-content;
         font-weight: 500;
         position: relative;
@@ -412,48 +461,15 @@ $light-background: #ececec;
         border-bottom: solid 1px darkgrey;
 
         .presBox-dropdown:hover {
-            border: solid 1px #378AD8;
-            border-bottom-left-radius: 0px;
-
-            .presBox-dropdownOption {
-                font-size: 11;
-                display: block;
-                padding-left: 10px;
-                padding-right: 5px;
-                padding-top: 3;
-                padding-bottom: 3;
-            }
-
-            .presBox-dropdownOption:hover {
-                position: relative;
-                background-color: lightgrey;
-            }
-
-            .presBox-dropdownOption.active {
-                position: relative;
-                background-color: #aedef8;
-            }
-
-            .presBox-dropdownOptions {
-                position: absolute;
-                top: 24px;
-                left: -1px;
-                z-index: 200;
-                width: 85%;
-                min-width: max-content;
-                display: block;
-                background: #FFFFFF;
-                border: 0.5px solid #979797;
-                box-sizing: border-box;
-                box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-            }
+            border: solid 1px $dark-blue;
 
             .presBox-dropdownIcon {
-                color: #378AD8;
+                color: $dark-blue;
             }
         }
 
         .presBox-dropdown {
+            cursor: pointer;
             display: grid;
             grid-template-columns: auto 20%;
             position: relative;
@@ -472,8 +488,39 @@ $light-background: #ececec;
             max-width: 200px;
             overflow: visible;
 
+            
+            .presBox-dropdownOption {
+                cursor: pointer;
+                font-size: 11;
+                display: block;
+                padding-left: 10px;
+                padding-right: 5px;
+                padding-top: 3;
+                padding-bottom: 3;
+            }
+
+            .presBox-dropdownOption:hover {
+                position: relative;
+                background-color: lightgrey;
+            }
+
+            .presBox-dropdownOption.active {
+                position: relative;
+                background-color: $light-blue;
+            }
+
             .presBox-dropdownOptions {
-                display: none;
+                position: absolute;
+                top: 23px;
+                left: -2px;
+                z-index: 200;
+                width: 85%;
+                min-width: max-content;
+                display: block;
+                background: #FFFFFF;
+                border: 0.5px solid #979797;
+                box-sizing: border-box;
+                box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
             }
 
             .presBox-dropdownIcon {
@@ -509,6 +556,7 @@ $light-background: #ececec;
 }
 
 .dropdown-play-button {
+    cursor: pointer;
     font-size: 12;
     padding-left: 5px;
     padding-right: 5px;
@@ -523,6 +571,7 @@ $light-background: #ececec;
 }
 
 .presBox-button-left {
+    cursor: pointer;
     position: relative;
     align-self: flex-start;
     justify-self: flex-start;
@@ -539,6 +588,7 @@ $light-background: #ececec;
 }
 
 .presBox-button-right {
+    cursor: pointer;
     position: relative;
     text-align: center;
     border-left: solid 1px darkgrey;
@@ -561,6 +611,7 @@ $light-background: #ececec;
 }
 
 .dropdown-play {
+    cursor: pointer;
     right: 0px;
     top: calc(100% + 2px);
     display: none;
@@ -581,6 +632,7 @@ $light-background: #ececec;
 }
 
 .open-layout {
+    cursor: pointer;
     position: relative;
     display: flex;
     align-items: center;
@@ -612,6 +664,7 @@ $light-background: #ececec;
     }
 
     .layout {
+        cursor: pointer;
         align-self: center;
         justify-self: center;
         margin-top: 5;
@@ -682,6 +735,7 @@ $light-background: #ececec;
     grid-template-columns: auto auto;
 
     .presBox-viewPicker {
+        cursor: pointer;
         height: 25;
         position: relative;
         display: inline-block;
@@ -708,6 +762,7 @@ $light-background: #ececec;
     }
 
     .presBox-button {
+        cursor: pointer;
         height: 25px;
         border-radius: 5px;
         display: none;
@@ -800,6 +855,7 @@ $light-background: #ececec;
         }
 
         .miniPres-button {
+            cursor: pointer;
             display: flex;
             height: 20;
             min-width: 20;

@@ -279,7 +279,7 @@ function delay(ms: number) {
  * 
  * On failure, returns undefined.
  */
-async function captureYoutubeScreenshot(targetUrl: string){
+async function captureYoutubeScreenshot(targetUrl: string) {
     // const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     // const page = await browser.newPage();
     // // await page.setViewport({ width: 1920, height: 1080 });

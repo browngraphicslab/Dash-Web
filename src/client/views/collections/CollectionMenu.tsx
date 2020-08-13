@@ -85,7 +85,8 @@ export default class CollectionMenu extends AntimodeMenu {
         const propTitle = CurrentUserUtils.propertiesWidth > 0 ? "Close Properties Panel" : "Open Properties Panel";
 
         const prop = <Tooltip title={<div className="dash-tooltip">{propTitle}</div>} key="properties" placement="bottom">
-            <button className="antimodeMenu-button" key="properties" onPointerDown={this.toggleProperties}>
+            <button className="antimodeMenu-button" key="properties" style={{ backgroundColor: "#424242" }}
+                onPointerDown={this.toggleProperties}>
                 <FontAwesomeIcon icon={propIcon} size="lg" />
             </button>
         </Tooltip>;
@@ -622,7 +623,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </div>
                 </Tooltip> : null}
                 {!this.isText && !this.props.isDoc ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
-                    <div className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
+                    <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
                         onClick={action(() => this.document.editing = !this.document.editing)} >
                         {NumCast(this.document.currentFrame)}
                     </div>
@@ -669,7 +670,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
     @computed get pivotField() { return StrCast(this.document._pivotField); }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
-        value = value.toLowerCase();
+        const val = value.toLowerCase();
         const docs = DocListCast(this.document[this.props.fieldKey]);
 
         if (Doc.UserDoc().noviceMode) {
@@ -677,7 +678,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
                 const keys = Object.keys(docs).filter(key => key.indexOf("title") >= 0 || key.indexOf("author") >= 0 ||
                     key.indexOf("creationDate") >= 0 || key.indexOf("lastModified") >= 0 ||
                     (key[0].toUpperCase() === key[0] && key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
-                return keys.filter(key => key.toLowerCase().indexOf(value.toLowerCase()) > -1);
+                return keys.filter(key => key.toLowerCase().indexOf(val) > -1);
             } else {
                 const keys = new Set<string>();
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
@@ -685,16 +686,16 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
                     key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
                     key.indexOf("lastModified") >= 0 || (key[0].toUpperCase() === key[0] &&
                         key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
-                return noviceKeys.filter(key => key.toLowerCase().indexOf(value.toLowerCase()) > -1);
+                return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }
         }
 
         if (docs instanceof Doc) {
-            return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
+            return Object.keys(docs).filter(key => key.toLowerCase().indexOf(val) > -1);
         } else {
             const keys = new Set<string>();
             docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
-            return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
+            return Array.from(keys).filter(key => key.toLowerCase().indexOf(val) > -1);
         }
     }
 
@@ -735,8 +736,10 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
     @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {
+        const doctype = this.props.docView.Document.type;
+        const isPres: boolean = (doctype === DocumentType.PRES);
         return (
-            <div className="collectionStackingViewChrome-cont">
+            isPres ? (null) : <div className="collectionStackingViewChrome-cont">
                 <div className="collectionStackingViewChrome-pivotField-cont">
                     <div className="collectionStackingViewChrome-pivotField-label">
                         GROUP BY:

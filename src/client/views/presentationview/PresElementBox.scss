@@ -3,6 +3,7 @@ $dark-blue: #5B9FDD;
 $light-background: #ececec;
 
 .presElementBox-item {
+    cursor: grab;
     display: grid;
     grid-template-columns: max-content max-content max-content max-content;
     background-color: #d5dce2;
@@ -161,6 +162,7 @@ $light-background: #ececec;
 }
 
 .presElementBox-closeIcon {
+    cursor: pointer;
     position: absolute;
     border-radius: 100%;
     z-index: 300;
@@ -177,6 +179,7 @@ $light-background: #ececec;
 }
 
 .presElementBox-expand {
+    cursor: pointer;
     position: absolute;
     border-radius: 100%;
     z-index: 300;
@@ -193,6 +196,7 @@ $light-background: #ececec;
 }
 
 .presElementBox-expand-selected {
+    cursor: pointer;
     position: absolute;
     border-radius: 100%;
     right: 3px;

@@ -61,6 +61,10 @@ import { Hypothesis } from '../util/HypothesisUtils';
 import { WebBox } from './nodes/WebBox';
 import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
+import { SearchUtil } from '../util/SearchUtil';
+import { Networking } from '../Network';
+import * as rp from 'request-promise';
+import { LinkManager } from '../util/LinkManager';
 import RichTextMenu from './nodes/formattedText/RichTextMenu';
 
 @observer
@@ -163,7 +167,7 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt,
+        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faCalendar,
             fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
             fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
             fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
@@ -179,7 +183,7 @@ export class MainView extends React.Component {
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
             fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft, fa.faAngleUp,
-            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer);
+            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer, fa.faHashtag, fa.faAlignJustify, fa.faCheckSquare, fa.faListUl);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -439,9 +443,8 @@ export class MainView extends React.Component {
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-55, -this._buttonBarHeight);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
 
-    @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
@@ -543,6 +546,7 @@ export class MainView extends React.Component {
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
+                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
                 case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
                 case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
@@ -893,6 +897,81 @@ export class MainView extends React.Component {
                 document.addEventListener("editSuccess", onSuccess);
             });
     }
+
+    importDocument = () => {
+        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null) as Doc;
+        const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc && sidebarDocView) {
+                        sidebarDocView.props.addDocument?.(doc);
+                        setTimeout(() => {
+                            SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                            });
+                        }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const files: FileList | null = input.files;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const res = await Networking.UploadFilesToServer(file);
+                    res.map(async ({ result }) => {
+                        const name = file.name;
+                        if (result instanceof Error) {
+                            return;
+                        }
+                        const path = Utils.prepend(result.accessPaths.agnostic.client);
+                        let doc: Doc;
+                        // Case 1: File is a video
+                        if (file.type.includes("video")) {
+                            doc = Docs.Create.VideoDocument(path, { _height: 100, title: name });
+                            // Case 2: File is a PDF document
+                        } else if (file.type === "application/pdf") {
+                            doc = Docs.Create.PdfDocument(path, { _height: 100, _fitWidth: true, title: name });
+                            // Case 3: File is an image
+                        } else if (file.type.includes("image")) {
+                            doc = Docs.Create.ImageDocument(path, { _height: 100, title: name });
+                            // Case 4: File is an audio document
+                        } else {
+                            doc = Docs.Create.AudioDocument(path, { title: name });
+                        }
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                        if (!res) {
+                            throw new Error("No user id returned");
+                        }
+                        const field = await DocServer.GetRefField(res);
+                        let pending: Opt<Doc>;
+                        if (field instanceof Doc) {
+                            pending = sidebar;
+                        }
+                        if (pending) {
+                            const data = await Cast(pending.data, listSpec(Doc));
+                            if (data) data.push(doc);
+                            else pending.data = new List([doc]);
+                        }
+                    });
+                }
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
+    }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
@@ -903,3 +982,5 @@ Scripting.addGlobal(function copyWorkspace() {
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
     setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
 });
+Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
+    "imports files from device directly into the import sidebar");
