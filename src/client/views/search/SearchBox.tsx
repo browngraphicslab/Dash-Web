@@ -626,6 +626,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
                 this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
+                    this.realTotalResults = res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
@@ -715,6 +716,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._resultsOpen = true;
         this._searchbarOpen = true;
     }
+
+    realTotalResults: number = 0;
 
     @action.bound
     closeSearch = () => {
@@ -877,6 +880,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
                                 style={{ cursor: "hand", color: "black", padding: 1, left: 35, position: "relative" }} />
                         </div></Tooltip>
+                        <div style={{
+                            position: "relative",
+                            left: 245,
+                            zIndex: 9000,
+                            color: "grey",
+                            background: "white",
+                        }}> {`${this._results.length}` + " of " + `${this.realTotalResults}`}</div>
                         <div style={{ cursor: "default", left: 250, position: "relative", }}>
                             <Tooltip title={<div className="dash-tooltip" >only display documents matching search</div>} ><div>
                                 <FontAwesomeIcon icon={"filter"} size="lg"
@@ -1031,7 +1041,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     removeDocument={returnFalse}
                                     PanelHeight={this.open === true ? () => height : () => 0}
                                     PanelWidth={this.open === true ? () => length : () => 0}
-                                    overflow={length > screen.width || rows > 6 ? true : false}
+                                    overflow={length > window.innerWidth || rows > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />

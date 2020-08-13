@@ -83,7 +83,7 @@ export namespace SearchUtil {
             }
         }
 
-        return { docs: theDocs, numFound: theDocs.length, highlighting, lines: theLines };
+        return { docs: theDocs, numFound: result.numFound, highlighting, lines: theLines };
     }
 
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;

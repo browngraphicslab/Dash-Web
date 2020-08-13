@@ -309,16 +309,29 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
-            let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            const blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
-            keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
-            if (keyOptions.length) {
-                this.onSelect(keyOptions[0]);
-                console.log("case1");
-            } else if (this._searchTerm !== "" && this.props.canAddNew) {
-                this.setSearchTerm(this._searchTerm || this._key);
-                console.log("case2");
-                this.onSelect(this._searchTerm);
+            if (this._searchTerm.includes(":")) {
+                const colpos = this._searchTerm.indexOf(":");
+                const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
+                if (temp === "") {
+                    Doc.setDocFilter(this.props.Document, this._key, temp, undefined);
+                }
+                else {
+                    Doc.setDocFilter(this.props.Document, this._key, temp, "match");
+                    this.props.col.setColor("green");
+                }
+            }
+            else {
+                let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+                const blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
+                if (keyOptions.length) {
+                    this.onSelect(keyOptions[0]);
+                    console.log("case1");
+                } else if (this._searchTerm !== "" && this.props.canAddNew) {
+                    this.setSearchTerm(this._searchTerm || this._key);
+                    console.log("case2");
+                    this.onSelect(this._searchTerm);
+                }
             }
         }
     }
@@ -410,7 +423,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             return <></>;
         }
 
-        let keyOptions: string[] = [];
+        const keyOptions: string[] = [];
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         if (this.docSafe.length === 0) {
@@ -494,7 +507,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div style={{ display: "flex" }}>
-                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY) }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
 
                 {/* <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
                     runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
