@@ -419,7 +419,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @undoBatch
     @action
-    updateMinimize = (e: React.MouseEvent) => {
+    updateMinimize = () => {
         if (this.layoutDoc.inOverlay) {
             this.layoutDoc.presStatus = 'edit';
             Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
@@ -427,7 +427,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.layoutDoc.inOverlay = false;
         } else {
             this.layoutDoc.presStatus = 'manual';
-            console.log('test');
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             this.rootDoc.x = pt[0] + (this.props.PanelWidth() - 250);
             this.rootDoc.y = pt[1] + 10;
@@ -436,17 +435,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.props.addDocTab?.(this.rootDoc, "close");
             Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
         }
-        // const srcContext = Cast(this.rootDoc.presCollection, Doc, null);
-        // this.turnOffEdit();
-        // if (srcContext) {
-        //     if (srcContext.miniPres) {
-        //         srcContext.miniPres = false;
-        //         CollectionDockingView.AddRightSplit(this.rootDoc);
-        //     } else {
-        //         srcContext.miniPres = true;
-        //         this.props.addDocTab?.(this.rootDoc, "close");
-        //     }
-        // }
     }
 
     /**
@@ -595,7 +583,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const anchorNode = document.activeElement as HTMLDivElement;
         if (anchorNode && anchorNode.className?.includes("lm_title")) return;
         if (e.keyCode === 27) { // Escape key
-            if (this.layoutDoc.inOverlay) this.updateMinimize;
+            if (this.layoutDoc.inOverlay) { this.updateMinimize(); }
             else if (this.layoutDoc.presStatus === "edit") { this._selectedArray = []; this._eleArray = []; this._dragArray = []; }
             else this.layoutDoc.presStatus = "edit";
             if (this._presTimer) clearTimeout(this._presTimer);
