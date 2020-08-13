@@ -104,7 +104,7 @@ export class ScriptingRepl extends React.Component {
                             if (ts.isParameter(node.parent)) {
                                 // delete knownVars[node.text];
                             } else if (isntPropAccess && isntPropAssign && !(node.text in knownVars) && !(node.text in globalThis)) {
-                                const match = node.text.match(/\d([0-9]+)/);
+                                const match = node.text.match(/d([0-9]+)/);
                                 if (match) {
                                     const m = parseInt(match[1]);
                                     usedDocuments.push(m);
