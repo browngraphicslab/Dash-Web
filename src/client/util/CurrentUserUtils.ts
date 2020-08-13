@@ -853,12 +853,12 @@ export class CurrentUserUtils {
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc["sidebar-import-documents"] === undefined) {
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", _showTitle: "title", _height: 300, _yMargin: 30, childDropAction: "alias" }));
+            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", _showTitle: "title", _height: 300, _yMargin: 30, childDropAction: "copy", lockedPosition: true, showNewButton: false }));
         }
         if (doc["sidebar-import"] === undefined) {
             const uploads = Cast(doc["sidebar-import-documents"], Doc, null) as Doc;
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import external document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
-            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 30, childDropAction: "alias" }));
+            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 30, childDropAction: "copy", ignoreClick: true, lockedPosition: true }));
         }
     }
 
