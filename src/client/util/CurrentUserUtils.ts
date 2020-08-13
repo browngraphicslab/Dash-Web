@@ -503,11 +503,12 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    static menuBtnDescriptions(): {
-        title: string, icon: string, click: string,
+    static menuBtnDescriptions(doc: Doc): {
+        title: string, icon: string, click: string, watchedDocuments?: Doc
     }[] {
+        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
-            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")' },
+            { title: "Sharing", icon: "users", click: 'scriptContext.selectMenu(self, "Sharing")', watchedDocuments: doc["sidebar-sharing"] as Doc },
             { title: "Workspace", icon: "desktop", click: 'scriptContext.selectMenu(self, "Workspace")' },
             { title: "Catalog", icon: "file", click: 'scriptContext.selectMenu(self, "Catalog")' },
             { title: "Archive", icon: "archive", click: 'scriptContext.selectMenu(self, "Archive")' },
@@ -529,7 +530,7 @@ export class CurrentUserUtils {
     }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
-            const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
+            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
                     iconShape: "square",
@@ -539,6 +540,7 @@ export class CurrentUserUtils {
                     childDropAction: "same",
                     _width: 60,
                     _height: 60,
+                    watchedDocuments,
                     onClick: ScriptField.MakeScript(click, { scriptContext: "any" }), system: true
                 }));
             const userDoc = menuBtns[menuBtns.length - 1];
@@ -553,10 +555,6 @@ export class CurrentUserUtils {
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
-
-            PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
-                stack && !stack.sharingButtonId && (stack.sharingButtonId = menuBtns.find(button => button.title === "Sharing")![Id]);
-            });
         }
         // this resets all sidebar buttons to being deactivated
         PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
@@ -937,7 +935,6 @@ export class CurrentUserUtils {
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
-        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);

@@ -149,8 +149,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             () => this.pivotField,
             () => this.layoutDoc._columnHeaders = new List()
         );
-
-        this.props.Document._scrollTop = 0;
     }
     componentWillUnmount() {
         super.componentWillUnmount();
@@ -494,7 +492,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     onScroll={action(e => {
                         if (!this.props.isSelected() && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
-                        this.props.Document._scrollTop = this._scroll; // used by MainViewNotifs to determine position of the notification bubble
                     })}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}

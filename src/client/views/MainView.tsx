@@ -310,11 +310,7 @@ export class MainView extends React.Component {
                 DocServer.Control.makeEditable();
             }
         }
-        // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-        setTimeout(async () => {
-            const col = this.userDoc && await Cast(this.userDoc["sidebar-sharing"], Doc);
-            col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
-        }, 100);
+
         return true;
     }
 
@@ -612,7 +608,6 @@ export class MainView extends React.Component {
                     </div>
                 </div>
                 {this.dockingContent}
-                <MainViewNotifs />
                 {this.showProperties ? (null) :
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
                         style={{ right: rightFlyout, top: "50%" }}>
