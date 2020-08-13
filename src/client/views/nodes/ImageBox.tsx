@@ -158,7 +158,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (field) {
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Rotate Clockwise 90", event: this.rotate, icon: "expand-arrows-alt" });
-            funcs.push({ description: "Make Background", event: () => this.layoutDoc.isBackground = true, icon: "expand-arrows-alt" });
+            funcs.push({ description: "Make Background", event: () => { this.layoutDoc.isBackground = true; this.props.bringToFront?.(this.rootDoc); }, icon: "expand-arrows-alt" });
             if (!Doc.UserDoc().noviceMode) {
                 funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
                 funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
