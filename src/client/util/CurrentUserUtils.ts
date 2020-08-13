@@ -909,6 +909,7 @@ export class CurrentUserUtils {
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
+        doc.defaultAclPrivate = BoolCast(doc.defaultAclPrivate, true);
         doc.activeCollectionBackground = StrCast(doc.activeCollectionBackground, "white");
         doc.activeCollectionNestedBackground = Cast(doc.activeCollectionNestedBackground, "string", null);
         doc.noviceMode = BoolCast(doc.noviceMode, true);
