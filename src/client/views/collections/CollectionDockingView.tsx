@@ -191,31 +191,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return retVal;
     }
 
-    @undoBatch
-    @action
-    public static ReplaceTab(document: Doc, stack: any): Opt<Doc> {
-        if (!CollectionDockingView.Instance) return undefined;
-        const instance = CollectionDockingView.Instance;
-        const replaceTab = (doc: Doc, child: any): Opt<Doc> => {
-            for (const contentItem of child.contentItems) {
-                const { config, isStack, isRow, isColumn } = contentItem;
-                if (isRow || isColumn || isStack) {
-                    const val = replaceTab(doc, contentItem);
-                    if (val) return val;
-                } else if (config.component === "DocumentFrameRenderer" &&
-                    config.props.documentId === doc[Id]) {
-                    const alias = Doc.MakeAlias(doc);
-                    config.props.documentId = alias[Id];
-                    config.title = alias.title;
-                    instance.stateChanged();
-                    return alias;
-                }
-            }
-            return undefined;
-        };
-        return replaceTab(document, instance._goldenLayout.root);
-    }
-
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
     //
@@ -335,6 +310,32 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     @action
     public AddTab = (stack: any, document: Doc, libraryPath?: Doc[]) => {
+        Doc.GetProto(document).lastOpened = new DateField;
+        const docContentConfig = CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath);
+        if (stack === undefined) {
+            let stack: any = this._goldenLayout.root;
+            while (!stack.isStack) {
+                if (stack.contentItems.length) {
+                    stack = stack.contentItems[0];
+                } else {
+                    stack.addChild({ type: 'stack', content: [docContentConfig] });
+                    stack = undefined;
+                    break;
+                }
+            }
+            if (stack) {
+                stack.addChild(docContentConfig);
+            }
+        } else {
+            stack.addChild(docContentConfig, undefined);
+        }
+        this.layoutChanged();
+        return true;
+    }
+
+    @undoBatch
+    @action
+    public ReplaceTab = (stack: any, document: Doc, libraryPath?: Doc[]) => {
         Doc.GetProto(document).lastOpened = new DateField;
         const docContentConfig = CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath);
         if (stack === undefined) {
@@ -871,26 +872,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
         return currentFrame;
     }
-    renderMiniPres() {
-        return (
-            <div className="miniPres"
-                style={{ width: 250, height: 30, background: '#323232' }}
-            >
-                {<div className="miniPresOverlay">
-                    <div className="miniPres-button" onClick={PresBox.Instance.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                    <div className="miniPres-button" onClick={() => PresBox.Instance.startAutoPres(PresBox.Instance.itemIndex)}><FontAwesomeIcon icon={PresBox.Instance.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
-                    <div className="miniPres-button" onClick={PresBox.Instance.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
-                    <div className="miniPres-divider"></div>
-                    <div className="miniPres-button-text">
-                        Slide {PresBox.Instance.itemIndex + 1} / {PresBox.Instance.childDocs.length}
-                        {PresBox.Instance.playButtonFrames}
-                    </div>
-                    <div className="miniPres-divider"></div>
-                    <div className="miniPres-button-text" onClick={PresBox.Instance.updateMinimize}>EXIT</div>
-                </div>}
-            </div>
-        );
-    }
+
     renderMiniMap() {
         return <div className="miniMap" style={{
             width: this.returnMiniSize(), height: this.returnMiniSize(), background: StrCast(this._document!._backgroundColor,
@@ -973,7 +955,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
             {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}
-            {document._viewType === CollectionViewType.Freeform && this._document?.miniPres ? this.renderMiniPres() : (null)}
         </>;
     }
 
