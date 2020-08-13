@@ -97,6 +97,8 @@
 
 .modes-content {
     display: flex;
+    margin-left: 10px;
+    font-size: 12;
 
     .modes-select {
         // width: 170px;
@@ -112,6 +114,8 @@
     .modes-playground,
     .default-acl {
         display: flex;
+        margin-left: 10px;
+        font-size: 12;
 
         .playground-check,
         .acl-check {
@@ -125,10 +129,12 @@
         .playground-text {
             color: black;
             margin-right: 10px;
+            margin-top: 2;
         }
 
         .acl-text {
             color: black;
+            margin-top: 2;
         }
 
     }
