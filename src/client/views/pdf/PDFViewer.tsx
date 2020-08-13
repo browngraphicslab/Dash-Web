@@ -4,7 +4,7 @@ const pdfjs = require('pdfjs-dist/es5/build/pdf.js');
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, FieldResult, HeightSym, Opt, WidthSym, AclAddonly, AclEdit, AclAdmin } from "../../../fields/Doc";
+import { Doc, DocListCast, FieldResult, HeightSym, Opt, WidthSym, AclAddonly, AclEdit, AclAdmin, DataSym } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
@@ -399,10 +399,10 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     search = (searchString: string, fwd: boolean, clear: boolean = false) => {
         if (clear) {
-            this._pdfViewer.findController.executeCommand('reset', { query: "" });
+            this._pdfViewer?.findController.executeCommand('reset', { query: "" });
         } else if (!searchString) {
             fwd ? this.nextAnnotation() : this.prevAnnotation();
-        } else if (this._pdfViewer.pageViewsReady) {
+        } else if (this._pdfViewer?.pageViewsReady) {
             this._pdfViewer.findController.executeCommand('findagain', {
                 caseSensitive: false,
                 findPrevious: !fwd,
@@ -573,7 +573,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     highlight = (color: string) => {
         // creates annotation documents for current highlights
-        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
         const annotationDoc = [AclAddonly, AclEdit, AclAdmin].includes(effectiveAcl) && this.makeAnnotationDocument(color);
         annotationDoc && this.addDocument?.(annotationDoc);
         return annotationDoc as Doc ?? undefined;

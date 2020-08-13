@@ -197,17 +197,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onCloseClick = async (e: React.MouseEvent | undefined) => {
         if (!e?.button) {
-            const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
-
-            selected.map(dv => {
-                const effectiveAcl = GetEffectiveAcl(dv.props.Document);
-                if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
-                    recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                    dv.props.removeDocument?.(dv.props.Document);
-                }
-            });
+            selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
         }
     }
     @action
@@ -615,9 +607,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             return (null);
         }
         const canDelete = SelectionManager.SelectedDocuments().some(docView => {
-            const docAcl = GetEffectiveAcl(docView.props.Document);
-            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc);
-            return [docAcl, collectionAcl].some(acl => [AclAdmin, AclEdit].includes(acl));
+            const collectionAcl = GetEffectiveAcl(docView.props.ContainingCollectionDoc?.[DataSym]);
+            return collectionAcl === AclAdmin || collectionAcl === AclEdit;
         });
         const minimal = bounds.r - bounds.x < 100 ? true : false;
         const maximizeIcon = minimal ? (
@@ -701,7 +692,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
                                 {"_"}
                             </div></Tooltip>}
-                    <Tooltip title={<><div className="dash-tooltip">Open Document In Tab</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
+                    <Tooltip title={<><div className="dash-tooltip">Open In a New Pane</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
                     </div></Tooltip>
                     {rotButton}

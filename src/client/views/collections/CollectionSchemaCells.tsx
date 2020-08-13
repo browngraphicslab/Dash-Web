@@ -166,15 +166,16 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const contents = bing();
 
         if (positions !== undefined) {
-            StrCast(this.props.Document._searchString)
+            StrCast(this.props.Document._searchString);
             const length = StrCast(this.props.Document._searchString).length;
+            const color = contents ? "black" : "grey";
 
-            results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(0, positions[0]) : "undefined"}</span>);
+            results.push(<span key="-1" style={{ color }}>{contents?.slice(0, positions[0])}</span>);
             positions.forEach((num, cur) => {
-                results.push(<span style={{ backgroundColor: "#FFFF00", color: contents ? "black" : "grey" }}>{contents ? contents.slice(num, num + length) : "undefined"}</span>);
+                results.push(<span key={"start" + cur} style={{ backgroundColor: "#FFFF00", color }}>{contents?.slice(num, num + length)}</span>);
                 let end = 0;
                 cur === positions.length - 1 ? end = contents.length : end = positions[cur + 1];
-                results.push(<span style={{ color: contents ? "black" : "grey" }}>{contents ? contents.slice(num + length, end) : "undefined"}</span>);
+                results.push(<span key={"end" + cur} style={{ color }}>{contents?.slice(num + length, end)}</span>);
             }
             );
             return results;
@@ -227,13 +228,12 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
         const onItemDown = async (e: React.PointerEvent) => {
             if (this.props.Document._searchDoc !== undefined) {
-                let doc = Doc.GetProto(this.props.rowProps.original);
+                const doc = Doc.GetProto(this.props.rowProps.original);
                 const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
                 let targetContext = undefined;
                 if (aliasdoc.length > 0) {
                     targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
                 }
-                console.log(targetContext);
                 DocumentManager.Instance.jumpToDocument(this.props.rowProps.original, false, undefined, targetContext);
             }
             else {
@@ -289,18 +289,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const positions = [];
         if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
             const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-            let term = "";
-            if (cfield !== undefined) {
-                if (cfield.Text !== undefined) {
-                    term = cfield.Text;
-                }
-                else if (StrCast(cfield)) {
-                    term = StrCast(cfield);
-                }
-                else {
-                    term = String(NumCast(cfield));
-                }
-            }
+            let term = Field.toString(cfield as Field);
             term = term.toLowerCase();
             const search = StrCast(this.props.Document._searchString).toLowerCase();
             let start = term.indexOf(search);
@@ -409,22 +398,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             :
                             this.returnHighlights(() => {
                                 const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
-                                if (cfield !== undefined) {
-                                    // if (typeof(cfield)===RichTextField)
-                                    const a = cfield as RichTextField;
-                                    if (a.Text !== undefined) {
-                                        return (a.Text);
-                                    }
-                                    else if (StrCast(cfield)) {
-                                        return StrCast(cfield);
-                                    }
-                                    else {
-                                        return String(NumCast(cfield));
-                                    }
-                                }
-                                else {
-                                    return "";
-                                }
+                                return Field.toString(cfield as Field);
                             }, positions)
                         }
                     </div >

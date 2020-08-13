@@ -316,7 +316,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     getPermissionsSelect(user: string, permission: string) {
         return <select className="permissions-select"
-            defaultValue={permission}
+            value={permission}
             onChange={e => this.changePermissions(e, user)}>
             {Object.values(SharingPermissions).map(permission => {
                 return (

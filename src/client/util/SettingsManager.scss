@@ -33,10 +33,10 @@
     font-size: 12px;
     padding-right: 15px;
     color: black;
-    margin-top: 4px;
+    margin-top: 10px;
     /* right: 135; */
     position: absolute;
-    left: 235;
+    left: 243;
 }
 
 .settings-section {
@@ -147,6 +147,7 @@
         height: 20px;
         border: 0.5px solid black;
         border-radius: 5px;
+        padding-top: 3px;
     }
 }
 
@@ -229,7 +230,7 @@
     }
 
     .logout-button {
-        right: 35;
+        right: 355;
         position: absolute;
     }
 

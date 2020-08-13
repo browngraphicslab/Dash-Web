@@ -142,7 +142,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
-        const effectiveAcl = GetEffectiveAcl(this.props.Document);
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
 
         if (added.length) {
             if (effectiveAcl === AclPrivate || effectiveAcl === AclReadonly) {
@@ -193,16 +193,19 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     removeDocument = (doc: any): boolean => {
-        const collectionEffectiveAcl = GetEffectiveAcl(this.props.Document);
-        const docEffectiveAcl = GetEffectiveAcl(doc);
-        // you can remove the document if you either have Admin/Edit access to the collection or to the specific document
-        if (collectionEffectiveAcl === AclEdit || collectionEffectiveAcl === AclAdmin || docEffectiveAcl === AclAdmin || docEffectiveAcl === AclEdit) {
+        const effectiveAcl = GetEffectiveAcl(this.props.Document[DataSym]);
+        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) {
             const docs = doc instanceof Doc ? [doc] : doc as Doc[];
             const targetDataDoc = this.props.Document[DataSym];
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
             const toRemove = value.filter(v => docs.includes(v));
             if (toRemove.length !== 0) {
-                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc));
+                const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                toRemove.forEach(doc => {
+                    Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
+                    recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                    doc.deleted = true;
+                });
                 return true;
             }
         }

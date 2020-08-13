@@ -41,7 +41,7 @@ import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
 import GestureOverlay from './GestureOverlay';
-import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
+import { ANTIMODEMENU_HEIGHT, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import KeyManager from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
@@ -50,7 +50,6 @@ import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
-import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { RadialMenu } from './nodes/RadialMenu';
@@ -59,7 +58,6 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { Hypothesis } from '../util/HypothesisUtils';
-import { undoBatch } from '../util/UndoManager';
 import { WebBox } from './nodes/WebBox';
 import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
@@ -67,6 +65,7 @@ import { SearchUtil } from '../util/SearchUtil';
 import { Networking } from '../Network';
 import * as rp from 'request-promise';
 import { LinkManager } from '../util/LinkManager';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -168,7 +167,7 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt,
+        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faCalendar,
             fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
             fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
             fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
@@ -184,7 +183,7 @@ export class MainView extends React.Component {
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
             fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft, fa.faAngleUp,
-            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer);
+            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer, fa.faHashtag, fa.faAlignJustify, fa.faCheckSquare, fa.faListUl);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -406,7 +405,7 @@ export class MainView extends React.Component {
         TraceMobx();
         const mainContainer = this.mainContainer;
         const width = this.flyoutWidth + this.propertiesWidth();
-        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: `calc(100% - 32px)` }}>
+        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: `calc(100% - ${SEARCH_PANEL_HEIGHT})` }}>
             {!mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -443,15 +442,13 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
-    //sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-55, -this._buttonBarHeight);
+    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
 
-    @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
-            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - 32px)`, width: "100%", overflow: "visible" }}>
+            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${SEARCH_PANEL_HEIGHT})`, width: "100%", overflow: "visible" }}>
                 {/* {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
                     <FontAwesomeIcon icon="times" color="black" size="lg" />
@@ -824,8 +821,8 @@ export class MainView extends React.Component {
             <DocumentDecorations />
             {this.search}
             <CollectionMenu />
-            <FormatShapePane />
             <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
+            <FormatShapePane />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}

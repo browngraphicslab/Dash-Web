@@ -179,6 +179,9 @@ export default class SharingManager extends React.Component<{}> {
         if (group.docsShared) DocListCast(group.docsShared).forEach(doc => Doc.IndexOf(doc, DocListCast(user.notificationDoc[storage])) === -1 && Doc.AddDocToList(user.notificationDoc, storage, doc));
     }
 
+    /**
+     * Called from the properties sidebar to change permissions of a user.
+     */
     shareFromPropertiesSidebar = (shareWith: string, permission: SharingPermissions, target: Doc) => {
         const user = this.users.find(({ user: { email } }) => email === (shareWith === "Me" ? Doc.CurrentUserEmail : shareWith));
         if (user) this.setInternalSharing(user, permission, target);
@@ -227,7 +230,6 @@ export default class SharingManager extends React.Component<{}> {
         const target = targetDoc || this.targetDoc!;
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
-
 
         target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
 
