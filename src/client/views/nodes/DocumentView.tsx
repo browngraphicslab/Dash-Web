@@ -767,7 +767,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()) && moreItems.push({ description: "Toggle Always Show Link End", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
         }
 
-        moreItems.push({ description: "Close", event: this.deleteClicked, icon: "trash" });
+        moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
 
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
