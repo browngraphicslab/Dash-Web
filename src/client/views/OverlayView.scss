@@ -44,6 +44,6 @@
 }
 
 .overlayView-doc {
-    z-index: 1;
+    z-index: 9002; //so that it appears above chroma 
     position: absolute;
 }

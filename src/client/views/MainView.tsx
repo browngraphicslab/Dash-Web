@@ -899,6 +899,7 @@ export class MainView extends React.Component {
         const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
         const input = document.createElement("input");
         input.type = "file";
+        input.multiple = true;
         input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
         input.onchange = async _e => {
             const upload = Utils.prepend("/uploadDoc");
