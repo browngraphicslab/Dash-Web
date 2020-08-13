@@ -839,12 +839,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
         } else if (location === "replace") {
-            const alias = CollectionDockingView.ReplaceTab(doc, this._stack);
-            if (alias) {
-                runInAction(() => this._document = alias);
-                return true;
-            }
-            return false;
+            CollectionDockingView.UseRightSplit(doc);
+            return true;
         } else {// if (location === "inPlace") {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, libraryPath);
         }

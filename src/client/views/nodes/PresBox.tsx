@@ -228,21 +228,25 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const docToJump = curDoc;
         const willZoom = false;
 
-        //docToJump stayed same meaning, it was not in the group or was the last element in the group
-        if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
-            this.zoomProgressivizeNext(targetDoc);
-        } else if (docToJump === curDoc) {
-            //checking if curDoc has navigation open
-            if (curDoc.presNavButton && targetDoc) {
-                await DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
-            } else if (curDoc.presZoomButton && targetDoc) {
+        // If openDocument is selected then it should open the document for the user
+        if (activeItem.openDocument) {
+            this.props.addDocTab(activeItem, "replace");
+        } else
+            //docToJump stayed same meaning, it was not in the group or was the last element in the group
+            if (activeItem.zoomProgressivize && this.rootDoc.presStatus !== 'edit') {
+                this.zoomProgressivizeNext(targetDoc);
+            } else if (docToJump === curDoc) {
+                //checking if curDoc has navigation open
+                if (curDoc.presNavButton && targetDoc) {
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined, srcContext);
+                } else if (curDoc.presZoomButton && targetDoc) {
+                    //awaiting jump so that new scale can be found, since jumping is async
+                    await DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
+                }
+            } else {
                 //awaiting jump so that new scale can be found, since jumping is async
-                await DocumentManager.Instance.jumpToDocument(targetDoc, true, undefined, srcContext);
+                targetDoc && await DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
             }
-        } else {
-            //awaiting jump so that new scale can be found, since jumping is async
-            targetDoc && await DocumentManager.Instance.jumpToDocument(targetDoc, willZoom, undefined, srcContext);
-        }
         // After navigating to the document, if it is added as a presPinView then it will
         // adjust the pan and scale to that of the pinView when it was added.
         // TODO: Add option to remove presPinView 
@@ -250,10 +254,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             targetDoc._panX = activeItem.presPinViewX;
             targetDoc._panY = activeItem.presPinViewY;
             targetDoc._viewScale = activeItem.presPinViewScale;
-        }
-        // If openDocument is selected then it should open the document for the user
-        if (collectionDocView && activeItem.openDocument) {
-            collectionDocView.props.addDocTab(activeItem, "inPlace");
         }
         // If website and has presWebsite data associated then on click it should
         // go back to that specific website
