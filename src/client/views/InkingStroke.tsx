@@ -43,7 +43,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document._backgroundColor = "rgba(0,0,0,0.7)";
         this.props.Document.mixBlendMode = "hard-light";
         this.props.Document.color = "#9b9b9bff";
-        this.props.Document.stayInCollection = true;
+        this.props.Document._stayInCollection = true;
         this.props.Document.isInkMask = true;
     }
 

@@ -536,7 +536,7 @@ export class CurrentUserUtils {
                     iconShape: "square",
                     title,
                     _backgroundColor: "black",
-                    stayInCollection: true,
+                    _stayInCollection: true,
                     childDropAction: "same",
                     _width: 60,
                     _height: 60,
@@ -727,7 +727,7 @@ export class CurrentUserUtils {
         if (doc.myCatalog === undefined) {
             doc.myCatalog = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
                 title: "CATALOG", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", stayInCollection: true, treeViewOpen: true, system: true
+                childDropAction: "alias", targetDropAction: "same", _stayInCollection: true, treeViewOpen: true, system: true
             }));
         }
 
@@ -747,7 +747,7 @@ export class CurrentUserUtils {
         doc.myRecentlyClosed === undefined;
         if (doc.myRecentlyClosed === undefined) {
             doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, stayInCollection: true, system: true
+                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true
             }));
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready

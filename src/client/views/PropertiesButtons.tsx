@@ -639,7 +639,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             this.selectedDoc._backgroundColor = "rgba(0,0,0,0.7)";
             this.selectedDoc.mixBlendMode = "hard-light";
             this.selectedDoc.color = "#9b9b9bff";
-            this.selectedDoc.stayInCollection = true;
+            this.selectedDoc._stayInCollection = true;
             this.selectedDoc.isInkMask = true;
         }
     }
