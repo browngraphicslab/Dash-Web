@@ -256,7 +256,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         let contents: any = "incorrect type";
         if (type === undefined) contents = StrCast(field) === "" ? "--" : <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
-        if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
+        if (type === "string") {
+            fieldKey === "text" ?
+                contents = Cast(field, RichTextField)?.Text :
+                contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
+        }
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
         if (type === "document") {
             const doc = FieldValue(Cast(field, Doc));

@@ -42,7 +42,7 @@ enum ColumnType {
 
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
-    ["title", ColumnType.String],
+    ["title", ColumnType.String], ["text", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
     ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
