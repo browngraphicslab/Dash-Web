@@ -5,13 +5,15 @@ import { createSchema, makeInterface } from '../../../fields/Schema';
 import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
-import { StrCast, Cast } from '../../../fields/Types';
-import { Utils } from "../../../Utils";
+import { StrCast, Cast, ScriptCast } from '../../../fields/Types';
+import { Utils, setupMoveUpEvents, returnFalse, emptyFunction } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
-import { Doc } from '../../../fields/Doc';
+import { Doc, DocListCast } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
 import { Tooltip } from '@material-ui/core';
+import { MainViewNotifs } from '../MainViewNotifs';
+import { DragManager } from '../../util/DragManager';
 const FontIconSchema = createSchema({
     icon: "string",
 });
@@ -73,11 +75,42 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
                 {<FontAwesomeIcon className={`menuButton-icon-${shape}`} icon={StrCast(this.dataDoc.icon, "user") as any} color={color}
                     size={this.layoutDoc.iconShape === "square" ? "sm" : "lg"} />}
                 {!label ? (null) : <div className="fontIconBox-label" style={{ color, backgroundColor }}> {label} </div>}
+                {this.props.Document.watchedDocuments ? <FontIconBadge collection={Cast(this.props.Document.watchedDocuments, Doc, null)} /> : (null)}
             </div>
         </button>;
         return !this.layoutDoc.toolTip ? button :
             <Tooltip title={<div className="dash-tooltip">{StrCast(this.layoutDoc.toolTip)}</div>}>
                 {button}
             </Tooltip>;
+    }
+}
+
+interface FontIconBadgeProps {
+    collection: Doc;
+}
+
+@observer
+export class FontIconBadge extends React.Component<FontIconBadgeProps> {
+    _notifsRef = React.createRef<HTMLDivElement>();
+
+    onPointerDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e,
+            (e: PointerEvent) => {
+                const dragData = new DragManager.DocumentDragData([this.props.collection]);
+                DragManager.StartDocumentDrag([this._notifsRef.current!], dragData, e.x, e.y);
+                return true;
+            },
+            returnFalse, emptyFunction, false);
+    }
+
+    render() {
+        if (!(this.props.collection instanceof Doc)) return (null);
+        const length = DocListCast(this.props.collection.data).length;
+        return <div className="fontIconBadge-container" style={{ width: 15, height: 15, top: 12 }} ref={this._notifsRef}>
+            <div className="fontIconBadge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}
+                onPointerDown={this.onPointerDown} >
+                {length}
+            </div>
+        </div>;
     }
 }

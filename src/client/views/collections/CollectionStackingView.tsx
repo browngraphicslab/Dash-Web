@@ -4,7 +4,7 @@ import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
-import { DataSym, Doc, HeightSym, WidthSym, DocListCastAsync } from "../../../fields/Doc";
+import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -299,10 +299,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                             const srcInd = docs.indexOf(doc);
                             docs.splice(srcInd, 1);
                             docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
-                            DocListCastAsync(docs).then(resolvedDocs => {
-                                const pos = resolvedDocs?.findIndex(shareDoc => shareDoc.icon === "users") || 0; // hopefully find out if the sharing doc has been moved
-                                if (MainViewNotifs.NotifsCol && pos !== -1) MainViewNotifs.NotifsCol.position = pos;
-                            });
                         } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(newDocs[0]) + 1;

@@ -416,14 +416,14 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get deleteButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{"Delete Document"}</div></>} placement="top">
+            title={<><div className="dash-tooltip">Close Document</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     onPointerDown={this.deleteDocument}>
                     {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="trash-alt" size="lg" />}
+                        icon="times" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title"> delete </div>
+                <div className="propertiesButtons-title"> close </div>
             </div>
         </Tooltip>;
     }
@@ -639,7 +639,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             this.selectedDoc._backgroundColor = "rgba(0,0,0,0.7)";
             this.selectedDoc.mixBlendMode = "hard-light";
             this.selectedDoc.color = "#9b9b9bff";
-            this.selectedDoc.stayInCollection = true;
+            this.selectedDoc._stayInCollection = true;
             this.selectedDoc.isInkMask = true;
         }
     }
