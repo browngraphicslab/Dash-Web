@@ -112,6 +112,7 @@ export interface DocumentOptions {
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
+    watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
