@@ -466,7 +466,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRoundisng).replace("px", "")) / this.props.ContentScaling()}px`
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
                 forceScaling={true}
