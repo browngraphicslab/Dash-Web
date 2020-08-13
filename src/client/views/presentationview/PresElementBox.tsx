@@ -19,6 +19,7 @@ import { PresBox } from "../nodes/PresBox";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -58,111 +59,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         this._heightDisposer?.();
     }
 
-    /**
-     * The function that is called on click to turn Hiding document till press option on/off.
-     * It also sets the beginning and end opacitys.
-     */
-    @action
-    onHideDocumentUntilPressClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.rootDoc.presHideTillShownButton = !this.rootDoc.presHideTillShownButton;
-        if (!this.rootDoc.presHideTillShownButton) {
-            if (this.indexInPres >= this.itemIndex && this.targetDoc) {
-                this.targetDoc.opacity = 1;
-            }
-        } else {
-            if (this.presStatus !== "edit" && this.indexInPres > this.itemIndex && this.targetDoc) {
-                this.targetDoc.opacity = 0;
-            }
-        }
-    }
-
-    /**
-     * The function that is called on click to turn Hiding document after presented option on/off.
-     * It also makes sure that the option swithches from fade-after to this one, since both
-     * can't coexist.
-     */
-    @action
-    onHideDocumentAfterPresentedClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.rootDoc.presHideAfterButton = !this.rootDoc.presHideAfterButton;
-        if (!this.rootDoc.presHideAfterButton) {
-            if (this.indexInPres <= this.itemIndex && this.targetDoc) {
-                this.targetDoc.opacity = 1;
-            }
-        } else {
-            if (this.rootDoc.presFadeButton) this.rootDoc.presFadeButton = false;
-            if (this.presStatus !== "edit" && this.indexInPres < this.itemIndex && this.targetDoc) {
-                this.targetDoc.opacity = 0;
-            }
-        }
-    }
-
-    @action
-    progressivize = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.rootDoc.presProgressivize = !this.rootDoc.presProgressivize;
-        const rootTarget = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
-        const docs = rootTarget.type === DocumentType.COL ? DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget)]) :
-            DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget) + "-annotations"]);
-        if (this.rootDoc.presProgressivize) {
-            rootTarget.currentFrame = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
-            rootTarget.lastFrame = docs.length - 1;
-        }
-    }
-
-    /**
-     * The function that is called on click to turn fading document after presented option on/off.
-     * It also makes sure that the option swithches from hide-after to this one, since both
-     * can't coexist.
-     */
-    @action
-    onFadeDocumentAfterPresentedClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.rootDoc.presFadeButton = !this.rootDoc.presFadeButton;
-        if (!this.rootDoc.presFadeButton) {
-            if (this.indexInPres <= this.itemIndex && this.targetDoc) {
-                this.targetDoc.opacity = 1;
-            }
-        } else {
-            this.rootDoc.presHideAfterButton = false;
-            if (this.presStatus !== "edit" && (this.indexInPres < this.itemIndex) && this.targetDoc) {
-                this.targetDoc.opacity = 0.5;
-            }
-        }
-    }
-
-    /**
-     * The function that is called on click to turn navigation option of docs on/off.
-     */
-    @action
-    onNavigateDocumentClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.rootDoc.presNavButton = !this.rootDoc.presNavButton;
-        if (this.rootDoc.presNavButton) {
-            this.rootDoc.presZoomButton = false;
-            if (this.itemIndex === this.indexInPres) {
-                this.props.focus(this.rootDoc);
-            }
-        }
-    }
-
-    /**
-    * The function that is called on click to turn zoom option of docs on/off.
-    */
-    @action
-    onZoomDocumentClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-
-        this.rootDoc.presZoomButton = !this.rootDoc.presZoomButton;
-        if (this.rootDoc.presZoomButton) {
-            this.rootDoc.presNavButton = false;
-            if (this.itemIndex === this.indexInPres) {
-                this.props.focus(this.rootDoc);
-            }
-        }
-    }
     /**
      * Returns a local transformed coordinate array for given coordinates.
      */
@@ -235,12 +131,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        const element1 = document.elementFromPoint(e.clientX, e.clientY)?.parentElement;
         const element = e.target as any;
         e.stopPropagation();
         e.preventDefault();
-        if (element) {
-            if (PresBox.Instance._eleArray.includes(element)) {
+        if (element && !(e.ctrlKey || e.metaKey)) {
+            if (PresBox.Instance._eleArray.includes(this._itemRef.current!)) {
                 setupMoveUpEvents(this, e, this.startDrag, emptyFunction, emptyFunction);
             } else {
                 PresBox.Instance._selectedArray = [];
@@ -303,8 +198,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
+    @action
+    toggleProperties = () => {
+        if (CurrentUserUtils.propertiesWidth === 0) {
+            CurrentUserUtils.propertiesWidth = 250;
+        }
+    }
+
     render() {
-        const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");
         const pbi = "presElementBox-interaction";
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
@@ -328,6 +229,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                         PresBox.Instance._dragArray = [];
                         PresBox.Instance._dragArray.push(this._dragRef.current!);
                     }
+                }}
+                onDoubleClick={e => {
+                    this.toggleProperties();
+                    this.props.focus(this.rootDoc);
+                    PresBox.Instance._eleArray = [];
+                    PresBox.Instance._eleArray.push(this._itemRef.current!);
+                    PresBox.Instance._dragArray = [];
+                    PresBox.Instance._dragArray.push(this._dragRef.current!);
                 }}
                 onPointerDown={this.headerDown}
                 onPointerUp={this.headerUp}
@@ -357,14 +266,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                 <div ref={this._highlightTopRef} onPointerOver={this.onPointerTop} onPointerLeave={this.onPointerLeave} className="presElementBox-highlightTop" style={{ zIndex: 299, backgroundColor: "rgba(0,0,0,0)" }} />
                 <div ref={this._highlightBottomRef} onPointerOver={this.onPointerBottom} onPointerLeave={this.onPointerLeave} className="presElementBox-highlightBottom" style={{ zIndex: 299, backgroundColor: "rgba(0,0,0,0)" }} />
                 <div className="presElementBox-highlight" style={{ backgroundColor: PresBox.Instance._selectedArray.includes(this.rootDoc) ? "#AEDDF8" : "rgba(0,0,0,0)" }} />
-                <div className="presElementBox-buttons" style={{ display: this.rootDoc.presExpandInlineButton ? "grid" : "none" }}>
-                    <button title="Zoom" className={pbi + (this.rootDoc.presZoomButton ? "-selected" : "")} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Navigate" className={pbi + (this.rootDoc.presNavButton ? "-selected" : "")} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Hide Before" className={pbi + (this.rootDoc.presHideTillShownButton ? "-selected" : "")} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={"file"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Hide After" className={pbi + (this.rootDoc.presHideAfterButton ? "-selected" : "")} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={"file-download"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Progressivize" className={pbi + (this.rootDoc.presProgressivize ? "-selected" : "")} onClick={this.progressivize}><FontAwesomeIcon icon={"tasks"} onPointerDown={e => e.stopPropagation()} /></button>
-                    <button title="Effect" className={pbi + (this.rootDoc.presEffect ? "-selected" : "")}>E</button>
-                </div>
                 {this.renderEmbeddedInline}
             </div>
         );

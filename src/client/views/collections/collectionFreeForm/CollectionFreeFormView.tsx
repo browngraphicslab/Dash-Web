@@ -1496,81 +1496,21 @@ interface CollectionFreeFormViewPannableContentsProps {
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
-    private _isDraggingTL = false;
-    private _isDraggingTR = false;
-    private _isDraggingBR = false;
-    private _isDraggingBL = false;
-    private _isDragging = false;
-    // private _drag = "";
-
-    // onPointerDown = (e: React.PointerEvent): void => {
-    //     e.stopPropagation();
-    //     e.preventDefault();
-    //     if (e.button === 0) {
-    //         this._drag = e.currentTarget.id;
-    //         console.log(this._drag);
-    //     }
-    //     document.removeEventListener("pointermove", this.onPointerMove);
-    //     document.addEventListener("pointermove", this.onPointerMove);
-    //     document.removeEventListener("pointerup", this.onPointerUp);
-    //     document.addEventListener("pointerup", this.onPointerUp);
-    // }
-
-
-    // //Adds event listener so knows pointer is down and moving
-    // onPointerMid = (e: React.PointerEvent): void => {
-    //     e.stopPropagation();
-    //     e.preventDefault();
-    //     this._isDragging = true;
-    //     const dragData = new DragManager.DocumentDragData([]);
-    //     console.log(DragManager.StartDocumentDrag([], dragData, e.clientX, e.clientY));
-    // }
+    @observable private _drag: string = '';
 
     //Adds event listener so knows pointer is down and moving
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        const corner = document.elementFromPoint(e.clientX, e.clientY)?.id;
-        if (corner) this._drag = corner;
-        const rect = document.getElementById('resizable');
+        const corner = e.target as any;
+        console.log(corner.id);
+        if (corner) this._drag = corner.id;
+        const rect = document.getElementById(this._drag);
         if (rect) {
             console.log(this._drag);
             setupMoveUpEvents(e.target, e, this.onPointerMove, (e) => { }, (e) => { });
         }
     }
-
-    // //Adds event listener so knows pointer is down and moving
-    // onPointerBL = (e: React.PointerEvent): void => {
-    //     e.stopPropagation();
-    //     e.preventDefault();
-    //     this._isDraggingBL = true;
-    //     document.removeEventListener("pointermove", this.onPointerMove);
-    //     document.addEventListener("pointermove", this.onPointerMove);
-    //     document.removeEventListener("pointerup", this.onPointerUp);
-    //     document.addEventListener("pointerup", this.onPointerUp);
-    // }
-
-    // //Adds event listener so knows pointer is down and moving
-    // onPointerTR = (e: React.PointerEvent): void => {
-    //     e.stopPropagation();
-    //     e.preventDefault();
-    //     this._isDraggingTR = true;
-    //     document.removeEventListener("pointermove", this.onPointerMove);
-    //     document.addEventListener("pointermove", this.onPointerMove);
-    //     document.removeEventListener("pointerup", this.onPointerUp);
-    //     document.addEventListener("pointerup", this.onPointerUp);
-    // }
-
-    // //Adds event listener so knows pointer is down and moving
-    // onPointerTL = (e: React.PointerEvent): void => {
-    //     e.stopPropagation();
-    //     e.preventDefault();
-    //     this._isDraggingTL = true;
-    //     document.removeEventListener("pointermove", this.onPointerMove);
-    //     document.addEventListener("pointermove", this.onPointerMove);
-    //     document.removeEventListener("pointerup", this.onPointerUp);
-    //     document.addEventListener("pointerup", this.onPointerUp);
-    // }
 
     //Removes all event listeners
     onPointerUp = (e: PointerEvent): void => {
@@ -1581,26 +1521,13 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    // @action
-    // pan = (e: PointerEvent | React.Touch | { moveX: number, moveY: number }): void => {
-    //     const scale = this.props.getLocalTransform().inverse().Scale;
-    //     const newPanX = Math.min((1 - 1 / scale) * this.props.nativeWidth, Math.max(0, moveX));
-    //     const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight), Math.max(0, panY));
-    // }
-
-    @observable private _drag: string = '';
-
     //Adjusts the value in NodeStore
     @action
     onPointerMove = (e: PointerEvent) => {
-        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
         const doc = document.getElementById('resizable');
-        const rect = (e.target as any).getBoundingClientRect();
-        const toNumber = (screen_delta: number, wh: number): number => {
-            // console.log(screen_delta);
-            // console.log(wh);
-            return screen_delta + wh;
+        const rect = doc!.getBoundingClientRect();
+        const toNumber = (original: number, delta: number): number => {
+            return original + (delta * this.props.zoomScaling());
         };
         if (doc) {
             let height = doc.offsetHeight;
@@ -1610,84 +1537,41 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             switch (this._drag) {
                 case "": break;
                 case "resizer-br":
-                    doc.style.width = toNumber(e.clientX - rect.x, width) + 'px';
-                    doc.style.height = toNumber(e.clientY - rect.y, height) + 'px';
+                    doc.style.width = toNumber(width, e.movementX) + 'px';
+                    doc.style.height = toNumber(height, e.movementY) + 'px';
                     break;
                 case "resizer-bl":
-                    doc.style.width = toNumber(e.clientX - rect.x, width) + 'px';
-                    doc.style.height = toNumber(e.clientY - rect.y, height) + 'px';
-                    doc.style.left = toNumber(e.clientY - rect.y, height) + 'px';
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
                     break;
                 case "resizer-tr":
-                    doc.style.width = toNumber(e.clientX - rect.x, width) + 'px';
-                    doc.style.height = toNumber(e.clientY - rect.y, height) + 'px';
-                    doc.style.top = toNumber(e.clientY - rect.y, top) + 'px';
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, -e.movementY) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
                 case "resizer-tl":
-                    doc.style.width = toNumber(e.clientX - rect.x, width) + 'px';
-                    doc.style.height = toNumber(e.clientY - rect.y, height) + 'px';
-                    doc.style.top = toNumber(e.clientY - rect.x, top) + 'px';
-                    doc.style.left = toNumber(e.clientX - rect.y, left) + 'px';
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, -e.movementY) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
                 case "resizable":
-                    doc.style.top = toNumber(e.clientY - rect.x, top) + 'px';
-                    doc.style.left = toNumber(e.clientX - rect.y, left) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
             }
-            this.updateList(targetDoc, activeItem["viewfinder-width-indexed"], width);
-            this.updateList(targetDoc, activeItem["viewfinder-height-indexed"], height);
-            this.updateList(targetDoc, activeItem["viewfinder-top-indexed"], top);
-            this.updateList(targetDoc, activeItem["viewfinder-left-indexed"], left);
+            this.updateAll(height, width, top, left);
             return false;
         }
         return true;
+    }
 
-
-        // const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
-        // const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        // const tagDocView = DocumentManager.Instance.getDocumentView(targetDoc);
-        // e.stopPropagation();
-        // e.preventDefault();
-        // if (doc && tagDocView) {
-
-        //     const scale = this.props.zoomScaling();
-        //     const scale2 = tagDocView.childScaling();
-        //     const scale3 = tagDocView.props.ScreenToLocalTransform().Scale;
-        //     const scale1 = NumCast(targetDoc._viewScale);
-        //     // const scale = this.props.zoomScaling();
-        //     console.log("_viewScale: " + scale1);
-        //     console.log("_StLT: " + scale3);
-        //     console.log("zoomScaling: " + scale);
-        //     console.log("movementX: " + e.movementX);
-        //     console.log("movementX * scale: " + e.movementX * scale);
-        //     let height = doc.offsetHeight;
-        //     let width = doc.offsetWidth;
-        //     let top = doc.offsetTop;
-        //     let left = doc.offsetLeft;
-        // switch (this._drag) {
-        //     case "": break;
-        //     case "resizer-br":
-        //         doc.style.height = newHeightB + 'px';
-        //         doc.style.width = newWidthR + 'px';
-        //         break;
-        //     case "resizer-bl":
-        //         doc.style.height = newHeightB + 'px';
-        //         doc.style.width = newWidthL + 'px';
-        //         doc.style.left = newLeft + 'px';
-        //         break;
-        //     case "resizer-tr":
-        //         doc.style.width = newWidthR + 'px';
-        //         doc.style.height = newHeightT + 'px';
-        //         doc.style.top = newTop + 'px';
-        //     case "resizer-tl":
-        //         doc.style.width = newWidthL + 'px';
-        //         doc.style.height = newHeightT + 'px';
-        //         doc.style.top = newTop + 'px';
-        //         doc.style.left = newLeft + 'px';
-        //     case "resizable":
-        //         doc.style.top = newTop + 'px';
-        //         doc.style.left = newLeft + 'px';
-        // }
-
-
-        // }
+    @action
+    updateAll = (width: number, height: number, top: number, left: number) => {
+        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        this.updateList(targetDoc, activeItem["viewfinder-width-indexed"], width);
+        this.updateList(targetDoc, activeItem["viewfinder-height-indexed"], height);
+        this.updateList(targetDoc, activeItem["viewfinder-top-indexed"], top);
+        this.updateList(targetDoc, activeItem["viewfinder-left-indexed"], left);
     }
 
     @action
@@ -1708,10 +1592,10 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
         if (activeItem && activeItem.zoomProgressivize) {
-            const vfLeft: number = !activeItem ? 0 : PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-left-indexed"]);
-            const vfWidth: number = !activeItem ? 0 : PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
-            const vfTop: number = !activeItem ? 0 : PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
-            const vfHeight: number = !activeItem ? 0 : PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
+            const vfLeft: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-left-indexed"]);
+            const vfWidth: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
+            const vfTop: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
+            const vfHeight: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
             return (
                 <>
                     {!activeItem.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>

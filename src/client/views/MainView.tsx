@@ -66,6 +66,7 @@ import { SearchBox } from './search/SearchBox';
 import { SearchUtil } from '../util/SearchUtil';
 import { Networking } from '../Network';
 import * as rp from 'request-promise';
+import { LinkManager } from '../util/LinkManager';
 
 @observer
 export class MainView extends React.Component {
@@ -548,7 +549,7 @@ export class MainView extends React.Component {
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
-                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; this.importDocument(); break;
+                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
                 case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
                 case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
@@ -561,66 +562,6 @@ export class MainView extends React.Component {
             } else this.flyoutWidth = 0;
         }
         return true;
-    }
-
-
-    importDocument = async () => {
-        const inputRef = React.createRef<HTMLInputElement>();
-        const sidebar = Cast(Doc.UserDoc()["sidebar-import"], Doc) as Doc;
-        let process = '';
-        let error = '';
-        try {
-            const col = sidebar;
-            await Docs.Prototypes.initialize();
-            const imgPrev = document.getElementById("img_preview");
-            if (imgPrev) {
-                const files: FileList | null = inputRef.current!.files;
-                if (files && files.length !== 0) {
-                    for (let index = 0; index < files.length; ++index) {
-                        const file = files[index];
-                        const res = await Networking.UploadFilesToServer(file);
-                        // For each item that the user has selected
-                        res.map(async ({ result }) => {
-                            const name = file.name;
-                            if (result instanceof Error) {
-                                return;
-                            }
-                            const path = Utils.prepend(result.accessPaths.agnostic.client);
-                            let doc = null;
-                            // Case 1: File is a video
-                            if (file.type === "video/mp4") {
-                                doc = Docs.Create.VideoDocument(path, { _nativeWidth: 400, _width: 400, title: name });
-                                // Case 2: File is a PDF document
-                            } else if (file.type === "application/pdf") {
-                                doc = Docs.Create.PdfDocument(path, { _nativeWidth: 400, _width: 400, _fitWidth: true, title: name });
-                                // Case 3: File is another document type (most likely Image)
-                            } else {
-                                doc = Docs.Create.ImageDocument(path, { _nativeWidth: 400, _width: 400, title: name });
-                            }
-                            const res = await rp.get(Utils.prepend("/getUserDocumentId"));
-                            if (!res) {
-                                throw new Error("No user id returned");
-                            }
-                            const field = await DocServer.GetRefField(res);
-                            let pending: Opt<Doc>;
-                            if (field instanceof Doc) {
-                                pending = col;
-                            }
-                            if (pending) {
-                                const data = await Cast(pending.data, listSpec(Doc));
-                                if (data) data.push(doc);
-                                else pending.data = new List([doc]);
-                            }
-                        });
-                    }
-                    // Case in which the user pressed upload and no files were selected
-                } else {
-                    process = "No file selected";
-                }
-            }
-        } catch (error) {
-            error = JSON.stringify(error);
-        }
     }
 
     @action
@@ -959,6 +900,81 @@ export class MainView extends React.Component {
                 document.addEventListener("editSuccess", onSuccess);
             });
     }
+
+    importDocument = () => {
+        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null) as Doc;
+        const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc && sidebarDocView) {
+                        sidebarDocView.props.addDocument?.(doc);
+                        setTimeout(() => {
+                            SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                            });
+                        }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const files: FileList | null = input.files;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const res = await Networking.UploadFilesToServer(file);
+                    res.map(async ({ result }) => {
+                        const name = file.name;
+                        if (result instanceof Error) {
+                            return;
+                        }
+                        const path = Utils.prepend(result.accessPaths.agnostic.client);
+                        let doc: Doc;
+                        // Case 1: File is a video
+                        if (file.type.includes("video")) {
+                            doc = Docs.Create.VideoDocument(path, { _height: 100, title: name });
+                            // Case 2: File is a PDF document
+                        } else if (file.type === "application/pdf") {
+                            doc = Docs.Create.PdfDocument(path, { _height: 100, _fitWidth: true, title: name });
+                            // Case 3: File is an image
+                        } else if (file.type.includes("image")) {
+                            doc = Docs.Create.ImageDocument(path, { _height: 100, title: name });
+                            // Case 4: File is an audio document
+                        } else {
+                            doc = Docs.Create.AudioDocument(path, { title: name });
+                        }
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                        if (!res) {
+                            throw new Error("No user id returned");
+                        }
+                        const field = await DocServer.GetRefField(res);
+                        let pending: Opt<Doc>;
+                        if (field instanceof Doc) {
+                            pending = sidebar;
+                        }
+                        if (pending) {
+                            const data = await Cast(pending.data, listSpec(Doc));
+                            if (data) data.push(doc);
+                            else pending.data = new List([doc]);
+                        }
+                    });
+                }
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
+    }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
@@ -969,3 +985,5 @@ Scripting.addGlobal(function copyWorkspace() {
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
     setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
 });
+Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
+    "imports files from device directly into the import sidebar");

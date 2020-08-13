@@ -3,6 +3,7 @@ $dark-blue: #5B9FDD;
 $light-background: #ececec;
 
 .presBox-cont {
+    cursor: auto;
     position: absolute;
     display: block;
     pointer-events: inherit;
@@ -50,6 +51,7 @@ $light-background: #ececec;
         background-color: #323232;
 
         .toolbar-button {
+            cursor: pointer;
             margin-left: 10px;
             margin-right: 10px;
             letter-spacing: 0;
@@ -168,6 +170,7 @@ $light-background: #ececec;
         grid-template-rows: 10px 10px;
 
         .ribbon-propertyUpDownItem {
+            cursor: pointer;
             color: white;
             display: flex;
             justify-content: center;
@@ -315,6 +318,7 @@ $light-background: #ececec;
         }
 
         .numKeyframe {
+            cursor: pointer;
             font-size: 10;
             font-weight: 600;
             position: relative;
@@ -345,6 +349,7 @@ $light-background: #ececec;
 
 
         .ribbon-final-button {
+            cursor: pointer;
             position: relative;
             font-size: 11;
             font-weight: normal;
@@ -363,7 +368,13 @@ $light-background: #ececec;
             background-color: #979797;
         }
 
+        .ribbon-final-button:hover {
+            transform: scale(1.05);
+            transition: all 0.4s;
+        }
+
         .ribbon-final-button-hidden {
+            cursor: pointer;
             position: relative;
             font-size: 11;
             font-weight: normal;
@@ -381,6 +392,11 @@ $light-background: #ececec;
             border-radius: 10px;
             background-color: black;
         }
+
+        .ribbon-final-button-hidden:hover {
+            transform: scale(1.05);
+            transition: all 0.4s;
+        }
     }
 
     .selectedList {
@@ -397,6 +413,7 @@ $light-background: #ececec;
     }
 
     .ribbon-button {
+        cursor: pointer;
         font-size: 10.5;
         font-weight: 200;
         height: 20;
@@ -452,6 +469,7 @@ $light-background: #ececec;
         }
 
         .presBox-dropdown {
+            cursor: pointer;
             display: grid;
             grid-template-columns: auto 20%;
             position: relative;
@@ -472,6 +490,7 @@ $light-background: #ececec;
 
             
             .presBox-dropdownOption {
+                cursor: pointer;
                 font-size: 11;
                 display: block;
                 padding-left: 10px;
@@ -492,8 +511,8 @@ $light-background: #ececec;
 
             .presBox-dropdownOptions {
                 position: absolute;
-                top: 24px;
-                left: -1px;
+                top: 23px;
+                left: -2px;
                 z-index: 200;
                 width: 85%;
                 min-width: max-content;
@@ -537,6 +556,7 @@ $light-background: #ececec;
 }
 
 .dropdown-play-button {
+    cursor: pointer;
     font-size: 12;
     padding-left: 5px;
     padding-right: 5px;
@@ -551,6 +571,7 @@ $light-background: #ececec;
 }
 
 .presBox-button-left {
+    cursor: pointer;
     position: relative;
     align-self: flex-start;
     justify-self: flex-start;
@@ -567,6 +588,7 @@ $light-background: #ececec;
 }
 
 .presBox-button-right {
+    cursor: pointer;
     position: relative;
     text-align: center;
     border-left: solid 1px darkgrey;
@@ -589,6 +611,7 @@ $light-background: #ececec;
 }
 
 .dropdown-play {
+    cursor: pointer;
     right: 0px;
     top: calc(100% + 2px);
     display: none;
@@ -609,6 +632,7 @@ $light-background: #ececec;
 }
 
 .open-layout {
+    cursor: pointer;
     position: relative;
     display: flex;
     align-items: center;
@@ -640,6 +664,7 @@ $light-background: #ececec;
     }
 
     .layout {
+        cursor: pointer;
         align-self: center;
         justify-self: center;
         margin-top: 5;
@@ -710,6 +735,7 @@ $light-background: #ececec;
     grid-template-columns: auto auto;
 
     .presBox-viewPicker {
+        cursor: pointer;
         height: 25;
         position: relative;
         display: inline-block;
@@ -736,6 +762,7 @@ $light-background: #ececec;
     }
 
     .presBox-button {
+        cursor: pointer;
         height: 25px;
         border-radius: 5px;
         display: none;
@@ -828,6 +855,7 @@ $light-background: #ececec;
         }
 
         .miniPres-button {
+            cursor: pointer;
             display: flex;
             height: 20;
             min-width: 20;
