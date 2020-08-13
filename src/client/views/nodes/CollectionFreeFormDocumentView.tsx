@@ -132,7 +132,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
 
-    public static updateKeyframe(docs: Doc[], time: number) {
+    public static updateKeyframe(docs: Doc[], time: number, targetDoc?: Doc) {
         const timecode = Math.round(time);
         docs.forEach(doc => {
             const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
@@ -145,11 +145,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
             yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
-            if (doc.appearFrame) {
+            if (doc.appearFrame && targetDoc) {
                 if (doc.appearFrame === timecode + 1) {
-                    doc["text-color"] = "red";
+                    doc["text-color"] = StrCast(targetDoc["pres-text-color"]);
                 } else if (doc.appearFrame < timecode + 1) {
-                    doc["text-color"] = "grey";
+                    doc["text-color"] = StrCast(targetDoc["pres-text-viewed-color"]);
                 } else { doc["text-color"] = "black"; }
             } else if (doc.appearFrame === 0) {
                 doc["text-color"] = "black";
@@ -164,15 +164,16 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => docs.forEach(doc => doc.dataTransition = "inherit"), 1010);
     }
 
-    public static setupZoom(doc: Doc, zoomProgressivize: boolean = false) {
+
+    public static setupZoom(doc: Doc, targDoc: Doc, zoomProgressivize: boolean = false) {
         const width = new List<number>();
         const height = new List<number>();
         const top = new List<number>();
         const left = new List<number>();
-        width.push(NumCast(doc.width));
-        height.push(NumCast(doc.height));
-        top.push(NumCast(doc.height) / -2);
-        left.push(NumCast(doc.width) / -2);
+        width.push(NumCast(targDoc._width));
+        height.push(NumCast(targDoc._height));
+        top.push(NumCast(targDoc._height) / -2);
+        left.push(NumCast(targDoc._width) / -2);
         doc["viewfinder-width-indexed"] = width;
         doc["viewfinder-height-indexed"] = height;
         doc["viewfinder-top-indexed"] = top;

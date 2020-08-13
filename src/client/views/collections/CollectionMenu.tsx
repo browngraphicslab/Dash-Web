@@ -623,7 +623,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </div>
                 </Tooltip> : null}
                 {!this.isText && !this.props.isDoc ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
-                    <div className="numKeyframe" style={{ backgroundColor: this.document.editing ? "#759c75" : "#c56565" }}
+                    <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
                         onClick={action(() => this.document.editing = !this.document.editing)} >
                         {NumCast(this.document.currentFrame)}
                     </div>
@@ -736,8 +736,10 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
     @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {
+        const doctype = this.props.docView.Document.type;
+        const isPres: boolean = (doctype === DocumentType.PRES);
         return (
-            <div className="collectionStackingViewChrome-cont">
+            isPres ? (null) : <div className="collectionStackingViewChrome-cont">
                 <div className="collectionStackingViewChrome-pivotField-cont">
                     <div className="collectionStackingViewChrome-pivotField-label">
                         GROUP BY:

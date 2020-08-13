@@ -85,6 +85,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
+        AudioBox.Instance = this;
 
         // onClick play scripts
         AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeScript(`scriptContext.playFrom((this.audioStart), (this.audioEnd))`, { scriptContext: "any" })!;
@@ -509,6 +510,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     labelScript = () => AudioBox.LabelScript;
 
     render() {
+        AudioBox.Instance = this;
         const interactive = SnappingManager.GetIsDragging() || this.active() ? "-interactive" : "";
         this._first = true;  // for indicating the first marker that is rendered
         this.path && this._buckets.length !== 100 ? this.peaks : null; // render waveform if audio is done recording

@@ -457,6 +457,8 @@ export class CurrentUserUtils {
 
     }
 
+
+
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static async setupCreatorButtons(doc: Doc) {
         let alreadyCreatedButtons: string[] = [];
@@ -838,10 +840,22 @@ export class CurrentUserUtils {
         }
     }
 
-    // Right sidebar is where mobile uploads are contained
+    // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
             doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true }));
+        }
+    }
+
+    // Import sidebar is where shared documents are contained
+    static setupImportSidebar(doc: Doc) {
+        if (doc["sidebar-import-documents"] === undefined) {
+            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", _showTitle: "title", _height: 300, _yMargin: 30, childDropAction: "alias" }));
+        }
+        if (doc["sidebar-import"] === undefined) {
+            const uploads = Cast(doc["sidebar-import-documents"], Doc, null) as Doc;
+            const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import external document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
+            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 30, childDropAction: "alias" }));
         }
     }
 
@@ -918,6 +932,7 @@ export class CurrentUserUtils {
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
         this.setupSearchPanel(doc);
