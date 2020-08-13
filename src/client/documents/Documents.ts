@@ -209,6 +209,7 @@ export interface DocumentOptions {
     audioEnd?: number;         // the time frame where the audio should stop playing  
     border?: string; //for searchbox
     hovercolor?: string;
+    showNewButton?: boolean; // used in stacking view to not display the "+ NEW" button
 }
 
 class EmptyBox {
