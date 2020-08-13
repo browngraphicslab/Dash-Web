@@ -8,6 +8,7 @@ import { DragManager } from '../util/DragManager';
 import "./MainViewNotifs.scss";
 import { MainView } from './MainView';
 import { NumCast } from '../../fields/Types';
+import { Id } from '../../fields/FieldSymbols';
 
 
 @observer
@@ -28,7 +29,14 @@ export class MainViewNotifs extends React.Component {
 
     render() {
         const length = MainViewNotifs.NotifsCol ? DocListCast(MainViewNotifs.NotifsCol.data).length : 0;
-        return <div className="mainNotifs-container" style={{ width: 15, height: 15, top: 12 + NumCast(MainViewNotifs.NotifsCol?.position) * 60 }} ref={this._notifsRef}>
+        const menuStack = Doc.UserDoc().menuStack as Doc;
+        const menuButtons = DocListCast(menuStack.data);
+        let top = 12 - NumCast(menuStack._scrollTop);
+        for (const button of menuButtons) {
+            if (button[Id] !== menuStack.sharingButtonId) top += NumCast(button._height);
+            else break;
+        }
+        return <div className="mainNotifs-container" style={{ width: 15, height: 15, top }} ref={this._notifsRef}>
             <button className="mainNotifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}
                 onPointerDown={this.onPointerDown} >
                 {length}

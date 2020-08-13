@@ -4,7 +4,7 @@ import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
-import { DataSym, Doc, HeightSym, WidthSym, DocListCastAsync } from "../../../fields/Doc";
+import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
 import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
@@ -149,6 +149,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             () => this.pivotField,
             () => this.layoutDoc._columnHeaders = new List()
         );
+
+        this.props.Document._scrollTop = 0;
     }
     componentWillUnmount() {
         super.componentWillUnmount();
@@ -299,10 +301,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                             const srcInd = docs.indexOf(doc);
                             docs.splice(srcInd, 1);
                             docs.splice((targInd > srcInd ? targInd - 1 : targInd) + plusOne, 0, doc);
-                            DocListCastAsync(docs).then(resolvedDocs => {
-                                const pos = resolvedDocs?.findIndex(shareDoc => shareDoc.icon === "users") || 0; // hopefully find out if the sharing doc has been moved
-                                if (MainViewNotifs.NotifsCol && pos !== -1) MainViewNotifs.NotifsCol.position = pos;
-                            });
                         } else if (i < (newDocs.length / 2)) { //glr: for some reason dragged documents are duplicated
                             if (targInd === -1) targInd = docs.length;
                             else targInd = docs.indexOf(newDocs[0]) + 1;
@@ -496,6 +494,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     onScroll={action(e => {
                         if (!this.props.isSelected() && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
+                        this.props.Document._scrollTop = this._scroll; // used by MainViewNotifs to determine position of the notification bubble
                     })}
                     onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}

@@ -23,6 +23,7 @@ import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkManager } from "./LinkManager";
+import { Id } from "../../fields/FieldSymbols";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -550,6 +551,10 @@ export class CurrentUserUtils {
                 _yMargin: 0,
                 _yPadding: 0, _xMargin: 0, _autoHeight: false, _width: 60, _columnWidth: 60, lockedPosition: true, _chromeStatus: "disabled", system: true
             }));
+
+            PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
+                stack && !stack.sharingButtonId && (stack.sharingButtonId = menuBtns.find(button => button.title === "Sharing")![Id]);
+            });
         }
         // this resets all sidebar buttons to being deactivated
         PromiseValue(Cast(doc.menuStack, Doc)).then(stack => {
@@ -909,6 +914,7 @@ export class CurrentUserUtils {
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
+        doc.defaultAclPrivate = BoolCast(doc.defaultAclPrivate, true);
         doc.activeCollectionBackground = StrCast(doc.activeCollectionBackground, "white");
         doc.activeCollectionNestedBackground = Cast(doc.activeCollectionNestedBackground, "string", null);
         doc.noviceMode = BoolCast(doc.noviceMode, true);
