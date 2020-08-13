@@ -23,6 +23,7 @@ import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkManager } from "./LinkManager";
+import { Id } from "../../fields/FieldSymbols";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -502,11 +503,12 @@ export class CurrentUserUtils {
         return doc.myItemCreators as Doc;
     }
 
-    static menuBtnDescriptions(): {
-        title: string, icon: string, click: string,
+    static menuBtnDescriptions(doc: Doc): {
+        title: string, icon: string, click: string, watchedDocuments?: Doc
     }[] {
+        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
-            { title: "Sharing", icon: "users", click: 'selectMainMenu(self)' },
+            { title: "Sharing", icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
             { title: "Workspace", icon: "desktop", click: 'selectMainMenu(self)' },
             { title: "Catalog", icon: "file", click: 'selectMainMenu(self)' },
             { title: "Archive", icon: "archive", click: 'selectMainMenu(self)' },
@@ -528,7 +530,7 @@ export class CurrentUserUtils {
     }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
-            const menuBtns = CurrentUserUtils.menuBtnDescriptions().map(({ title, icon, click }) =>
+            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
                     iconShape: "square",
@@ -538,6 +540,7 @@ export class CurrentUserUtils {
                     childDropAction: "same",
                     _width: 60,
                     _height: 60,
+                    watchedDocuments,
                     onClick: ScriptField.MakeScript(click, { scriptContext: "any" }), system: true
                 }));
             const userDoc = menuBtns[menuBtns.length - 1];
@@ -923,6 +926,7 @@ export class CurrentUserUtils {
         doc.fontFamily = StrCast(doc.fontFamily, "Arial");
         doc.fontColor = StrCast(doc.fontColor, "black");
         doc.fontHighlight = StrCast(doc.fontHighlight, "");
+        doc.defaultAclPrivate = BoolCast(doc.defaultAclPrivate, true);
         doc.activeCollectionBackground = StrCast(doc.activeCollectionBackground, "white");
         doc.activeCollectionNestedBackground = Cast(doc.activeCollectionNestedBackground, "string", null);
         doc.noviceMode = BoolCast(doc.noviceMode, true);
@@ -931,7 +935,6 @@ export class CurrentUserUtils {
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
-        this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
         this.setupMenuPanel(doc);
