@@ -85,6 +85,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
 
     constructor(props: Readonly<FieldViewProps>) {
         super(props);
+        AudioBox.Instance = this;
 
         // onClick play scripts
         AudioBox.RangeScript = AudioBox.RangeScript || ScriptField.MakeScript(`scriptContext.playFrom((this.audioStart), (this.audioEnd))`, { scriptContext: "any" })!;

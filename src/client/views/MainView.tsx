@@ -61,6 +61,10 @@ import { Hypothesis } from '../util/HypothesisUtils';
 import { WebBox } from './nodes/WebBox';
 import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
+import { SearchUtil } from '../util/SearchUtil';
+import { Networking } from '../Network';
+import * as rp from 'request-promise';
+import { LinkManager } from '../util/LinkManager';
 import RichTextMenu from './nodes/formattedText/RichTextMenu';
 
 @observer
@@ -306,11 +310,7 @@ export class MainView extends React.Component {
                 DocServer.Control.makeEditable();
             }
         }
-        // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-        setTimeout(async () => {
-            const col = this.userDoc && await Cast(this.userDoc["sidebar-sharing"], Doc);
-            col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
-        }, 100);
+
         return true;
     }
 
@@ -528,22 +528,24 @@ export class MainView extends React.Component {
 
     _lastButton: Doc | undefined;
     @action
-    selectMenu = (button: Doc, str: string) => {
+    selectMenu = (button: Doc) => {
+        const title = StrCast(Doc.GetProto(button).title);
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
-        if (this.panelContent === str && this.flyoutWidth !== 0) {
+        if (this.panelContent === title && this.flyoutWidth !== 0) {
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
             let panelDoc: Doc | undefined;
-            switch (this.panelContent = str) {
+            switch (this.panelContent = title) {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
+                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
                 case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
-                case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
+                case "User Doc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
             this.sidebarContent.proto = panelDoc;
             if (panelDoc) {
@@ -607,7 +609,6 @@ export class MainView extends React.Component {
                     </div>
                 </div>
                 {this.dockingContent}
-                <MainViewNotifs />
                 {this.showProperties ? (null) :
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
                         style={{ right: rightFlyout, top: "50%" }}>
@@ -892,7 +893,84 @@ export class MainView extends React.Component {
                 document.addEventListener("editSuccess", onSuccess);
             });
     }
+
+    importDocument = () => {
+        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null) as Doc;
+        const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc && sidebarDocView) {
+                        sidebarDocView.props.addDocument?.(doc);
+                        setTimeout(() => {
+                            SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                            });
+                        }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const files: FileList | null = input.files;
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const res = await Networking.UploadFilesToServer(file);
+                    res.map(async ({ result }) => {
+                        const name = file.name;
+                        if (result instanceof Error) {
+                            return;
+                        }
+                        const path = Utils.prepend(result.accessPaths.agnostic.client);
+                        let doc: Doc;
+                        // Case 1: File is a video
+                        if (file.type.includes("video")) {
+                            doc = Docs.Create.VideoDocument(path, { _height: 100, title: name });
+                            // Case 2: File is a PDF document
+                        } else if (file.type === "application/pdf") {
+                            doc = Docs.Create.PdfDocument(path, { _height: 100, _fitWidth: true, title: name });
+                            // Case 3: File is an image
+                        } else if (file.type.includes("image")) {
+                            doc = Docs.Create.ImageDocument(path, { _height: 100, title: name });
+                            // Case 4: File is an audio document
+                        } else {
+                            doc = Docs.Create.AudioDocument(path, { title: name });
+                        }
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                        if (!res) {
+                            throw new Error("No user id returned");
+                        }
+                        const field = await DocServer.GetRefField(res);
+                        let pending: Opt<Doc>;
+                        if (field instanceof Doc) {
+                            pending = sidebar;
+                        }
+                        if (pending) {
+                            const data = await Cast(pending.data, listSpec(Doc));
+                            if (data) data.push(doc);
+                            else pending.data = new List([doc]);
+                        }
+                    });
+                }
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
+    }
 }
+Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function copyWorkspace() {
@@ -902,3 +980,5 @@ Scripting.addGlobal(function copyWorkspace() {
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
     setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
 });
+Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
+    "imports files from device directly into the import sidebar");

@@ -648,7 +648,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const options = cm.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
-        !Doc.UserDoc().noviceMode && optionItems.push({ description: this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && optionItems.push({ description: !this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
         optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
         optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
@@ -1580,6 +1580,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
+                                overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
                                 pointerEvents: !this.props.active() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}

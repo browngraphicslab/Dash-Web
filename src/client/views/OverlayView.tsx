@@ -182,7 +182,7 @@ export class OverlayView extends React.Component {
                 offsetx = NumCast(d.x) - e.clientX;
                 offsety = NumCast(d.y) - e.clientY;
             };
-            return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
+            return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ top: d.type === 'presentation' ? 0 : undefined, width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
                     LibraryPath={emptyPath}

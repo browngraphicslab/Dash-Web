@@ -56,6 +56,9 @@ async function deserializeScript(script: ScriptField) {
     if (script.script.originalScript === 'self.userDoc.noviceMode') {
         return (script as any).script = (ScriptField.NoviceMode ?? (ScriptField.NoviceMode = ComputedField.MakeFunction('self.userDoc.noviceMode')))?.script;
     }
+    if (script.script.originalScript === `selectMainMenu(self)`) {
+        return (script as any).script = (ScriptField.SelectMenu ?? (ScriptField.SelectMenu = ComputedField.MakeFunction('selectMainMenu(self)')))?.script;
+    }
     const captures: ProxyField<Doc> = (script as any).captures;
     if (captures) {
         const doc = (await captures.value())!;
@@ -89,6 +92,7 @@ export class ScriptField extends ObjectField {
     public static DeiconifyView: Opt<ScriptField>;
     public static ConvertToButtons: Opt<ScriptField>;
     public static NoviceMode: Opt<ScriptField>;
+    public static SelectMenu: Opt<ScriptField>;
     constructor(script: CompiledScript, setterscript?: CompiledScript) {
         super();
 

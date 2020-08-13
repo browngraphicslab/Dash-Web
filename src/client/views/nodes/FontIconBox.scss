@@ -13,6 +13,27 @@
     width: 100%;
 }
 
+.fontIconBadge-container {
+    position:absolute;
+    z-index: 1000;
+    top: 12px;
+
+    .fontIconBadge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        color: white;
+        background: #f44b42;
+        font-weight: 300;
+        border-radius: 100%;
+        width: 25px;
+        height: 25px;
+        text-align: center;
+        padding-top: 4px;
+        font-size: 12px;
+    }
+}
+
 .menuButton-round {
     border-radius: 100%;
     background-color: black;
