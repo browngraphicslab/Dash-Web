@@ -494,12 +494,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                             //this._inputRef.current!.select();
                             e.stopPropagation();
                         }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
-                    <div className="keys-options-wrapper" style={{
+                    {!this._isOpen ? (null) : <div className="keys-options-wrapper" style={{
                         width: this.props.width, maxWidth: this.props.width, height: "auto",
                     }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                         {this._key === this._searchTerm ? this.renderFilterOptions() : this.renderOptions()}
-                    </div>
+                    </div>}
                 </div >
             </div>
         );
