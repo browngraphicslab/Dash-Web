@@ -222,7 +222,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             return true;
         }
         const first = doc instanceof Doc ? doc : doc[0];
-        if (!first?.stayInCollection && addDocument !== returnFalse) {
+        if (!first?._stayInCollection && addDocument !== returnFalse) {
             if (UndoManager.RunInTempBatch(() => this.removeDocument(doc))) {
                 const added = addDocument(doc);
                 if (!added) UndoManager.UndoTempBatch();

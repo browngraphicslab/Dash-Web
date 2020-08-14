@@ -6,15 +6,13 @@ import { Document } from '../../../fields/documentSchemas';
 import { Id } from '../../../fields/FieldSymbols';
 import { InkTool } from '../../../fields/InkField';
 import { listSpec } from "../../../fields/Schema";
-import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { GetEffectiveAcl, TraceMobx } from '../../../fields/util';
 import { MobileInterface } from '../../../mobile/MobileInterface';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, emptyPath, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
-import { ClientRecommender } from '../../ClientRecommender';
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from "../../util/DocumentManager";
@@ -22,7 +20,6 @@ import { DragManager, dropActionType } from "../../util/DragManager";
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { LinkManager } from '../../util/LinkManager';
 import { Scripting } from '../../util/Scripting';
-import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
 import { SnappingManager } from '../../util/SnappingManager';
@@ -33,7 +30,6 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { DocumentContentsView } from "./DocumentContentsView";
 import { DocumentLinksButton } from './DocumentLinksButton';
 import "./DocumentView.scss";
@@ -767,7 +763,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()) && moreItems.push({ description: "Toggle Always Show Link End", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
         }
 
-        moreItems.push({ description: "Close", event: this.deleteClicked, icon: "trash" });
+        moreItems.push({ description: "Close", event: this.deleteClicked, icon: "times" });
 
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
@@ -819,7 +815,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get contents() {
         const pos = this.props.relative ? "relative " : "absolute";
         TraceMobx();
-        return (<div style={{ width: "100%", height: "100%" }}>
+        return (<div className="documentView-contentsView" style={{ borderRadius: "inherit", width: "100%", height: "100%" }}>
             <DocumentContentsView key={1}
                 docFilters={this.props.docFilters}
                 ContainingCollectionView={this.props.ContainingCollectionView}

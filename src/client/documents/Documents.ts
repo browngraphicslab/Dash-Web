@@ -112,6 +112,7 @@ export interface DocumentOptions {
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
+    watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
@@ -184,7 +185,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
-    stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
+    _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
