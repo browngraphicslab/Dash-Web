@@ -383,6 +383,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
+        } else if ((this._cellIsEditing || this.props.headerIsEditing) && (e.keyCode === 37 || e.keyCode === 39)) {
+            e.stopPropagation(); // stopPropagation for left/right arrows 
         }
     }
 

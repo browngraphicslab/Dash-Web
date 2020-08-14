@@ -132,12 +132,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    toggleIsOpen = (): void => {
-        this._isOpen = !this._isOpen;
-        this.setHeaderIsEditing(this._isOpen);
-    }
-
-    @action
     changeColumnType = (type: ColumnType, col: any): void => {
         this._openTypes = false;
         this.setColumnType(col, type);
