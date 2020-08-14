@@ -32,7 +32,7 @@ export default class SettingsManager extends React.Component<{}> {
     @observable private new_password = "";
     @observable private new_confirm = "";
 
-    @computed get backgroundColor() { return Doc.UserDoc().defaultColor; }
+    @computed get backgroundColor() { return Doc.UserDoc().activeCollectionBackground; }
 
     constructor(props: {}) {
         super(props);

@@ -719,14 +719,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             </div>;
 
         } else {
-            //subtracted 250 for offset
+            //subtracted for offset
             var str: string = "";
             for (var i = 0; i < this._pointsX.length; i++) {
                 var x = 0;
-                x = this._pointsX[i] - 250;
+                x = this._pointsX[i] - 64;
                 str += x.toString();
                 str += ",";
-                str += this._pointsY[i].toString();
+                str += (this._pointsY[i] - 85).toString();
                 str += (" ");
             }
 
