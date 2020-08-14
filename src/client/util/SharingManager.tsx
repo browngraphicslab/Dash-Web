@@ -155,16 +155,17 @@ export default class SharingManager extends React.Component<{}> {
         const users: ValidatedUser[] = this.users.filter(({ user: { email } }) => members.includes(email));
 
         const target = targetDoc || this.targetDoc!;
-        const ACL = `ACL-${StrCast(group.groupName)}`;
+        const key = StrCast(group.groupName).replace(".", "_");
+        const ACL = `ACL-${key}`;
 
-        target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
+        GetEffectiveAcl(target) === AclAdmin && distributeAcls(ACL, permission as SharingPermissions, target);
 
         // if documents have been shared, add the target to that list if it doesn't already exist, otherwise create a new list with the target
         group.docsShared ? Doc.IndexOf(target, DocListCast(group.docsShared)) === -1 && (group.docsShared as List<Doc>).push(target) : group.docsShared = new List<Doc>([target]);
 
-        users.forEach(({ notificationDoc }) => {
+        users.forEach(({ user, notificationDoc }) => {
             if (permission !== SharingPermissions.None) Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target); // add the target to the notificationDoc if it hasn't already been added
-            else Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target); // remove the target from the list if it already exists
+            else GetEffectiveAcl(target, undefined, user.email) === AclPrivate && Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target); // remove the target from the list if it already exists
         });
     }
 
@@ -231,14 +232,11 @@ export default class SharingManager extends React.Component<{}> {
         const key = user.email.replace('.', '_');
         const ACL = `ACL-${key}`;
 
-        target.author === Doc.CurrentUserEmail && distributeAcls(ACL, permission as SharingPermissions, target);
+        GetEffectiveAcl(target) === AclAdmin && distributeAcls(ACL, permission as SharingPermissions, target);
 
-        if (permission !== SharingPermissions.None) {
-            Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
-        }
-        else {
-            Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
-        }
+        if (permission !== SharingPermissions.None) Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
+        else GetEffectiveAcl(target, undefined, user.email) === AclPrivate && Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+
     }
 
 

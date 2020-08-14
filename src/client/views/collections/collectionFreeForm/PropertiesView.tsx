@@ -403,7 +403,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         // })
 
         // shifts the current user and the owner to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
+        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : AclMap.get(effectiveAcl)!));
         if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), effectiveAcl, "Owner"));
 
         return <div className="propertiesView-sharingTable">
