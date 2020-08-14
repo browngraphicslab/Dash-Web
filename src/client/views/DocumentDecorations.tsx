@@ -660,13 +660,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
         var offset = 0;
-        var rotButton = <></>;
-        //make offset larger for ink to edit points
-        if (seldoc.rootDoc.type === DocumentType.INK) {
-            offset = 20;
-            rotButton = <div id="documentDecorations-rotation" title="rotate" className="documentDecorations-rotation"
-                onPointerDown={this.onRotateDown}> ⟲ </div>;
-        }
+        let useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
         return (<div className="documentDecorations" style={{ background: darkScheme }} >
             <div className="documentDecorations-background" style={{
@@ -690,12 +684,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     {SelectionManager.SelectedDocuments().length !== 1 || seldoc.Document.type === DocumentType.INK ? (null) :
                         <Tooltip title={<><div className="dash-tooltip">{`${seldoc.finalLayoutKey.includes("icon") ? "De" : ""}Iconify Document`}</div></>} placement="top">
                             <div className="documentDecorations-iconifyButton" onPointerDown={this.onIconifyDown}>
-                                {"_"}
+                                <FontAwesomeIcon icon={seldoc.finalLayoutKey.includes("icon") ? "window-restore" : "window-minimize"} className="documentView-minimizedIcon" />
                             </div></Tooltip>}
                     <Tooltip title={<><div className="dash-tooltip">Open In a New Pane</div></>} placement="top"><div className="documentDecorations-openInTab" onPointerDown={this.onMaximizeDown}>
                         {SelectionManager.SelectedDocuments().length === 1 ? <FontAwesomeIcon icon="external-link-alt" className="documentView-minimizedIcon" /> : "..."}
                     </div></Tooltip>
-                    {rotButton}
                     <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                         onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                     <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
@@ -719,8 +712,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                                 onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
                                 <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
                             </div></Tooltip>}
-                    <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
-                        onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    <div id={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
+                        onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>
 
                 </div >
                 <div className="link-button-container" key="links" style={{ left: bounds.x - this._resizeBorderWidth / 2 + 10, top: bounds.b + this._resizeBorderWidth / 2 }}>
