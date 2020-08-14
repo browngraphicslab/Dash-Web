@@ -791,7 +791,9 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            const target = Doc.MakeDelegate(new Doc());
+            const proto = new Doc();
+            proto.author = Doc.CurrentUserEmail;
+            const target = Doc.MakeDelegate(proto);
             const targetKey = StrCast(templateDoc.layoutKey, "layout");
             const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
             target.layoutKey = targetKey;
