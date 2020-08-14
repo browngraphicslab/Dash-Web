@@ -856,7 +856,7 @@ export class CurrentUserUtils {
             doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled" }));
         }
         if (doc["sidebar-import"] === undefined) {
-            const uploads = Cast(doc["sidebar-import-documents"], Doc, null) as Doc;
+            const uploads = Cast(doc["sidebar-import-documents"], Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
             doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true }));
         }

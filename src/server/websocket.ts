@@ -203,7 +203,7 @@ export namespace WebSocket {
         Database.Instance.update(newValue.id, newValue, () =>
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {  // if the newValue has sring type, then it's suitable for searching -- pass it to SOLR
-            Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
+            Search.updateDocument({ id: newValue.id, data: { set: (newValue as any).data } });
         }
     }
 

@@ -170,7 +170,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 result[0].searchMatch = undefined;
             });
 
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([]);
             if (this.currentSelectedCollection !== undefined) {
                 this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
                 this.currentSelectedCollection = undefined;
@@ -625,8 +624,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: 10000000, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
+                    this.realTotalResults = res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
@@ -717,6 +717,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._searchbarOpen = true;
     }
 
+    realTotalResults: number = 0;
+
     @action.bound
     closeSearch = () => {
         //this.closeResults();
@@ -742,12 +744,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         if (!this._resultsRef.current) return;
-
-        const scrollY = e ? e.currentTarget.scrollTop : this._resultsRef.current ? this._resultsRef.current.scrollTop : 0;
-        const itemHght = 53;
-        //const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this._resultsRef.current.getBoundingClientRect().height / itemHght)));
-        const endIndex = 30;
-        //this._endIndex = endIndex === -1 ? 12 : endIndex;
         this._endIndex = 30;
         const headers = new Set<string>(["title", "author", "text", "type", "data", "*lastModified", "context"]);
         // if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
@@ -772,7 +768,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._isSorted = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
 
         }
-        let max = this._pageStart + this._pageCount;
+        let max = this.NumResults;
         max > this._results.length ? max = this._results.length : console.log("");
         for (let i = this._pageStart; i < max; i++) {
             //if the index is out of the window then put a placeholder in
@@ -801,12 +797,21 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
             }
         }
-        const schemaheaders: SchemaHeaderField[] = [];
         this.headerscale = headers.size;
-        headers.forEach((item) => schemaheaders.push(new SchemaHeaderField(item, "#f1efeb")));
-        this.headercount = schemaheaders.length;
         if (Cast(this.props.Document._docFilters, listSpec("string"), []).length === 0) {
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(schemaheaders);
+            const oldSchemaHeaders = Cast(this.props.Document._schemaHeaders, listSpec("string"), []);
+            if (oldSchemaHeaders?.length && typeof oldSchemaHeaders[0] !== "object") {
+                const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
+                headers.forEach(header => {
+                    if (oldSchemaHeaders.includes(header) === false) {
+                        newSchemaHeaders.push(new SchemaHeaderField(header, "#f1efeb"));
+                    }
+                });
+                this.headercount = newSchemaHeaders.length;
+                this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
+            } else if (this.props.Document._schemaHeaders === undefined) {
+                this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb")]);
+            }
         }
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
@@ -862,7 +867,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.props.Document._searchDoc = true;
         const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
         let length = 0;
-        cols > 5 ? length = 1076 : length = cols * 205 + 51;
+        length = cols * 205 + 51;
         let height = 0;
         const rows = this.children;
         height = 31 + 31 * 6;
@@ -872,11 +877,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
                     <div style={{ display: "flex", alignItems: "center" }}>
                         <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>} ><div>
-                            {/* <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
-                                style={{ cursor: "hand", color: "black", padding: 1, left: 35, position: "relative" }} /> */}
-                            <FontAwesomeIcon onPointerDown={() => { this.newpage(); }} icon={"search"} size="lg"
+                            <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
                                 style={{ cursor: "hand", color: "black", padding: 1, left: 35, position: "relative" }} />
                         </div></Tooltip>
+                        <div style={{
+                            position: "relative",
+                            left: 245,
+                            zIndex: 9000,
+                            color: "grey",
+                            background: "white",
+                        }}> {`${this._results.length}` + " of " + `${this.realTotalResults}`}</div>
                         <div style={{ cursor: "default", left: 250, position: "relative", }}>
                             <Tooltip title={<div className="dash-tooltip" >only display documents matching search</div>} ><div>
                                 <FontAwesomeIcon icon={"filter"} size="lg"
@@ -1031,7 +1041,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     removeDocument={returnFalse}
                                     PanelHeight={this.open === true ? () => height : () => 0}
                                     PanelWidth={this.open === true ? () => length : () => 0}
-                                    overflow={cols > 5 || rows > 6 ? true : false}
+                                    overflow={length > window.innerWidth || rows > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />

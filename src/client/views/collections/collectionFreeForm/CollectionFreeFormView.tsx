@@ -1530,10 +1530,10 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             return original + (delta * this.props.zoomScaling());
         };
         if (doc) {
-            let height = doc.offsetHeight;
-            let width = doc.offsetWidth;
-            let top = doc.offsetTop;
-            let left = doc.offsetLeft;
+            const height = doc.offsetHeight;
+            const width = doc.offsetWidth;
+            const top = doc.offsetTop;
+            const left = doc.offsetLeft;
             switch (this._drag) {
                 case "": break;
                 case "resizer-br":

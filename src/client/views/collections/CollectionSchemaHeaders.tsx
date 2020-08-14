@@ -13,6 +13,7 @@ import { SearchBox } from "../search/SearchBox";
 import { ColumnType } from "./CollectionSchemaView";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
+import * as fa from '@fortawesome/free-solid-svg-icons';
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -308,16 +309,29 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
-            let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            const blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
-            keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
-            if (keyOptions.length) {
-                this.onSelect(keyOptions[0]);
-                console.log("case1");
-            } else if (this._searchTerm !== "" && this.props.canAddNew) {
-                this.setSearchTerm(this._searchTerm || this._key);
-                console.log("case2");
-                this.onSelect(this._searchTerm);
+            if (this._searchTerm.includes(":")) {
+                const colpos = this._searchTerm.indexOf(":");
+                const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
+                if (temp === "") {
+                    Doc.setDocFilter(this.props.Document, this._key, temp, undefined);
+                }
+                else {
+                    Doc.setDocFilter(this.props.Document, this._key, temp, "match");
+                    this.props.col.setColor("green");
+                }
+            }
+            else {
+                let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+                const blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
+                if (keyOptions.length) {
+                    this.onSelect(keyOptions[0]);
+                    console.log("case1");
+                } else if (this._searchTerm !== "" && this.props.canAddNew) {
+                    this.setSearchTerm(this._searchTerm || this._key);
+                    console.log("case2");
+                    this.onSelect(this._searchTerm);
+                }
             }
         }
     }
@@ -408,14 +422,17 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.defaultMenuHeight = 0;
             return <></>;
         }
+
         const keyOptions: string[] = [];
+        const colpos = this._searchTerm.indexOf(":");
+        const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
         if (this.docSafe.length === 0) {
             this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
         }
         const docs = this.docSafe;
         docs.forEach((doc) => {
             const key = StrCast(doc[this._key]);
-            if (keyOptions.includes(key) === false) {
+            if (keyOptions.includes(key) === false && key.includes(temp)) {
                 keyOptions.push(key);
             }
         });
@@ -425,6 +442,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i + 1]) === false) {
                 keyOptions.push(filters![i + 1]);
             }
+        }
+
+        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+            this.props.col.setColor("rgb(241, 239, 235)");
         }
 
         const options = keyOptions.map(key => {
@@ -442,6 +463,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             >
                 <input type="checkbox" onChange={(e) => {
                     e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, undefined);
+                    e.target.checked === true ? this.props.col.setColor("green") : "";
                     e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, undefined);
                 }}
                     checked={bool} ></input>
@@ -485,7 +507,12 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div style={{ display: "flex" }}>
-                <FontAwesomeIcon onClick={e => { this.props.Document._searchDoc ? runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen; }) : this.props.openHeader(this.props.col, e.clientX, e.clientY); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+
+                {/* <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
+                    runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
+                }} /> */}
+
                 <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
                     <input className="keys-search" style={{ width: "100%" }}
                         ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
@@ -498,7 +525,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                         width: this.props.width, maxWidth: this.props.width, height: "auto",
                     }}
                         onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
-                        {this._key === this._searchTerm ? this.renderFilterOptions() : this.renderOptions()}
+                        {this._searchTerm.includes(":") ? this.renderFilterOptions() : this.renderOptions()}
                     </div>}
                 </div >
             </div>

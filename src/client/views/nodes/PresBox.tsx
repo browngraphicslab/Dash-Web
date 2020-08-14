@@ -178,7 +178,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             let prevSelected = this.itemIndex;
             prevSelected = Math.max(0, prevSelected - 1);
             this.gotoDocument(prevSelected, this.itemIndex);
-            if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc.currentFrame = NumCast(prevTargetDoc.lastFrame)
+            if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc.currentFrame = NumCast(prevTargetDoc.lastFrame);
         }
     }
 
@@ -349,9 +349,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         let activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         let targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         let duration = NumCast(targetDoc.presDuration) + NumCast(targetDoc.presTransition);
-        const timer = (ms: number) => {
-            return new Promise(res => this._presTimer = setTimeout(res, ms));
-        }
+        const timer = (ms: number) => new Promise(res => this._presTimer = setTimeout(res, ms));
         const load = async () => { // Wrap the loop into an async function for this to work
             for (var i = startSlide; i < this.childDocs.length; i++) {
                 activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
@@ -367,7 +365,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 await timer(duration); this.next(); // then the created Promise can be awaited
                 if (i === this.childDocs.length - 1) setTimeout(() => { clearTimeout(this._presTimer); if (this.layoutDoc.presStatus === 'auto') this.layoutDoc.presStatus = "manual"; }, duration);
             }
-        }
+        };
         if (this.layoutDoc.presStatus === "auto") {
             if (this._presTimer) clearTimeout(this._presTimer);
             this.layoutDoc.presStatus = "manual";
@@ -393,7 +391,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             if (this.rootDoc.expandBoolean) doc.presExpandInlineButton = true;
             else if (!this.rootDoc.expandBoolean) doc.presExpandInlineButton = false;
         });
-    };
+    }
 
     /**
      * The function that starts the presentation at the given index, also checking if actions should be applied
@@ -745,7 +743,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
         if (activeItem && targetDoc) {
-            let transitionSpeed = targetDoc.presTransition ? NumCast(targetDoc.presTransition) / 1000 : 0.5;
+            const transitionSpeed = targetDoc.presTransition ? NumCast(targetDoc.presTransition) / 1000 : 0.5;
             let duration = targetDoc.presDuration ? NumCast(targetDoc.presDuration) / 1000 : 2;
             if (targetDoc.type === DocumentType.AUDIO) duration = NumCast(targetDoc.duration);
             const effect = targetDoc.presEffect ? targetDoc.presEffect : 'None';
@@ -754,7 +752,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 <div className={`presBox-ribbon ${this.transitionTools && this.layoutDoc.presStatus === "edit" ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = false; this.openEffectDropdown = false; })}>
                     <div className="ribbon-box">
                         Movement
-                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5, border: this.openMovementDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
+                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown; })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5, border: this.openMovementDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
                             {activeItem.presMovement}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
@@ -770,7 +768,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <input className="presBox-input"
                                     type="number" value={transitionSpeed}
                                     onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
-                                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { this.setTransitionTime(e.target.value) })} /> s
+                                    onChange={action((e) => this.setTransitionTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
                                 <div className="ribbon-propertyUpDownItem" onClick={() => this.setTransitionTime(String(transitionSpeed), 1000)}>
@@ -800,7 +798,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                 <input className="presBox-input"
                                     type="number" value={duration}
                                     onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
-                                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { this.setDurationTime(e.target.value) })} /> s
+                                    onChange={action((e) => this.setDurationTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
                                 <div className="ribbon-propertyUpDownItem" onClick={() => this.setDurationTime(String(duration), 1000)}>
@@ -820,7 +818,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     </div>
                     <div className="ribbon-box">
                         Effects
-                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openEffectDropdown = !this.openEffectDropdown })} style={{ borderBottomLeftRadius: this.openEffectDropdown ? 0 : 5, border: this.openEffectDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
+                        <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openEffectDropdown = !this.openEffectDropdown; })} style={{ borderBottomLeftRadius: this.openEffectDropdown ? 0 : 5, border: this.openEffectDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
                             {effect}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openEffectDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} style={{ display: this.openEffectDropdown ? "grid" : "none" }} onPointerDown={e => e.stopPropagation()}>
@@ -929,7 +927,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             style={{ textAlign: 'left', width: 50 }}
                                             type="number" value={NumCast(activeItem.presPinViewX)}
                                             onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
-                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { let val = e.target.value; activeItem.presPinViewX = Number(val); })} />
+                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewX = Number(val); })} />
                                     </div>
                                 </div>
                                 <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
@@ -939,7 +937,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             style={{ textAlign: 'left', width: 50 }}
                                             type="number" value={NumCast(activeItem.presPinViewY)}
                                             onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
-                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { let val = e.target.value; activeItem.presPinViewY = Number(val) })} />
+                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewY = Number(val); })} />
                                     </div>
                                 </div>
                                 <div className="ribbon-doubleButton" style={{ marginRight: 10 }}>
@@ -949,7 +947,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                             style={{ textAlign: 'left', width: 50 }}
                                             type="number" value={NumCast(activeItem.presPinViewScale)}
                                             onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
-                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { let val = e.target.value; activeItem.presPinViewScale = Number(val) })} />
+                                            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewScale = Number(val); })} />
                                     </div>
                                 </div>
                             </div>
@@ -1211,7 +1209,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: activeItem.presProgressivize ? "inline-flex" : "none" }}>
                                 <div className="presBox-subheading">Active text color</div>
-                                <div className="ribbon-property" style={{ backgroundColor: activeFontColor }} onClick={action(() => { console.log("hi"); this.openActiveColorPicker = !this.openActiveColorPicker })}>
+                                <div className="ribbon-property" style={{ backgroundColor: activeFontColor }} onClick={action(() => { console.log("hi"); this.openActiveColorPicker = !this.openActiveColorPicker; })}>
                                 </div>
                             </div>
                             {this.activeColorPicker}
@@ -1277,7 +1275,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get activeColorPicker() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        if (this.openActiveColorPicker) return <SketchPicker onChange={this.switchActive}
+        return !this.openActiveColorPicker ? (null) : <SketchPicker onChange={this.switchActive}
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
                 '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
                 '#FFFFFF', '#f1efeb', 'transparent']}
@@ -1287,7 +1285,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get viewedColorPicker() {
         const activeItem = Cast(this.childDocs[this.itemIndex], Doc, null);
         const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        if (this.openViewedColorPicker) return <SketchPicker onChange={this.switchPresented}
+        return !this.openViewedColorPicker ? (null) : <SketchPicker onChange={this.switchPresented}
             presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
                 '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B',
                 '#FFFFFF', '#f1efeb', 'transparent']}
@@ -1440,7 +1438,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     checkList = (doc: Doc, list: any): number => {
         const x: List<number> = list;
-        if (x && x.length >= NumCast(doc!.currentFrame) + 1) {
+        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
             return x[NumCast(doc.currentFrame)];
         } else if (x) {
             x.length = NumCast(doc.currentFrame) + 1;
