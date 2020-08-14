@@ -696,7 +696,7 @@
     <lst name="defaults">
       <str name="echoParams">explicit</str>
       <int name="rows">8</int>
-      <str name="df">text</str> 
+      <str name="df">DEFAULT</str> 
       <!-- Default search field
          <str name="df">text</str> 
         -->

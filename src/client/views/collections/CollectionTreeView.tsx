@@ -497,7 +497,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             }
         } else this._editMaxWidth = "";
-        return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active() && SelectionManager.DeselectAll()}>
+        return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}>
             <li className="collection-child">
                 <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }} onClick={e => {
                     if (this.props.active(true)) {

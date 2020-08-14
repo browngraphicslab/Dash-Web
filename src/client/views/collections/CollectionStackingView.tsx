@@ -28,7 +28,6 @@ import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocUtils } from "../../documents/Documents";
-import { MainViewNotifs } from "../MainViewNotifs";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;

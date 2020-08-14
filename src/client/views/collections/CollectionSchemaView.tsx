@@ -120,7 +120,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointerdown", this.detectClick);
     }
 
-    @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
+    @action setHeaderIsEditing = (isEditing: boolean) => {
+        this._headerIsEditing = isEditing;
+    }
 
     detectClick = (e: PointerEvent): void => {
         if (this._node && this._node.contains(e.target as Node)) {
@@ -631,7 +633,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             style={{
                 overflow: this.props.overflow === true ? "scroll" : undefined,
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
-                width: this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
+                width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
                 style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}

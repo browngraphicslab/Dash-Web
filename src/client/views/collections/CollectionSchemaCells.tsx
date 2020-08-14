@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, observable, trace, computed } from "mobx";
+import { action, observable, trace, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
@@ -69,9 +69,28 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     protected _document = this.props.rowProps.original;
     protected _dropDisposer?: DragManager.DragDropDisposer;
 
-    componentDidMount() {
-        document.addEventListener("keydown", this.onKeyDown);
+    async componentWillMount() {
+
     }
+
+    async componentDidMount() {
+        document.addEventListener("keydown", this.onKeyDown);
+        console.log("mounted");
+        console.log(this.type);
+        if (this.type === "context") {
+            console.log("mounted2");
+            const doc = Doc.GetProto(this.props.rowProps.original);
+            const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
+            if (aliasdoc.length > 0) {
+                const targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
+                console.log(StrCast(targetContext.title));
+                runInAction(() => this.contents = StrCast(targetContext.title));
+            }
+        }
+
+    }
+
+    @observable contents: string = "";
 
     componentWillUnmount() {
         document.removeEventListener("keydown", this.onKeyDown);
@@ -184,6 +203,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             return <span style={{ color: contents ? "black" : "grey" }}>{contents ? contents?.valueOf() : "undefined"}</span>;
         }
     }
+    type: string = "";
 
     renderCellWithType(type: string | undefined) {
         const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -287,8 +307,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //     </div>
         // );   
         const positions = [];
+        let cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+        this.type = props.fieldKey;
         if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
-            const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
             let term = Field.toString(cfield as Field);
             term = term.toLowerCase();
             const search = StrCast(this.props.Document._searchString).toLowerCase();
@@ -311,7 +332,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.Document._searchDoc !== undefined) {
             search = true;
         }
-
 
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
@@ -337,8 +357,13 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                     if (cfield !== undefined) {
                                         // if (typeof(cfield)===RichTextField)
                                         const a = cfield as RichTextField;
+                                        const b = cfield as DateField;
+                                        console.log(b);
                                         if (a.Text !== undefined) {
                                             return (a.Text);
+                                        }
+                                        else if (b.toString() !== undefined) {
+                                            return b.toString();
                                         }
                                         else if (StrCast(cfield)) {
                                             return StrCast(cfield);
@@ -397,7 +422,26 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             />
                             :
                             this.returnHighlights(() => {
-                                const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+                                console.log(props.fieldKey);
+                                const dateCheck: Date | undefined = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : undefined;
+                                if (dateCheck !== undefined) {
+                                    cfield = dateCheck.toLocaleString();
+                                }
+                                if (props.fieldKey === "context") {
+                                    cfield = this.contents;
+                                    console.log("this should work");
+                                }
+                                if (props.fieldKey === "*lastModified") {
+                                    if (FieldValue(props.Document["data-lastModified"]) !== undefined) {
+                                        const d = ComputedField.WithoutComputed(() => FieldValue(props.Document["data-lastModified"])) as DateField;
+                                        cfield = d.date.toLocaleString();
+                                    }
+
+                                    else if (FieldValue(props.Document["text-lastModified"]) !== undefined) {
+                                        const d = ComputedField.WithoutComputed(() => FieldValue(props.Document["text-lastModified"])) as DateField;
+                                        cfield = d.date.toLocaleString();
+                                    }
+                                }
                                 return Field.toString(cfield as Field);
                             }, positions)
                         }

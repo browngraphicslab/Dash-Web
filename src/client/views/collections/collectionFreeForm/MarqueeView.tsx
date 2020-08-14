@@ -356,6 +356,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             doc._panX = doc._panY = 0;
             return doc;
         })(Doc.MakeCopy(Doc.UserDoc().emptyCollection as Doc, true));
+        newCollection.system = undefined;
         newCollection.isBackground = isBackground;
         newCollection.backgroundColor = this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined;
         newCollection._width = this.Bounds.width;
