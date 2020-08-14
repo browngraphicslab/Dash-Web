@@ -44,11 +44,10 @@
   <fieldType name="pdouble" class="solr.DoublePointField"/>
 
   <field name="string" type="string" indexed="true" stored="true" uninvertible="true"/>
-  <field name="text" type="text" indexed="true" stored="false" uninvertible="false" multiValued="true"/>
+  <field name="DEFAULT" type="text" indexed="true" stored="false" uninvertible="false" multiValued="true"/>
   <field name="id" type="string" indexed="true" stored="true" uninvertible="false" required="true"/>
   <field name="_version_" type="plong" indexed="true" stored="true"/>
   <field name="proto" type="string" indexed="true" stored="true" uninvertible="false"  />
-  <field name="_height" type="pdouble" indexed="true" stored="true" uninvertible="false" docValues="true"/>
 
   <dynamicField name="*_s" type="string" indexed="true" stored="true" uninvertible="false" docValues="true"/>
   <dynamicField name="*_t" type="text" indexed="true" stored="true" uninvertible="false" docValues="false"/>
@@ -59,10 +58,10 @@
   <dynamicField name="*_b" type="boolean" indexed="true" stored="true" uninvertible="false" docValues="false"/>
   <dynamicField name="*_a" type="text" indexed="true" stored="false" uninvertible="false" docValues="false" multiValued="true"/>
 
-  <copyField source="*_t" dest="*_s"/>
-
   <!-- <field name="_height" type="pdouble" indexed="true" stored="true" uninvertible="false" docValues="true"/> -->
 
+  <copyField source="*_t" dest="*_s"/>
+  <copyField source="*_t" dest="DEFAULT"/>
   <copyField source="*_t" dest="*_a"/>
   <copyField source="*_n" dest="*_a"/>
 </schema>
