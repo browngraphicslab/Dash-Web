@@ -429,7 +429,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
         if (this.selectedDoc) {
-            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+            const layoutField = Doc.LayoutField(this.selectedDoc);
+            return StrCast(layoutField).includes("FormattedText") ||
+                (layoutField instanceof Doc && StrCast(layoutField.layout).includes("FormattedText"));
         }
         else return false;
     }

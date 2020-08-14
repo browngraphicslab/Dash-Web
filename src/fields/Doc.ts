@@ -781,6 +781,7 @@ export namespace Doc {
         if (doc) {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
+            delegate.author = Doc.CurrentUserEmail;
             title && (delegate.title = title);
             return delegate;
         }

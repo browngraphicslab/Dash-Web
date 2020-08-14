@@ -157,7 +157,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
 
     @action
     public updateMenu(view: EditorView, lastState: EditorState | undefined, props: any) {
-        if (!view || !(view as any).TextView?.props.isSelected(true)) {
+        if (!view || !(view as any).TextView?.props.isSelected(true) || !view.hasFocus()) {
             return;
         }
         this.view = view;
