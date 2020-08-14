@@ -377,6 +377,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
+        console.log("headerIsEditing", this.props.headerIsEditing);
         if (!this._cellIsEditing && !this.props.headerIsEditing && this.props.isFocused(this.props.Document, true)) {// && this.props.isSelected(true)) {
             const direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this._focusedCell = this.changeFocusedCellByDirection(direction, this._focusedCell.row, this._focusedCell.col);
