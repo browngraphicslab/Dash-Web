@@ -301,7 +301,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             if (start !== -1) {
                 positions.push(start);
             }
-            while (start < contents.length && start !== -1) {
+            while (start < contents?.length && start !== -1) {
                 term = term.slice(start + search.length + 1);
                 tally += start + search.length + 1;
                 start = term.indexOf(search);
