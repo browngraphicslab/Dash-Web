@@ -21,7 +21,7 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
-import AntimodeMenu from "../AntimodeMenu";
+import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
 import { EditableView } from "../EditableView";
 import GestureOverlay from "../GestureOverlay";
 import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
@@ -32,13 +32,13 @@ import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 
 @observer
-export default class CollectionMenu extends AntimodeMenu {
+export default class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: CollectionMenu;
 
     @observable SelectedCollection: DocumentView | undefined;
     @observable FieldKey: string;
 
-    constructor(props: Readonly<{}>) {
+    constructor(props: any) {
         super(props);
         this.FieldKey = "";
         CollectionMenu.Instance = this;
@@ -655,7 +655,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </> :
                     (null)
                 }
-                {this.isText ? <RichTextMenu key="rich" /> : null}
+                {this.isText ? <RichTextMenu /> : null}
             </div>;
     }
 }

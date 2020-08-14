@@ -659,8 +659,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
-        var offset = 0;
-        let useRotation = seldoc.rootDoc.type === DocumentType.INK;
+        let offset = 0;
+        const useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
         return (<div className="documentDecorations" style={{ background: darkScheme }} >
             <div className="documentDecorations-background" style={{

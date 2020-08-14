@@ -34,7 +34,7 @@ import { DictationManager } from '../../../util/DictationManager';
 import { DragManager } from "../../../util/DragManager";
 import { makeTemplate } from '../../../util/DropConverter';
 import buildKeymap, { updateBullets } from "./ProsemirrorExampleTransfer";
-import RichTextMenu from './RichTextMenu';
+import RichTextMenu, { RichTextMenuPlugin } from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
 
 //import { DashDocView } from "./DashDocView";
@@ -1306,7 +1306,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         // jump rich text menu to this textbox
         const bounds = this._ref.current?.getBoundingClientRect();
-        if (bounds && this.layoutDoc._chromeStatus !== "disabled") {
+        if (bounds && this.layoutDoc._chromeStatus !== "disabled" && RichTextMenu.Instance) {
             const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
             let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
@@ -1410,11 +1410,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    menuPlugin: any;
+
     richTextMenuPlugin() {
+        const self = this;
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance?.changeView(newView);
-                return RichTextMenu.Instance;
+                self.props.isSelected(true) && (RichTextMenu.Instance.view = newView);
+                return self.menuPlugin = new RichTextMenuPlugin({ editorProps: this.props });
             }
         });
     }
@@ -1524,7 +1527,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
-        setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), this.props.isSelected() ? 10 : 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
+        setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props), this.props.isSelected() ? 10 : 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }

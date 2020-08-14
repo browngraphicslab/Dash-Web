@@ -817,7 +817,6 @@ export class MainView extends React.Component {
             <DocumentDecorations />
             {this.search}
             <CollectionMenu />
-            <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
             <FormatShapePane />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
