@@ -45,7 +45,6 @@ import { ANTIMODEMENU_HEIGHT, SEARCH_PANEL_HEIGHT } from './globalCssVariables.s
 import KeyManager from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
-import { MainViewNotifs } from './MainViewNotifs';
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
@@ -895,7 +894,7 @@ export class MainView extends React.Component {
     }
 
     importDocument = () => {
-        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null) as Doc;
+        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null);
         const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
         const input = document.createElement("input");
         input.type = "file";
@@ -923,9 +922,8 @@ export class MainView extends React.Component {
                     }
                 }
             } else if (input.files && input.files.length !== 0) {
-                const files: FileList | null = input.files;
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
+                const files = input.files || [];
+                Array.from(files).forEach(async file => {
                     const res = await Networking.UploadFilesToServer(file);
                     res.map(async ({ result }) => {
                         const name = file.name;
@@ -962,7 +960,7 @@ export class MainView extends React.Component {
                             else pending.data = new List([doc]);
                         }
                     });
-                }
+                });
             } else {
                 console.log("No file selected");
             }

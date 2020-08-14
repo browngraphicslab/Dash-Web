@@ -120,7 +120,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointerdown", this.detectClick);
     }
 
-    @action setHeaderIsEditing = (isEditing: boolean) => this._headerIsEditing = isEditing;
+    @action setHeaderIsEditing = (isEditing: boolean) => {
+        this._headerIsEditing = isEditing;
+    }
 
     detectClick = (e: PointerEvent): void => {
         if (this._node && this._node.contains(e.target as Node)) {

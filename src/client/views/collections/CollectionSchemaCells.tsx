@@ -81,9 +81,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             console.log("mounted2");
             const doc = Doc.GetProto(this.props.rowProps.original);
             const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
-            let targetContext = undefined;
             if (aliasdoc.length > 0) {
-                targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
+                const targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
                 console.log(StrCast(targetContext.title));
                 runInAction(() => this.contents = StrCast(targetContext.title));
             }
@@ -424,7 +423,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             :
                             this.returnHighlights(() => {
                                 console.log(props.fieldKey);
-                                let dateCheck: Date | undefined = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : undefined;
+                                const dateCheck: Date | undefined = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : undefined;
                                 if (dateCheck !== undefined) {
                                     cfield = dateCheck.toLocaleString();
                                 }

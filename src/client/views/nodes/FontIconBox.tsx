@@ -12,7 +12,6 @@ import { Doc, DocListCast } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ScriptField } from '../../../fields/ScriptField';
 import { Tooltip } from '@material-ui/core';
-import { MainViewNotifs } from '../MainViewNotifs';
 import { DragManager } from '../../util/DragManager';
 const FontIconSchema = createSchema({
     icon: "string",
