@@ -63,12 +63,12 @@ export interface SchemaTableProps {
     addDocument: (document: Doc | Doc[]) => boolean;
     moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    active: (outsideReaction: boolean) => boolean;
+    active: (outsideReaction: boolean | undefined) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
-    isFocused: (document: Doc) => boolean;
+    isFocused: (document: Doc, outsideReaction: boolean) => boolean;
     setFocused: (document: Doc) => void;
     setPreviewDoc: (document: Doc) => void;
     columns: SchemaHeaderField[];
@@ -155,7 +155,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         const possibleKeys = this.props.documentKeys.filter(key => this.props.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1);
         const columns: Column<Doc>[] = [];
-        const tableIsFocused = this.props.isFocused(this.props.Document);
+        const tableIsFocused = this.props.isFocused(this.props.Document, false);
         const focusedRow = this._focusedCell.row;
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
@@ -177,8 +177,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 }
             );
         }
+        this.props.active;
 
         const cols = this.props.columns.map(col => {
+            const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
+                this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
+                    this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" :
+                        this.getColumnType(col) === ColumnType.Date ? "calendar" : "align-justify";
 
             const keysDropdown = <KeysDropdown
                 keyValue={col.heading}
@@ -189,24 +194,20 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 onSelect={this.props.changeColumns}
                 setIsEditing={this.props.setHeaderIsEditing}
                 docs={this.props.childDocs}
+                Document={this.props.Document}
+                dataDoc={this.props.dataDoc}
+                fieldKey={this.props.fieldKey}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                ContainingCollectionView={this.props.ContainingCollectionView}
+                active={this.props.active}
+                openHeader={this.props.openHeader}
+                icon={icon}
+                col={col}
                 // try commenting this out
                 width={"100%"}
             />;
 
-            const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
-                this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
-                    this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" :
-                        this.getColumnType(col) === ColumnType.Date ? "calendar" : "align-justify";
 
-            const headerText = this._showTitleDropdown ? keysDropdown : <div
-                onClick={this.changeTitleMode}
-                style={{
-                    background: col.color, padding: "2px",
-                    letterSpacing: "2px",
-                    textTransform: "uppercase",
-                    display: "flex"
-                }}>
-                {col.heading}</div>;
 
             const sortIcon = col.desc === undefined ? "caret-right" : col.desc === true ? "caret-down" : "caret-up";
 
@@ -218,19 +219,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         background: col.color, padding: "2px",
                         display: "flex", cursor: "default", height: "100%",
                     }}>
-                    <FontAwesomeIcon icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px" }} />
-                    {/* <div className="keys-dropdown"
-                        style={{ display: "inline", zIndex: 1000 }}> */}
+                    {/* <FontAwesomeIcon onClick={e => this.props.openHeader(col, e.clientX, e.clientY)} icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} /> */}
                     {keysDropdown}
-                    {/* </div> */}
                     <div onClick={e => this.changeSorting(col)}
-                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit" }}>
+                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit", cursor: "hand" }}>
                         <FontAwesomeIcon icon={sortIcon} size="lg" />
                     </div>
-                    {/* <div onClick={e => this.props.openHeader(col, e.clientX, e.clientY)}
-                        style={{ float: "right", paddingRight: "6px", zIndex: 1, background: "inherit" }}>
-                        <FontAwesomeIcon icon={"compass"} size="sm" />
-                    </div> */}
                 </div>;
 
             return {
@@ -318,27 +312,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
 
-
-    @action
-    nextHighlight = (e: React.MouseEvent, doc: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
-        doc.searchMatch = false;
-        console.log(doc.searchMatch);
-        setTimeout(() => doc.searchMatch = true, 0);
-        console.log(doc.searchMatch);
-
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
-
-    @action
-    nextHighlight2 = (doc: Doc) => {
-
-        doc.searchMatchAlt = false;
-        setTimeout(() => doc.searchMatchAlt = true, 0);
-        doc.searchIndex = NumCast(doc.searchIndex);
-    }
-
     constructor(props: SchemaTableProps) {
         super(props);
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
@@ -347,7 +320,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
         } else if (this.props.Document._schemaHeaders === undefined) {
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb")]);
+            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb"),
+            new SchemaHeaderField("text", "#f1efeb"), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb")]);
         }
     }
 
@@ -369,7 +343,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             addDoc: this.tableAddDoc,
             removeDoc: this.props.deleteDocument,
             rowInfo,
-            rowFocused: !this.props.headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
+            rowFocused: !this.props.headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document, true),
             textWrapRow: this.toggleTextWrapRow,
             rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1,
             dropAction: StrCast(this.props.Document.childDropAction),
@@ -383,7 +357,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const row = rowInfo.index;
         //@ts-ignore
         const col = this.columns.map(c => c.heading).indexOf(column!.id);
-        const isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
+        const isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document, true);
         // TODO: editing border doesn't work :(
         return {
             style: {
@@ -403,7 +377,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
-        if (!this._cellIsEditing && !this.props.headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected(true)) {
+        if (!this._cellIsEditing && !this.props.headerIsEditing && this.props.isFocused(this.props.Document, true)) {// && this.props.isSelected(true)) {
             const direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this._focusedCell = this.changeFocusedCellByDirection(direction, this._focusedCell.row, this._focusedCell.col);
 

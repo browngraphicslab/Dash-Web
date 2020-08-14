@@ -56,7 +56,7 @@ export default class SettingsManager extends React.Component<{}> {
     @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
-    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().defaultColor = String(color.hex));
+    @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
     @undoBatch
     playgroundModeToggle = action(() => {
         this.playgroundMode = !this.playgroundMode;
@@ -91,10 +91,10 @@ export default class SettingsManager extends React.Component<{}> {
             </div>
             <div className="preferences-font">
                 <div className="preferences-font-text">Default Font</div>
-                <select className="font-select" onChange={this.changeFontFamily}>
+                <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
                     {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
                 </select>
-                <select className="size-select" onChange={this.changeFontSize}>
+                <select className="size-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7pt")}>
                     {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
                 </select>
             </div>

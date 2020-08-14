@@ -1,6 +1,6 @@
 import { action } from "mobx";
 import { DateField } from "../../fields/DateField";
-import { Doc, DocListCast, AclEdit, AclAdmin } from "../../fields/Doc";
+import { Doc, DocListCast } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { InkTool } from "../../fields/InkField";
 import { List } from "../../fields/List";
@@ -23,7 +23,6 @@ import PDFMenu from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
 import GroupManager from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
-import { GetEffectiveAcl } from "../../fields/util";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -120,16 +119,9 @@ export default class KeyManager {
                     }
                 }
 
-                const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
                 const selected = SelectionManager.SelectedDocuments().slice();
                 UndoManager.RunInBatch(() => {
-                    selected.map(dv => {
-                        const effectiveAcl = GetEffectiveAcl(dv.props.Document);
-                        if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
-                            recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                            dv.props.removeDocument?.(dv.props.Document);
-                        }
-                    });
+                    selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
                 }, "delete");
                 SelectionManager.DeselectAll();
                 break;
@@ -331,6 +323,8 @@ export default class KeyManager {
                             undoBatch(() => {
                                 targetDataDoc[fieldKey] = new List<Doc>([...docList, ...added]);
                                 targetDataDoc[fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                                const lastModified = "lastModified";
+                                targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                             })();
                         }
                     }

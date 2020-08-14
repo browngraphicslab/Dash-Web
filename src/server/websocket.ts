@@ -39,7 +39,6 @@ export namespace WebSocket {
             io = sio().listen(resolvedPorts.socket);
         }
         logPort("websocket", resolvedPorts.socket);
-        console.log();
 
         io.on("connection", function (socket: Socket) {
             _socket = socket;
@@ -204,7 +203,7 @@ export namespace WebSocket {
         Database.Instance.update(newValue.id, newValue, () =>
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {  // if the newValue has sring type, then it's suitable for searching -- pass it to SOLR
-            Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
+            Search.updateDocument({ id: newValue.id, data: { set: (newValue as any).data } });
         }
     }
 
@@ -230,8 +229,7 @@ export namespace WebSocket {
         "script": ["_t", value => value.script.originalScript],
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        // "proxy": ["_i", "fieldId"],
-        // "proxy": ["", "fieldId"],
+        "proxy": ["_i", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {

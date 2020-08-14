@@ -678,8 +678,8 @@ export default class GestureOverlay extends Touchable {
         var top = Math.min(...ys);
         const firstx = this._points[0].X;
         const firsty = this._points[0].Y;
-        const lastx = this._points[this._points.length - 2].X;
-        const lasty = this._points[this._points.length - 2].Y;
+        var lastx = this._points[this._points.length - 2].X;
+        var lasty = this._points[this._points.length - 2].Y;
         var fourth = (lastx - firstx) / 4;
         if (isNaN(fourth) || fourth === 0) { fourth = 0.01; }
         var m = (lasty - firsty) / (lastx - firstx);
@@ -771,11 +771,17 @@ export default class GestureOverlay extends Touchable {
 
                 break;
             case "line":
+                if (Math.abs(firstx - lastx) < 20) {
+                    lastx = firstx;
+                }
+                if (Math.abs(firsty - lasty) < 20) {
+                    lasty = firsty;
+                }
                 this._points.push({ X: firstx, Y: firsty });
                 this._points.push({ X: firstx, Y: firsty });
 
-                this._points.push({ X: firstx + 4 * fourth, Y: m * (firstx + 4 * fourth) + b });
-                this._points.push({ X: firstx + 4 * fourth, Y: m * (firstx + 4 * fourth) + b });
+                this._points.push({ X: lastx, Y: lasty });
+                this._points.push({ X: lastx, Y: lasty });
                 break;
             case "arrow":
                 const x1 = left;

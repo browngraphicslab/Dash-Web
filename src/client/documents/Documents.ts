@@ -53,6 +53,7 @@ import { Upload } from "../../server/SharedMediaTypes";
 const path = require('path');
 
 export interface DocumentOptions {
+    system?: boolean;
     _autoHeight?: boolean;
     _panX?: number;
     _panY?: number;
@@ -111,6 +112,7 @@ export interface DocumentOptions {
     _columnsHideIfEmpty?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
+    watchedDocuments?: Doc; // list of documents to "watch" in an icon doc to display a badge
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
     hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
@@ -173,6 +175,7 @@ export interface DocumentOptions {
     onPointerUp?: ScriptField;
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
+    clickFactory?: Doc; // document to create when clicking on a button with a suitable onClick script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
     UseCors?: boolean;
@@ -182,7 +185,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
-    stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
+    _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -530,7 +533,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "system", "layoutKey", "dropAction", "lockedPosiiton", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -552,6 +555,8 @@ export namespace Docs {
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
+
+            protoProps.system = delegateProps.system;
 
             if (!("author" in protoProps)) {
                 protoProps.author = Doc.CurrentUserEmail;
@@ -1159,7 +1164,7 @@ export namespace DocUtils {
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
-            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set`, system: true }, enumeratedFieldKey);
             Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
         }
         const options = optionsCollection as Doc;
@@ -1209,4 +1214,3 @@ export namespace DocUtils {
 
 Scripting.addGlobal("Docs", Docs);
 Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
-

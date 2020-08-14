@@ -60,19 +60,19 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         if (href) {
             const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
             const matches = pathCorrectionTest.exec(href);
-            console.log("\nHere's the { url } being fed into the outer regex:");
-            console.log(href);
-            console.log("And here's the 'properPath' build from the captured filename:\n");
+            // console.log("\nHere's the { url } being fed into the outer regex:");
+            // console.log(href);
+            // console.log("And here's the 'properPath' build from the captured filename:\n");
             if (matches !== null && href.startsWith(window.location.origin)) {
                 const properPath = Utils.prepend(`/files/pdfs/${matches[0]}`);
-                console.log(properPath);
+                //console.log(properPath);
                 if (!properPath.includes(href)) {
                     console.log(`The two (url and proper path) were not equal`);
                     const proto = Doc.GetProto(Document);
                     proto[this.props.fieldKey] = new PdfField(properPath);
                     proto[backup] = href;
                 } else {
-                    console.log(`The two (url and proper path) were equal`);
+                    //console.log(`The two (url and proper path) were equal`);
                 }
             } else {
                 console.log("Outer matches was null!");
@@ -91,7 +91,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
     loaded = (nw: number, nh: number, np: number) => {
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
-        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = nw * 96 / 72;
+        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = Math.max(NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]), nw * 96 / 72);
         this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }

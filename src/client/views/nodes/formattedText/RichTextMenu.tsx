@@ -163,11 +163,14 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     update(view: EditorView, lastState: EditorState | undefined) {
-        this.updateFromDash(view, lastState, this.editorProps);
+        RichTextMenu.Instance.updateFromDash(view, lastState, this.editorProps);
     }
 
     @action
     public async updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
+        RichTextMenu.Instance.finalUpdateFromDash(view, lastState, props);
+    }
+    public async finalUpdateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
         if (!view || !(view as any).TextView?.props.isSelected(true)) {
             return;
         }

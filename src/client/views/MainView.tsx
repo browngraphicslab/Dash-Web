@@ -41,16 +41,14 @@ import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
 import GestureOverlay from './GestureOverlay';
-import { ANTIMODEMENU_HEIGHT } from './globalCssVariables.scss';
+import { ANTIMODEMENU_HEIGHT, SEARCH_PANEL_HEIGHT } from './globalCssVariables.scss';
 import KeyManager from './GlobalKeyHandler';
 import { LinkMenu } from './linking/LinkMenu';
 import "./MainView.scss";
-import { MainViewNotifs } from './MainViewNotifs';
 import { AudioBox } from './nodes/AudioBox';
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
 import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
-import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { RadialMenu } from './nodes/RadialMenu';
@@ -59,10 +57,14 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { Hypothesis } from '../util/HypothesisUtils';
-import { undoBatch } from '../util/UndoManager';
 import { WebBox } from './nodes/WebBox';
 import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
+import { SearchUtil } from '../util/SearchUtil';
+import { Networking } from '../Network';
+import * as rp from 'request-promise';
+import { LinkManager } from '../util/LinkManager';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -164,7 +166,7 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt,
+        library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faCalendar,
             fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
             fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
             fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
@@ -180,7 +182,8 @@ export class MainView extends React.Component {
             fa.faIndent, fa.faEyeDropper, fa.faPaintRoller, fa.faBars, fa.faBrush, fa.faShapes, fa.faEllipsisH, fa.faHandPaper, fa.faMap, fa.faUser, faHireAHelper,
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
             fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft, fa.faAngleUp,
-            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer);
+            fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer, fa.faHashtag, fa.faAlignJustify, fa.faCheckSquare, fa.faListUl,
+            fa.faWindowMinimize, fa.faWindowRestore);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -199,7 +202,7 @@ export class MainView extends React.Component {
             let check = false;
             const icon = "icon";
             targets.forEach((thing) => {
-                if (thing.className.toString() === "collectionSchemaView-table" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "beta" || thing.className.toString() === "collectionSchemaView-menuOptions-wrapper") {
+                if (thing.className.toString() === "collectionSchemaView-searchContainer" || (thing as any)?.dataset[icon] === "filter" || thing.className.toString() === "collectionSchema-header-menuOptions" || thing.className.toString() === "altcollectionTimeView-treeView") {
                     check = true;
                 }
             });
@@ -258,7 +261,7 @@ export class MainView extends React.Component {
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: "Collection " + workspaceCount,
+            title: "Untitled Collection",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
@@ -307,11 +310,7 @@ export class MainView extends React.Component {
                 DocServer.Control.makeEditable();
             }
         }
-        // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
-        setTimeout(async () => {
-            const col = this.userDoc && await Cast(this.userDoc["sidebar-sharing"], Doc);
-            col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
-        }, 100);
+
         return true;
     }
 
@@ -332,7 +331,7 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    defaultBackgroundColors = (doc: Opt<Doc>) => {
+    defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
         if (this.panelContent === doc?.title) return "lightgrey";
 
         if (doc?.type === DocumentType.COL) {
@@ -342,7 +341,7 @@ export class MainView extends React.Component {
                 || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
                 return "lightgrey";
             }
-            return StrCast(Doc.UserDoc().defaultColor);
+            return StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {
             switch (doc?.type) {
@@ -402,7 +401,7 @@ export class MainView extends React.Component {
         TraceMobx();
         const mainContainer = this.mainContainer;
         const width = this.flyoutWidth + this.propertiesWidth();
-        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: `calc(100% - 32px)` }}>
+        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: `calc(100% - ${SEARCH_PANEL_HEIGHT})` }}>
             {!mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -439,15 +438,13 @@ export class MainView extends React.Component {
             doc.dockingConfig ? this.openWorkspace(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
-    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
-    //sidebarScreenToLocal = () => new Transform(0, (RichTextMenu.Instance.Pinned ? -35 : 0) + (CollectionMenu.Instance.Pinned ? -35 : 0), 1);
-    mainContainerXf = () => this.sidebarScreenToLocal().translate(-55, -this._buttonBarHeight);
+    sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
+    mainContainerXf = () => this.sidebarScreenToLocal().translate(-58, 0);
 
-    @computed get closePosition() { return 55 + this.flyoutWidth; }
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
-            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - 32px)`, width: "100%", overflow: "visible" }}>
+            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${SEARCH_PANEL_HEIGHT})`, width: "100%", overflow: "visible" }}>
                 {/* {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
                     <FontAwesomeIcon icon="times" color="black" size="lg" />
@@ -531,22 +528,24 @@ export class MainView extends React.Component {
 
     _lastButton: Doc | undefined;
     @action
-    selectMenu = (button: Doc, str: string) => {
+    selectMenu = (button: Doc) => {
+        const title = StrCast(Doc.GetProto(button).title);
         this._lastButton && (this._lastButton.color = "white");
         this._lastButton && (this._lastButton._backgroundColor = "");
-        if (this.panelContent === str && this.flyoutWidth !== 0) {
+        if (this.panelContent === title && this.flyoutWidth !== 0) {
             this.panelContent = "none";
             this.flyoutWidth = 0;
         } else {
             let panelDoc: Doc | undefined;
-            switch (this.panelContent = str) {
+            switch (this.panelContent = title) {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
+                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
                 case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
-                case "UserDoc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
+                case "User Doc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
             }
             this.sidebarContent.proto = panelDoc;
             if (panelDoc) {
@@ -610,7 +609,6 @@ export class MainView extends React.Component {
                     </div>
                 </div>
                 {this.dockingContent}
-                <MainViewNotifs />
                 {this.showProperties ? (null) :
                     <div className="mainView-propertiesDragger" title="Properties View Dragger" onPointerDown={this.onPropertiesPointerDown}
                         style={{ right: rightFlyout, top: "50%" }}>
@@ -819,8 +817,8 @@ export class MainView extends React.Component {
             <DocumentDecorations />
             {this.search}
             <CollectionMenu />
-            <FormatShapePane />
             <div style={{ display: "none" }}><RichTextMenu key="rich" /></div>
+            <FormatShapePane />
             {LinkDescriptionPopup.descriptionPopup ? <LinkDescriptionPopup /> : null}
             {DocumentLinksButton.EditLink ? <LinkMenu docView={DocumentLinksButton.EditLink} addDocTab={DocumentLinksButton.EditLink.props.addDocTab} changeFlyout={emptyFunction} /> : (null)}
             {LinkDocPreview.LinkInfo ? <LinkDocPreview location={LinkDocPreview.LinkInfo.Location} backgroundColor={this.defaultBackgroundColors}
@@ -895,7 +893,83 @@ export class MainView extends React.Component {
                 document.addEventListener("editSuccess", onSuccess);
             });
     }
+
+    importDocument = () => {
+        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null);
+        const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.accept = ".zip, application/pdf, video/*, image/*, audio/*";
+        input.onchange = async _e => {
+            const upload = Utils.prepend("/uploadDoc");
+            const formData = new FormData();
+            const file = input.files && input.files[0];
+            if (file && file.type === 'application/zip') {
+                formData.append('file', file);
+                formData.append('remap', "true");
+                const response = await fetch(upload, { method: "POST", body: formData });
+                const json = await response.json();
+                if (json !== "error") {
+                    const doc = await DocServer.GetRefField(json);
+                    if (doc instanceof Doc && sidebarDocView) {
+                        sidebarDocView.props.addDocument?.(doc);
+                        setTimeout(() => {
+                            SearchUtil.Search(`{!join from=id to=proto_i}id:link*`, true, {}).then(docs => {
+                                docs.docs.forEach(d => LinkManager.Instance.addLink(d));
+                            });
+                        }, 2000); // need to give solr some time to update so that this query will find any link docs we've added.
+
+                    }
+                }
+            } else if (input.files && input.files.length !== 0) {
+                const files = input.files || [];
+                Array.from(files).forEach(async file => {
+                    const res = await Networking.UploadFilesToServer(file);
+                    res.map(async ({ result }) => {
+                        const name = file.name;
+                        if (result instanceof Error) {
+                            return;
+                        }
+                        const path = Utils.prepend(result.accessPaths.agnostic.client);
+                        let doc: Doc;
+                        // Case 1: File is a video
+                        if (file.type.includes("video")) {
+                            doc = Docs.Create.VideoDocument(path, { _height: 100, title: name });
+                            // Case 2: File is a PDF document
+                        } else if (file.type === "application/pdf") {
+                            doc = Docs.Create.PdfDocument(path, { _height: 100, _fitWidth: true, title: name });
+                            // Case 3: File is an image
+                        } else if (file.type.includes("image")) {
+                            doc = Docs.Create.ImageDocument(path, { _height: 100, title: name });
+                            // Case 4: File is an audio document
+                        } else {
+                            doc = Docs.Create.AudioDocument(path, { title: name });
+                        }
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
+                        if (!res) {
+                            throw new Error("No user id returned");
+                        }
+                        const field = await DocServer.GetRefField(res);
+                        let pending: Opt<Doc>;
+                        if (field instanceof Doc) {
+                            pending = sidebar;
+                        }
+                        if (pending) {
+                            const data = await Cast(pending.data, listSpec(Doc));
+                            if (data) data.push(doc);
+                            else pending.data = new List([doc]);
+                        }
+                    });
+                });
+            } else {
+                console.log("No file selected");
+            }
+        };
+        input.click();
+    }
 }
+Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function copyWorkspace() {
@@ -905,3 +979,5 @@ Scripting.addGlobal(function copyWorkspace() {
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
     setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
 });
+Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
+    "imports files from device directly into the import sidebar");

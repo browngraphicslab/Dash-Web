@@ -114,7 +114,7 @@ export class SchemaHeaderField extends ObjectField {
     }
 
     [ToScriptString]() {
-        return `invalid`;
+        return `header(${this.heading},${this.type}})`;
     }
     [ToString]() {
         return `SchemaHeaderField`;

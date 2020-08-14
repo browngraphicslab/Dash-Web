@@ -37,7 +37,8 @@ export namespace SearchUtil {
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
+        const replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
+        const gotten = await rp.get(rpquery, { qs: { ...options, sort: "lastModified_d desc", q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
             return result;
@@ -82,7 +83,7 @@ export namespace SearchUtil {
             }
         }
 
-        return { docs: theDocs, numFound: theDocs.length, highlighting, lines: theLines };
+        return { docs: theDocs, numFound: result.numFound, highlighting, lines: theLines };
     }
 
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;

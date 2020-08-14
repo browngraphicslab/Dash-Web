@@ -241,6 +241,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     style={{
                         width: this.props.InMenu ? "20px" : "30px", height: this.props.InMenu ? "20px" : "30px",
                         backgroundColor: DocumentLinksButton.StartLink ? "" : "grey",
+                        opacity: DocumentLinksButton.StartLink ? "" : "50%",
                         border: DocumentLinksButton.StartLink ? "" : "none"
                     }}
                     onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}

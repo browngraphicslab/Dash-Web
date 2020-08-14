@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema name="default-config" version="1.6">
   <uniqueKey>id</uniqueKey>
-  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true"/>
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true">
+        <tokenizer class="solr.KeywordTokenizerFactory"/>
+  </fieldType>
   <fieldType name="text" class="solr.TextField">
     <analyzer type="index">
       <tokenizer class="solr.StandardTokenizerFactory"/>
@@ -41,24 +43,25 @@
   <fieldType name="pdaterange" class="solr.DateRangeField"/>
   <fieldType name="pdouble" class="solr.DoublePointField"/>
 
-  <field name="text" type="text" indexed="true" stored="false" uninvertible="false" multiValued="true"/>
+  <field name="string" type="string" indexed="true" stored="true" uninvertible="true"/>
+  <field name="DEFAULT" type="text" indexed="true" stored="false" uninvertible="false" multiValued="true"/>
   <field name="id" type="string" indexed="true" stored="true" uninvertible="false" required="true"/>
   <field name="_version_" type="plong" indexed="true" stored="true"/>
   <field name="proto" type="string" indexed="true" stored="true" uninvertible="false"  />
-  <field name="_height" type="pdouble" indexed="true" stored="true" uninvertible="false" docValues="true"/>
 
-
+  <dynamicField name="*_s" type="string" indexed="true" stored="true" uninvertible="false" docValues="true"/>
   <dynamicField name="*_t" type="text" indexed="true" stored="true" uninvertible="false" docValues="false"/>
   <dynamicField name="*_n" type="pdouble" indexed="true" stored="true" uninvertible="false" docValues="false"/>
-  <dynamicField name="*_d" type="pdaterange" indexed="true" stored="true" uninvertible="false" docValues="false"/>
+  <dynamicField name="*_d" type="pdate" indexed="true" stored="true" uninvertible="false" docValues="true"/>
   <dynamicField name="*_l" type="string" indexed="true" stored="true" uninvertible="false" docValues="false" multiValued="true"/>
   <dynamicField name="*_i" type="string" indexed="true" stored="true" uninvertible="false" docValues="false"/>
   <dynamicField name="*_b" type="boolean" indexed="true" stored="true" uninvertible="false" docValues="false"/>
-
   <dynamicField name="*_a" type="text" indexed="true" stored="false" uninvertible="false" docValues="false" multiValued="true"/>
 
-  <copyField source="*_t" dest="text"/>
+  <!-- <field name="_height" type="pdouble" indexed="true" stored="true" uninvertible="false" docValues="true"/> -->
 
+  <copyField source="*_t" dest="*_s"/>
+  <copyField source="*_t" dest="DEFAULT"/>
   <copyField source="*_t" dest="*_a"/>
   <copyField source="*_n" dest="*_a"/>
 </schema>

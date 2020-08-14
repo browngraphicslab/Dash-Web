@@ -62,7 +62,7 @@ export class SearchManager extends ApiManager {
             subscription: "/dashsearch",
             secureHandler: async ({ req, res }) => {
                 const solrQuery: any = {};
-                ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+                ["q", "fq", "start", "rows", "sort", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
                 if (solrQuery.q === undefined) {
                     res.send([]);
                     return;
@@ -136,6 +136,9 @@ export namespace SolrManager {
                 const term = ToSearchTerm(value);
                 if (term !== undefined) {
                     const { suffix, value } = term;
+                    if (key.endsWith('lastModified')) {
+                        update["lastModified" + suffix] = value;
+                    }
                     update[key + suffix] = value;
                     dynfield = true;
                 }
@@ -176,7 +179,8 @@ export namespace SolrManager {
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        // "proxy": ["_i", "fieldId"],
+        "proxy": ["_i", "fieldId"],
+        "prefetch_proxy": ["_i", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {

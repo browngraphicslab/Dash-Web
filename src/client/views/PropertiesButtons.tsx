@@ -3,7 +3,7 @@ import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faChec
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, AclEdit, AclAdmin } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast, BoolCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
@@ -30,7 +30,6 @@ import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { InkField } from '../../fields/InkField';
 import { PresBox } from './nodes/PresBox';
-import { GetEffectiveAcl } from "../../fields/util";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -417,14 +416,14 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get deleteButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{"Delete Document"}</div></>} placement="top">
+            title={<><div className="dash-tooltip">Close Document</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     onPointerDown={this.deleteDocument}>
                     {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="trash-alt" size="lg" />}
+                        icon="times" size="lg" />}
                 </div>
-                <div className="propertiesButtons-title"> delete </div>
+                <div className="propertiesButtons-title"> close </div>
             </div>
         </Tooltip>;
     }
@@ -432,16 +431,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     deleteDocument = () => {
-        const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
         const selected = SelectionManager.SelectedDocuments().slice();
-
-        selected.map(dv => {
-            const effectiveAcl = GetEffectiveAcl(dv.props.Document);
-            if (effectiveAcl === AclEdit || effectiveAcl === AclAdmin) { // deletes whatever you have the right to delete
-                recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                dv.props.removeDocument?.(dv.props.Document);
-            }
-        });
+        selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
         this.selectedDoc && (this.selectedDoc.deleted = true);
         this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
         SelectionManager.DeselectAll();
@@ -648,7 +639,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             this.selectedDoc._backgroundColor = "rgba(0,0,0,0.7)";
             this.selectedDoc.mixBlendMode = "hard-light";
             this.selectedDoc.color = "#9b9b9bff";
-            this.selectedDoc.stayInCollection = true;
+            this.selectedDoc._stayInCollection = true;
             this.selectedDoc.isInkMask = true;
         }
     }
@@ -718,6 +709,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
+        const hasContext = this.selectedDoc.context ? true : false;
 
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
@@ -732,7 +724,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.pinWithViewButton}
             </div>
-            <div className="propertiesButtons-button">
+            <div className="propertiesButtons-button" style={{ display: hasContext ? "" : "none" }}>
                 {this.copyButton}
             </div>
             <div className="propertiesButtons-button">
@@ -749,6 +741,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             </div>
             <div className="propertiesButtons-button">
                 {this.sharingButton}
+            </div>
+            <div className="propertiesButtons-button">
+                {this.contextButton}
             </div>
             <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
@@ -773,9 +768,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
             <div className="propertiesButtons-button" style={{ display: !isInk ? "none" : "" }}>
                 {this.maskButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.contextButton}
             </div>
         </div>
         </div>;

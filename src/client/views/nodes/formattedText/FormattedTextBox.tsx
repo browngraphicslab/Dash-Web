@@ -23,7 +23,7 @@ import { PrefetchProxy } from '../../../../fields/Proxy';
 import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../../fields/Schema";
-import { Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../fields/Types";
+import { Cast, DateCast, NumCast, StrCast, ScriptCast, BoolCast } from "../../../../fields/Types";
 import { TraceMobx, OVERRIDE_ACL, GetEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
@@ -377,6 +377,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public highlightSearchTerms = (terms: string[], alt: boolean) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
 
+
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
@@ -384,30 +385,31 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
+            if (BoolCast(Doc.GetProto(this.dataDoc).resetSearch) === true) {
+                this._searchIndex = 0;
+                Doc.GetProto(this.dataDoc).resetSearch = undefined;
+            }
+            else {
+                this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+                if (alt === true) {
+                    if (this._searchIndex > 1) {
+                        this._searchIndex += -2;
+                    }
+                    else if (this._searchIndex === 1) {
+                        this._searchIndex = length - 1;
+                    }
+                    else if (this._searchIndex === 0 && length !== 1) {
+                        this._searchIndex = length - 2;
+                    }
 
+                }
+            }
 
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
-            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-            this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
-            if (alt === true) {
-                if (this._searchIndex > 1) {
-                    this._searchIndex += -2;
-                }
-                else if (this._searchIndex === 1) {
-                    this._searchIndex = length - 1;
-                }
-                else if (this._searchIndex === 0 && length !== 1) {
-                    this._searchIndex = length - 2;
-                }
+            flattened[lastSel] && this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
 
-            }
-            else {
-
-            }
-            const index = this._searchIndex;
-
-            Doc.GetProto(this.dataDoc).searchIndex = index;
+            console.log(this._searchIndex);
         }
     }
 
@@ -647,7 +649,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const options = cm.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
-        !Doc.UserDoc().noviceMode && optionItems.push({ description: this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
+        !Doc.UserDoc().noviceMode && optionItems.push({ description: !this.Document._singleLine ? "Make Single Line" : "Make Multi Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
         optionItems.push({ description: `${this.Document._autoHeight ? "Lock" : "Auto"} Height`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
         optionItems.push({ description: `${!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Lock" : "Unlock"} Aspect`, event: this.toggleNativeDimensions, icon: "snowflake" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
@@ -1579,6 +1581,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         onScroll={this.onscrolled} onDrop={this.ondrop} >
                         <div className={`formattedTextBox-inner${rounded}${selclass}`} ref={this.createDropTarget}
                             style={{
+                                overflow: this.layoutDoc._singleLine ? "hidden" : undefined,
                                 padding: this.layoutDoc._textBoxPadding ? StrCast(this.layoutDoc._textBoxPadding) : `${Math.max(0, NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0) + selPad)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0) + selPad}px`,
                                 pointerEvents: !this.props.active() ? ((this.layoutDoc.isLinkButton || this.props.onClick) ? "none" : undefined) : undefined
                             }}

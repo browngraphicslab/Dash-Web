@@ -122,15 +122,23 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
-            const docs = doc instanceof Doc ? [doc] : doc;
-            docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
-            const targetDataDoc = this.dataDoc;
-            const value = DocListCast(targetDataDoc[this.annotationKey]);
-            const toRemove = value.filter(v => docs.includes(v));
-            // can't assign new List<Doc>(result) to this because you can't assign new values in addonly
-            if (toRemove.length !== 0) {
-                toRemove.forEach(doc => Doc.RemoveDocFromList(targetDataDoc, this.annotationKey, doc));
-                return true;
+            const effectiveAcl = GetEffectiveAcl(this.dataDoc);
+            if (effectiveAcl === AclAdmin || effectiveAcl === AclEdit) {
+                const docs = doc instanceof Doc ? [doc] : doc;
+                docs.map(doc => doc.isPushpin = doc.annotationOn = undefined);
+                const targetDataDoc = this.dataDoc;
+                const value = DocListCast(targetDataDoc[this.annotationKey]);
+                const toRemove = value.filter(v => docs.includes(v));
+
+                if (toRemove.length !== 0) {
+                    const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                    toRemove.forEach(doc => {
+                        Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey + "-annotations", doc);
+                        recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                        doc.deleted = true;
+                    });
+                    return true;
+                }
             }
 
             return false;
@@ -171,6 +179,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
                         added.map(doc => doc.context = this.props.Document);
                         (targetDataDoc[this.annotationKey] as List<Doc>).push(...added);
                         targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                        const lastModified = "lastModified";
+                        targetDataDoc[lastModified] = new DateField(new Date(Date.now()));
                     }
                 }
             }

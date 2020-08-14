@@ -15,7 +15,7 @@ import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, Utils } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, Utils, setupMoveUpEvents } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -378,7 +378,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     getClusterColor = (doc: Doc) => {
-        let clusterColor = this.props.backgroundColor?.(doc);
+        let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1);
         const cluster = NumCast(doc.cluster);
         if (this.Document.useClusters) {
             if (this._clusterSets.length <= cluster) {
@@ -1200,27 +1200,29 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.addDocTab(childDocs as any as Doc, "inParent");
         this.props.ContainingCollectionView?.removeDocument(this.props.Document);
     }));
-    layoutDocsInGrid = () => {
-        UndoManager.RunInBatch(() => {
-            const docs = this.childLayoutPairs;
-            const startX = this.Document._panX || 0;
-            let x = startX;
-            let y = this.Document._panY || 0;
-            let i = 0;
-            const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
-            const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
-            docs.forEach(pair => {
-                pair.layout.x = x;
-                pair.layout.y = y;
-                x += width + 20;
-                if (++i === 6) {
-                    i = 0;
-                    x = startX;
-                    y += height + 20;
-                }
-            });
-        }, "arrange contents");
-    }
+
+
+    @undoBatch
+    layoutDocsInGrid = action(() => {
+        const docs = this.childLayoutPairs;
+        const startX = this.Document._panX || 0;
+        let x = startX;
+        let y = this.Document._panY || 0;
+        let i = 0;
+        const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
+        const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
+        docs.forEach(pair => {
+            pair.layout.x = x;
+            pair.layout.y = y;
+            x += width + 20;
+            if (++i === 6) {
+                i = 0;
+                x = startX;
+                y += height + 20;
+            }
+        });
+    });
+
     @undoBatch
     @action
     toggleNativeDimensions = () => {
@@ -1495,8 +1497,123 @@ interface CollectionFreeFormViewPannableContentsProps {
 
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
+    @observable private _drag: string = '';
+
+    //Adds event listener so knows pointer is down and moving
+    onPointerDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        const corner = e.target as any;
+        console.log(corner.id);
+        if (corner) this._drag = corner.id;
+        const rect = document.getElementById(this._drag);
+        if (rect) {
+            console.log(this._drag);
+            setupMoveUpEvents(e.target, e, this.onPointerMove, (e) => { }, (e) => { });
+        }
+    }
+
+    //Removes all event listeners
+    onPointerUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._drag = "";
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    //Adjusts the value in NodeStore
+    @action
+    onPointerMove = (e: PointerEvent) => {
+        const doc = document.getElementById('resizable');
+        const rect = doc!.getBoundingClientRect();
+        const toNumber = (original: number, delta: number): number => {
+            return original + (delta * this.props.zoomScaling());
+        };
+        if (doc) {
+            const height = doc.offsetHeight;
+            const width = doc.offsetWidth;
+            const top = doc.offsetTop;
+            const left = doc.offsetLeft;
+            switch (this._drag) {
+                case "": break;
+                case "resizer-br":
+                    doc.style.width = toNumber(width, e.movementX) + 'px';
+                    doc.style.height = toNumber(height, e.movementY) + 'px';
+                    break;
+                case "resizer-bl":
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
+                    break;
+                case "resizer-tr":
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, -e.movementY) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                case "resizer-tl":
+                    doc.style.width = toNumber(width, -e.movementX) + 'px';
+                    doc.style.height = toNumber(height, -e.movementY) + 'px';
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
+                case "resizable":
+                    doc.style.top = toNumber(top, e.movementY) + 'px';
+                    doc.style.left = toNumber(left, e.movementX) + 'px';
+            }
+            this.updateAll(height, width, top, left);
+            return false;
+        }
+        return true;
+    }
+
+    @action
+    updateAll = (width: number, height: number, top: number, left: number) => {
+        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        this.updateList(targetDoc, activeItem["viewfinder-width-indexed"], width);
+        this.updateList(targetDoc, activeItem["viewfinder-height-indexed"], height);
+        this.updateList(targetDoc, activeItem["viewfinder-top-indexed"], top);
+        this.updateList(targetDoc, activeItem["viewfinder-left-indexed"], left);
+    }
+
+    @action
+    updateList = (doc: Doc, list: any, val: number) => {
+        const x: List<number> = list;
+        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
+            x[NumCast(doc.currentFrame)] = val;
+            list = x;
+        } else if (doc && x) {
+            x.length = NumCast(doc.currentFrame) + 1;
+            x[NumCast(doc.currentFrame)] = val;
+            list = x;
+        }
+    }
+
+    // scale: NumCast(targetDoc._viewScale),
+    @computed get zoomProgressivizeContainer() {
+        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
+        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
+        if (activeItem && activeItem.zoomProgressivize) {
+            const vfLeft: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-left-indexed"]);
+            const vfWidth: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
+            const vfTop: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
+            const vfHeight: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
+            return (
+                <>
+                    {!activeItem.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                        <div className='resizers'>
+                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                        </div>
+                    </div>}
+                </>
+            );
+        }
+    }
+
     @computed get zoomProgressivize() {
-        return PresBox.Instance && this.props.zoomProgressivize ? PresBox.Instance.zoomProgressivizeContainer : (null);
+        return PresBox.Instance && this.props.zoomProgressivize ? this.zoomProgressivizeContainer : (null);
     }
 
     @computed get progressivize() {

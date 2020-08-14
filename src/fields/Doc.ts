@@ -806,7 +806,8 @@ export namespace Doc {
                 target[targetKey] = new PrefetchProxy(templateDoc);
             } else {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
-                Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+                const setDoc = [AclAdmin, AclEdit].includes(GetEffectiveAcl(Doc.GetProto(target))) ? Doc.GetProto(target) : target;
+                setDoc[targetKey] = new PrefetchProxy(templateDoc);
             }
         }
         return target;
@@ -1044,6 +1045,7 @@ export namespace Doc {
                 if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
                     if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
                     docFilters.splice(i, 3);
+                    container._docFilters = new List<string>(docFilters);
                     break;
                 }
             }

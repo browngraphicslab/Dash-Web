@@ -316,7 +316,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
      */
     getPermissionsSelect(user: string, permission: string) {
         return <select className="permissions-select"
-            defaultValue={permission}
+            value={permission}
             onChange={e => this.changePermissions(e, user)}>
             {Object.values(SharingPermissions).map(permission => {
                 return (
@@ -963,22 +963,22 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             }
             if (this.isPres) {
                 const selectedItem: boolean = PresBox.Instance?._selectedArray.length > 0;
-                return <div className="propertiesView">
-                    <div className="propertiesView-title">
+                return <div className="propertiesView" style={{ width: this.props.width }}>
+                    <div className="propertiesView-title" style={{ width: this.props.width }}>
                         Presentation
                     </div>
                     <div className="propertiesView-name">
                         {this.editableTitle}
                         <div className="propertiesView-presSelected">
-                            {PresBox.Instance._selectedArray.length} selected
+                            {PresBox.Instance?._selectedArray.length} selected
                             <div className="propertiesView-selectedList">
-                                {PresBox.Instance.listOfSelected}
+                                {PresBox.Instance?.listOfSelected}
                             </div>
                         </div>
                     </div>
                     {!selectedItem ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openPresTransitions = !this.openPresTransitions; })}
+                            onPointerDown={action(() => { this.openPresTransitions = !this.openPresTransitions; })}
                             style={{ backgroundColor: this.openPresTransitions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"rocket"} /> &nbsp; Transitions
                         <div className="propertiesView-presTrails-title-icon">
@@ -1028,7 +1028,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             {PresBox.Instance.newDocumentDropdown}
                         </div> : null}
                     </div>
-                    <div className="propertiesView-sharing">
+                    {/* <div className="propertiesView-sharing">
                         <div className="propertiesView-sharing-title"
                             onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
                             style={{ backgroundColor: this.openSharing ? "black" : "" }}>
@@ -1040,7 +1040,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         {this.openSharing ? <div className="propertiesView-sharing-content">
                             {this.sharingTable}
                         </div> : null}
-                    </div>
+                    </div> */}
                 </div>;
             }
         }
