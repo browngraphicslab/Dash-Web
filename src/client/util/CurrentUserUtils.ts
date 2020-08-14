@@ -684,6 +684,10 @@ export class CurrentUserUtils {
         });
     }
 
+    static setupLibrary(userDoc: Doc) {
+        return CurrentUserUtils.setupWorkspaces(userDoc);
+    }
+
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
     // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
     static async setupToolsBtnPanel(doc: Doc) {
