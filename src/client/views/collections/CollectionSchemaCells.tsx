@@ -633,7 +633,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         if (typeof this._field === "object" && this._doc && this._docTitle) {
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
-                    onPointerDown={(e) => { this.onDown(e); }}
+                    onPointerDown={this.onDown}
                     onPointerEnter={(e) => { this.showPreview(true, e); }}
                     onPointerLeave={(e) => { this.showPreview(false, e); }}
                 >
