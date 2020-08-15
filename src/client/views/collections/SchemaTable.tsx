@@ -42,7 +42,7 @@ enum ColumnType {
 
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
-    ["title", ColumnType.String],
+    ["title", ColumnType.String], ["text", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
     ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
@@ -168,8 +168,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     width: 30,
                     Expander: (rowInfo) => {
                         if (rowInfo.original.type === "collection") {
-                            if (rowInfo.isExpanded) return <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"sort-up"} size="sm" /></div>;
-                            if (!rowInfo.isExpanded) return <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"sort-down"} size="sm" /></div>;
+                            return rowInfo.isExpanded ?
+                                <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="sm" /></div> :
+                                <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="sm" /></div>;
                         } else {
                             return null;
                         }
@@ -383,6 +384,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
+        } else if ((this._cellIsEditing || this.props.headerIsEditing) && (e.keyCode === 37 || e.keyCode === 39)) {
+            e.stopPropagation(); // stopPropagation for left/right arrows 
         }
     }
 

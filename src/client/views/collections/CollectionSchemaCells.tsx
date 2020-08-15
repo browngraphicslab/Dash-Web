@@ -273,9 +273,13 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
 
         let contents: any = "incorrect type";
-        if (type === undefined) contents = <FieldView {...props} fieldKey={fieldKey} />;
+        if (type === undefined) contents = StrCast(field) === "" ? "--" : <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
-        if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
+        if (type === "string") {
+            fieldKey === "text" ?
+                contents = Cast(field, RichTextField)?.Text :
+                contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
+        }
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
         if (type === "document") {
             const doc = FieldValue(Cast(field, Doc));
@@ -317,7 +321,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             if (start !== -1) {
                 positions.push(start);
             }
-            while (start < contents.length && start !== -1) {
+            while (start < contents?.length && start !== -1) {
                 term = term.slice(start + search.length + 1);
                 tally += start + search.length + 1;
                 start = term.indexOf(search);
@@ -628,7 +632,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         if (typeof this._field === "object" && this._doc && this._docTitle) {
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
-                    onPointerDown={(e) => { this.onDown(e); }}
+                    onPointerDown={this.onDown}
                     onPointerEnter={(e) => { this.showPreview(true, e); }}
                     onPointerLeave={(e) => { this.showPreview(false, e); }}
                 >
