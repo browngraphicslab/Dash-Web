@@ -604,13 +604,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        const types = ["preselement", "docholder", "search", "searchitem", "script", "fonticonbox", "button", "label"]; // this.filterTypes;
-        const baseExpr = "NOT baseProto_b:true AND NOT system_b:true";
+        const types = ["preselement", "docholder", "search", "searchitem", "fonticonbox"]; // this.filterTypes;
+        const baseExpr = "NOT system_b:true";
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
-        const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
         const typeExpr = !types ? "" : ` ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
+        const query = [baseExpr, includeDeleted, typeExpr].join(" AND ").replace(/AND $/, "");
         return query;
     }
 

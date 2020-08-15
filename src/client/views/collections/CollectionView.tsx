@@ -69,7 +69,7 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Carousel3D = "3D Carousel",
     Linear = "linear",
-    Staff = "staff",
+    //Staff = "staff",
     Map = "map",
     Grid = "grid",
     Pile = "pileup"
@@ -139,6 +139,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
 
         const docs = doc instanceof Doc ? [doc] : doc;
+
+
+        if (docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) return false;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
@@ -177,6 +180,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
                             doc.displayTimecode = undefined;
                         }
+                        doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
                     added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
@@ -253,7 +257,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
+            //case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
             case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
@@ -480,6 +484,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
             } else {
                 newFacet = new Doc();
+                newFacet.sytem = true;
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;

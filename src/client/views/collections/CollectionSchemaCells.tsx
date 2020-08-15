@@ -82,9 +82,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             const doc = Doc.GetProto(this.props.rowProps.original);
             const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
             if (aliasdoc.length > 0) {
-                const targetContext = Cast(aliasdoc[0].context, Doc) as Doc;
-                console.log(StrCast(targetContext.title));
-                runInAction(() => this.contents = StrCast(targetContext.title));
+                const targetContext = Cast(aliasdoc[0].context, Doc, null);
+                targetContext && runInAction(() => this.contents = StrCast(targetContext.title));
             }
         }
 
