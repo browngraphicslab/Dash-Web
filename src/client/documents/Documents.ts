@@ -185,6 +185,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
+    cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view

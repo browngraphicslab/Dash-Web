@@ -337,7 +337,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
         query = query.replace(/-\s+/g, '');
-        query = query.replace(/-/g, "");
+        // query = query.replace(/-/g, "");
         return query;
     }
 
@@ -607,7 +607,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const types = ["preselement", "docholder", "search", "searchitem", "fonticonbox"]; // this.filterTypes;
         const baseExpr = "NOT system_b:true";
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
-        const typeExpr = !types ? "" : ` ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
+        const typeExpr = !types ? "" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
         const query = [baseExpr, includeDeleted, typeExpr].join(" AND ").replace(/AND $/, "");
         return query;
@@ -625,7 +625,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
                 this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
-                    this.realTotalResults = res.numFound;
+                    this.realTotalResults = res.numFound <= 0 ? 0 : res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
