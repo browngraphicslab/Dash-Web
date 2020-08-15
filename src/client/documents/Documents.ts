@@ -442,7 +442,7 @@ export namespace Docs {
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view?.LayoutString(layout.dataField);
-            const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
+            const doc = Doc.assign(new Doc(prototypeId, true), { system: true, layoutKey: "layout", ...options });
             doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
         }
@@ -1179,7 +1179,7 @@ export namespace DocUtils {
                 found._backgroundColor = enumeration._backgroundColor || found._backgroundColor;
                 found._color = enumeration.color || found._color;
             } else {
-                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, enumeration));
+                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, { ...enumeration, system: true }));
             }
         });
         return optionsCollection;

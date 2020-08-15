@@ -240,13 +240,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             Doc.AreProtosEqual(Cast(movedDocs[0].annotationOn, Doc, null), this.props.Document);
                         added = docDragData.moveDocument(movedDocs, this.props.Document, canAdd ? this.addDocument : returnFalse);
                     } else added = res;
-                    !added && alert("You don't have permission to perform this move");
                     e.stopPropagation();
                 } else {
                     ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
                     added = this.addDocument(docDragData.droppedDocuments);
                 }
-                added && e.stopPropagation();
+                !added && alert("You cannot perform this move");
+                e.stopPropagation();
                 return added;
             }
             else if (de.complete.annoDragData) {

@@ -16,7 +16,7 @@ import { unimplementedFunction, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { LinkManager } from "../../../util/LinkManager";
 import { SelectionManager } from "../../../util/SelectionManager";
-import AntimodeMenu from "../../AntimodeMenu";
+import AntimodeMenu, { AntimodeMenuProps } from "../../AntimodeMenu";
 import { FieldViewProps } from "../FieldView";
 import { FormattedTextBox, FormattedTextBoxProps } from "./FormattedTextBox";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
@@ -31,11 +31,11 @@ library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSup
 
 
 @observer
-export default class RichTextMenu extends AntimodeMenu {
+export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     static Instance: RichTextMenu;
     public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
 
-    private view?: EditorView;
+    public view?: EditorView;
     public editorProps: FieldViewProps & FormattedTextBoxProps | undefined;
 
     public _brushMap: Map<string, Set<Mark>> = new Map();
@@ -156,22 +156,8 @@ export default class RichTextMenu extends AntimodeMenu {
     public delayHide = () => this._delayHide = true;
 
     @action
-    changeView(view: EditorView) {
-        if ((view as any)?.TextView?.props.isSelected(true)) {
-            this.view = view;
-        }
-    }
-
-    update(view: EditorView, lastState: EditorState | undefined) {
-        RichTextMenu.Instance.updateFromDash(view, lastState, this.editorProps);
-    }
-
-    @action
-    public async updateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
-        RichTextMenu.Instance.finalUpdateFromDash(view, lastState, props);
-    }
-    public async finalUpdateFromDash(view: EditorView, lastState: EditorState | undefined, props: any) {
-        if (!view || !(view as any).TextView?.props.isSelected(true)) {
+    public updateMenu(view: EditorView, lastState: EditorState | undefined, props: any) {
+        if (!view || !(view as any).TextView?.props.isSelected(true) || !view.hasFocus()) {
             return;
         }
         this.view = view;
@@ -199,8 +185,7 @@ export default class RichTextMenu extends AntimodeMenu {
         this.activeHighlightColor = !activeHighlights.length ? "" : activeHighlights.length === 1 ? String(activeHighlights[0]) : "...";
 
         // update link in current selection
-        const targetTitle = await this.getTextLinkTargetTitle();
-        this.setCurrentLink(targetTitle);
+        this.getTextLinkTargetTitle().then(targetTitle => this.setCurrentLink(targetTitle));
     }
 
     setMark = (mark: Mark, state: EditorState<any>, dispatch: any, dontToggle: boolean = false) => {
@@ -1070,4 +1055,13 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
             </div>
         );
     }
+}
+
+
+interface RichTextMenuPluginProps {
+    editorProps: any;
+}
+export class RichTextMenuPlugin extends React.Component<RichTextMenuPluginProps> {
+    render() { return null; }
+    update(view: EditorView, lastState: EditorState | undefined) { RichTextMenu.Instance?.updateMenu(view, lastState, this.props.editorProps); }
 }

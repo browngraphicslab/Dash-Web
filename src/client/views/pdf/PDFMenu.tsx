@@ -4,14 +4,14 @@ import { observable, action, computed, } from "mobx";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { unimplementedFunction, returnFalse, Utils } from "../../../Utils";
-import AntimodeMenu from "../AntimodeMenu";
+import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
 import { Doc, Opt } from "../../../fields/Doc";
 import { ColorState } from "react-color";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
 
 
 @observer
-export default class PDFMenu extends AntimodeMenu {
+export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: PDFMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();
