@@ -84,7 +84,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.ScreenToLocalTransform().transformPoint(x, y);
     }
 
-    @observable scale = this.props.ScreenToLocalTransform().Scale;
+    @computed get scale() { return this.props.ScreenToLocalTransform().Scale; }
 
     @computed get columns() {
         return Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
@@ -376,7 +376,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         TraceMobx();
         return <div className="collectionSchema-header-menuOptions">
             {this.renderTypes(this._col)}
-            {this.renderSorting(this._col)}
+            {/* {this.renderSorting(this._col)} */}
             {this.renderColors(this._col)}
             <div className="collectionSchema-headerMenu-group">
                 <button onClick={() => { this.deleteColumn(this._col.heading); }}
@@ -523,6 +523,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     onTablePointerDown = (e: React.PointerEvent): void => {
+        console.log("TB ptr " + e.screenX + " " + e.screenY);
         this.setFocused(this.props.Document);
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();
