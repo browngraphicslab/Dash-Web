@@ -96,6 +96,7 @@ export class CurrentUserUtils {
 
         if (doc["template-button-description"] === undefined) {
             const descriptionTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            descriptionTemplate.system = true;
             descriptionTemplate[DataSym].layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
@@ -106,12 +107,13 @@ export class CurrentUserUtils {
             doc["template-button-description"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize"
+                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize", system: true
             });
         }
 
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
             const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            linkTemplate.system = true;
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
@@ -152,7 +154,7 @@ export class CurrentUserUtils {
             doc["template-button-link"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(linkTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize"
+                removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize", system: true
             });
         }
 
@@ -786,8 +788,8 @@ export class CurrentUserUtils {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
             sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
+            sidebarContainer.system = true;
             doc.sidebar = new PrefetchProxy(sidebarContainer);
-            doc.system = true;
         }
         return doc.sidebar as Doc;
     }
@@ -853,12 +855,12 @@ export class CurrentUserUtils {
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc["sidebar-import-documents"] === undefined) {
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled" }));
+            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
         }
         if (doc["sidebar-import"] === undefined) {
             const uploads = Cast(doc["sidebar-import-documents"], Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
-            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true }));
+            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true, system: true }));
         }
     }
 
@@ -912,6 +914,7 @@ export class CurrentUserUtils {
     }
 
     static async updateUserDocument(doc: Doc) {
+        doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc.activeInkPen = doc;

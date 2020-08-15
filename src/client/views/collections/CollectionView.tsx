@@ -480,6 +480,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
             } else {
                 newFacet = new Doc();
+                newFacet.sytem = true;
                 newFacet.title = facetHeader;
                 newFacet.treeViewOpen = true;
                 newFacet.type = DocumentType.COL;
