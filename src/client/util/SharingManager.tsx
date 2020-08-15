@@ -165,7 +165,7 @@ export default class SharingManager extends React.Component<{}> {
 
         users.forEach(({ user, notificationDoc }) => {
             if (permission !== SharingPermissions.None) Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target); // add the target to the notificationDoc if it hasn't already been added
-            else GetEffectiveAcl(target, undefined, user.email) === AclPrivate && Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target); // remove the target from the list if it already exists
+            else GetEffectiveAcl(target, undefined, user.email) === AclPrivate && Doc.IndexOf((target.aliasOf as Doc || target), DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, (target.aliasOf as Doc || target)); // remove the target from the list if it already exists
         });
     }
 
@@ -235,7 +235,7 @@ export default class SharingManager extends React.Component<{}> {
         GetEffectiveAcl(target) === AclAdmin && distributeAcls(ACL, permission as SharingPermissions, target);
 
         if (permission !== SharingPermissions.None) Doc.IndexOf(target, DocListCast(notificationDoc[storage])) === -1 && Doc.AddDocToList(notificationDoc, storage, target);
-        else GetEffectiveAcl(target, undefined, user.email) === AclPrivate && Doc.IndexOf(target, DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, target);
+        else GetEffectiveAcl(target, undefined, user.email) === AclPrivate && Doc.IndexOf((target.aliasOf as Doc || target), DocListCast(notificationDoc[storage])) !== -1 && Doc.RemoveDocFromList(notificationDoc, storage, (target.aliasOf as Doc || target));
 
     }
 
