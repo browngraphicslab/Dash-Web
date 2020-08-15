@@ -389,7 +389,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.selectedDoc![AclSym]) {
             for (const [key, value] of Object.entries(this.selectedDoc![AclSym])) {
                 const name = key.substring(4).replace("_", ".");
-                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author/* && sidebarUsersDisplayed![name] !== false*/) {
+                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author && name !== "Public"/* && sidebarUsersDisplayed![name] !== false*/) {
                     tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
                 }
             }
@@ -402,7 +402,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         //     }
         // })
 
-        // shifts the current user and the owner to the top of the doc.
+        // shifts the current user, owner, public to the top of the doc.
+        tableEntries.unshift(this.sharingItem("Public", effectiveAcl, AclMap.get(this.selectedDoc![AclSym]["ACL-Public"])!))
         tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : AclMap.get(effectiveAcl)!));
         if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), effectiveAcl, "Owner"));
 
