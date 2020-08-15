@@ -102,9 +102,10 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof VideoField) {
             return <VideoBox {...this.props} />;
         }
-        else if (field instanceof AudioField) {
-            return <AudioBox {...this.props} />;
-        } else if (field instanceof DateField) {
+        // else if (field instanceof AudioField) {
+        //     return <AudioBox {...this.props} />;
+        //}
+        else if (field instanceof DateField) {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
