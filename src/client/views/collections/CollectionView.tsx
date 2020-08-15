@@ -69,7 +69,7 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Carousel3D = "3D Carousel",
     Linear = "linear",
-    Staff = "staff",
+    //Staff = "staff",
     Map = "map",
     Grid = "grid",
     Pile = "pileup"
@@ -257,7 +257,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
+            //case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
             case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
