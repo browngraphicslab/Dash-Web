@@ -254,6 +254,8 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
+        const myCatalog = Doc.UserDoc().myCatalog as Doc;
+        const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
         const freeformOptions: DocumentOptions = {
@@ -264,8 +266,10 @@ export class MainView extends React.Component {
             title: "Untitled Collection",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
-
+        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        Doc.AddDocToList(myCatalog, "data", freeformDoc);
+        Doc.AddDocToList(myCatalog, "data", presentation);
+        Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const copyWorkspace = ScriptField.MakeScript(`copyWorkspace()`);

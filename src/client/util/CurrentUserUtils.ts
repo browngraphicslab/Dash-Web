@@ -861,9 +861,6 @@ export class CurrentUserUtils {
                 title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
             }));
         }
-        if (doc.activePresentation === undefined) {
-            doc.activePresentation = Doc.MakeCopy(doc.emptyPresentation as Doc, true);
-        }
     }
 
     // Sharing sidebar is where shared documents are contained

@@ -659,7 +659,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
-        let offset = 0;
         const useRotation = seldoc.rootDoc.type === DocumentType.INK;
 
         return (<div className="documentDecorations" style={{ background: darkScheme }} >
@@ -674,10 +673,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             </div>
             {bounds.r - bounds.x < 15 && bounds.b - bounds.y < 15 ? (null) : <>
                 <div className="documentDecorations-container" key="container" ref={this.setTextBar} style={{
-                    width: (bounds.r - bounds.x + this._resizeBorderWidth + offset) + "px",
-                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight + offset) + "px",
-                    left: bounds.x - this._resizeBorderWidth / 2 - offset / 2,
-                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight - offset / 2,
+                    width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
+                    height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
+                    left: bounds.x - this._resizeBorderWidth / 2,
+                    top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 }}>
                     {maximizeIcon}
                     {titleArea}
