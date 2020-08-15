@@ -597,7 +597,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     render() {
         const preview = "";
-        return <div className="collectionSchemaView-table" onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
+        return <div className="collectionSchemaView-table" style={{ overflow: this.props.Document._searchDoc ? undefined : "auto" }}
+            onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
             {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
