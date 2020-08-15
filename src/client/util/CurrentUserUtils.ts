@@ -668,19 +668,19 @@ export class CurrentUserUtils {
     }
 
     static setupMobileInkingDoc(userDoc: Doc) {
-        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
+        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white", system: true });
     }
 
     static setupMobileUploadDoc(userDoc: Doc) {
         // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
         const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
-            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
+            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true, system: true
         });
         const uploadDoc = Docs.Create.StackingDocument([], {
-            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
+            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true, system: true
         });
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
+            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true
         });
     }
 
