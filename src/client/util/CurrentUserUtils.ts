@@ -722,9 +722,9 @@ export class CurrentUserUtils {
         }
     }
 
-    static setupWorkspaces(doc: Doc) {
+    static async setupWorkspaces(doc: Doc) {
         // setup workspaces library item
-        doc.myWorkspaces === undefined;
+        await doc.myWorkspaces;
         if (doc.myWorkspaces === undefined) {
             doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
@@ -743,6 +743,7 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
+        return doc.myWorkspaces as any as Doc;
     }
 
     static setupCatalog(doc: Doc) {

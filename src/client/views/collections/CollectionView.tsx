@@ -139,6 +139,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
 
         const docs = doc instanceof Doc ? [doc] : doc;
+
+
+        if (docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) return false;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
@@ -177,6 +180,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
                             doc.displayTimecode = undefined;
                         }
+                        doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
                     added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
