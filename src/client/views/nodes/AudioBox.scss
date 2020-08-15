@@ -17,6 +17,22 @@
         display: flex;
         width: 100%;
         align-items: center;
+        height: 100%;
+
+        .audiobox-dictation {
+            position: relative;
+            width: 30px;
+            height: 100%;
+            align-items: center;
+            display: inherit;
+            background: dimgray;
+            left: 0px;
+        }
+
+        .audiobox-dictation:hover {
+            color: white;
+            cursor: pointer;
+        }
     }
 
     .audiobox-handle {

@@ -530,113 +530,112 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
                 bringToFront={emptyFunction}
                 scriptContext={this} />;
         };
-        return <div className="audiobox-container" onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
-            <div className="audiobox-inner" style={{ pointerEvents: !interactive ? "none" : undefined }}>
-                {!this.path ?
-                    <div className="audiobox-buttons">
-                        <div className="audiobox-dictation" onClick={this.onFile}>
-                            <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+        return <div className="audiobox-container" onContextMenu={this.specificContextMenu} onClick={!this.path && !this._recorder ? this.recordAudioAnnotation : undefined} style={{ pointerEvents: !interactive ? "none" : undefined }}>
+            {!this.path ?
+                <div className="audiobox-buttons">
+                    <div className="audiobox-dictation" onClick={this.onFile}>
+                        <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "rgba(0,0,0,0)" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                    </div>
+                    {this.audioState === "recording" || this.audioState === "paused" ?
+                        <div className="recording" onClick={e => e.stopPropagation()}>
+                            <div className="buttons" onClick={this.recordClick}>
+                                <FontAwesomeIcon style={{ width: "100%" }} icon={"stop"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                            </div>
+                            <div className="buttons" onClick={this._paused ? this.recordPlay : this.recordPause}>
+                                <FontAwesomeIcon style={{ width: "100%" }} icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                            </div>
+                            <div className="time">{formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}</div>
                         </div>
-                        {this.audioState === "recording" ?
-                            <div className="recording" onClick={e => e.stopPropagation()}>
-                                <div className="buttons" onClick={this.recordClick}>
-                                    <FontAwesomeIcon style={{ width: "100%" }} icon={"stop"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
-                                </div>
-                                <div className="buttons" onClick={this._paused ? this.recordPlay : this.recordPause}>
-                                    <FontAwesomeIcon style={{ width: "100%" }} icon={this._paused ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
-                                </div>
-                                <div className="time">{formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}</div>
-                            </div>
-                            :
-                            <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
-                                RECORD
+                        :
+                        <button className={`audiobox-record${interactive}`} style={{ backgroundColor: "black" }}>
+                            RECORD
                             </button>}
-                    </div> :
-                    <div className="audiobox-controls" >
-                        <div className="audiobox-dictation"></div>
-                        <div className="audiobox-player" >
-                            <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
-                            <div className="audiobox-timeline" onClick={e => { e.stopPropagation(); e.preventDefault(); }}
-                                onPointerDown={e => {
-                                    if (e.button === 0 && !e.ctrlKey) {
-                                        const rect = (e.target as any).getBoundingClientRect();
+                </div> :
+                <div className="audiobox-controls" >
+                    <div className="audiobox-dictation"></div>
+                    <div className="audiobox-player" >
+                        <div className="audiobox-playhead" title={this.audioState === "paused" ? "play" : "pause"} onClick={this.onPlay}> <FontAwesomeIcon style={{ width: "100%", position: "absolute", left: "0px", top: "5px", borderWidth: "thin", borderColor: "white" }} icon={this.audioState === "paused" ? "play" : "pause"} size={"1x"} /></div>
+                        <div className="audiobox-timeline" onClick={e => { e.stopPropagation(); e.preventDefault(); }}
+                            onPointerDown={e => {
+                                if (e.button === 0 && !e.ctrlKey) {
+                                    const rect = (e.target as any).getBoundingClientRect();
 
-                                        if (e.target !== this._audioRef.current) {
-                                            const wasPaused = this.audioState === "paused";
-                                            this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
-                                            wasPaused && this.pause();
-                                        }
-
-                                        this.onPointerDownTimeline(e);
-                                    }
-                                }}>
-                                <div className="waveform">
-                                    {this.waveform}
-                                </div>
-                                {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) =>
-                                    (!m.isLabel) ?
-                                        (this.layoutDoc.hideMarkers) ? (null) :
-                                            <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container1`} key={i}
-                                                title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`}
-                                                style={{
-                                                    left: `${NumCast(m.audioStart) / this.audioDuration * 100}%`,
-                                                    top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`,
-                                                    width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
-                                                }}
-                                                onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
-                                                <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
-                                                {markerDoc(m, this.rangeScript)}
-                                                <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
-                                            </div>
-                                        :
-                                        (this.layoutDoc.hideLabels) ? (null) :
-                                            <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={i}
-                                                style={{ left: `${NumCast(m.audioStart) / this.audioDuration * 100}%` }}>
-                                                {markerDoc(m, this.labelScript)}
-                                            </div>
-                                )}
-                                {DocListCast(this.dataDoc.links).map((l, i) => {
-                                    const { la1, la2, linkTime } = this.getLinkData(l);
-                                    let startTime = linkTime;
-                                    if (la2.audioStart && !la2.audioEnd) {
-                                        startTime = NumCast(la2.audioStart);
+                                    if (e.target !== this._audioRef.current) {
+                                        const wasPaused = this.audioState === "paused";
+                                        this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * this.audioDuration;
+                                        wasPaused && this.pause();
                                     }
 
-                                    return !linkTime ? (null) :
-                                        <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={l[Id]} style={{ left: `${startTime / this.audioDuration * 100}%` }} onClick={e => e.stopPropagation()}>
-                                            <DocumentView {...this.props}
-                                                Document={l}
-                                                NativeHeight={returnZero}
-                                                NativeWidth={returnZero}
-                                                rootSelected={returnFalse}
-                                                ContainingCollectionDoc={this.props.Document}
-                                                parentActive={returnTrue}
-                                                bringToFront={emptyFunction}
-                                                backgroundColor={returnTransparent}
-                                                ContentScaling={returnOne}
-                                                forcedBackgroundColor={returnTransparent}
-                                                pointerEvents={false}
-                                                LayoutTemplate={undefined}
-                                                LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
-                                            />
-                                            <div key={i} className={`audiobox-marker`} onPointerEnter={() => Doc.linkFollowHighlight(la1)}
-                                                onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(startTime); e.stopPropagation(); e.preventDefault(); } }} />
-                                        </div>;
-                                })}
-                                {this._visible ? this.selectionContainer : null}
+                                    this.onPointerDownTimeline(e);
+                                }
+                            }}>
+                            <div className="waveform">
+                                {this.waveform}
+                            </div>
+                            {DocListCast(this.dataDoc[this.annotationKey]).map((m, i) =>
+                                (!m.isLabel) ?
+                                    (this.layoutDoc.hideMarkers) ? (null) :
+                                        <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container1`} key={i}
+                                            title={`${formatTime(Math.round(NumCast(m.audioStart)))}` + " - " + `${formatTime(Math.round(NumCast(m.audioEnd)))}`}
+                                            style={{
+                                                left: `${NumCast(m.audioStart) / this.audioDuration * 100}%`,
+                                                top: `${this.isOverlap(m) * 1 / (this.dataDoc.markerAmount + 1) * 100}%`,
+                                                width: `${(NumCast(m.audioEnd) - NumCast(m.audioStart)) / this.audioDuration * 100}%`, height: `${1 / (this.dataDoc.markerAmount + 1) * 100}%`
+                                            }}
+                                            onClick={e => { this.playFrom(NumCast(m.audioStart), NumCast(m.audioEnd)); e.stopPropagation(); }} >
+                                            <div className="left-resizer" onPointerDown={e => this.onPointerDown(e, m, true)}></div>
+                                            {markerDoc(m, this.rangeScript)}
+                                            <div className="resizer" onPointerDown={e => this.onPointerDown(e, m, false)}></div>
+                                        </div>
+                                    :
+                                    (this.layoutDoc.hideLabels) ? (null) :
+                                        <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={i}
+                                            style={{ left: `${NumCast(m.audioStart) / this.audioDuration * 100}%` }}>
+                                            {markerDoc(m, this.labelScript)}
+                                        </div>
+                            )}
+                            {DocListCast(this.dataDoc.links).map((l, i) => {
+                                const { la1, la2, linkTime } = this.getLinkData(l);
+                                let startTime = linkTime;
+                                if (la2.audioStart && !la2.audioEnd) {
+                                    startTime = NumCast(la2.audioStart);
+                                }
 
-                                <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / this.audioDuration * 100}%`, pointerEvents: "none" }} />
-                                {this.audio}
-                            </div>
-                            <div className="current-time">
-                                {formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}
-                            </div>
-                            <div className="total-time">
-                                {formatTime(Math.round(this.audioDuration))}
-                            </div>
+                                return !linkTime ? (null) :
+                                    <div className={`audiobox-marker-${this.props.PanelHeight() < 32 ? "mini" : ""}container`} key={l[Id]} style={{ left: `${startTime / this.audioDuration * 100}%` }} onClick={e => e.stopPropagation()}>
+                                        <DocumentView {...this.props}
+                                            Document={l}
+                                            NativeHeight={returnZero}
+                                            NativeWidth={returnZero}
+                                            rootSelected={returnFalse}
+                                            ContainingCollectionDoc={this.props.Document}
+                                            parentActive={returnTrue}
+                                            bringToFront={emptyFunction}
+                                            backgroundColor={returnTransparent}
+                                            ContentScaling={returnOne}
+                                            forcedBackgroundColor={returnTransparent}
+                                            pointerEvents={false}
+                                            LayoutTemplate={undefined}
+                                            LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
+                                        />
+                                        <div key={i} className={`audiobox-marker`} onPointerEnter={() => Doc.linkFollowHighlight(la1)}
+                                            onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(startTime); e.stopPropagation(); e.preventDefault(); } }} />
+                                    </div>;
+                            })}
+                            {this._visible ? this.selectionContainer : null}
+
+                            <div className="audiobox-current" ref={this._audioRef} onClick={e => { e.stopPropagation(); e.preventDefault(); }} style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / this.audioDuration * 100}%`, pointerEvents: "none" }} />
+                            {this.audio}
+                        </div>
+                        <div className="current-time">
+                            {formatTime(Math.round(NumCast(this.layoutDoc.currentTimecode)))}
+                        </div>
+                        <div className="total-time">
+                            {formatTime(Math.round(this.audioDuration))}
                         </div>
                     </div>
-                }</div>
+                </div>
+            }
         </div>;
     }
 }
