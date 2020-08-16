@@ -523,7 +523,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     onTablePointerDown = (e: React.PointerEvent): void => {
-        console.log("TB ptr " + e.screenX + " " + e.screenY);
         this.setFocused(this.props.Document);
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();

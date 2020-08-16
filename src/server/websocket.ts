@@ -290,6 +290,9 @@ export namespace WebSocket {
             if (term !== undefined) {
                 const { suffix, value } = term;
                 update[key + suffix] = { set: value };
+                if (key.endsWith('lastModified')) {
+                    update["lastModified" + suffix] = value;
+                }
             }
         }
         if (dynfield) {
