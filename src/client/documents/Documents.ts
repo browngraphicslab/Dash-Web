@@ -565,6 +565,7 @@ export namespace Docs {
 
             if (!("creationDate" in protoProps)) {
                 protoProps.creationDate = new DateField;
+                protoProps[`${fieldKey}-lastModified`] = new DateField;
             }
 
             protoProps.isPrototype = true;
