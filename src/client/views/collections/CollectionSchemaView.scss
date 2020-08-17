@@ -250,6 +250,7 @@ button.add-column {
     .collectionSchema-headerMenu-group {
         padding: 7px 0;
         border-bottom: 1px solid lightgray;
+        cursor: pointer;
 
         &:first-child {
             padding-top: 0;

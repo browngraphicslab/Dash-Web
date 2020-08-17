@@ -154,14 +154,16 @@ export enum SharingPermissions {
 /**
  * Calculates the effective access right to a document for the current user.
  */
-export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number): symbol {
+export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number, user?: string): symbol {
     if (!target) return AclPrivate;
     if (in_prop === UpdatingFromServer || target[UpdatingFromServer]) return AclAdmin;
 
     if (target[AclSym] && Object.keys(target[AclSym]).length) {
 
+        const userChecked = user || Doc.CurrentUserEmail;
+
         // if the current user is the author of the document / the current user is a member of the admin group
-        if (Doc.CurrentUserEmail === (target.__fields?.author || target.author) || currentUserGroups.includes("admin")) return AclAdmin;
+        if (userChecked === (target.__fields?.author || target.author) || currentUserGroups.includes("admin")) return AclAdmin;
 
         // if the ACL is being overriden or the property being modified is one of the playground fields (which can be freely modified)
         if (_overrideAcl || (in_prop && DocServer.PlaygroundFields?.includes(in_prop.toString()))) return AclEdit;
@@ -178,7 +180,7 @@ export function GetEffectiveAcl(target: any, in_prop?: string | symbol | number)
         for (const [key, value] of Object.entries(target[AclSym])) {
             // there are issues with storing fields with . in the name, so they are replaced with _ during creation
             // as a result we need to restore them again during this comparison.
-            if (currentUserGroups.includes(key.substring(4)) || Doc.CurrentUserEmail === key.substring(4).replace("_", ".")) {
+            if (currentUserGroups.includes(key.substring(4).replace("_", ".")) || userChecked === key.substring(4).replace("_", ".")) {
                 if (HierarchyMapping.get(value as symbol)! > HierarchyMapping.get(effectiveAcl)!) {
                     effectiveAcl = value as symbol;
                     if (effectiveAcl === AclAdmin) break;
@@ -208,52 +210,53 @@ export function distributeAcls(key: string, acl: SharingPermissions, target: Doc
         ["Admin", 4]
     ]);
 
-    let changed = false; // determines whether fetchProto should be called or not (i.e. is there a change that should be reflected in target[AclSym])
+    let layoutDocChanged = false; // determines whether fetchProto should be called or not (i.e. is there a change that should be reflected in target[AclSym])
+    let dataDocChanged = false;
     const dataDoc = target[DataSym];
 
     // if it is inheriting from a collection, it only inherits if A) the key doesn't already exist or B) the right being inherited is more restrictive
     if (!inheritingFromCollection || !target[key] || HierarchyMapping.get(StrCast(target[key]))! > HierarchyMapping.get(acl)!) {
         target[key] = acl;
-        changed = true;
+        layoutDocChanged = true;
+    }
+
+    if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
+        dataDoc[key] = acl;
+        dataDocChanged = true;
 
         // maps over the aliases of the document
-        const aliases = DocListCast(target.aliases);
+        const aliases = DocListCast(dataDoc.aliases);
         if (aliases.length) {
             aliases.map(alias => {
                 alias !== target && distributeAcls(key, acl, alias, inheritingFromCollection);
             });
         }
 
-    }
-
-    if (dataDoc && (!inheritingFromCollection || !dataDoc[key] || HierarchyMapping.get(StrCast(dataDoc[key]))! > HierarchyMapping.get(acl)!)) {
-        dataDoc[key] = acl;
-        changed = true;
-
         // maps over the children of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc)]).map(d => {
-            if (d.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
+            if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, d, inheritingFromCollection);
             }
             const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
+            if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, data, inheritingFromCollection);
             }
         });
 
         // maps over the annotations of the document
         DocListCast(dataDoc[Doc.LayoutFieldKey(dataDoc) + "-annotations"]).map(d => {
-            if (d.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
+            if (GetEffectiveAcl(d) === AclAdmin && (!inheritingFromCollection || !d[key] || HierarchyMapping.get(StrCast(d[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, d, inheritingFromCollection);
             }
             const data = d[DataSym];
-            if (data && data.author === Doc.CurrentUserEmail && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
+            if (data && GetEffectiveAcl(data) === AclAdmin && (!inheritingFromCollection || !data[key] || HierarchyMapping.get(StrCast(data[key]))! > HierarchyMapping.get(acl)!)) {
                 distributeAcls(key, acl, data, inheritingFromCollection);
             }
         });
     }
 
-    changed && fetchProto(target); // updates target[AclSym] when changes to acls have been made
+    layoutDocChanged && fetchProto(target); // updates target[AclSym] when changes to acls have been made
+    dataDocChanged && fetchProto(dataDoc);
 }
 
 const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",

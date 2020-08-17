@@ -62,6 +62,7 @@
 
                 input {
                     height: 10px;
+                    cursor: pointer;
                 }
 
                 label {
@@ -69,11 +70,29 @@
                     font-style: italic;
                 }
             }
+
+            .layoutDoc-acls {
+                display: flex;
+                flex-direction: column;
+                float: right;
+                margin-right: 12;
+                margin-top: -15;
+                align-items: center;
+
+                label {
+                    font-weight: normal;
+                    font-style: italic;
+                }
+
+                input {
+                    cursor: pointer;
+                }
+            }
         }
 
         .main-container {
             display: flex;
-            margin-top: -10px;
+            margin-top: -25px;
 
             .individual-container,
             .group-container {
