@@ -75,6 +75,7 @@ export interface SchemaTableProps {
     documentKeys: any[];
     headerIsEditing: boolean;
     openHeader: (column: any, screenx: number, screeny: number) => void;
+    onClick: (e: React.MouseEvent) => void;
     onPointerDown: (e: React.PointerEvent) => void;
     onResizedChange: (newResized: Resize[], event: any) => void;
     setColumns: (columns: SchemaHeaderField[]) => void;
@@ -230,7 +231,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             return {
                 Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.props.columns} reorderColumns={this.props.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
-                accessor: (doc: Doc) => doc ? doc[col.heading] : 0,
+                accessor: (doc: Doc) => doc ? Field.toString(doc[col.heading] as Field) : 0,
                 id: col.heading,
                 Cell: (rowProps: CellInfo) => {
                     const rowIndex = rowProps.index;
@@ -322,7 +323,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
         } else if (this.props.Document._schemaHeaders === undefined) {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb"),
-            new SchemaHeaderField("text", "#f1efeb"), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb")]);
+            new SchemaHeaderField("text", "#f1efeb"), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb", ColumnType.Doc)]);
         }
     }
 
@@ -598,7 +599,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     render() {
         const preview = "";
         return <div className="collectionSchemaView-table" style={{ overflow: this.props.Document._searchDoc ? undefined : "auto" }}
-            onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
+            onPointerDown={this.props.onPointerDown} onClick={this.props.onClick} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
             {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
