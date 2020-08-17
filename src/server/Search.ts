@@ -7,11 +7,10 @@ export namespace Search {
 
     export async function updateDocument(document: any) {
         try {
-            const res = await rp.post(pathTo("update"), {
+            return await rp.post(pathTo("update"), {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify([document])
             });
-            return res;
         } catch (e) {
             // console.warn("Search error: " + e + document);
         }
@@ -19,11 +18,10 @@ export namespace Search {
 
     export async function updateDocuments(documents: any[]) {
         try {
-            const res = await rp.post(pathTo("update"), {
+            return await rp.post(pathTo("update"), {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(documents)
             });
-            return res;
         } catch (e) {
             // console.warn("Search error: ", e, documents);
         }

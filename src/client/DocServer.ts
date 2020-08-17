@@ -261,7 +261,7 @@ export namespace DocServer {
         } else {
             // CACHED => great, let's just return the cached field we have
             return Promise.resolve(cached).then(field => {
-                (field instanceof Doc) && fetchProto(field);
+                //(field instanceof Doc) && fetchProto(field);
                 return field;
             });
         }

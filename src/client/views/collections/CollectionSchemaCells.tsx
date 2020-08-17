@@ -69,16 +69,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     protected _document = this.props.rowProps.original;
     protected _dropDisposer?: DragManager.DragDropDisposer;
 
-    async componentWillMount() {
-
-    }
-
     async componentDidMount() {
         document.addEventListener("keydown", this.onKeyDown);
-        console.log("mounted");
-        console.log(this.type);
         if (this.type === "context") {
-            console.log("mounted2");
             const doc = Doc.GetProto(this.props.rowProps.original);
             const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
             if (aliasdoc.length > 0) {
@@ -273,9 +266,13 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
 
         let contents: any = "incorrect type";
-        if (type === undefined) contents = <FieldView {...props} fieldKey={fieldKey} />;
+        if (type === undefined) contents = StrCast(field) === "" ? "--" : <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
-        if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
+        if (type === "string") {
+            fieldKey === "text" ?
+                contents = Cast(field, RichTextField)?.Text :
+                contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
+        }
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
         if (type === "document") {
             const doc = FieldValue(Cast(field, Doc));
@@ -317,7 +314,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             if (start !== -1) {
                 positions.push(start);
             }
-            while (start < contents.length && start !== -1) {
+            while (start < contents?.length && start !== -1) {
                 term = term.slice(start + search.length + 1);
                 tally += start + search.length + 1;
                 start = term.indexOf(search);
@@ -421,14 +418,12 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             />
                             :
                             this.returnHighlights(() => {
-                                console.log(props.fieldKey);
                                 const dateCheck: Date | undefined = this.props.rowProps.original[this.props.rowProps.column.id as string] instanceof DateField ? DateCast(this.props.rowProps.original[this.props.rowProps.column.id as string]).date : undefined;
                                 if (dateCheck !== undefined) {
                                     cfield = dateCheck.toLocaleString();
                                 }
                                 if (props.fieldKey === "context") {
                                     cfield = this.contents;
-                                    console.log("this should work");
                                 }
                                 if (props.fieldKey === "*lastModified") {
                                     if (FieldValue(props.Document["data-lastModified"]) !== undefined) {
@@ -628,7 +623,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         if (typeof this._field === "object" && this._doc && this._docTitle) {
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1}
-                    onPointerDown={(e) => { this.onDown(e); }}
+                    onPointerDown={this.onDown}
                     onPointerEnter={(e) => { this.showPreview(true, e); }}
                     onPointerLeave={(e) => { this.showPreview(false, e); }}
                 >
