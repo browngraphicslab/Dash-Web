@@ -3,7 +3,7 @@ import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faChec
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../fields/Doc";
+import { Doc, DataSym, AclEdit, AclAdmin } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast, BoolCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
@@ -30,6 +30,7 @@ import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { InkField } from '../../fields/InkField';
 import { PresBox } from './nodes/PresBox';
+import { GetEffectiveAcl } from '../../fields/util';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -710,6 +711,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
         const hasContext = this.selectedDoc.context ? true : false;
+        const collectionAcl = GetEffectiveAcl(this.selectedDocumentView?.props.ContainingCollectionDoc?.[DataSym]);
 
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
@@ -733,9 +735,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.downloadButton}
             </div>
-            <div className="propertiesButtons-button">
-                {this.deleteButton}
-            </div>
+            {collectionAcl === AclAdmin || collectionAcl === AclEdit ?
+                <div className="propertiesButtons-button">
+                    {this.deleteButton}
+                </div>
+                : (null)}
             <div className="propertiesButtons-button">
                 {this.onClickButton}
             </div>
