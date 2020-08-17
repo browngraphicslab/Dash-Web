@@ -121,6 +121,19 @@
             padding: 10px;
             margin-left: 5px;
 
+            .propertiesView-acls-checkbox {
+                float: right;
+                height: 20px;
+                margin-top: -20px;
+                margin-right: -15;
+
+                .propertiesView-acls-checkbox-text {
+                    font-size: 7px;
+                    margin-top: -10px;
+                    margin-left: 6px;
+                }
+            }
+
             .change-buttons {
                 display: flex;
 
@@ -259,6 +272,7 @@
         background-color: #ececec;
         max-height: 130px;
         overflow-y: scroll;
+        width: 92%;
 
         .propertiesView-sharingTable-item {
 
