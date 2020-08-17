@@ -211,7 +211,8 @@
     height: auto;
     z-index: 100;
     position: absolute;
-    background:white;
+    background: white;
+    padding: 5px;
 
     .collectionSchema-header-toggler {
         z-index: 100;
@@ -243,12 +244,13 @@ button.add-column {
 
 .collectionSchema-header-menuOptions {
     color: black;
-    width: 200px;
+    width: 180px;
     text-align: left;
 
     .collectionSchema-headerMenu-group {
         padding: 7px 0;
         border-bottom: 1px solid lightgray;
+        cursor: pointer;
 
         &:first-child {
             padding-top: 0;
@@ -326,6 +328,7 @@ button.add-column {
                 background-color: white;
                 border: 1px solid lightgray;
                 padding: 2px 3px;
+
                 &:not(:first-child) {
                     border-top: 0;
                 }
@@ -465,9 +468,9 @@ button.add-column {
 .collectionSchemaView-cellWrapper {
     height: 100%;
     padding: 4px;
-    text-align:left;
-    padding-left:19px;
-    
+    text-align: left;
+    padding-left: 19px;
+
     position: relative;
 
     &:focus {
@@ -604,13 +607,14 @@ button.add-column {
     width: 100%;
 
     .rt-thead {
-        display:none;
+        display: none;
     }
-    .collectionSchemaView-table{
+
+    .collectionSchemaView-table {
         border: solid 1px;
         overflow: hidden;
     }
- 
+
 
     .row-dragger {
         background-color: rgb(252, 252, 252);

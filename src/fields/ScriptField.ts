@@ -98,6 +98,7 @@ export class ScriptField extends ObjectField {
 
         if (script?.options.capturedVariables) {
             const doc = Doc.assign(new Doc, script.options.capturedVariables);
+            doc.system = true;
             this.captures = new ProxyField(doc);
         }
         this.setterscript = setterscript;

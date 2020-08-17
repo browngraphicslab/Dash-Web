@@ -34,7 +34,7 @@ import { DictationManager } from '../../../util/DictationManager';
 import { DragManager } from "../../../util/DragManager";
 import { makeTemplate } from '../../../util/DropConverter';
 import buildKeymap, { updateBullets } from "./ProsemirrorExampleTransfer";
-import RichTextMenu from './RichTextMenu';
+import RichTextMenu, { RichTextMenuPlugin } from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
 
 //import { DashDocView } from "./DashDocView";
@@ -304,18 +304,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     // for inserting timestamps 
     insertTime = () => {
+        let audioState;
         if (this._first) {
-            this._first = false;
             DocListCast(this.dataDoc.links).map((l, i) => {
                 let la1 = l.anchor1 as Doc;
                 let la2 = l.anchor2 as Doc;
                 this._linkTime = NumCast(l.anchor2_timecode);
+                audioState = la2.audioState;
                 if (Doc.AreProtosEqual(la2, this.dataDoc)) {
                     la1 = l.anchor2 as Doc;
                     la2 = l.anchor1 as Doc;
                     this._linkTime = NumCast(l.anchor1_timecode);
+                    audioState = la1.audioState;
                 }
-
             });
         }
         this._currentTime = Date.now();
@@ -336,7 +337,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             }
-            if (time) {
+            if (time && audioState === "recording") {
                 let value = "";
                 this._break = false;
                 value = this.layoutDoc._timeStampOnEnter ? "[" + time + "] " : "\n" + "[" + time + "] ";
@@ -407,8 +408,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             flattened[lastSel] && this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
-
-            console.log(this._searchIndex);
         }
     }
 
@@ -1306,7 +1305,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         // jump rich text menu to this textbox
         const bounds = this._ref.current?.getBoundingClientRect();
-        if (bounds && this.layoutDoc._chromeStatus !== "disabled") {
+        if (bounds && this.layoutDoc._chromeStatus !== "disabled" && RichTextMenu.Instance) {
             const x = Math.min(Math.max(bounds.left, 0), window.innerWidth - RichTextMenu.Instance.width);
             let y = Math.min(Math.max(0, bounds.top - RichTextMenu.Instance.height - 50), window.innerHeight - RichTextMenu.Instance.height);
             if (coords && coords.left > x && coords.left < x + RichTextMenu.Instance.width && coords.top > y && coords.top < y + RichTextMenu.Instance.height + 50) {
@@ -1410,11 +1409,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    menuPlugin: any;
+
     richTextMenuPlugin() {
+        const self = this;
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance?.changeView(newView);
-                return RichTextMenu.Instance;
+                self.props.isSelected(true) && (RichTextMenu.Instance.view = newView);
+                return self.menuPlugin = new RichTextMenuPlugin({ editorProps: this.props });
             }
         });
     }
@@ -1524,7 +1526,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
-        setTimeout(() => this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props), this.props.isSelected() ? 10 : 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
+        this.props.isSelected() && setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props), 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }

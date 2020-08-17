@@ -21,7 +21,7 @@ import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
-import AntimodeMenu from "../AntimodeMenu";
+import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
 import { EditableView } from "../EditableView";
 import GestureOverlay from "../GestureOverlay";
 import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
@@ -33,13 +33,13 @@ import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 import { WebField } from "../../../fields/URLField";
 
 @observer
-export default class CollectionMenu extends AntimodeMenu {
+export default class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: CollectionMenu;
 
     @observable SelectedCollection: DocumentView | undefined;
     @observable FieldKey: string;
 
-    constructor(props: Readonly<{}>) {
+    constructor(props: any) {
         super(props);
         this.FieldKey = "";
         CollectionMenu.Instance = this;
@@ -430,7 +430,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get isText() {
         if (this.selectedDoc) {
-            return this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof RichTextField;
+            const layoutField = Doc.LayoutField(this.selectedDoc);
+            return StrCast(layoutField).includes("FormattedText") ||
+                (layoutField instanceof Doc && StrCast(layoutField.layout).includes("FormattedText"));
         }
         else return false;
     }
@@ -811,7 +813,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                     </> :
                     (null)
                 }
-                {this.isText ? <RichTextMenu key="rich" /> : null}
+                {this.isText ? <RichTextMenu /> : null}
             </div>;
     }
 }
@@ -840,7 +842,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionMenu
                 docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
                 const noviceKeys = Array.from(keys).filter(key => key.indexOf("title") >= 0 ||
                     key.indexOf("author") >= 0 || key.indexOf("creationDate") >= 0 ||
-                    key.indexOf("lastModified") >= 0 || (key[0].toUpperCase() === key[0] &&
+                    key.indexOf("lastModified") >= 0 || (key[0]?.toUpperCase() === key[0] &&
                         key.substring(0, 3) !== "ACL" && key !== "UseCors" && key[0] !== "_"));
                 return noviceKeys.filter(key => key.toLowerCase().indexOf(val) > -1);
             }

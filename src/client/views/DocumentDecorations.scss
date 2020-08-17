@@ -21,14 +21,6 @@ $linkGap : 3px;
         background: none;
     }
 
-
-    .documentDecorations-rotation {
-        pointer-events: auto;
-        cursor: alias;
-        width: 10px;
-        height: 10px;
-    }
-
     .documentDecorations-resizer {
         pointer-events: auto;
         background: $alt-accent;
@@ -76,11 +68,17 @@ $linkGap : 3px;
         grid-column-end: 7;
     }
 
+    #documentDecorations-rotation,
     #documentDecorations-borderRadius {
-        grid-column-start: 5;
-        grid-column-end: 7;
+        grid-column: 5;
+        grid-row: 4;
         border-radius: 100%;
         background: dimgray;
+        height: 8;
+        right: -12;
+        top: 12;
+        position: relative;
+        pointer-events: all;
 
         .borderRadiusTooltip {
             width: 10px;
@@ -88,6 +86,11 @@ $linkGap : 3px;
             position: absolute;
         }
     }
+    #documentDecorations-rotation {
+        background: transparent;
+        right: -15;
+    }
+
 
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
@@ -193,11 +196,11 @@ $linkGap : 3px;
 .documentDecorations-iconifyButton {
     opacity: 1;
     grid-column-start: 4;
-    grid-column-end: 5;
+    grid-column-end: 4;
     pointer-events: all;
     text-align: center;
-    left: -25px;
-    top: -2px;
+    right: 0;
+    top: 0;
     cursor: pointer;
     position: absolute;
     background: transparent;
@@ -206,14 +209,11 @@ $linkGap : 3px;
 
 .documentDecorations-openInTab {
     opacity: 1;
-    grid-column-start: 4;
+    grid-column-start: 5;
     grid-column-end: 5;
     pointer-events: all;
     text-align: center;
     cursor: pointer;
-    width: 15px;
-    margin-left: -8px;
-    margin-top: auto;
 }
 
 .documentDecorations-closeButton {

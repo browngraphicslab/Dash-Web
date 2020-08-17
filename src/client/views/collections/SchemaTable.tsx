@@ -42,7 +42,7 @@ enum ColumnType {
 
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
-    ["title", ColumnType.String],
+    ["title", ColumnType.String], ["text", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
     ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
@@ -75,6 +75,7 @@ export interface SchemaTableProps {
     documentKeys: any[];
     headerIsEditing: boolean;
     openHeader: (column: any, screenx: number, screeny: number) => void;
+    onClick: (e: React.MouseEvent) => void;
     onPointerDown: (e: React.PointerEvent) => void;
     onResizedChange: (newResized: Resize[], event: any) => void;
     setColumns: (columns: SchemaHeaderField[]) => void;
@@ -168,8 +169,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     width: 30,
                     Expander: (rowInfo) => {
                         if (rowInfo.original.type === "collection") {
-                            if (rowInfo.isExpanded) return <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"sort-up"} size="sm" /></div>;
-                            if (!rowInfo.isExpanded) return <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"sort-down"} size="sm" /></div>;
+                            return rowInfo.isExpanded ?
+                                <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="sm" /></div> :
+                                <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="sm" /></div>;
                         } else {
                             return null;
                         }
@@ -229,7 +231,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             return {
                 Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.props.columns} reorderColumns={this.props.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
-                accessor: (doc: Doc) => doc ? doc[col.heading] : 0,
+                accessor: (doc: Doc) => doc ? Field.toString(doc[col.heading] as Field) : 0,
                 id: col.heading,
                 Cell: (rowProps: CellInfo) => {
                     const rowIndex = rowProps.index;
@@ -321,7 +323,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
         } else if (this.props.Document._schemaHeaders === undefined) {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb"),
-            new SchemaHeaderField("text", "#f1efeb"), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb")]);
+            new SchemaHeaderField("text", "#f1efeb"), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb", ColumnType.Doc)]);
         }
     }
 
@@ -383,6 +385,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
+        } else if ((this._cellIsEditing || this.props.headerIsEditing) && (e.keyCode === 37 || e.keyCode === 39)) {
+            e.stopPropagation(); // stopPropagation for left/right arrows 
         }
     }
 
@@ -594,7 +598,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     render() {
         const preview = "";
-        return <div className="collectionSchemaView-table" onPointerDown={this.props.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()}
+        return <div className="collectionSchemaView-table" style={{ overflow: this.props.Document._searchDoc ? undefined : "auto" }}
+            onPointerDown={this.props.onPointerDown} onClick={this.props.onClick} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
             {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>

@@ -96,6 +96,7 @@ export class CurrentUserUtils {
 
         if (doc["template-button-description"] === undefined) {
             const descriptionTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            descriptionTemplate.system = true;
             descriptionTemplate[DataSym].layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
@@ -106,12 +107,13 @@ export class CurrentUserUtils {
             doc["template-button-description"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize"
+                removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize", system: true
             });
         }
 
         if (doc["template-button-link"] === undefined) {  // set _backgroundColor to transparent to prevent link dot from obscuring document it's attached to.
             const linkTemplate = Doc.MakeDelegate(Docs.Create.TextDocument(" ", { title: "header", _height: 100, system: true }, "header")); // text needs to be a space to allow templateText to be created
+            linkTemplate.system = true;
             Doc.GetProto(linkTemplate).layout =
                 "<div>" +
                 "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`lightGray`}' fieldKey={'header'}/>" +
@@ -152,7 +154,7 @@ export class CurrentUserUtils {
             doc["template-button-link"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(linkTemplate) as any as Doc,
-                removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize"
+                removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize", system: true
             });
         }
 
@@ -396,36 +398,36 @@ export class CurrentUserUtils {
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
-                { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true });
+                { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyPane === undefined) {
-            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Collection", system: true });
+            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Collection", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyComparison === undefined) {
-            doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true });
+            doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyScript === undefined) {
-            doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script", system: true });
+            doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyScreenshot === undefined) {
-            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true });
+            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
-            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true });
+            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyImage === undefined) {
             doc.emptyImage = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth: 250, title: "an image of a cat", system: true });
         }
         if (doc.emptyButton === undefined) {
-            doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true });
+            doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
                 ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
-                { _width: 250, _height: 250, title: "container", system: true });
+                { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true, system: true });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
@@ -451,7 +453,7 @@ export class CurrentUserUtils {
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
             { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
@@ -536,7 +538,8 @@ export class CurrentUserUtils {
                     iconShape: "square",
                     title,
                     _backgroundColor: "black",
-                    _stayInCollection: true,
+                    dropAction: "alias",
+                    removeDropProperties: new List<string>(["dropAction"]),
                     childDropAction: "same",
                     _width: 60,
                     _height: 60,
@@ -667,8 +670,29 @@ export class CurrentUserUtils {
         return Cast(userDoc.thumbDoc, Doc);
     }
 
-    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
-    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
+    static setupMobileInkingDoc(userDoc: Doc) {
+        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white", system: true });
+    }
+
+    static setupMobileUploadDoc(userDoc: Doc) {
+        // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
+        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
+            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true, system: true
+        });
+        const uploadDoc = Docs.Create.StackingDocument([], {
+            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true, system: true
+        });
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray", system: true
+        });
+    }
+
+    static setupLibrary(userDoc: Doc) {
+        return CurrentUserUtils.setupWorkspaces(userDoc);
+    }
+
+    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
+    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
     static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
@@ -699,9 +723,9 @@ export class CurrentUserUtils {
         }
     }
 
-    static setupWorkspaces(doc: Doc) {
+    static async setupWorkspaces(doc: Doc) {
         // setup workspaces library item
-        doc.myWorkspaces === undefined;
+        await doc.myWorkspaces;
         if (doc.myWorkspaces === undefined) {
             doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
@@ -720,6 +744,7 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
+        return doc.myWorkspaces as any as Doc;
     }
 
     static setupCatalog(doc: Doc) {
@@ -786,8 +811,8 @@ export class CurrentUserUtils {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
             sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
+            sidebarContainer.system = true;
             doc.sidebar = new PrefetchProxy(sidebarContainer);
-            doc.system = true;
         }
         return doc.sidebar as Doc;
     }
@@ -838,27 +863,24 @@ export class CurrentUserUtils {
                 title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
             }));
         }
-        if (doc.activePresentation === undefined) {
-            doc.activePresentation = Doc.MakeCopy(doc.emptyPresentation as Doc, true);
-        }
     }
 
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true }));
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc["sidebar-import-documents"] === undefined) {
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled" }));
+            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
         }
         if (doc["sidebar-import"] === undefined) {
             const uploads = Cast(doc["sidebar-import-documents"], Doc, null);
             const newUpload = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("importDocument()"), toolTip: "Import External document", _backgroundColor: "black", title: "Import", icon: "upload", system: true });
-            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true }));
+            doc["sidebar-import"] = new PrefetchProxy(Docs.Create.StackingDocument([newUpload, uploads], { title: "Imported Documents", _yMargin: 20, ignoreClick: true, lockedPosition: true, system: true }));
         }
     }
 
@@ -912,6 +934,7 @@ export class CurrentUserUtils {
     }
 
     static async updateUserDocument(doc: Doc) {
+        doc.system = true;
         doc.noviceMode = doc.noviceMode === undefined ? "true" : doc.noviceMode;
         doc.title = Doc.CurrentUserEmail;
         doc.activeInkPen = doc;
