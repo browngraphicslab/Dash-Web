@@ -4,7 +4,7 @@ import { action, computed, observable, runInAction, reaction, IReactionDisposer 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc, DocListCast } from '../../../fields/Doc';
+import { Doc, DocListCast, Opt } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -24,6 +24,7 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { DocumentView } from '../nodes/DocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
+import { ColumnType } from "../collections/CollectionSchemaView";
 
 export const searchSchema = createSchema({
     id: "string",
@@ -616,6 +617,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     getDataStatus() { return this._deletedDocsStatus; }
 
+    @computed get primarySort() {
+        const suffixMap = (type: ColumnType) => {
+            switch (type) {
+                case ColumnType.Date: return "_d";
+                case ColumnType.String: return "_t";
+                case ColumnType.Boolean: return "_b";
+                case ColumnType.Number: return "_n";
+            }
+        }
+        const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
+        return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
+    }
     private NumResults = 50;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
@@ -624,7 +637,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, sort: this.primarySort, fq: this.filterQuery, start: 0, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     this.realTotalResults = res.numFound <= 0 ? 0 : res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {

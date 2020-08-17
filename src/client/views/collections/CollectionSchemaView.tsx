@@ -163,11 +163,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.columns = columns;
     }
 
-    @action
-    typesDropdownChange = (bool: boolean) => {
-        this._openTypes = bool;
-    }
-
     renderTypes = (col: any) => {
         if (columnTypes.get(col.heading)) return (null);
 
@@ -231,10 +226,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     type === ColumnType.Date ? dateType : imageType;
 
         return (
-            <div className="collectionSchema-headerMenu-group">
-                <div onClick={() => this.typesDropdownChange(!this._openTypes)}>
-                    <label>Column type:</label>
-                    <FontAwesomeIcon icon={"caret-down"} size="lg" style={{ float: "right" }} />
+            <div className="collectionSchema-headerMenu-group" onClick={action(() => this._openTypes = !this._openTypes)}>
+                <div>
+                    <label style={{ cursor: "pointer" }}>Column type:</label>
+                    <FontAwesomeIcon icon={"caret-down"} size="lg" style={{ float: "right", transform: `rotate(${this._openTypes ? "180deg" : 0})`, transition: "0.2s all ease" }} />
                 </div>
                 {this._openTypes ? allColumnTypes : justColType}
             </div >
