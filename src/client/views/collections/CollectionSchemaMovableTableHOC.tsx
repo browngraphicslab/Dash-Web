@@ -40,7 +40,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     onPointerLeave = (e: React.PointerEvent): void => {
         this._header!.current!.className = "collectionSchema-col-wrapper";
         document.removeEventListener("pointermove", this.onDragMove, true);
-        document.removeEventListener("pointermove", this.onPointerMove);
+        !e.buttons && document.removeEventListener("pointermove", this.onPointerMove);
     }
     onDragMove = (e: PointerEvent): void => {
         const x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
@@ -68,6 +68,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         const before = x[0] < bounds[0];
         const colDragData = de.complete.columnDragData;
         if (colDragData) {
+            e.stopPropagation();
             this.props.reorderColumns(colDragData.colKey, this.props.columnValue, before, this.props.allColumns);
             return true;
         }
@@ -108,8 +109,10 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     onPointerDown = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         this._dragRef = ref;
         const [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX, e.clientY);
-        this._startDragPosition = { x: dx, y: dy };
-        document.addEventListener("pointermove", this.onPointerMove);
+        if (!(e.target as any)?.tagName.includes("INPUT")) {
+            this._startDragPosition = { x: dx, y: dy };
+            document.addEventListener("pointermove", this.onPointerMove);
+        }
     }
 
 
@@ -163,6 +166,10 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (before) this._header!.current!.className += " row-above";
         if (!before) this._header!.current!.className += " row-below";
         e.stopPropagation();
+    }
+    componentWillUnmount() {
+
+        this._rowDropDisposer?.();
     }
 
     createRowDropTarget = (ele: HTMLDivElement) => {

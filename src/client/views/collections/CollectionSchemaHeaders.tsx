@@ -496,7 +496,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; }
 
     @computed get scriptField() {
-        console.log("we kinda made it");
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
         const script = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
         return script ? () => script : undefined;
@@ -507,7 +506,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div style={{ display: "flex" }}>
-                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
+                <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY); e.stopPropagation(); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
 
                 {/* <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
                     runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
