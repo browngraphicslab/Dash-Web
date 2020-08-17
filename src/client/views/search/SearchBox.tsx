@@ -466,6 +466,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
             this._numTotalResults = found.length;
+            this.realTotalResults = found.length;
         }
         else {
             this.noresults = "No collection selected :(";
@@ -710,6 +711,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     openSearch(e: React.SyntheticEvent) {
+        this._results.forEach(result => {
+            Doc.BrushDoc(result[0]);
+        });
         e.stopPropagation();
         this._openNoResults = false;
         this._resultsOpen = true;
@@ -720,6 +724,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     closeSearch = () => {
+        this._results.forEach(result => {
+            Doc.UnBrushDoc(result[0]);
+            result[0].searchMatch = undefined;
+        });
         //this.closeResults();
         this._searchbarOpen = false;
     }

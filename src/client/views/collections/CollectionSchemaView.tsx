@@ -599,12 +599,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         </div>;
         return <div className={name}
             style={{
-                overflow: this.props.overflow === true ? "scroll" : undefined,
+                overflow: this.props.overflow === true ? "scroll" : undefined, backgroundColor: "white",
                 pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
-                style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
+                style={{ width: `calc(100% - ${this.previewWidth()}px)` }}
                 onKeyPress={this.onKeyPress}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
