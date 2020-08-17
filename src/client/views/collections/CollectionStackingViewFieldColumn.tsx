@@ -289,7 +289,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const heading = this._heading;
         const style = this.props.parent;
         const singleColumn = style.isStackingView;
-        const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.props.Document._yMargin);
+        const columnYMargin = this.props.headingObject ? 0 : NumCast(this.props.parent.props.Document._yMargin, 5);
         const uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         const evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const headerEditableViewProps = {
@@ -310,7 +310,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
                 style={{
-                    marginTop: NumCast(this.props.parent.props.Document._yMargin),
+                    marginTop: NumCast(this.props.parent.props.Document._yMargin, 5),
                     width: (style.columnWidth) /
                         ((uniqueHeadings.length +
                             ((this.props.parent.props.Document._chromeStatus !== 'view-mode' && this.props.parent.props.Document._chromeStatus !== 'disabled') ? 1 : 0)) || 1)
