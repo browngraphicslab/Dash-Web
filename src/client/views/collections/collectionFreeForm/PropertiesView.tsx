@@ -383,11 +383,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             [AclAdmin, SharingPermissions.Admin]
         ]);
 
-        const effectiveAcl = GetEffectiveAcl(this.selectedDoc!);
+        const target = this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym];
+
+        const effectiveAcl = GetEffectiveAcl(target);
         const tableEntries = [];
 
         // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
-        const target = this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym];
         if (target[AclSym]) {
             for (const [key, value] of Object.entries(target[AclSym])) {
                 const name = key.substring(4).replace("_", ".");
