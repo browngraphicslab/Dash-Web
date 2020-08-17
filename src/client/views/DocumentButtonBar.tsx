@@ -23,6 +23,7 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { Tooltip } from '@material-ui/core';
+import { SelectionManager } from '../util/SelectionManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -195,7 +196,13 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            SelectionManager.SelectedDocuments().forEach((docView: DocumentView) => {
+                if (Doc.isDocPinned(docView.props.Document)) isPinned = true;
+                else isPinned = false;
+            });
+        }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}

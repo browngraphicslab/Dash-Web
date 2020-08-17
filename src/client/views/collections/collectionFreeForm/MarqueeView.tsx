@@ -22,6 +22,8 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { ContextMenuItem } from "../../ContextMenuItem";
+import { CollectionDockingView } from "../CollectionDockingView";
+import { DocumentManager } from "../../../util/DocumentManager";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -250,6 +252,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
+            MarqueeOptionsMenu.Instance.pinWithView = this.pinWithView;
             document.addEventListener("pointerdown", hideMarquee);
         } else {
             this.hideMarquee();
@@ -376,6 +379,38 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const newCollection = DocUtils.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
         this.props.addDocument(newCollection!);
         this.props.selectDocuments([newCollection!]);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+    }
+
+    @undoBatch @action
+    pinWithView = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const doc = this.props.Document;
+        const bounds = this.Bounds;
+        const selected = this.marqueeSelect(false);
+        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+        if (curPres) {
+            const pinDoc = Doc.MakeAlias(doc);
+            pinDoc.presentationTargetDoc = doc;
+            pinDoc.presZoomButton = true;
+            pinDoc.context = curPres;
+            Doc.AddDocToList(curPres, "data", pinDoc);
+            if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
+            if (!DocumentManager.Instance.getDocumentView(curPres)) {
+                CollectionDockingView.AddRightSplit(curPres);
+            }
+            if (e instanceof KeyboardEvent ? e.key === "c" : true) {
+                const x = this.Bounds.left + this.Bounds.width / 2;
+                const y = this.Bounds.top + this.Bounds.height / 2;
+                const panelWidth: number = this.props.PanelWidth();
+                const panelHeight: number = this.props.PanelHeight();
+                const scale = Math.min(Number(panelWidth) / this.Bounds.width, Number(panelHeight) / this.Bounds.height);
+                pinDoc.presPinView = true;
+                pinDoc.presPinViewX = x;
+                pinDoc.presPinViewY = y;
+                pinDoc.presPinViewScale = scale;
+            }
+        }
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
     }

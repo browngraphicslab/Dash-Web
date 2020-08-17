@@ -1406,7 +1406,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     centeringShiftY={this.centeringShiftY}
                     presPaths={BoolCast(this.Document.presPathView)}
                     progressivize={BoolCast(this.Document.editProgressivize)}
-                    zoomProgressivize={BoolCast(this.Document.editZoomProgressivize)}
+                    presPinView={BoolCast(this.Document.presPinView)}
                     transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                     viewDefDivClick={this.props.viewDefDivClick}
                     zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1492,7 +1492,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     transition?: string;
     presPaths?: boolean;
     progressivize?: boolean;
-    zoomProgressivize?: boolean;
+    presPinView?: boolean;
 }
 
 @observer
@@ -1559,48 +1559,27 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                     doc.style.top = toNumber(top, e.movementY) + 'px';
                     doc.style.left = toNumber(left, e.movementX) + 'px';
             }
-            this.updateAll(height, width, top, left);
+            // this.updateAll(height, width, top, left);
             return false;
         }
         return true;
     }
 
-    @action
-    updateAll = (width: number, height: number, top: number, left: number) => {
-        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        this.updateList(targetDoc, activeItem["viewfinder-width-indexed"], width);
-        this.updateList(targetDoc, activeItem["viewfinder-height-indexed"], height);
-        this.updateList(targetDoc, activeItem["viewfinder-top-indexed"], top);
-        this.updateList(targetDoc, activeItem["viewfinder-left-indexed"], left);
-    }
-
-    @action
-    updateList = (doc: Doc, list: any, val: number) => {
-        const x: List<number> = list;
-        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
-            x[NumCast(doc.currentFrame)] = val;
-            list = x;
-        } else if (doc && x) {
-            x.length = NumCast(doc.currentFrame) + 1;
-            x[NumCast(doc.currentFrame)] = val;
-            list = x;
-        }
-    }
-
     // scale: NumCast(targetDoc._viewScale),
     @computed get zoomProgressivizeContainer() {
-        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        if (activeItem && activeItem.zoomProgressivize) {
-            const vfLeft: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-left-indexed"]);
-            const vfWidth: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
-            const vfTop: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
-            const vfHeight: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
+        const activeItem = PresBox.Instance.activeItem;
+        // const targetDoc = PresBox.Instance.targetDoc;
+        if (activeItem && activeItem.presPinView && activeItem.id) {
+            const vfLeft: number = NumCast(activeItem.presPinViewX);
+            const vfTop: number = NumCast(activeItem.presPinViewY);
+            const vfWidth: number = 100;
+            const vfHeight: number = 100;
+            console.log(vfTop + " | " + vfLeft);
+            console.log(this.props.presPinView);
             return (
                 <>
-                    {!activeItem.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
-                        <div className='resizers'>
+                    {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                        <div className='resizers' key={'resizer' + activeItem.id}>
                             <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
                             <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
                             <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
@@ -1613,7 +1592,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
     }
 
     @computed get zoomProgressivize() {
-        return PresBox.Instance && this.props.zoomProgressivize ? this.zoomProgressivizeContainer : (null);
+        return PresBox.Instance && PresBox.Instance.activeItem && PresBox.Instance.activeItem.presPinView && PresBox.Instance.layoutDoc.presStatus === 'edit' ? this.zoomProgressivizeContainer : (null);
     }
 
     @computed get progressivize() {

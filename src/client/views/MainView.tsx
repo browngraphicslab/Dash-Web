@@ -256,6 +256,7 @@ export class MainView extends React.Component {
     @action
     createNewWorkspace = async (id?: string) => {
         const myCatalog = Doc.UserDoc().myCatalog as Doc;
+        const myPresentations = Doc.UserDoc().myPresentations as Doc;
         const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
@@ -270,6 +271,7 @@ export class MainView extends React.Component {
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Workspace ${workspaceCount}` }, id, "row");
         Doc.AddDocToList(myCatalog, "data", freeformDoc);
         Doc.AddDocToList(myCatalog, "data", presentation);
+        Doc.AddDocToList(myPresentations, "data", presentation);
         Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
@@ -546,6 +548,7 @@ export class MainView extends React.Component {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
                 case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
+                case "Pres. Trails": panelDoc = Doc.UserDoc()["sidebar-presentations"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
                 case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;

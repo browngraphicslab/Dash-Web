@@ -442,7 +442,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
 
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Present", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
@@ -512,6 +512,7 @@ export class CurrentUserUtils {
         return [
             { title: "Sharing", icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
             { title: "Workspace", icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Pres. Trails", icon: "desktop", click: 'selectMainMenu(self)' },
             { title: "Catalog", icon: "file", click: 'selectMainMenu(self)' },
             { title: "Archive", icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Import", icon: "upload", click: 'selectMainMenu(self)' },
@@ -747,6 +748,27 @@ export class CurrentUserUtils {
         return doc.myWorkspaces as any as Doc;
     }
 
+    static setupPresentations(doc: Doc) {
+        doc.myPresentations === undefined;
+        if (doc.myPresentations === undefined) {
+            doc.myPresentations = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
+                title: "Pres. Trails", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
+                childDropAction: "alias", targetDropAction: "same", _stayInCollection: true, treeViewOpen: true, system: true
+            }));
+        }
+
+        if (doc["sidebar-presentations"] === undefined) {
+            const presentations = doc.myPresentations as Doc;
+
+            doc["sidebar-presentations"] = new PrefetchProxy(Docs.Create.TreeDocument([presentations], {
+                title: "sidebar-presentations",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            })) as any as Doc;
+        }
+    }
+
     static setupCatalog(doc: Doc) {
         doc.myCatalog === undefined;
         if (doc.myCatalog === undefined) {
@@ -823,6 +845,7 @@ export class CurrentUserUtils {
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupWorkspaces(doc);
         CurrentUserUtils.setupCatalog(doc);
+        CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupRecentlyClosed(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
@@ -875,7 +898,9 @@ export class CurrentUserUtils {
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc["sidebar-import-documents"] === undefined) {
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true }));
+            const sidebar = Cast(doc["sidebar-import-documents"], Doc, null);
+            const height: number = sidebar ? NumCast(sidebar._height) - 150 : 400;
+            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true, _height: height }));
         }
         if (doc["sidebar-import"] === undefined) {
             const uploads = Cast(doc["sidebar-import-documents"], Doc, null);

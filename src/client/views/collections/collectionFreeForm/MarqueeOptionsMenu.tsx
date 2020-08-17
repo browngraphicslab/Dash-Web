@@ -16,6 +16,7 @@ export default class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> 
     public inkToText: (e: KeyboardEvent | React.PointerEvent | undefined) => void = unimplementedFunction;
     public showMarquee: () => void = unimplementedFunction;
     public hideMarquee: () => void = unimplementedFunction;
+    public pinWithView: (e: KeyboardEvent | React.PointerEvent | undefined) => void = unimplementedFunction;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -51,6 +52,14 @@ export default class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> 
                     className="antimodeMenu-button"
                     onPointerDown={this.inkToText}>
                     <FontAwesomeIcon icon="font" size="lg" />
+                </button>
+            </Tooltip>,
+            <Tooltip key="pinWithView" title={<><div className="dash-tooltip">Pin to presentation with selected view</div></>} placement="bottom">
+                <button
+                    className="antimodeMenu-button"
+                    onPointerDown={this.pinWithView}>
+                    <FontAwesomeIcon icon="map-pin" size="lg" />
+                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(-4px, -22px)', color: 'rgba(250,250,250,0.55)' }}>V</div>
                 </button>
             </Tooltip>,
         ];

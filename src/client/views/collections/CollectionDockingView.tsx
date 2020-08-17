@@ -34,6 +34,7 @@ import { PresBox } from '../nodes/PresBox';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkTool } from '../../../fields/InkField';
+import { Select } from '@material-ui/core';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -718,21 +719,43 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @undoBatch
     @action
     public static PinDoc(doc: Doc, unpin = false) {
-        if (unpin) DockedFrameRenderer.UnpinDoc(doc);
-        else {
-            //add this new doc to props.Document
-            const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-            if (curPres) {
-                const pinDoc = Doc.MakeAlias(doc);
-                pinDoc.presentationTargetDoc = doc;
-                pinDoc.presZoomButton = true;
-                pinDoc.context = curPres;
-                Doc.AddDocToList(curPres, "data", pinDoc);
-                if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
-                if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                    CollectionDockingView.AddRightSplit(curPres);
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            SelectionManager.SelectedDocuments().forEach((docView: DocumentView, i: number) => {
+                if (unpin) DockedFrameRenderer.UnpinDoc(docView.props.Document);
+                else {
+                    console.log('adding multiple docs to trails');
+                    const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+                    if (curPres) {
+                        const pinDoc = Doc.MakeAlias(docView.props.Document);
+                        pinDoc.presentationTargetDoc = docView.props.Document;
+                        pinDoc.presZoomButton = true;
+                        pinDoc.context = curPres;
+                        Doc.AddDocToList(curPres, "data", pinDoc);
+                        if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
+                        if (!DocumentManager.Instance.getDocumentView(curPres)) {
+                            CollectionDockingView.AddRightSplit(curPres);
+                        }
+                        DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+                    }
                 }
-                DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+            });
+        } else {
+            if (unpin) DockedFrameRenderer.UnpinDoc(doc);
+            else {
+                //add this new doc to props.Document
+                const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+                if (curPres) {
+                    const pinDoc = Doc.MakeAlias(doc);
+                    pinDoc.presentationTargetDoc = doc;
+                    pinDoc.presZoomButton = true;
+                    pinDoc.context = curPres;
+                    Doc.AddDocToList(curPres, "data", pinDoc);
+                    if (curPres.expandBoolean) pinDoc.presExpandInlineButton = true;
+                    if (!DocumentManager.Instance.getDocumentView(curPres)) {
+                        CollectionDockingView.AddRightSplit(curPres);
+                    }
+                    DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
+                }
             }
         }
     }

@@ -242,7 +242,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             const y = targetDoc._panY;
             const scale = targetDoc._viewScale;
         }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation with current view"}</div></>} placement="top">
             <div>
                 <div className="propertiesButtons-linker"
                     onClick={e => {
