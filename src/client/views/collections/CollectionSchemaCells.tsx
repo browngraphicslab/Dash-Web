@@ -297,7 +297,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         let cfield = props.Document[props.fieldKey];
         this.type = props.fieldKey;
         if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
-            let term = Field.toString(cfield as Field);
+            let term = (cfield instanceof Promise) ? "...promise pending..." : Field.toString(cfield as Field);
             term = term.toLowerCase();
             const search = StrCast(this.props.Document._searchString).toLowerCase();
             let start = term.indexOf(search);

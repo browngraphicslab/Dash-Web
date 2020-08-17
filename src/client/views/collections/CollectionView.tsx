@@ -208,7 +208,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 toRemove.forEach(doc => {
                     Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
                     recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                    doc.deleted = true;
                 });
                 return true;
             }

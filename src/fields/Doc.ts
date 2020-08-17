@@ -195,6 +195,8 @@ export class Doc extends RefField {
 
     @observable
     private ___fieldKeys: any = {};
+    @observable
+    public [AclSym]: { [key: string]: symbol };
 
     private [UpdatingFromServer]: boolean = false;
 
@@ -204,17 +206,9 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym] = (clear?: boolean) => {
-        if (clear) {
-            this.___fields = {};
-            this.___fieldKeys = {};
-        }
-        return this.___fields;
-    }
-    @observable
-    public [AclSym]: { [key: string]: symbol };
-    public [WidthSym] = () => NumCast(this[SelfProxy]._width);
-    public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public [FieldsSym](clear?: boolean) { return clear ? this.___fields = this.___fieldKeys = {} : this.___fields; }
+    public [WidthSym]() { return NumCast(this[SelfProxy]._width); }
+    public [HeightSym]() { return NumCast(this[SelfProxy]._height); }
     public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
     public [ToString]() { return `Doc(${GetEffectiveAcl(this) === AclPrivate ? "-inaccessible-" : this.title})`; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
