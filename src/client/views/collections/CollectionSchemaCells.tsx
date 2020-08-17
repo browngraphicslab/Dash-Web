@@ -71,15 +71,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     async componentDidMount() {
         document.addEventListener("keydown", this.onKeyDown);
-        if (this.type === "context") {
-            const doc = Doc.GetProto(this.props.rowProps.original);
-            const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
-            if (aliasdoc.length > 0) {
-                const targetContext = Cast(aliasdoc[0].context, Doc, null);
-                targetContext && runInAction(() => this.contents = StrCast(targetContext.title));
-            }
-        }
-
     }
 
     @observable contents: string = "";
@@ -303,7 +294,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //     </div>
         // );   
         const positions = [];
-        let cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+        let cfield = props.Document[props.fieldKey];
         this.type = props.fieldKey;
         if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
             let term = Field.toString(cfield as Field);

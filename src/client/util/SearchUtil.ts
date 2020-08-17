@@ -29,6 +29,7 @@ export namespace SearchUtil {
         rows?: number;
         fq?: string;
         allowAliases?: boolean;
+        onlyAliases?: boolean;
         "facet"?: string;
         "facet.field"?: string;
     }
@@ -37,7 +38,10 @@ export namespace SearchUtil {
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        const replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
+        let replacedQuery = query.replace(/type_t:([^ )])/g, (substring, arg) => `{!join from=id to=proto_i}type_t:${arg}`);
+        if (options.onlyAliases) {
+            replacedQuery = `{!join from=id to=proto_i}DEFAULT:${replacedQuery}`;
+        }
         const gotten = await rp.get(rpquery, { qs: { ...options, sort: "lastModified_d desc", q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {

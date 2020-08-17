@@ -328,7 +328,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     openHeader = (col: any, screenx: number, screeny: number) => {
         this._col = col;
-        this._headerOpen = !this._headerOpen;
+        this._headerOpen = true;
         this._pointerX = screenx;
         this._pointerY = screeny;
     }
@@ -360,7 +360,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     onHeaderClick = (e: React.PointerEvent) => {
-        this.props.active(true);
         e.stopPropagation();
     }
 
@@ -499,6 +498,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             documentKeys={this.documentKeys}
             headerIsEditing={this._headerIsEditing}
             openHeader={this.openHeader}
+            onClick={e => { e.stopPropagation(); this.closeHeader(); }}
             onPointerDown={this.onTablePointerDown}
             onResizedChange={this.onResizedChange}
             setColumns={this.setColumns}
@@ -527,8 +527,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();
         }
-        this._pointerY = e.screenY;
-        this._pointerX = e.screenX;
+        // this.closeHeader();
     }
 
     onResizedChange = (newResized: Resize[], event: any) => {
@@ -581,6 +580,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (this.props.Document._searchDoc !== undefined) {
             name = "collectionSchemaView-searchContainer";
         }
+        if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
         TraceMobx();
         const menuContent = this.renderMenuContent;
         const menu = <div className="collectionSchema-header-menu"
@@ -588,7 +588,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             onPointerDown={e => this.onHeaderClick(e)}
             style={{
                 position: "fixed", background: "white", border: "black 1px solid",
-                transform: `translate(${(this.menuCoordinates[0] / this.scale)}px, ${(this.menuCoordinates[1] / this.scale)}px)`
+                transform: `translate(${(this.menuCoordinates[0])}px, ${(this.menuCoordinates[1])}px)`
             }}>
             <Measure offset onResize={action((r: any) => {
                 const dim = this.props.ScreenToLocalTransform().inverse().transformDirection(r.offset.width, r.offset.height);
@@ -614,7 +614,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
             {this.dividerDragger}
             {!this.previewWidth() ? (null) : this.previewPanel}
-            {this._headerOpen ? menu : null}
+            {this._headerOpen && this.props.active() ? menu : null}
         </div>;
     }
 }
