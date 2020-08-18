@@ -112,7 +112,7 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
                 </div>
             </div>;
         return (
-            <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} />
+            <ButtonDropdown key={"highlighter"} button={button} dropdownContent={dropdownContent} pdf={true} />
         );
     }
 

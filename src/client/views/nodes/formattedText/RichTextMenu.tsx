@@ -1005,6 +1005,7 @@ interface ButtonDropdownProps {
     dropdownContent: JSX.Element;
     openDropdownOnButton?: boolean;
     link?: boolean;
+    pdf?: boolean;
 }
 
 @observer
@@ -1044,13 +1045,22 @@ export class ButtonDropdown extends React.Component<ButtonDropdownProps> {
         }, 0);
     }
 
+
     render() {
         return (
             <div className="button-dropdown-wrapper" ref={node => this.ref = node}>
-                <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
-                    {this.props.button}
-                    <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
-                </div>
+                {!this.props.pdf ?
+                    <div className="antimodeMenu-button dropdown-button-combined" onPointerDown={this.onDropdownClick}>
+                        {this.props.button}
+                        <div style={{ marginTop: "-8.5" }}><FontAwesomeIcon icon="caret-down" size="sm" /></div>
+                    </div>
+                    :
+                    <>
+                        {this.props.button}
+                        <button className="dropdown-button antimodeMenu-button" key="antimodebutton" onPointerDown={this.onDropdownClick}>
+                            <FontAwesomeIcon icon="caret-down" size="sm" />
+                        </button>
+                    </>}
                 {this.showDropdown ? this.props.dropdownContent : (null)}
             </div>
         );
