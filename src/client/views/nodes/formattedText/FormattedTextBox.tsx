@@ -1434,6 +1434,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         return wasUndoing;
     }
+    public static LiveTextUndo: UndoManager.Batch | undefined;
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
@@ -1441,6 +1442,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.endUndoTypingBatch();
         this.doLinkOnDeselect();
 
+        FormattedTextBox.LiveTextUndo?.end();
+        FormattedTextBox.LiveTextUndo = undefined;
         // move the richtextmenu offscreen
         //if (!RichTextMenu.Instance.Pinned) RichTextMenu.Instance.delayHide();
     }
