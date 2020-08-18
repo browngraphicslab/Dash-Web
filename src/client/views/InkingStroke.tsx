@@ -103,11 +103,15 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const strokeWidth = Number(this.layoutDoc.strokeWidth);
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
-        const left = Math.min(...xs) - strokeWidth / 2;
-        const top = Math.min(...ys) - strokeWidth / 2;
-        const right = Math.max(...xs) + strokeWidth / 2;
-        const bottom = Math.max(...ys) + strokeWidth / 2;
-        const width = Math.max(right - left);
+        const lineTop = Math.min(...ys);
+        const lineBot = Math.max(...ys);
+        const lineLft = Math.min(...xs);
+        const lineRgt = Math.max(...xs);
+        const left = lineLft - strokeWidth / 2;
+        const top = lineTop - strokeWidth / 2;
+        const right = lineRgt + strokeWidth / 2;
+        const bottom = lineBot + strokeWidth / 2;
+        const width = Math.max(1, right - left);
         const height = Math.max(1, bottom - top);
         const scaleX = width === strokeWidth ? 1 : (this.props.PanelWidth() - strokeWidth) / (width - strokeWidth);
         const scaleY = height === strokeWidth ? 1 : (this.props.PanelHeight() - strokeWidth) / (height - strokeWidth);
@@ -116,12 +120,12 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
             StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
-            StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
+            StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5 && lineBot - lineTop > 1 && lineRgt - lineLft > 1, false);
 
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
             StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
-            "none", "none", "0", scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
+            "none", "none", undefined, scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
 
         //points for adding
         const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,

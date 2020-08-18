@@ -140,7 +140,7 @@ export namespace InteractionUtils {
 
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number,
         color: string, width: number, strokeWidth: number, bezier: string, fill: string, arrowStart: string, arrowEnd: string,
-        dash: string, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
+        dash: string | undefined, scalex: number, scaley: number, shape: string, pevents: string, drawHalo: boolean, nodefs: boolean) {
         let pts: { X: number; Y: number; }[] = [];
         if (shape) { //if any of the shape are true
             pts = makePolygon(shape, points);
@@ -182,7 +182,7 @@ export namespace InteractionUtils {
         const strpts = pts.reduce((acc: string, pt: { X: number, Y: number }) => acc +
             `${(pt.X - left - width / 2) * scalex + width / 2},
          ${(pt.Y - top - width / 2) * scaley + width / 2} `, "");
-        const dashArray = String(Number(width) * Number(dash));
+        const dashArray = dash && Number(dash) ? String(Number(width) * Number(dash)) : undefined;
         const defGuid = Utils.GenerateGuid();
         const arrowDim = Math.max(0.5, 8 / Math.log(Math.max(2, strokeWidth)));
 
