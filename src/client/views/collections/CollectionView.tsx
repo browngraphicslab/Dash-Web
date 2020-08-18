@@ -208,7 +208,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 toRemove.forEach(doc => {
                     Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
                     recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                    doc.deleted = true;
                 });
                 return true;
             }
@@ -290,7 +289,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
         subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
         subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
-        subItems.push({ description: "Staff", event: () => func(CollectionViewType.Staff), icon: "music" });
         subItems.push({ description: "Multicolumn", event: () => func(CollectionViewType.Multicolumn), icon: "columns" });
         subItems.push({ description: "Multirow", event: () => func(CollectionViewType.Multirow), icon: "columns" });
         subItems.push({ description: "Masonry", event: () => func(CollectionViewType.Masonry), icon: "columns" });

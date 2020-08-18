@@ -42,7 +42,7 @@ enum ColumnType {
 
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
-    ["title", ColumnType.String], ["text", ColumnType.String],
+    ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
     ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
@@ -322,8 +322,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
         } else if (this.props.Document._schemaHeaders === undefined) {
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb"),
-            new SchemaHeaderField("text", "#f1efeb"), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb", ColumnType.Doc)]);
+            this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb", ColumnType.Date),
+            new SchemaHeaderField("text", "#f1efeb", ColumnType.String), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb", ColumnType.Doc)]);
         }
     }
 
