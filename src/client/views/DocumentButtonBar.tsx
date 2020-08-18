@@ -199,7 +199,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}
-                onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
+                onClick={e => this.props.views().map(view => view && DockedFrameRenderer.PinDoc(view.props.Document, isPinned))}>
                 <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
                 />
             </div></Tooltip>;
