@@ -985,6 +985,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         if (!this.decrementLimitReached) {
             this.entered && (this.document.gridNumCols as number)++;
             undoBatch(() => this.document.gridNumCols = this.numCols - 1)();
+            if (this.numCols === 1) this.decrementLimitReached = true;
         }
         this.entered = false;
     }
@@ -1036,7 +1037,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     render() {
         return (
             <div className="collectionGridViewChrome-cont" >
-                <span className="grid-control" style={{ width: this.resize ? "25%" : "30%" }}>
+                <span className="grid-control" style={{ width: this.resize ? "25%" : "30%", color: "black" }}>
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
