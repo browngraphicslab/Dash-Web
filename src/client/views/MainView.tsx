@@ -70,7 +70,6 @@ import RichTextMenu from './nodes/formattedText/RichTextMenu';
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _buttonBarHeight = 36;
-    private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
@@ -423,7 +422,7 @@ export class MainView extends React.Component {
     onFlyoutPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
-                this.flyoutWidth = Math.max(e.clientX, 0);
+                this.flyoutWidth = Math.max(e.clientX - 58, 0);
                 if (this.flyoutWidth < 5) {
                     this.panelContent = "none";
                     this._lastButton && (this._lastButton.color = "white");
