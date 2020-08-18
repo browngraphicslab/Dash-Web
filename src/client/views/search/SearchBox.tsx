@@ -625,7 +625,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 case ColumnType.Boolean: return "_b";
                 case ColumnType.Number: return "_n";
             }
-        }
+        };
         const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
         return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
     }

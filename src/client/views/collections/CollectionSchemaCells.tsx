@@ -381,8 +381,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 SetValue={action((value: string) => {
                                     let retVal = false;
 
-                                    if (value.startsWith(":=")) {
-                                        retVal = this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                    if (value.startsWith(":=") || value.startsWith("=:=")) {
+                                        const script = value.substring(value.startsWith("=:=") ? 3 : 2);
+                                        retVal = this.props.setComputed(script, value.startsWith(":=") ? Doc.GetProto(props.Document) : props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
                                     } else {
                                         const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                         if (script.compiled) {
