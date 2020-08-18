@@ -810,7 +810,6 @@ export class CurrentUserUtils {
         if (doc.sidebar === undefined) {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
-            sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
             sidebarContainer.system = true;
             doc.sidebar = new PrefetchProxy(sidebarContainer);
         }
