@@ -564,10 +564,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     setComputed = (script: string, doc: Doc, field: string, row: number, col: number): boolean => {
         script =
             `const $ = (row:number, col?:number) => {
-                if(col === undefined) {
-                    return (doc as any)[key][row + ${row}];
-                }
-                return (doc as any)[key][row + ${row}][(doc as any)._schemaHeaders[col + ${col}].heading];
+                const rval = (doc as any)[key][row + ${row}];
+                return col === undefined ? rval : rval[(doc as any)._schemaHeaders[col + ${col}].heading];
             }
             return ${script}`;
         const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: false, transformer: this.createTransformer(row, col) });
