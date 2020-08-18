@@ -850,7 +850,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else {
             const docs = this.childLayoutPairs.map(pair => pair.layout);
             docs.slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
-            let zlast = docs.length ? NumCast(docs[docs.length - 1].zIndex) : 1;
+            let zlast = docs.length ? Math.max(docs.length, NumCast(docs[docs.length - 1].zIndex)) : 1;
             if (zlast - docs.length > 100) {
                 for (let i = 0; i < docs.length; i++) doc.zIndex = i + 1;
                 zlast = docs.length + 1;
