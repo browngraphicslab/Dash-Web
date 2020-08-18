@@ -982,7 +982,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      */
     onDecrementButtonClick = () => {
         this.clicked = true;
-        if (!this.decrementLimitReached) {
+        if (this.numCols > 1 && !this.decrementLimitReached) {
             this.entered && (this.document.gridNumCols as number)++;
             undoBatch(() => this.document.gridNumCols = this.numCols - 1)();
         }
@@ -1007,7 +1007,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     decrementValue = () => {
         this.entered = true;
         if (!this.clicked) {
-            if (this.numCols !== 1) {
+            if (this.numCols > 1) {
                 this.document.gridNumCols = this.numCols - 1;
             }
             else {
@@ -1041,8 +1041,8 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
                     <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.numCols.toString()} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
-                    <input className="columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
-                    <input className="columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
+                    <input className="collectionGridViewChrome-columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
+                    <input className="collectionGridViewChrome-columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
                 </span>
                 {/* <span className="grid-control">
                     <span className="grid-icon">
