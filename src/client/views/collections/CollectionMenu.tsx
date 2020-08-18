@@ -1037,7 +1037,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     render() {
         return (
             <div className="collectionGridViewChrome-cont" >
-                <span className="grid-control" style={{ width: this.resize ? "25%" : "30%", color: "black" }}>
+                <span className="grid-control" style={{ width: this.resize ? "25%" : "30%" }}>
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
