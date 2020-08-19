@@ -1,21 +1,19 @@
 import React = require("react");
-import { ReactTableDefaults, TableCellRenderer, RowInfo } from "react-table";
-import "./CollectionSchemaView.scss";
-import { Transform } from "../../util/Transform";
-import { Doc } from "../../../fields/Doc";
-import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
-import { Cast, FieldValue, StrCast } from "../../../fields/Types";
-import { ContextMenu } from "../ContextMenu";
-import { action } from "mobx";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DocumentManager } from "../../util/DocumentManager";
+import { action } from "mobx";
+import { ReactTableDefaults, RowInfo, TableCellRenderer } from "react-table";
+import { Doc } from "../../../fields/Doc";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { undoBatch } from "../../util/UndoManager";
+import { Cast, FieldValue, StrCast } from "../../../fields/Types";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SnappingManager } from "../../util/SnappingManager";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentView } from "../nodes/DocumentView";
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import { ContextMenu } from "../ContextMenu";
+import "./CollectionSchemaView.scss";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 library.add(faGripVertical, faTrash);
 
@@ -235,15 +233,8 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
         const { original } = rowInfo;
         const doc = FieldValue(Cast(original, Doc));
-        if (doc) {
-            const docView = DocumentManager.Instance.getDocumentViews(doc);
 
-            if (this.props.rowFocused && docView.length) {
-                SelectionManager.SelectDoc(docView[0], false);
-            }
-        }
-
-        if (!doc) return <></>;
+        if (!doc) return (null);
 
         const reference = React.createRef<HTMLDivElement>();
         const onItemDown = SetupDrag(reference, () => doc, this.move, StrCast(this.props.dropAction) as dropActionType);
@@ -256,11 +247,11 @@ export class MovableRow extends React.Component<MovableRowProps> {
             <div className={className} onKeyPress={this.onKeyDown} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
                 <div className="collectionSchema-row-wrapper" onKeyPress={this.onKeyDown} ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     <ReactTableDefaults.TrComponent onKeyPress={this.onKeyDown} >
-                        {/* <div className="row-dragger">
+                        <div className="row-dragger">
                             <div className="row-option" onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
                             <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
                             <div className="row-option" onClick={() => this.props.addDocTab(this.props.rowInfo.original, "onRight")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
-                        </div> */}
+                        </div>
                         {children}
                     </ReactTableDefaults.TrComponent>
                 </div>
