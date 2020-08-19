@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Resize } from "react-table";
 import "react-table/react-table.css";
-import { Doc } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
@@ -24,6 +24,9 @@ import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
+import { SelectionManager } from "../../util/SelectionManager";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -388,7 +391,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
-    @action setPreviewDoc = (doc: Doc) => this.previewDoc = doc;
+    @action setPreviewDoc = (doc: Opt<Doc>) => {
+        SelectionManager.SelectSchemaDoc(doc);
+        this.previewDoc = doc;
+    }
 
     //toggles preview side-panel of schema
     @action
@@ -515,9 +521,24 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             </div>
         </div>;
     }
+    onSpecificMenu = (e: React.MouseEvent) => {
+        if ((e.target as any)?.className?.includes?.("collectionSchemaView-cell") || (e.target instanceof HTMLSpanElement)) {
+            const cm = ContextMenu.Instance;
+            const options = cm.findByDescription("Options...");
+            const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+            optionItems.push({ description: "remove", event: () => this.previewDoc && this.props.removeDocument(this.previewDoc), icon: "trash" });
+            !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
+            cm.displayMenu(e.clientX, e.clientY);
+            (e.nativeEvent as any).SchemaHandled = true; // not sure why this is needed, but if you right-click quickly on a cell, the Document/Collection contextMenu handlers still fire without this.
+            e.stopPropagation();
+        }
+    }
 
     @action
     onTablePointerDown = (e: React.PointerEvent): void => {
+        if (!(e.target as any)?.className?.includes?.("collectionSchemaView-cell") && !(e.target instanceof HTMLSpanElement)) {
+            this.setPreviewDoc(undefined);
+        }
         this.setFocused(this.props.Document);
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey && this.props.isSelected(true)) {
             e.stopPropagation();
@@ -601,6 +622,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchemaView-tableContainer"
                 style={{ backgroundColor: "white", width: `calc(100% - ${this.previewWidth()}px)` }}
                 onKeyPress={this.onKeyPress}
+                onContextMenu={this.onSpecificMenu}
                 onPointerDown={this.onPointerDown}
                 onWheel={e => this.props.active(true) && e.stopPropagation()}
                 onDrop={e => this.onExternalDrop(e, {})}

@@ -70,7 +70,7 @@ export interface SchemaTableProps {
     isSelected: (outsideReaction?: boolean) => boolean;
     isFocused: (document: Doc, outsideReaction: boolean) => boolean;
     setFocused: (document: Doc) => void;
-    setPreviewDoc: (document: Doc) => void;
+    setPreviewDoc: (document: Opt<Doc>) => void;
     columns: SchemaHeaderField[];
     documentKeys: any[];
     headerIsEditing: boolean;
@@ -385,7 +385,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
-        } else if ((this._cellIsEditing || this.props.headerIsEditing) && (e.keyCode === 37 || e.keyCode === 39)) {
+            e.stopPropagation();
+        } else if (e.keyCode === 27) {
+            this.props.setPreviewDoc(undefined);
             e.stopPropagation(); // stopPropagation for left/right arrows 
         }
     }
