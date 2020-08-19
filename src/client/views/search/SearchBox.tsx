@@ -11,7 +11,7 @@ import { List } from '../../../fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { returnFalse, Utils } from '../../../Utils';
+import { returnFalse, Utils, returnZero } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -967,7 +967,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 paddingRight: "4px",
                                 border: "1px solid gray",
                                 borderRadius: "0.3em",
-                                borderBottom: this.open === false ? "1px solid" : "none",
+                                borderBottom: !this.open ? "1px solid" : "none",
                             }}>
                                 <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                                     <div style={{ display: "contents" }}>
@@ -1053,13 +1053,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 <div style={{ zIndex: 20000, color: "black" }}>
                     {this._searchbarOpen === true ?
                         <div style={{ display: "flex", justifyContent: "center", }}>
-                            {this.noresults === "" ? <div style={{ display: this.open === true ? "flex" : "none", overflow: "auto", }}>
+                            {this.noresults === "" ? <div style={{ display: this.open ? "flex" : "none", overflow: "auto", }}>
                                 <CollectionView {...this.props}
                                     Document={this.props.Document}
                                     moveDocument={returnFalse}
                                     removeDocument={returnFalse}
-                                    PanelHeight={this.open === true ? () => height : () => 0}
-                                    PanelWidth={this.open === true ? () => length : () => 0}
+                                    PanelHeight={this.open ? () => height : returnZero}
+                                    PanelWidth={this.open ? () => length : returnZero}
                                     overflow={length > window.innerWidth || rows > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
