@@ -179,7 +179,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
             }
             if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
-                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentFrame);
+                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentFrame, true);
             }
         }
         return retVal;
@@ -214,7 +214,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutDoc = Doc.Layout(d);
             if (this.Document.currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.opacity);
+                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.scroll, vals.opacity);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];

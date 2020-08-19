@@ -123,7 +123,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => doc.dataTransition = "inherit", 1010);
     }
 
-    public static setupScroll(doc: Doc, timecode: number, scrollProgressivize: boolean = false) {
+    public static setupScroll(doc: Doc, timecode: number) {
         const scrollList = new List<number>();
         scrollList[timecode] = NumCast(doc._scrollTop);
         doc["scroll-indexed"] = scrollList;
@@ -165,7 +165,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
 
-    public static setupZoom(doc: Doc, targDoc: Doc, zoomProgressivize: boolean = false) {
+    public static setupZoom(doc: Doc, targDoc: Doc) {
         const width = new List<number>();
         const height = new List<number>();
         const top = new List<number>();
@@ -180,31 +180,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         doc["viewfinder-left-indexed"] = left;
     }
 
-    public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
-        docs.forEach((doc, i) => {
-            if (doc.appearFrame === undefined) doc.appearFrame = i;
-            const curTimecode = progressivize ? i : timecode;
-            const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const wlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const hlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < (doc.appearFrame ? doc.appearFrame : i) ? 0 : 1));
-            const oarray = olist;
-            oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
-            oarray.fill(1, NumCast(doc.appearFrame), timecode);
-            // oarray.fill(0, 0, NumCast(doc.appearFrame) - 1);
-            // oarray.fill(1, NumCast(doc.appearFrame), timecode);\
+    public static setupKeyframes(docs: Doc[], currTimecode: number, makeAppear: boolean = false) {
+        docs.forEach(doc => {
+            if (doc.appearFrame === undefined) doc.appearFrame = currTimecode;
+            const curTimecode = currTimecode;
+            const xlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const ylist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const wlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const hlist = new List<number>(numberRange(currTimecode + 1).map(i => undefined) as any as number[]);
+            const olist = new List<number>(numberRange(currTimecode + 1).map(t => !doc.z && makeAppear && t < NumCast(doc.appearFrame) ? 0 : 1));
             wlist[curTimecode] = NumCast(doc._width);
             hlist[curTimecode] = NumCast(doc._height);
             xlist[curTimecode] = NumCast(doc.x);
             ylist[curTimecode] = NumCast(doc.y);
-            doc.xArray = xlist;
-            doc.yArray = ylist;
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
             doc["w-indexed"] = wlist;
             doc["h-indexed"] = hlist;
-            doc["opacity-indexed"] = oarray;
+            doc["opacity-indexed"] = olist;
             doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
             doc._height = ComputedField.MakeInterpolated("h", "activeFrame");
             doc._width = ComputedField.MakeInterpolated("w", "activeFrame");

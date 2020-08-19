@@ -144,8 +144,6 @@ export interface DocumentOptions {
     presTransition?: number; //the time taken for the transition TO a document
     presDuration?: number; //the duration of the slide in presentation view
     presProgressivize?: boolean;
-    // xArray?: number[];
-    // yArray?: number[];
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;

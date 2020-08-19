@@ -1052,15 +1052,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         if (layout) doc = this.createTemplate(layout);
         if (freeform && layout) doc = this.createTemplate(layout, title);
         if (!freeform && !layout) doc = Docs.Create.TextDocument("", { _nativeWidth: 400, _width: 225, title: title });
-        const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
-        const data = Cast(presCollection?.data, listSpec(Doc));
-        const presData = Cast(this.rootDoc.data, listSpec(Doc));
-        if (data && doc && presData) {
-            data.push(doc);
-            DockedFrameRenderer.PinDoc(doc, false);
-            this.gotoDocument(this.childDocs.length, this.itemIndex);
-        } else {
-            this.props.addDocTab(doc as Doc, "onRight");
+        if (doc) {
+            const presCollection = Cast(this.layoutDoc.presCollection, Doc, null);
+            const data = Cast(presCollection?.data, listSpec(Doc));
+            const presData = Cast(this.rootDoc.data, listSpec(Doc));
+            if (data && presData) {
+                data.push(doc);
+                DockedFrameRenderer.PinDoc(doc, false);
+                this.gotoDocument(this.childDocs.length, this.itemIndex);
+            } else {
+                this.props.addDocTab(doc as Doc, "onRight");
+            }
         }
     }
 
@@ -1341,7 +1343,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         activeItem.scrollProgressivize = !activeItem.scrollProgressivize;
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         targetDoc.scrollProgressivize = !targetDoc.scrollProgressivize;
-        CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc.currentFrame), true);
+        CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc.currentFrame));
         if (targetDoc.editScrollProgressivize) {
             targetDoc.editScrollProgressivize = false;
             targetDoc.currentFrame = 0;
@@ -1357,7 +1359,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         activeItem.zoomProgressivize = !activeItem.zoomProgressivize;
         const targetDoc = Cast(activeItem.presentationTargetDoc, Doc, null);
         targetDoc.zoomProgressivize = !targetDoc.zoomProgressivize;
-        CollectionFreeFormDocumentView.setupZoom(activeItem, targetDoc, true);
+        CollectionFreeFormDocumentView.setupZoom(activeItem, targetDoc);
         if (activeItem.editZoomProgressivize) {
             activeItem.editZoomProgressivize = false;
             targetDoc.currentFrame = 0;
@@ -1390,7 +1392,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             activeItem.presProgressivize = true;
             targetDoc.presProgressivize = true;
             targetDoc.currentFrame = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
+            docs.forEach((doc, i) => CollectionFreeFormDocumentView.setupKeyframes([doc], i, true));
             targetDoc.lastFrame = docs.length - 1;
         } else {
             targetDoc.editProgressivize = false;

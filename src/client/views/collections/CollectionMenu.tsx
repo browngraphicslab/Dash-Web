@@ -11,7 +11,6 @@ import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
-import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
@@ -30,6 +29,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import RichTextMenu from "../nodes/formattedText/RichTextMenu";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { Scripting } from "../../util/Scripting";
 
 @observer
 export default class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -161,9 +161,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _viewCommand = {
         params: ["target"], title: "bookmark view",
-        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale'];",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
-        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
+        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale']; gotoFrame(self.target, self['target-currentFrame']);",
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target.currentFrame = 0; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; button['target-currentFrame'] = this.target.currentFrame; },
     };
     _clusterCommand = {
         params: ["target"], title: "fit content",
@@ -1079,3 +1079,14 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         );
     }
 }
+Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
+    const dataField = doc[Doc.LayoutFieldKey(doc)];
+    const childDocs = DocListCast(dataField);
+    const currentFrame = Cast(doc.currentFrame, "number", null);
+    if (currentFrame === undefined) {
+        doc.currentFrame = 0;
+        CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
+    }
+    CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
+    doc.currentFrame = Math.max(0, newFrame);
+});
