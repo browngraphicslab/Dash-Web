@@ -34,7 +34,7 @@ export namespace Hypothesis {
 
         const results: Doc[] = [];
         await SearchUtil.Search("web", true).then(action(async (res: SearchUtil.DocSearchResult) => {
-            const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
+            const docs = res.docs;
             const filteredDocs = docs.filter(doc =>
                 doc.author === Doc.CurrentUserEmail && doc.type === DocumentType.WEB && doc.data
             );

@@ -3,7 +3,7 @@ import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faChec
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../fields/Doc";
+import { Doc, DataSym, AclEdit, AclAdmin } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast, BoolCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
@@ -30,6 +30,7 @@ import { undoBatch, UndoManager } from '../util/UndoManager';
 import { DocumentType } from '../documents/DocumentTypes';
 import { InkField } from '../../fields/InkField';
 import { PresBox } from './nodes/PresBox';
+import { GetEffectiveAcl } from '../../fields/util';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -76,12 +77,12 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     public static hasPulledHack = false;
 
 
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
-        } else { return undefined; }
+        } else return undefined;
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @computed get onClick() { return this.selectedDoc?.onClickBehavior ? this.selectedDoc?.onClickBehavior : "nothing"; }
@@ -296,9 +297,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     }
     @undoBatch
     onAliasButtonMoved = () => {
-        if (this._dragRef.current) {
+        if (this._dragRef.current && this.selectedDoc) {
             const dragDocView = this.selectedDocumentView!;
-            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             dragData.dropAction = "alias";
             DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
@@ -313,7 +314,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @computed
     get templateButton() {
-        const docView = this.selectedDocumentView;
+        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
         const templates: Map<Template, boolean> = new Map();
         const views = [this.selectedDocumentView];
         Array.from(Object.values(Templates.TemplateList)).map(template =>
@@ -365,7 +366,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @action @undoBatch
     onLock = () => {
-        this.selectedDocumentView?.toggleLockPosition();
+        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
+        docView?.toggleLockPosition();
     }
 
     @computed
@@ -400,8 +402,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     onPointerDown={async () => {
-                        if (this.selectedDocumentView?.props.Document) {
-                            Doc.Zip(this.selectedDocumentView?.props.Document);
+                        if (this.selectedDoc) {
+                            Doc.Zip(this.selectedDoc);
                         }
                     }}>
                     {<FontAwesomeIcon className="propertiesButtons-icon"
@@ -431,23 +433,22 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @undoBatch
     @action
     deleteDocument = () => {
-        const selected = SelectionManager.SelectedDocuments().slice();
-        selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
-        this.selectedDoc && (this.selectedDoc.deleted = true);
-        this.selectedDocumentView?.props.ContainingCollectionView?.removeDocument(this.selectedDocumentView?.props.Document);
+        const removeDoc = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView?.props.removeDocument : SelectionManager.SelectedSchemaCollection()?.props.removeDocument;
+        this.selectedDoc && removeDoc?.(this.selectedDoc);
         SelectionManager.DeselectAll();
     }
 
     @computed
     get sharingButton() {
         const targetDoc = this.selectedDoc;
+        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">{"Share Document"}</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     onPointerDown={() => {
                         if (this.selectedDocumentView) {
-                            SharingManager.Instance.open(this.selectedDocumentView);
+                            SharingManager.Instance.open(docView, this.selectedDoc);
                         }
                     }}>
                     {<FontAwesomeIcon className="propertiesButtons-icon"
@@ -484,20 +485,21 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     handleOptionChange = (e: any) => {
         const value = e.target.value;
         this.selectedDoc && (this.selectedDoc.onClickBehavior = e.target.value);
+        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
         if (value === "nothing") {
-            this.selectedDocumentView?.noOnClick();
+            docView?.noOnClick();
         } else if (value === "enterPortal") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.makeIntoPortal();
+            docView?.noOnClick();
+            docView?.makeIntoPortal();
         } else if (value === "toggleDetail") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleDetail();
+            docView?.noOnClick();
+            docView?.toggleDetail();
         } else if (value === "linkInPlace") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleFollowLink("inPlace", true, false);
+            docView?.noOnClick();
+            docView?.toggleFollowLink("inPlace", true, false);
         } else if (value === "linkOnRight") {
-            this.selectedDocumentView?.noOnClick();
-            this.selectedDocumentView?.toggleFollowLink("onRight", false, false);
+            docView?.noOnClick();
+            docView?.toggleFollowLink("onRight", false, false);
         }
     }
 
@@ -564,8 +566,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     onPointerDown={() => {
-                        if (this.selectedDocumentView) {
-                            GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDocumentView.Document }).then(console.log);
+                        if (this.selectedDoc) {
+                            GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDoc }).then(console.log);
                         }
                     }}>
                     {<FontAwesomeIcon className="documentdecorations-icon"
@@ -710,6 +712,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
         const hasContext = this.selectedDoc.context ? true : false;
+        const collectionAcl = GetEffectiveAcl(this.selectedDocumentView?.props.ContainingCollectionDoc?.[DataSym]);
 
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             <div className="propertiesButtons-button">
@@ -733,9 +736,11 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button">
                 {this.downloadButton}
             </div>
-            <div className="propertiesButtons-button">
-                {this.deleteButton}
-            </div>
+            {collectionAcl === AclAdmin || collectionAcl === AclEdit ?
+                <div className="propertiesButtons-button">
+                    {this.deleteButton}
+                </div>
+                : (null)}
             <div className="propertiesButtons-button">
                 {this.onClickButton}
             </div>

@@ -71,15 +71,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     async componentDidMount() {
         document.addEventListener("keydown", this.onKeyDown);
-        if (this.type === "context") {
-            const doc = Doc.GetProto(this.props.rowProps.original);
-            const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
-            if (aliasdoc.length > 0) {
-                const targetContext = Cast(aliasdoc[0].context, Doc, null);
-                targetContext && runInAction(() => this.contents = StrCast(targetContext.title));
-            }
-        }
-
     }
 
     @observable contents: string = "";
@@ -266,7 +257,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
 
         let contents: any = "incorrect type";
-        if (type === undefined) contents = StrCast(field) === "" ? "--" : <FieldView {...props} fieldKey={fieldKey} />;
+        if (type === undefined) contents = field === undefined ? undefined : Field.toString(field as Field);//StrCast(field) === "" ? "--" : <FieldView {...props} fieldKey={fieldKey} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
         if (type === "string") {
             fieldKey === "text" ?
@@ -303,10 +294,10 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         //     </div>
         // );   
         const positions = [];
-        let cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
+        let cfield = props.Document[props.fieldKey];
         this.type = props.fieldKey;
         if (StrCast(this.props.Document._searchString).toLowerCase() !== "") {
-            let term = Field.toString(cfield as Field);
+            let term = (cfield instanceof Promise) ? "...promise pending..." : Field.toString(cfield as Field);
             term = term.toLowerCase();
             const search = StrCast(this.props.Document._searchString).toLowerCase();
             let start = term.indexOf(search);
@@ -329,6 +320,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             search = true;
         }
 
+        const placeholder = type === "number" ? "0" : contents === "" ? "--" : "undefined";
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }}
                 ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
@@ -338,16 +330,16 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                         {!search ?
                             <EditableView
                                 positions={positions.length > 0 ? positions : undefined}
-                                search={StrCast(this.props.Document._searchString) ? StrCast(this.props.Document._searchString) : undefined}
+                                search={Cast(this.props.Document._searchString, "string", null)}
                                 editing={this._isEditing}
                                 isEditingCallback={this.isEditingCallback}
                                 display={"inline"}
-                                contents={contents ? contents : type === "number" ? "0" : "undefined"}
+                                contents={contents}
                                 highlight={positions.length > 0 ? true : undefined}
                                 //contents={StrCast(contents)}
                                 height={"auto"}
                                 maxHeight={Number(MAX_ROW_HEIGHT)}
-                                placeholder={"undefined"}
+                                placeholder={placeholder}
                                 bing={() => {
                                     const cfield = ComputedField.WithoutComputed(() => FieldValue(props.Document[props.fieldKey]));
                                     if (cfield !== undefined) {
@@ -389,8 +381,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 SetValue={action((value: string) => {
                                     let retVal = false;
 
-                                    if (value.startsWith(":=")) {
-                                        retVal = this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                    if (value.startsWith(":=") || value.startsWith("=:=")) {
+                                        const script = value.substring(value.startsWith("=:=") ? 3 : 2);
+                                        retVal = this.props.setComputed(script, value.startsWith(":=") ? Doc.GetProto(props.Document) : props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
                                     } else {
                                         const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                         if (script.compiled) {

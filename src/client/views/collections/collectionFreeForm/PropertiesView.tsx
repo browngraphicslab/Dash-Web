@@ -2,7 +2,7 @@ import React = require("react");
 import { observer } from "mobx-react";
 import "./PropertiesView.scss";
 import { observable, action, computed, runInAction } from "mobx";
-import { Doc, Field, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt, DocCastAsync } from "../../../../fields/Doc";
+import { Doc, Field, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt, DocCastAsync, DataSym } from "../../../../fields/Doc";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { EditableView } from "../../EditableView";
 import { KeyValueBox } from "../../nodes/KeyValueBox";
@@ -49,6 +49,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
@@ -60,7 +61,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
         return false;
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @observable layoutFields: boolean = false;
@@ -73,6 +73,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openTransform: boolean = true;
     // @observable selectedUser: string = "";
     // @observable addButtonPressed: boolean = false;
+    @observable layoutDocAcls: boolean = false;
 
     //Pres Trails booleans:
     @observable openPresTransitions: boolean = false;
@@ -344,8 +345,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get expansionIcon() {
         return <Tooltip title={<div className="dash-tooltip">{"Show more permissions"}</div>}>
             <div className="expansion-button" onPointerDown={() => {
-                if (this.selectedDocumentView) {
-                    SharingManager.Instance.open(this.selectedDocumentView);
+                if (this.selectedDocumentView || this.selectedDoc) {
+                    SharingManager.Instance.open(this.selectedDocumentView?.props.Document === this.selectedDocumentView ? this.selectedDocumentView : undefined, this.selectedDoc);
                 }
             }}>
                 <FontAwesomeIcon className="expansion-button-icon" icon="ellipsis-h" color="black" size="sm" />
@@ -382,15 +383,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             [AclAdmin, SharingPermissions.Admin]
         ]);
 
-        const effectiveAcl = GetEffectiveAcl(this.selectedDoc!);
+        const target = this.layoutDocAcls ? this.selectedDoc! : this.selectedDoc![DataSym];
+
+        const effectiveAcl = GetEffectiveAcl(target);
         const tableEntries = [];
 
         // DocCastAsync(Doc.UserDoc().sidebarUsersDisplayed).then(sidebarUsersDisplayed => {
-        if (this.selectedDoc![AclSym]) {
-            for (const [key, value] of Object.entries(this.selectedDoc![AclSym])) {
+        if (target[AclSym]) {
+            for (const [key, value] of Object.entries(target[AclSym])) {
                 const name = key.substring(4).replace("_", ".");
-                if (name !== Doc.CurrentUserEmail && name !== this.selectedDoc!.author/* && sidebarUsersDisplayed![name] !== false*/) {
-                    tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value)!));
+                if (name !== Doc.CurrentUserEmail && name !== target.author && name !== "Public"/* && sidebarUsersDisplayed![name] !== false*/) {
+                    tableEntries.push(this.sharingItem(name, effectiveAcl, AclMap.get(value as symbol)!));
                 }
             }
         }
@@ -402,9 +405,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         //     }
         // })
 
-        // shifts the current user and the owner to the top of the doc.
-        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === this.selectedDoc!.author ? "Owner" : StrCast(this.selectedDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`])));
-        if (Doc.CurrentUserEmail !== this.selectedDoc!.author) tableEntries.unshift(this.sharingItem(StrCast(this.selectedDoc!.author), effectiveAcl, "Owner"));
+        // shifts the current user, owner, public to the top of the doc.
+        tableEntries.unshift(this.sharingItem("Public", effectiveAcl, (AclMap.get(target[AclSym]?.["ACL-Public"]) || SharingPermissions.None)));
+        tableEntries.unshift(this.sharingItem("Me", effectiveAcl, Doc.CurrentUserEmail === target.author ? "Owner" : AclMap.get(effectiveAcl)!));
+        if (Doc.CurrentUserEmail !== target.author) tableEntries.unshift(this.sharingItem(StrCast(target.author), effectiveAcl, "Owner"));
 
         return <div className="propertiesView-sharingTable">
             {tableEntries}
@@ -866,6 +870,14 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                         </div>
                         {!this.openSharing ? (null) :
                             <div className="propertiesView-sharing-content">
+                                <div className="propertiesView-acls-checkbox">
+                                    <Checkbox
+                                        color="primary"
+                                        onChange={action(() => this.layoutDocAcls = !this.layoutDocAcls)}
+                                        checked={this.layoutDocAcls}
+                                    />;
+                                    <div className="propertiesView-acls-checkbox-text">Layout</div>
+                                </div>
                                 {this.sharingTable}
                                 {/* <div className="change-buttons">
                             <button

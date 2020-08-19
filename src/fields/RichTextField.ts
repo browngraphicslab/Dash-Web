@@ -28,7 +28,7 @@ export class RichTextField extends ObjectField {
     }
 
     [ToScriptString]() {
-        return `new RichTextField("${this.Data}", "${this.Text}")`;
+        return `new RichTextField("${this.Data.replace(/"/g, "\\\"")}", "${this.Text}")`;
     }
     [ToString]() {
         return this.Text;

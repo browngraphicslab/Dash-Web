@@ -70,7 +70,6 @@ import RichTextMenu from './nodes/formattedText/RichTextMenu';
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _buttonBarHeight = 36;
-    private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
@@ -423,7 +422,7 @@ export class MainView extends React.Component {
     onFlyoutPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
-                this.flyoutWidth = Math.max(e.clientX, 0);
+                this.flyoutWidth = Math.max(e.clientX - 58, 0);
                 if (this.flyoutWidth < 5) {
                     this.panelContent = "none";
                     this._lastButton && (this._lastButton.color = "white");
@@ -545,7 +544,12 @@ export class MainView extends React.Component {
             switch (this.panelContent = title) {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
-                case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
+                case "Catalog": SearchBox.Instance.searchFullDB = "My Stuff";
+                    SearchBox.Instance.newsearchstring = "";
+                    SearchBox.Instance.enter(undefined);
+                    break;
+
+                // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
                 case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
@@ -978,7 +982,6 @@ export class MainView extends React.Component {
     }
 }
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
-Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function copyWorkspace() {
     const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
