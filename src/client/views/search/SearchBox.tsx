@@ -189,21 +189,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    enter = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+    enter = action((e: React.KeyboardEvent | undefined) => {
+        if (!e || e.key === "Enter") {
             this.layoutDoc._searchString = this.newsearchstring;
-            runInAction(() => this._pageStart = 0);
-
-            if (StrCast(this.layoutDoc._searchString) !== "" || !this.searchFullDB) {
-                runInAction(() => this.open = true);
-            }
-            else {
-                runInAction(() => this.open = false);
-
-            }
+            this._pageStart = 0;
+            this.open = StrCast(this.layoutDoc._searchString) !== "" || this.searchFullDB !== "DB";
             this.submitSearch();
         }
-    }
+    });
 
     @observable open: boolean = false;
 
@@ -468,6 +461,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
             this._numTotalResults = found.length;
+            this.realTotalResults = found.length;
         }
         else {
             this.noresults = "No collection selected :(";
@@ -576,7 +570,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }, 60000);
         }
 
-        if (query !== "") {
+        if (query !== "" || this.searchFullDB === "My Stuff") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
@@ -591,7 +585,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    @observable searchFullDB = true;
+    @observable searchFullDB = "DB";
 
     @observable _timeout: any = undefined;
 
@@ -608,10 +602,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private get filterQuery() {
         const types = ["preselement", "docholder", "search", "searchitem", "fonticonbox"]; // this.filterTypes;
         const baseExpr = "NOT system_b:true";
+        const authorExpr = this.searchFullDB === "My Stuff" ? ` author_t:${Doc.CurrentUserEmail}` : undefined;
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
         const typeExpr = this._onlyAliases ? "NOT {!join from=id to=proto_i}type_t:*" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, typeExpr].join(" AND ").replace(/AND $/, "");
+        const query = [baseExpr, authorExpr, includeDeleted, typeExpr].filter(q => q).join(" AND ").replace(/AND $/, "");
         return query;
     }
 
@@ -625,7 +620,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 case ColumnType.Boolean: return "_b";
                 case ColumnType.Number: return "_n";
             }
-        }
+        };
         const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
         return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
     }
@@ -724,6 +719,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     openSearch(e: React.SyntheticEvent) {
+        this._results.forEach(result => {
+            Doc.BrushDoc(result[0]);
+        });
         e.stopPropagation();
         this._openNoResults = false;
         this._resultsOpen = true;
@@ -734,6 +732,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     closeSearch = () => {
+        this._results.forEach(result => {
+            Doc.UnBrushDoc(result[0]);
+            result[0].searchMatch = undefined;
+        });
         //this.closeResults();
         this._searchbarOpen = false;
     }
@@ -888,7 +890,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{Doc.CurrentUserEmail}</div>
                 <div className="searchBox-bar">
-                    <div style={{ position: "relative", display: "flex", width: 400 }}>
+                    <div style={{ position: "relative", display: "flex", width: 450 }}>
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                             style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
@@ -973,7 +975,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
                                                 <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => {
                                                     runInAction(() => {
-                                                        this.searchFullDB = !this.searchFullDB;
+                                                        this.searchFullDB = "";
                                                         this.dataDoc[this.fieldKey] = new List<Doc>([]);
                                                         if (this.currentSelectedCollection !== undefined) {
                                                             let newarray: Doc[] = [];
@@ -1005,9 +1007,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                         </div>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB} onChange={() => {
+                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB?.length ? true : false} onChange={() => {
                                                     runInAction(() => {
-                                                        this.searchFullDB = !this.searchFullDB;
+                                                        this.searchFullDB = "DB";
                                                         this.dataDoc[this.fieldKey] = new List<Doc>([]);
                                                         this.filter = false;
                                                         if (this.currentSelectedCollection !== undefined) {
@@ -1036,7 +1038,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                     });
                                                 }} />
                                                 DB
-                                        </label>
+                                                <span onClick={action(() => this.searchFullDB = this.searchFullDB === "My Stuff" ? "DB" : "My Stuff")}>
+                                                    {this.searchFullDB === "My Stuff" ? "(me)" : "(full)"}
+                                                </span>
+                                            </label>
                                         </div>
                                     </div>
                                 </form>

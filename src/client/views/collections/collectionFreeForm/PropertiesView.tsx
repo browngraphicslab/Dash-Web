@@ -49,6 +49,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get MAX_EMBED_HEIGHT() { return 200; }
 
+    @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
         if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
@@ -60,7 +61,6 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         if (this.selectedDoc?.type === DocumentType.PRES) return true;
         return false;
     }
-    @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
     @computed get dataDoc() { return this.selectedDocumentView?.dataDoc; }
 
     @observable layoutFields: boolean = false;
@@ -345,8 +345,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @computed get expansionIcon() {
         return <Tooltip title={<div className="dash-tooltip">{"Show more permissions"}</div>}>
             <div className="expansion-button" onPointerDown={() => {
-                if (this.selectedDocumentView) {
-                    SharingManager.Instance.open(this.selectedDocumentView);
+                if (this.selectedDocumentView || this.selectedDoc) {
+                    SharingManager.Instance.open(this.selectedDocumentView?.props.Document === this.selectedDocumentView ? this.selectedDocumentView : undefined, this.selectedDoc);
                 }
             }}>
                 <FontAwesomeIcon className="expansion-button-icon" icon="ellipsis-h" color="black" size="sm" />

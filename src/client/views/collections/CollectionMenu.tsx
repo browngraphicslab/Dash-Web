@@ -1091,16 +1091,10 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     get numCols() { return NumCast(this.document.gridNumCols, 10); }
 
     /**
-     * Sets the value of `numCols` on the grid's Document to the value entered.
-     */
-    @undoBatch
-    onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter" || e.key === "Tab") {
-            if (e.currentTarget.valueAsNumber > 0) {
-                this.document.gridNumCols = e.currentTarget.valueAsNumber;
-            }
-
-        }
+    * Sets the value of `numCols` on the grid's Document to the value entered.
+    */
+    onNumColsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.currentTarget.valueAsNumber > 0) undoBatch(() => this.document.gridNumCols = e.currentTarget.valueAsNumber)();
     }
 
     /**
@@ -1138,9 +1132,10 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
      */
     onDecrementButtonClick = () => {
         this.clicked = true;
-        if (!this.decrementLimitReached) {
+        if (this.numCols > 1 && !this.decrementLimitReached) {
             this.entered && (this.document.gridNumCols as number)++;
             undoBatch(() => this.document.gridNumCols = this.numCols - 1)();
+            if (this.numCols === 1) this.decrementLimitReached = true;
         }
         this.entered = false;
     }
@@ -1163,7 +1158,7 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
     decrementValue = () => {
         this.entered = true;
         if (!this.clicked) {
-            if (this.numCols !== 1) {
+            if (this.numCols > 1) {
                 this.document.gridNumCols = this.numCols - 1;
             }
             else {
@@ -1196,9 +1191,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
                     <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
-                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.numCols.toString()} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
-                    <input className="columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
-                    <input className="columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
+                    <input className="collectionGridViewChrome-entryBox" type="number" value={this.numCols} onChange={this.onNumColsChange} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => { e.stopPropagation(); e.preventDefault(); e.currentTarget.focus(); }} />
+                    <input className="collectionGridViewChrome-columnButton" onClick={this.onIncrementButtonClick} onMouseEnter={this.incrementValue} onMouseLeave={this.decrementValue} type="button" value="↑" />
+                    <input className="collectionGridViewChrome-columnButton" style={{ marginRight: 5 }} onClick={this.onDecrementButtonClick} onMouseEnter={this.decrementValue} onMouseLeave={this.incrementValue} type="button" value="↓" />
                 </span>
                 {/* <span className="grid-control">
                     <span className="grid-icon">

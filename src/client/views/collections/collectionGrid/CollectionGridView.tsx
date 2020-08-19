@@ -94,8 +94,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     unflexedPosition(index: number): Omit<Layout, "i"> {
         return {
-            x: (index % Math.floor(this.numCols / this.defaultW)) * this.defaultW,
-            y: Math.floor(index / Math.floor(this.numCols / this.defaultH)) * this.defaultH,
+            x: (index % (Math.floor(this.numCols / this.defaultW) || 1)) * this.defaultW,
+            y: Math.floor(index / (Math.floor(this.numCols / this.defaultH) || 1)) * this.defaultH,
             w: this.defaultW,
             h: this.defaultH,
             static: true

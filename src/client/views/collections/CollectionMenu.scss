@@ -229,13 +229,17 @@
                 .flexLabel {
                     margin-bottom: 0;
                 }
-            }
 
-            .collectionGridViewChrome-entryBox {
-                width: 50%;
+                .collectionGridViewChrome-entryBox {
+                    width: 50%;
+                    color: black;
+                }
+
+                .collectionGridViewChrome-columnButton {
+                    color: black;
+                }
             }
         }
-
 
         .collectionStackingViewChrome-sort,
         .collectionTreeViewChrome-sort {

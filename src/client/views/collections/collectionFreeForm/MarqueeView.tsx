@@ -12,7 +12,7 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch } from "../../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { ContextMenu } from "../../ContextMenu";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { PreviewCursor } from "../../PreviewCursor";
@@ -138,6 +138,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                     tbox.layoutKey = "layout_" + StrCast(template.title);
                     Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
                 }
+                FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
                 this.props.addLiveTextDocument(tbox);
                 e.stopPropagation();
             }
