@@ -161,24 +161,24 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
-            columns.push(
-                {
-                    expander: true,
-                    Header: "",
-                    width: 30,
-                    Expander: (rowInfo) => {
-                        if (rowInfo.original.type === "collection") {
-                            return rowInfo.isExpanded ?
-                                <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="sm" /></div> :
-                                <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="sm" /></div>;
-                        } else {
-                            return null;
-                        }
+        //if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
+        columns.push(
+            {
+                expander: true,
+                Header: "",
+                width: 60,
+                Expander: (rowInfo) => {
+                    if (rowInfo.original.type === "collection") {
+                        return rowInfo.isExpanded ?
+                            <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="lg" /></div> :
+                            <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="lg" /></div>;
+                    } else {
+                        return null;
                     }
                 }
-            );
-        }
+            }
+        );
+        // }
         this.props.active;
 
         const cols = this.props.columns.map(col => {
@@ -603,7 +603,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             onPointerDown={this.props.onPointerDown} onClick={this.props.onClick} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
-            {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+            {StrCast(this.props.Document._chromeStatus) !== "disabled" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
                 : undefined}
             {!this._showDoc ? (null) :
                 <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}

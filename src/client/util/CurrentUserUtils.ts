@@ -46,7 +46,7 @@ export class CurrentUserUtils {
         if (doc["template-button-query"] === undefined) {
             const queryTemplate = Docs.Create.MulticolumnDocument(
                 [
-                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200, system: true }),
+                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
                 ],
                 { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
