@@ -14,6 +14,8 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 import { SnappingManager } from "../../util/SnappingManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocumentView } from "../nodes/DocumentView";
 
 library.add(faGripVertical, faTrash);
 
@@ -226,12 +228,21 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
     render() {
         const { children = null, rowInfo } = this.props;
+
         if (!rowInfo) {
             return <ReactTableDefaults.TrComponent>{children}</ReactTableDefaults.TrComponent>;
         }
 
         const { original } = rowInfo;
         const doc = FieldValue(Cast(original, Doc));
+        if (doc) {
+            const docView = DocumentManager.Instance.getDocumentViews(doc);
+
+            if (this.props.rowFocused && docView.length) {
+                SelectionManager.SelectDoc(docView[0], false);
+            }
+        }
+
         if (!doc) return <></>;
 
         const reference = React.createRef<HTMLDivElement>();
