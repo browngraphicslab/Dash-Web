@@ -313,7 +313,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 annoDocs.push(annoDoc);
                 anno.remove();
                 (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
-                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc.width), maxX));
+                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc._width), maxX));
             }));
 
             mainAnnoDocProto.y = Math.max(minY, 0);
