@@ -82,15 +82,15 @@ export default class SharingManager extends React.Component<{}> {
     //     return this.sharingDoc ? this.sharingDoc[PublicKey] !== SharingPermissions.None : false;
     // }
 
-    public open = (target: DocumentView) => {
+    public open = (target?: DocumentView, target_doc?: Doc) => {
         runInAction(() => this.users = []);
         // SelectionManager.DeselectAll();
         this.populateUsers();
         runInAction(() => {
             this.targetDocView = target;
-            this.targetDoc = target.props.Document;
+            this.targetDoc = target_doc || target?.props.Document;
             DictationOverlay.Instance.hasActiveModal = true;
-            this.isOpen = true;
+            this.isOpen = this.targetDoc !== undefined;
             this.permissions = SharingPermissions.Edit;
         });
         this.targetDoc!.author === Doc.CurrentUserEmail && !this.targetDoc![`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`] && distributeAcls(`ACL-${Doc.CurrentUserEmail.replace(".", "_")}`, SharingPermissions.Admin, this.targetDoc!);

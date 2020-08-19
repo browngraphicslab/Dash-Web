@@ -70,7 +70,7 @@ export interface SchemaTableProps {
     isSelected: (outsideReaction?: boolean) => boolean;
     isFocused: (document: Doc, outsideReaction: boolean) => boolean;
     setFocused: (document: Doc) => void;
-    setPreviewDoc: (document: Doc) => void;
+    setPreviewDoc: (document: Opt<Doc>) => void;
     columns: SchemaHeaderField[];
     documentKeys: any[];
     headerIsEditing: boolean;
@@ -161,24 +161,24 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
-            columns.push(
-                {
-                    expander: true,
-                    Header: "",
-                    width: 30,
-                    Expander: (rowInfo) => {
-                        if (rowInfo.original.type === "collection") {
-                            return rowInfo.isExpanded ?
-                                <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="sm" /></div> :
-                                <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="sm" /></div>;
-                        } else {
-                            return null;
-                        }
+        //if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
+        columns.push(
+            {
+                expander: true,
+                Header: "",
+                width: 60,
+                Expander: (rowInfo) => {
+                    if (rowInfo.original.type === "collection") {
+                        return rowInfo.isExpanded ?
+                            <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="lg" /></div> :
+                            <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="lg" /></div>;
+                    } else {
+                        return null;
                     }
                 }
-            );
-        }
+            }
+        );
+        // }
         this.props.active;
 
         const cols = this.props.columns.map(col => {
@@ -385,7 +385,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             const pdoc = FieldValue(this.childDocs[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
-        } else if ((this._cellIsEditing || this.props.headerIsEditing) && (e.keyCode === 37 || e.keyCode === 39)) {
+            e.stopPropagation();
+        } else if (e.keyCode === 27) {
+            this.props.setPreviewDoc(undefined);
             e.stopPropagation(); // stopPropagation for left/right arrows 
         }
     }
@@ -410,9 +412,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @undoBatch
-    createRow = () => {
+    createRow = action(() => {
         this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
-    }
+        this._focusedCell = { row: this.childDocs.length, col: this._focusedCell.col };
+    })
 
     @undoBatch
     @action
@@ -600,7 +603,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             onPointerDown={this.props.onPointerDown} onClick={this.props.onClick} onWheel={e => this.props.active(true) && e.stopPropagation()}
             onDrop={e => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
             {this.reactTable}
-            {StrCast(this.props.Document.type) !== "search" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
+            {StrCast(this.props.Document._chromeStatus) !== "disabled" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
                 : undefined}
             {!this._showDoc ? (null) :
                 <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}

@@ -69,7 +69,7 @@ export interface DocumentViewProps {
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    setupDragLines?: () => void;
+    setupDragLines?: (snapToDraggedDoc: boolean) => void;
     renderDepth: number;
     ContentScaling: () => number;
     PanelWidth: () => number;
@@ -684,7 +684,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
+    onContextMenu = (e: React.MouseEvent | Touch) => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (!(e instanceof Touch)) {
             if (e.button === 0 && !e.ctrlKey) {
@@ -703,7 +703,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const cm = ContextMenu.Instance;
-        if (!cm) return;
+        if (!cm || ((e as any)?.nativeEvent as any)?.SchemaHandled) return;
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>

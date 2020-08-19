@@ -245,11 +245,11 @@ export class MovableRow extends React.Component<MovableRowProps> {
             <div className={className} onKeyPress={this.onKeyDown} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
                 <div className="collectionSchema-row-wrapper" onKeyPress={this.onKeyDown} ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     <ReactTableDefaults.TrComponent onKeyPress={this.onKeyDown} >
-                        {/* <div className="row-dragger">
-                            <div className="row-option" onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
-                            <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
-                            <div className="row-option" onClick={() => this.props.addDocTab(this.props.rowInfo.original, "onRight")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
-                        </div> */}
+                        <div className="row-dragger">
+                            <div className="row-option" style={{ left: 5 }} onClick={undoBatch(() => this.props.removeDoc(this.props.rowInfo.original))}><FontAwesomeIcon icon="trash" size="sm" /></div>
+                            <div className="row-option" style={{ cursor: "grab", left: 25 }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
+                            <div className="row-option" style={{ left: 40 }} onClick={() => this.props.addDocTab(this.props.rowInfo.original, "onRight")}><FontAwesomeIcon icon="external-link-alt" size="sm" /></div>
+                        </div>
                         {children}
                     </ReactTableDefaults.TrComponent>
                 </div>
