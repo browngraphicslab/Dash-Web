@@ -882,6 +882,35 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
         return cols * 205 + 51;
     }
+    @action
+    changeSearchScope = (scope: string) => {
+        scope && (this.filter = false);
+        this.searchFullDB = scope;
+        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+        if (this.currentSelectedCollection !== undefined) {
+            let newarray: Doc[] = [];
+            let docs: Doc[] = [];
+            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+            while (docs.length > 0) {
+                newarray = [];
+                docs.forEach((d) => {
+                    if (d.data !== undefined) {
+                        d._searchDocs = new List<Doc>();
+                        d._docFilters = new List();
+                        const newdocs = DocListCast(d.data);
+                        newdocs.forEach((newdoc) => {
+                            newarray.push(newdoc);
+                        });
+                    }
+                });
+                docs = newarray;
+            }
+            this.currentSelectedCollection.props.Document._docFilters = new List();
+            this.currentSelectedCollection.props.Document._searchDocs = undefined;
+            this.currentSelectedCollection = undefined;
+        }
+        this.submitSearch();
+    }
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
@@ -969,70 +998,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     <div style={{ display: "contents" }}>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => {
-                                                    runInAction(() => {
-                                                        this.searchFullDB = "";
-                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                        if (this.currentSelectedCollection !== undefined) {
-                                                            let newarray: Doc[] = [];
-                                                            let docs: Doc[] = [];
-                                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                                            while (docs.length > 0) {
-                                                                newarray = [];
-                                                                docs.forEach((d) => {
-                                                                    if (d.data !== undefined) {
-                                                                        d._searchDocs = new List<Doc>();
-                                                                        d._docFilters = new List();
-                                                                        const newdocs = DocListCast(d.data);
-                                                                        newdocs.forEach((newdoc) => {
-                                                                            newarray.push(newdoc);
-                                                                        });
-                                                                    }
-                                                                });
-                                                                docs = newarray;
-                                                            }
-                                                            this.currentSelectedCollection.props.Document._docFilters = new List();
-                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                            this.currentSelectedCollection = undefined;
-                                                        }
-                                                        this.submitSearch();
-                                                    });
-                                                }} />
-                                            Collection
-                                        </label>
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => this.changeSearchScope("")} />
+                                                Collection
+                                            </label>
                                         </div>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB?.length ? true : false} onChange={() => {
-                                                    runInAction(() => {
-                                                        this.searchFullDB = "DB";
-                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                        this.filter = false;
-                                                        if (this.currentSelectedCollection !== undefined) {
-                                                            let newarray: Doc[] = [];
-                                                            let docs: Doc[] = [];
-                                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                                            while (docs.length > 0) {
-                                                                newarray = [];
-                                                                docs.forEach((d) => {
-                                                                    if (d.data !== undefined) {
-                                                                        d._searchDocs = new List<Doc>();
-                                                                        d._docFilters = new List();
-                                                                        const newdocs = DocListCast(d.data);
-                                                                        newdocs.forEach((newdoc) => {
-                                                                            newarray.push(newdoc);
-                                                                        });
-                                                                    }
-                                                                });
-                                                                docs = newarray;
-                                                            }
-                                                            this.currentSelectedCollection.props.Document._docFilters = new List();
-                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                            this.currentSelectedCollection = undefined;
-                                                        }
-                                                        this.submitSearch();
-                                                    });
-                                                }} />
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.searchFullDB?.length ? true : false} onChange={() => this.changeSearchScope("DB")} />
                                                 DB
                                                 <span onClick={action(() => this.searchFullDB = this.searchFullDB === "My Stuff" ? "DB" : "My Stuff")}>
                                                     {this.searchFullDB === "My Stuff" ? "(me)" : "(full)"}
