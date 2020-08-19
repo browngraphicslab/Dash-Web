@@ -69,7 +69,7 @@ export interface DocumentViewProps {
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    setupDragLines?: () => void;
+    setupDragLines?: (snapToDraggedDoc: boolean) => void;
     renderDepth: number;
     ContentScaling: () => number;
     PanelWidth: () => number;
