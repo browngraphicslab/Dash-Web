@@ -315,6 +315,57 @@
     }
 }
 
+.webBox-urlEditor {
+    position: relative;
+    opacity: 0.9;
+    z-index: 9001;
+    transition: top .5s;
+
+    .urlEditor {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        padding-bottom: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+        height: 35px;
+
+        .editorBase {
+            display: flex;
+
+            .editor-collapse {
+                transition: all .5s, opacity 0.3s;
+                position: absolute;
+                width: 40px;
+                transform-origin: top left;
+            }
+
+            .switchToText {
+                color: $main-accent;
+            }
+
+            .switchToText:hover {
+                color: $dark-color;
+            }
+        }
+
+        button:hover {
+            transform: scale(1);
+        }
+    }
+}
+
+.webpage-urlInput {
+    padding: 12px 10px 11px 10px;
+    border: 0px;
+    color: grey;
+    letter-spacing: 2px;
+    outline-color: black;
+    background: rgb(238, 238, 238);
+    width: 100%;
+    margin-right: 10px;
+    height: 100%;
+}
+
 .collectionFreeFormMenu-cont {
     display: inline-flex;
     position: relative;

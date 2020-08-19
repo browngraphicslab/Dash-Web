@@ -1,19 +1,19 @@
 import React = require("react");
-import { ReactTableDefaults, TableCellRenderer, RowInfo } from "react-table";
-import "./CollectionSchemaView.scss";
-import { Transform } from "../../util/Transform";
-import { Doc } from "../../../fields/Doc";
-import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
-import { Cast, FieldValue, StrCast } from "../../../fields/Types";
-import { ContextMenu } from "../ContextMenu";
-import { action } from "mobx";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DocumentManager } from "../../util/DocumentManager";
+import { action } from "mobx";
+import { ReactTableDefaults, RowInfo, TableCellRenderer } from "react-table";
+import { Doc } from "../../../fields/Doc";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { undoBatch } from "../../util/UndoManager";
+import { Cast, FieldValue, StrCast } from "../../../fields/Types";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SnappingManager } from "../../util/SnappingManager";
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import { ContextMenu } from "../ContextMenu";
+import "./CollectionSchemaView.scss";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 library.add(faGripVertical, faTrash);
 
@@ -226,13 +226,15 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
     render() {
         const { children = null, rowInfo } = this.props;
+
         if (!rowInfo) {
             return <ReactTableDefaults.TrComponent>{children}</ReactTableDefaults.TrComponent>;
         }
 
         const { original } = rowInfo;
         const doc = FieldValue(Cast(original, Doc));
-        if (!doc) return <></>;
+
+        if (!doc) return (null);
 
         const reference = React.createRef<HTMLDivElement>();
         const onItemDown = SetupDrag(reference, () => doc, this.move, StrCast(this.props.dropAction) as dropActionType);

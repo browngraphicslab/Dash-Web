@@ -617,6 +617,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             LinkDescriptionPopup.popupY = de.y;
             LinkDescriptionPopup.descriptionPopup = true;
 
+            const rect = document.body.getBoundingClientRect();
+            if (LinkDescriptionPopup.popupX + 200 > rect.width) {
+                LinkDescriptionPopup.popupX -= 190;
+                TaskCompletionBox.popupX -= 40;
+            }
+            if (LinkDescriptionPopup.popupY + 100 > rect.height) {
+                LinkDescriptionPopup.popupY -= 40;
+                TaskCompletionBox.popupY -= 40;
+            }
+
             setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
         });
         if (de.complete.annoDragData) {
