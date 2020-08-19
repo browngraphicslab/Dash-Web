@@ -28,6 +28,7 @@ export namespace SearchUtil {
         start?: number;
         rows?: number;
         fq?: string;
+        sort?: string;
         allowAliases?: boolean;
         onlyAliases?: boolean;
         "facet"?: string;
@@ -42,7 +43,7 @@ export namespace SearchUtil {
         if (options.onlyAliases) {
             replacedQuery = `{!join from=id to=proto_i}DEFAULT:${replacedQuery}`;
         }
-        const gotten = await rp.get(rpquery, { qs: { ...options, sort: "lastModified_d desc", q: replacedQuery } });
+        const gotten = await rp.get(rpquery, { qs: { ...options, q: replacedQuery } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
             return result;
