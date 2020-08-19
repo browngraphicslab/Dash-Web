@@ -877,15 +877,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.resultsScrolled();
     }
+    returnHeight = () => 31 + 31 * 6;
+    returnLength = () => {
+        const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
+        return cols * 205 + 51;
+    }
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
-        const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
-        let length = 0;
-        length = cols * 205 + 51;
-        let height = 0;
         const rows = this.children;
-        height = 31 + 31 * 6;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{Doc.CurrentUserEmail}</div>
@@ -923,9 +923,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                         if (d.data !== undefined) {
                                                             d._searchDocs = new List<Doc>(this.docsforfilter);
                                                             const newdocs = DocListCast(d.data);
-                                                            newdocs.forEach((newdoc) => {
-                                                                newarray.push(newdoc);
-                                                            });
+                                                            newdocs.forEach(newdoc => newarray.push(newdoc));
                                                         }
                                                     });
                                                     docs = newarray;
@@ -945,9 +943,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                             d._searchDocs = new List<Doc>();
                                                             d._docFilters = new List();
                                                             const newdocs = DocListCast(d.data);
-                                                            newdocs.forEach((newdoc) => {
-                                                                newarray.push(newdoc);
-                                                            });
+                                                            newdocs.forEach(newdoc => newarray.push(newdoc));
                                                         }
                                                     });
                                                     docs = newarray;
@@ -1058,8 +1054,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     Document={this.props.Document}
                                     moveDocument={returnFalse}
                                     removeDocument={returnFalse}
-                                    PanelHeight={this.open ? () => height : returnZero}
-                                    PanelWidth={this.open ? () => length : returnZero}
+                                    PanelHeight={this.open ? this.returnHeight : returnZero}
+                                    PanelWidth={this.open ? this.returnLength : returnZero}
                                     overflow={length > window.innerWidth || rows > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
