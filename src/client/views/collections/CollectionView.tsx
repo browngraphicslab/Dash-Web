@@ -69,7 +69,7 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Carousel3D = "3D Carousel",
     Linear = "linear",
-    Staff = "staff",
+    //Staff = "staff",
     Map = "map",
     Grid = "grid",
     Pile = "pileup"
@@ -139,6 +139,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         }
 
         const docs = doc instanceof Doc ? [doc] : doc;
+
+
+        if (docs.find(doc => Doc.AreProtosEqual(doc, this.props.Document))) return false;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
@@ -177,6 +180,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                             const pushpinLink = DocUtils.MakeLink({ doc: pushpin }, { doc: doc }, "pushpin", "");
                             doc.displayTimecode = undefined;
                         }
+                        doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
                     added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
@@ -204,7 +208,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 toRemove.forEach(doc => {
                     Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
                     recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
-                    doc.deleted = true;
                 });
                 return true;
             }
@@ -253,7 +256,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
+            //case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
             case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
@@ -286,7 +289,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
         subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
         subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
-        subItems.push({ description: "Staff", event: () => func(CollectionViewType.Staff), icon: "music" });
         subItems.push({ description: "Multicolumn", event: () => func(CollectionViewType.Multicolumn), icon: "columns" });
         subItems.push({ description: "Multirow", event: () => func(CollectionViewType.Multirow), icon: "columns" });
         subItems.push({ description: "Masonry", event: () => func(CollectionViewType.Masonry), icon: "columns" });

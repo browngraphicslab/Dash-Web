@@ -398,36 +398,36 @@ export class CurrentUserUtils {
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
-                { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true });
+                { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyPane === undefined) {
-            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Collection", system: true });
+            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Collection", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyComparison === undefined) {
-            doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true });
+            doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyScript === undefined) {
-            doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script", system: true });
+            doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyScreenshot === undefined) {
-            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true });
+            doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
-            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true });
+            doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyImage === undefined) {
             doc.emptyImage = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth: 250, title: "an image of a cat", system: true });
         }
         if (doc.emptyButton === undefined) {
-            doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true });
+            doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
                 ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]") as any,
-                { _width: 250, _height: 250, title: "container", system: true });
+                { _width: 250, _height: 250, title: "container", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true, system: true });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 400, UseCors: true, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.activeMobileMenu === undefined) {
             this.setupActiveMobileMenu(doc);
@@ -538,7 +538,8 @@ export class CurrentUserUtils {
                     iconShape: "square",
                     title,
                     _backgroundColor: "black",
-                    _stayInCollection: true,
+                    dropAction: "alias",
+                    removeDropProperties: new List<string>(["dropAction"]),
                     childDropAction: "same",
                     _width: 60,
                     _height: 60,
@@ -722,9 +723,9 @@ export class CurrentUserUtils {
         }
     }
 
-    static setupWorkspaces(doc: Doc) {
+    static async setupWorkspaces(doc: Doc) {
         // setup workspaces library item
-        doc.myWorkspaces === undefined;
+        await doc.myWorkspaces;
         if (doc.myWorkspaces === undefined) {
             doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
@@ -743,6 +744,7 @@ export class CurrentUserUtils {
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
+        return doc.myWorkspaces as any as Doc;
     }
 
     static setupCatalog(doc: Doc) {
@@ -808,7 +810,6 @@ export class CurrentUserUtils {
         if (doc.sidebar === undefined) {
             const sidebarContainer = new Doc();
             sidebarContainer._chromeStatus = "disabled";
-            sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
             sidebarContainer.system = true;
             doc.sidebar = new PrefetchProxy(sidebarContainer);
         }
@@ -861,15 +862,12 @@ export class CurrentUserUtils {
                 title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data", system: true
             }));
         }
-        if (doc.activePresentation === undefined) {
-            doc.activePresentation = Doc.MakeCopy(doc.emptyPresentation as Doc, true);
-        }
     }
 
     // Sharing sidebar is where shared documents are contained
     static setupSharingSidebar(doc: Doc) {
         if (doc["sidebar-sharing"] === undefined) {
-            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true }));
+            doc["sidebar-sharing"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Shared Documents", childDropAction: "alias", system: true, _yMargin: 30, _showTitle: "title", ignoreClick: true, lockedPosition: true }));
         }
     }
 

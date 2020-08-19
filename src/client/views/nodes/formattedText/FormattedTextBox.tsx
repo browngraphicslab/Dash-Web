@@ -408,8 +408,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
             flattened.forEach((h: TextSelection, ind: number) => tr = tr.addMark(h.from, h.to, ind === lastSel ? activeMark : mark));
             flattened[lastSel] && this._editorView.dispatch(tr.setSelection(new TextSelection(tr.doc.resolve(flattened[lastSel].from), tr.doc.resolve(flattened[lastSel].to))).scrollIntoView());
-
-            console.log(this._searchIndex);
         }
     }
 
@@ -511,7 +509,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         if (node.isTextblock) {
             let index = 0, foundAt;
             const ep = this.getNodeEndpoints(pm.state.doc, node);
-            while (ep && (foundAt = node.textContent.slice(index).search(RegExp(find, "i"))) > -1) {
+            const regexp = find.replace("*", "");
+            if (regexp) while (ep && (foundAt = node.textContent.slice(index).search(regexp, "i")) > -1) {
                 const sel = new TextSelection(pm.state.doc.resolve(ep.from + index + foundAt + 1), pm.state.doc.resolve(ep.from + index + foundAt + find.length + 1));
                 ret.push(sel);
                 index = index + foundAt + find.length;
@@ -1435,6 +1434,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         return wasUndoing;
     }
+    public static LiveTextUndo: UndoManager.Batch | undefined;
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
@@ -1442,6 +1442,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.endUndoTypingBatch();
         this.doLinkOnDeselect();
 
+        FormattedTextBox.LiveTextUndo?.end();
+        FormattedTextBox.LiveTextUndo = undefined;
         // move the richtextmenu offscreen
         //if (!RichTextMenu.Instance.Pinned) RichTextMenu.Instance.delayHide();
     }
@@ -1528,7 +1530,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const scale = this.props.hideOnLeave ? 1 : this.props.ContentScaling() * NumCast(this.layoutDoc._viewScale, 1);
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = Doc.GetSelectedTool() === InkTool.None && !this.layoutDoc.isBackground;
-        setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props), this.props.isSelected() ? 10 : 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
+        this.props.isSelected() && setTimeout(() => this._editorView && RichTextMenu.Instance?.updateMenu(this._editorView, undefined, this.props), 0); // need to make sure that we update a text box that is selected after updating the one that was deselected
         if (!this.props.isSelected() && FormattedTextBoxComment.textBox === this) {
             setTimeout(() => FormattedTextBoxComment.Hide(), 0);
         }

@@ -70,7 +70,6 @@ import RichTextMenu from './nodes/formattedText/RichTextMenu';
 export class MainView extends React.Component {
     public static Instance: MainView;
     private _buttonBarHeight = 36;
-    private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
     private _mainViewRef = React.createRef<HTMLDivElement>();
@@ -145,6 +144,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
+        this.sidebarContent.proto = undefined;
         this._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
 
@@ -254,6 +254,8 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
+        const myCatalog = Doc.UserDoc().myCatalog as Doc;
+        const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
         const freeformOptions: DocumentOptions = {
@@ -264,8 +266,10 @@ export class MainView extends React.Component {
             title: "Untitled Collection",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
-
+        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        Doc.AddDocToList(myCatalog, "data", freeformDoc);
+        Doc.AddDocToList(myCatalog, "data", presentation);
+        Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const copyWorkspace = ScriptField.MakeScript(`copyWorkspace()`);
@@ -418,7 +422,7 @@ export class MainView extends React.Component {
     onFlyoutPointerDown = (e: React.PointerEvent) => {
         if (this._flyoutTranslate) {
             setupMoveUpEvents(this, e, action((e: PointerEvent) => {
-                this.flyoutWidth = Math.max(e.clientX, 0);
+                this.flyoutWidth = Math.max(e.clientX - 58, 0);
                 if (this.flyoutWidth < 5) {
                     this.panelContent = "none";
                     this._lastButton && (this._lastButton.color = "white");
@@ -540,7 +544,12 @@ export class MainView extends React.Component {
             switch (this.panelContent = title) {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
-                case "Catalog": panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
+                case "Catalog": SearchBox.Instance.searchFullDB = "My Stuff";
+                    SearchBox.Instance.newsearchstring = "";
+                    SearchBox.Instance.enter(undefined);
+                    break;
+
+                // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
                 case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
@@ -652,7 +661,11 @@ export class MainView extends React.Component {
         return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}></div>) : (null);
     }
 
-    addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
+    addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => {
+        const ret = flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
+        ret && (doc._stayInCollection = undefined);
+        return ret;
+    }, true)
     remButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
     moveButtonDoc = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
@@ -969,7 +982,6 @@ export class MainView extends React.Component {
     }
 }
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
-Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function copyWorkspace() {
     const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);

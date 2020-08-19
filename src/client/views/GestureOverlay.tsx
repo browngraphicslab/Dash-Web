@@ -613,10 +613,10 @@ export default class GestureOverlay extends Touchable {
                 }
             }
             // if we're not drawing in a toolglass try to recognize as gesture
-            else {
+            else { // need to decide when to turn gestures back on
                 const result = points.length > 2 && GestureUtils.GestureRecognizer.Recognize(new Array(points));
                 let actionPerformed = false;
-                if (result && result.Score > 0.7) {
+                if (Doc.UserDoc().recognizeGestures && result && result.Score > 0.7) {
                     switch (result.Name) {
                         case GestureUtils.Gestures.Box: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.Box); break;
                         case GestureUtils.Gestures.StartBracket: actionPerformed = this.dispatchGesture(GestureUtils.Gestures.StartBracket); break;

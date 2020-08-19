@@ -114,7 +114,7 @@ export class DashDocView extends React.Component<IDashDocView> {
     }
     /*endregion*/
 
-    componentWillMount = () => {
+    componentWillUnmount = () => {
         this._reactionDisposer?.();
     }
 
@@ -254,7 +254,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                             whenActiveChanged={returnFalse}
                             bringToFront={emptyFunction}
                             dontRegisterView={false}
-                            docFilters={this.props.tbox?.props.docFilters||returnEmptyFilter}
+                            docFilters={this.props.tbox?.props.docFilters || returnEmptyFilter}
                             ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                             ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                             ContentScaling={this.contentScaling}

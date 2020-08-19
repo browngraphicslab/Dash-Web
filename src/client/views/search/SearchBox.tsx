@@ -4,7 +4,7 @@ import { action, computed, observable, runInAction, reaction, IReactionDisposer 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc, DocListCast } from '../../../fields/Doc';
+import { Doc, DocListCast, Opt } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -24,6 +24,7 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { DocumentView } from '../nodes/DocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
+import { ColumnType } from "../collections/CollectionSchemaView";
 
 export const searchSchema = createSchema({
     id: "string",
@@ -188,21 +189,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    enter = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+    enter = action((e: React.KeyboardEvent | undefined) => {
+        if (!e || e.key === "Enter") {
             this.layoutDoc._searchString = this.newsearchstring;
-            runInAction(() => this._pageStart = 0);
-
-            if (StrCast(this.layoutDoc._searchString) !== "" || !this.searchFullDB) {
-                runInAction(() => this.open = true);
-            }
-            else {
-                runInAction(() => this.open = false);
-
-            }
+            this._pageStart = 0;
+            this.open = StrCast(this.layoutDoc._searchString) !== "" || this.searchFullDB !== "DB";
             this.submitSearch();
         }
-    }
+    });
 
     @observable open: boolean = false;
 
@@ -239,6 +233,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable private _authorFieldStatus: boolean = true;
     //this also serves as an indicator if the collection status filter is applied
     @observable public _deletedDocsStatus: boolean = false;
+    @observable public _onlyAliases: boolean = true;
     @observable private _collectionStatus = false;
 
 
@@ -337,7 +332,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
         query = query.replace(/-\s+/g, '');
-        query = query.replace(/-/g, "");
+        // query = query.replace(/-/g, "");
         return query;
     }
 
@@ -574,7 +569,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }, 60000);
         }
 
-        if (query !== "") {
+        if (query !== "" || this.searchFullDB === "My Stuff") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
@@ -589,7 +584,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    @observable searchFullDB = true;
+    @observable searchFullDB = "DB";
 
     @observable _timeout: any = undefined;
 
@@ -604,18 +599,30 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        const types = ["preselement", "docholder", "search", "searchitem", "script", "fonticonbox", "button", "label"]; // this.filterTypes;
-        const baseExpr = "NOT baseProto_b:true AND NOT system_b:true";
+        const types = ["preselement", "docholder", "search", "searchitem", "fonticonbox"]; // this.filterTypes;
+        const baseExpr = "NOT system_b:true";
+        const authorExpr = this.searchFullDB === "My Stuff" ? ` author_t:${Doc.CurrentUserEmail}` : undefined;
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
-        const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
-        const typeExpr = !types ? "" : ` ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
+        const typeExpr = this._onlyAliases ? "NOT {!join from=id to=proto_i}type_t:*" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
+        const query = [baseExpr, authorExpr, includeDeleted, typeExpr].filter(q => q).join(" AND ").replace(/AND $/, "");
         return query;
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
 
+    @computed get primarySort() {
+        const suffixMap = (type: ColumnType) => {
+            switch (type) {
+                case ColumnType.Date: return "_d";
+                case ColumnType.String: return "_t";
+                case ColumnType.Boolean: return "_b";
+                case ColumnType.Number: return "_n";
+            }
+        };
+        const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
+        return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
+    }
     private NumResults = 50;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
@@ -624,9 +631,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, sort: this.primarySort, fq: this.filterQuery, start: 0, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
-                    this.realTotalResults = res.numFound;
+                    this.realTotalResults = res.numFound <= 0 ? 0 : res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
@@ -634,7 +641,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
                     const lines = new Map<string, string[]>();
                     res.docs.map((doc, i) => lines.set(doc[Id], res.lines[i]));
-                    const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
+                    const docs = res.docs;
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
                     const filteredDocs = this.filterDocsByType(docs);
@@ -873,163 +880,167 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         height = 31 + 31 * 6;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
+                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{Doc.CurrentUserEmail}</div>
                 <div className="searchBox-bar">
-                    <div style={{ position: "absolute", left: 15 }}>{Doc.CurrentUserEmail}</div>
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                        <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>} ><div>
-                            <FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
-                                style={{ cursor: "hand", color: "black", padding: 1, left: 35, position: "relative" }} />
-                        </div></Tooltip>
-                        <div style={{
-                            position: "relative",
-                            left: 245,
-                            zIndex: 9000,
-                            color: "grey",
-                            background: "white",
-                        }}> {`${this._results.length}` + " of " + `${this.realTotalResults}`}</div>
-                        <div style={{ cursor: "default", left: 250, position: "relative", }}>
-                            <Tooltip title={<div className="dash-tooltip" >only display documents matching search</div>} ><div>
-                                <FontAwesomeIcon icon={"filter"} size="lg"
-                                    style={{ cursor: "hand", padding: 1, backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
-                                    onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
-                                    onClick={action(() => {
-                                        ///DONT Change without emailing andy r first.
-                                        this.filter = !this.filter && !this.searchFullDB;
-                                        if (this.filter === true && this.currentSelectedCollection !== undefined) {
-                                            this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
-                                            let newarray: Doc[] = [];
-                                            let docs: Doc[] = [];
-                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                            while (docs.length > 0) {
-                                                newarray = [];
-                                                docs.forEach((d) => {
-                                                    if (d.data !== undefined) {
-                                                        d._searchDocs = new List<Doc>(this.docsforfilter);
-                                                        const newdocs = DocListCast(d.data);
-                                                        newdocs.forEach((newdoc) => {
-                                                            newarray.push(newdoc);
-                                                        });
-                                                    }
-                                                });
-                                                docs = newarray;
-                                            }
-
-                                            this.currentSelectedCollection.props.Document._docFilters = new List<string>(this.viewspec);
-                                            this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
-                                        }
-                                        else if (this.filter === false && this.currentSelectedCollection !== undefined) {
-                                            let newarray: Doc[] = [];
-                                            let docs: Doc[] = [];
-                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                            while (docs.length > 0) {
-                                                newarray = [];
-                                                docs.forEach((d) => {
-                                                    if (d.data !== undefined) {
-                                                        d._searchDocs = new List<Doc>();
-                                                        d._docFilters = new List();
-                                                        const newdocs = DocListCast(d.data);
-                                                        newdocs.forEach((newdoc) => {
-                                                            newarray.push(newdoc);
-                                                        });
-                                                    }
-                                                });
-                                                docs = newarray;
-                                            }
-
-                                            this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
-                                            this.currentSelectedCollection.props.Document._docFilters = new List();
-                                            this.props.Document.selectedDoc = undefined;
-                                        }
-                                    }
-                                    )} />
-                            </div></Tooltip></div>
+                    <div style={{ position: "relative", display: "flex", width: 450 }}>
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
-                            style={{ padding: 1, paddingLeft: 20, paddingRight: 20, color: "black", height: 20, width: 250 }} />
-                        <div style={{
-                            height: 25,
-                            paddingLeft: "4px",
-                            paddingRight: "4px",
-                            border: "1px solid gray",
-                            borderRadius: "0.3em",
-                            borderBottom: this.open === false ? "1px solid" : "none",
-                        }}>
-                            <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
-                                <div style={{ display: "contents" }}>
-                                    <div className="radio" style={{ margin: 0 }}>
-                                        <label style={{ fontSize: 12, marginTop: 6 }} >
-                                            <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => {
-                                                runInAction(() => {
-                                                    this.searchFullDB = !this.searchFullDB;
-                                                    this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                    if (this.currentSelectedCollection !== undefined) {
-                                                        let newarray: Doc[] = [];
-                                                        let docs: Doc[] = [];
-                                                        docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                                        while (docs.length > 0) {
-                                                            newarray = [];
-                                                            docs.forEach((d) => {
-                                                                if (d.data !== undefined) {
-                                                                    d._searchDocs = new List<Doc>();
-                                                                    d._docFilters = new List();
-                                                                    const newdocs = DocListCast(d.data);
-                                                                    newdocs.forEach((newdoc) => {
-                                                                        newarray.push(newdoc);
-                                                                    });
-                                                                }
+                            style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                            <div style={{ position: "absolute", left: 10 }}>
+                                <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>}>
+                                    <div><FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
+                                        style={{ cursor: "hand", color: "black", padding: 1, position: "relative" }} /></div>
+                                </Tooltip>
+                            </div>
+                            <div style={{ position: "absolute", left: 200, width: 30, zIndex: 9000, color: "grey", background: "white", }}>
+                                {`${this._results.length}` + " of " + `${this.realTotalResults}`}
+                            </div>
+                            <div style={{ cursor: "default", left: 235, position: "absolute", }}>
+                                <Tooltip title={<div className="dash-tooltip" >only display documents matching search</div>} >
+                                    <div><FontAwesomeIcon icon={"filter"} size="lg"
+                                        style={{ cursor: "hand", padding: 1, backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
+                                        onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined); }}
+                                        onClick={action(() => {
+                                            ///DONT Change without emailing andy r first.
+                                            this.filter = !this.filter && !this.searchFullDB;
+                                            if (this.filter === true && this.currentSelectedCollection !== undefined) {
+                                                this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>(this.docsforfilter);
+                                                let newarray: Doc[] = [];
+                                                let docs: Doc[] = [];
+                                                docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                                while (docs.length > 0) {
+                                                    newarray = [];
+                                                    docs.forEach((d) => {
+                                                        if (d.data !== undefined) {
+                                                            d._searchDocs = new List<Doc>(this.docsforfilter);
+                                                            const newdocs = DocListCast(d.data);
+                                                            newdocs.forEach((newdoc) => {
+                                                                newarray.push(newdoc);
                                                             });
-                                                            docs = newarray;
                                                         }
-                                                        this.currentSelectedCollection.props.Document._docFilters = new List();
-                                                        this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                        this.currentSelectedCollection = undefined;
-                                                    }
-                                                    this.submitSearch();
-                                                });
-                                            }} />
-                                        Collection
-                                    </label>
-                                    </div>
-                                    <div className="radio" style={{ margin: 0 }}>
-                                        <label style={{ fontSize: 12, marginTop: 6 }} >
-                                            <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB} onChange={() => {
-                                                runInAction(() => {
-                                                    this.searchFullDB = !this.searchFullDB;
-                                                    this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                    this.filter = false;
-                                                    if (this.currentSelectedCollection !== undefined) {
-                                                        let newarray: Doc[] = [];
-                                                        let docs: Doc[] = [];
-                                                        docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                                        while (docs.length > 0) {
-                                                            newarray = [];
-                                                            docs.forEach((d) => {
-                                                                if (d.data !== undefined) {
-                                                                    d._searchDocs = new List<Doc>();
-                                                                    d._docFilters = new List();
-                                                                    const newdocs = DocListCast(d.data);
-                                                                    newdocs.forEach((newdoc) => {
-                                                                        newarray.push(newdoc);
-                                                                    });
-                                                                }
-                                                            });
-                                                            docs = newarray;
-                                                        }
-                                                        this.currentSelectedCollection.props.Document._docFilters = new List();
-                                                        this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                        this.currentSelectedCollection = undefined;
-                                                    }
-                                                    this.submitSearch();
-                                                });
-                                            }} />
-                                            DB
-                                    </label>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                                                    });
+                                                    docs = newarray;
+                                                }
 
+                                                this.currentSelectedCollection.props.Document._docFilters = new List<string>(this.viewspec);
+                                                this.props.Document.selectedDoc = this.currentSelectedCollection.props.Document;
+                                            }
+                                            else if (this.filter === false && this.currentSelectedCollection !== undefined) {
+                                                let newarray: Doc[] = [];
+                                                let docs: Doc[] = [];
+                                                docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                                while (docs.length > 0) {
+                                                    newarray = [];
+                                                    docs.forEach((d) => {
+                                                        if (d.data !== undefined) {
+                                                            d._searchDocs = new List<Doc>();
+                                                            d._docFilters = new List();
+                                                            const newdocs = DocListCast(d.data);
+                                                            newdocs.forEach((newdoc) => {
+                                                                newarray.push(newdoc);
+                                                            });
+                                                        }
+                                                    });
+                                                    docs = newarray;
+                                                }
+
+                                                this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
+                                                this.currentSelectedCollection.props.Document._docFilters = new List();
+                                                this.props.Document.selectedDoc = undefined;
+                                            }
+                                        }
+                                        )} /></div>
+                                </Tooltip>
+                            </div>
+                            <div style={{
+                                height: 25,
+                                paddingLeft: "4px",
+                                paddingRight: "4px",
+                                border: "1px solid gray",
+                                borderRadius: "0.3em",
+                                borderBottom: this.open === false ? "1px solid" : "none",
+                            }}>
+                                <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
+                                    <div style={{ display: "contents" }}>
+                                        <div className="radio" style={{ margin: 0 }}>
+                                            <label style={{ fontSize: 12, marginTop: 6 }} >
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => {
+                                                    runInAction(() => {
+                                                        this.searchFullDB = "";
+                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                        if (this.currentSelectedCollection !== undefined) {
+                                                            let newarray: Doc[] = [];
+                                                            let docs: Doc[] = [];
+                                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                                            while (docs.length > 0) {
+                                                                newarray = [];
+                                                                docs.forEach((d) => {
+                                                                    if (d.data !== undefined) {
+                                                                        d._searchDocs = new List<Doc>();
+                                                                        d._docFilters = new List();
+                                                                        const newdocs = DocListCast(d.data);
+                                                                        newdocs.forEach((newdoc) => {
+                                                                            newarray.push(newdoc);
+                                                                        });
+                                                                    }
+                                                                });
+                                                                docs = newarray;
+                                                            }
+                                                            this.currentSelectedCollection.props.Document._docFilters = new List();
+                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
+                                                            this.currentSelectedCollection = undefined;
+                                                        }
+                                                        this.submitSearch();
+                                                    });
+                                                }} />
+                                            Collection
+                                        </label>
+                                        </div>
+                                        <div className="radio" style={{ margin: 0 }}>
+                                            <label style={{ fontSize: 12, marginTop: 6 }} >
+                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB?.length ? true : false} onChange={() => {
+                                                    runInAction(() => {
+                                                        this.searchFullDB = "DB";
+                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+                                                        this.filter = false;
+                                                        if (this.currentSelectedCollection !== undefined) {
+                                                            let newarray: Doc[] = [];
+                                                            let docs: Doc[] = [];
+                                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+                                                            while (docs.length > 0) {
+                                                                newarray = [];
+                                                                docs.forEach((d) => {
+                                                                    if (d.data !== undefined) {
+                                                                        d._searchDocs = new List<Doc>();
+                                                                        d._docFilters = new List();
+                                                                        const newdocs = DocListCast(d.data);
+                                                                        newdocs.forEach((newdoc) => {
+                                                                            newarray.push(newdoc);
+                                                                        });
+                                                                    }
+                                                                });
+                                                                docs = newarray;
+                                                            }
+                                                            this.currentSelectedCollection.props.Document._docFilters = new List();
+                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
+                                                            this.currentSelectedCollection = undefined;
+                                                        }
+                                                        this.submitSearch();
+                                                    });
+                                                }} />
+                                                DB
+                                                <span onClick={action(() => this.searchFullDB = this.searchFullDB === "My Stuff" ? "DB" : "My Stuff")}>
+                                                    {this.searchFullDB === "My Stuff" ? "(me)" : "(full)"}
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
                 <div style={{ zIndex: 20000, color: "black" }}>
                     {this._searchbarOpen === true ?

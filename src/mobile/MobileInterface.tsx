@@ -50,7 +50,7 @@ library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngl
 @observer
 export class MobileInterface extends React.Component {
     static Instance: MobileInterface;
-    private _library: Doc = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
+    private _library: Promise<Doc>;
     private _mainDoc: any = CurrentUserUtils.setupActiveMobileMenu(Doc.UserDoc());
     @observable private _sidebarActive: boolean = false; //to toggle sidebar display
     @observable private _imageUploadActive: boolean = false; //to toggle image upload
@@ -67,6 +67,7 @@ export class MobileInterface extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
+        this._library = CurrentUserUtils.setupLibrary(Doc.UserDoc()); // to access documents in Dash Web
         MobileInterface.Instance = this;
     }
 
@@ -123,7 +124,7 @@ export class MobileInterface extends React.Component {
      * Method called when 'Library' button is pressed on the home screen
      */
     switchToLibrary = async () => {
-        this.switchCurrentView(this._library);
+        this._library.then(library => this.switchCurrentView(library));
         runInAction(() => this._homeMenu = false);
         this.toggleSidebar();
     }
@@ -138,7 +139,7 @@ export class MobileInterface extends React.Component {
         // Case 1: Parent document is 'workspaces'
         if (doc === Cast(this._library, Doc) as Doc) {
             this._child = null;
-            this.switchCurrentView(this._library);
+            this._library.then(library => this.switchCurrentView(library));
             // Case 2: Parent document is the 'home' menu (root node)
         } else if (doc === Cast(this._homeDoc, Doc) as Doc) {
             this._homeMenu = true;
@@ -177,7 +178,7 @@ export class MobileInterface extends React.Component {
     @action
     returnMain = () => {
         this._parents = [this._homeDoc];
-        this.switchCurrentView(this._library);
+        this._library.then(library => this.switchCurrentView(library));
         this._homeMenu = false;
         this._child = null;
     }
@@ -286,8 +287,9 @@ export class MobileInterface extends React.Component {
 
     // Handles when user clicks on a document in the pathbar
     @action
-    handlePathClick = (doc: Doc, index: number) => {
-        if (doc === this._library) {
+    handlePathClick = async (doc: Doc, index: number) => {
+        const library = await this._library;
+        if (doc === library) {
             this._child = null;
             this.switchCurrentView(doc);
             this._parents.length = index;

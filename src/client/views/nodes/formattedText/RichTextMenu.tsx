@@ -253,7 +253,9 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             const pos = this.view.state.selection.$from;
             const ref_node = this.reference_node(pos);
             if (ref_node && ref_node !== this.view.state.doc && ref_node.isText) {
-                ref_node.marks.forEach(m => {
+                const marks = Array.from(ref_node.marks);
+                marks.push(...(this.view.state.storedMarks as any));
+                marks.forEach(m => {
                     m.type === state.schema.marks.pFontFamily && activeFamilies.push(m.attrs.family);
                     m.type === state.schema.marks.pFontColor && activeColors.push(m.attrs.color);
                     m.type === state.schema.marks.pFontSize && activeSizes.push(String(m.attrs.fontSize) + "pt");
@@ -428,14 +430,20 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         if ((this.view?.state.selection.$from.pos || 0) < 2) {
             this.TextView.layoutDoc._fontSize = mark.attrs.fontSize;
         }
-        this.setMark(view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize }), view.state, view.dispatch, true);
+        const fmark = view.state.schema.marks.pFontSize.create({ fontSize: mark.attrs.fontSize });
+        this.setMark(fmark, view.state, (tx: any) => view.dispatch(tx.addStoredMark(fmark)), true);
+        view.focus();
+        this.updateMenu(view, undefined, this.props);
     }
 
     changeFontFamily = (mark: Mark, view: EditorView) => {
         if ((this.view?.state.selection.$from.pos || 0) < 2) {
             this.TextView.layoutDoc._fontFamily = mark.attrs.family;
         }
-        this.setMark(view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family }), view.state, view.dispatch, true);
+        const fmark = view.state.schema.marks.pFontFamily.create({ family: mark.attrs.family });
+        this.setMark(fmark, view.state, (tx: any) => view.dispatch(tx.addStoredMark(fmark)), true);
+        view.focus();
+        this.updateMenu(view, undefined, this.props);
     }
 
     // TODO: remove doesn't work
@@ -471,6 +479,8 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 this.view.dispatch(tx3);
             }
         }
+        this.view.focus();
+        this.updateMenu(this.view, undefined, this.props);
     }
 
     insertSummarizer(state: EditorState<any>, dispatch: any) {
@@ -675,16 +685,22 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
             e.preventDefault();
             e.stopPropagation();
             self.TextView.endUndoTypingBatch();
-            UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
-            self.TextView.EditorView!.focus();
+            if (self.view) {
+                UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
+                self.view.focus();
+                self.updateMenu(self.view, undefined, self.props);
+            }
         }
         function changeColor(e: React.PointerEvent, color: string) {
             e.preventDefault();
             e.stopPropagation();
             self.setActiveColor(color);
             self.TextView.endUndoTypingBatch();
-            UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
-            self.TextView.EditorView!.focus();
+            if (self.view) {
+                UndoManager.RunInBatch(() => self.view && self.insertColor(self.activeFontColor, self.view.state, self.view.dispatch), "rt menu color");
+                self.view.focus();
+                self.updateMenu(self.view, undefined, self.props);
+            }
         }
 
         // onPointerDown={onColorClick}
@@ -973,7 +989,7 @@ export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size", action((val: string) => this.activeFontSize = val)),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family", action((val: string) => this.activeFontFamily = val)),
                 <div className="richTextMenu-divider" key="divider 4" />,
-                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", action((val: string) => this.activeListType = val)),
+                this.createNodesDropdown(this.activeListType, this.listTypeOptions, "list type", () => ({})),
                 this.createButton("sort-amount-down", "Summarize", undefined, this.insertSummarizer),
                 this.createButton("quote-left", "Blockquote", undefined, this.insertBlockquote),
                 this.createButton("minus", "Horizontal Rule", undefined, this.insertHorizontalRule),

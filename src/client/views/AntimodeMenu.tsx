@@ -20,7 +20,7 @@ export default abstract class AntimodeMenu<T extends AntimodeMenuProps> extends 
     @observable protected _transitionProperty: string = "opacity";
     @observable protected _transitionDuration: string = "0.5s";
     @observable protected _transitionDelay: string = "";
-    @observable protected _canFade: boolean = true;
+    @observable protected _canFade: boolean = false;
 
     @observable public Pinned: boolean = false;
 

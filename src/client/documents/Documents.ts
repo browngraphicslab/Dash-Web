@@ -20,7 +20,7 @@ import { dropActionType } from "../util/DragManager";
 import { DirectoryImportBox } from "../util/Import & Export/DirectoryImportBox";
 import { LinkManager } from "../util/LinkManager";
 import { Scripting } from "../util/Scripting";
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { DocumentType } from "./DocumentTypes";
 import { SearchBox } from "../views/search/SearchBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -185,6 +185,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
+    cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
@@ -564,6 +565,7 @@ export namespace Docs {
 
             if (!("creationDate" in protoProps)) {
                 protoProps.creationDate = new DateField;
+                protoProps[`${fieldKey}-lastModified`] = new DateField;
             }
 
             protoProps.isPrototype = true;
@@ -575,7 +577,7 @@ export namespace Docs {
             // without this, if a doc has no annotations but the user has AddOnly privileges, they won't be able to add an annotation because they would have needed to create the field's list which they don't have permissions to do.
 
             dataDoc[fieldKey + "-annotations"] = new List<Doc>();
-            dataDoc.aliases = new List<Doc>();
+            dataDoc.aliases = new List<Doc>([viewDoc]);
 
             proto.links = ComputedField.MakeFunction("links(self)");
 
@@ -1040,7 +1042,7 @@ export namespace DocUtils {
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc()["template-notes"] as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
-                event: (args: { x: number, y: number }) => {
+                event: undoBatch((args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {
                         _width: 200, x, y, _autoHeight: note._autoHeight !== false,
                         title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
@@ -1048,7 +1050,7 @@ export namespace DocUtils {
                     textDoc.layoutKey = "layout_" + note.title;
                     textDoc[textDoc.layoutKey] = note;
                     docTextAdder(textDoc);
-                },
+                }),
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"
@@ -1057,7 +1059,7 @@ export namespace DocUtils {
             description: "Add Template Doc ...",
             subitems: DocListCast(Cast(Doc.UserDoc().myItemCreators, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
-                event: (args: { x: number, y: number }) => {
+                event: undoBatch((args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
                     if (newDoc) {
                         newDoc.author = Doc.CurrentUserEmail;
@@ -1065,7 +1067,7 @@ export namespace DocUtils {
                         newDoc.y = y;
                         docAdder(newDoc);
                     }
-                },
+                }),
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"
