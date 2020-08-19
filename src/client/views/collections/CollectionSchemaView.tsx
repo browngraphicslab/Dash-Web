@@ -20,7 +20,6 @@ import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import '../DocumentDecorations.scss';
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { KeysDropdown } from "./CollectionSchemaHeaders";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
@@ -392,7 +391,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action setFocused = (doc: Doc) => this._focusedTable = doc;
 
     @action setPreviewDoc = (doc: Opt<Doc>) => {
-        SelectionManager.SelectSchemaDoc(doc);
+        SelectionManager.SelectSchemaDoc(this, doc);
         this.previewDoc = doc;
     }
 

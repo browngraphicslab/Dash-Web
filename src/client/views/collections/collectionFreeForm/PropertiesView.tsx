@@ -51,9 +51,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @computed get selectedDoc() { return SelectionManager.SelectedSchemaDoc() || this.selectedDocumentView?.rootDoc; }
     @computed get selectedDocumentView() {
-        if (SelectionManager.SelectedSchemaDoc())
-            return undefined;
-        else if (SelectionManager.SelectedDocuments().length) {
+        if (SelectionManager.SelectedDocuments().length) {
             return SelectionManager.SelectedDocuments()[0];
         } else if (PresBox.Instance && PresBox.Instance._selectedArray.length) {
             return DocumentManager.Instance.getDocumentView(PresBox.Instance.rootDoc);
@@ -348,7 +346,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
         return <Tooltip title={<div className="dash-tooltip">{"Show more permissions"}</div>}>
             <div className="expansion-button" onPointerDown={() => {
                 if (this.selectedDocumentView || this.selectedDoc) {
-                    SharingManager.Instance.open(this.selectedDocumentView, this.selectedDoc);
+                    SharingManager.Instance.open(this.selectedDocumentView?.props.Document === this.selectedDocumentView ? this.selectedDocumentView : undefined, this.selectedDoc);
                 }
             }}>
                 <FontAwesomeIcon className="expansion-button-icon" icon="ellipsis-h" color="black" size="sm" />

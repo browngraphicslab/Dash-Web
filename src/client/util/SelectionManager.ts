@@ -3,9 +3,7 @@ import { Doc, Opt } from "../../fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
 import { List } from "../../fields/List";
-import { Scripting } from "./Scripting";
-import { DocumentManager } from "./DocumentManager";
-import { MobileDocumentUploadContent } from "../../server/Message";
+import { CollectionSchemaView } from "../views/collections/CollectionSchemaView";
 
 export namespace SelectionManager {
 
@@ -14,10 +12,12 @@ export namespace SelectionManager {
         @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
         @observable SelectedSchemaDocument: Doc | undefined;
+        @observable SelectedSchemaCollection: CollectionSchemaView | undefined;
 
         @action
-        SelectSchemaDoc(doc: Opt<Doc>) {
+        SelectSchemaDoc(collectionView: Opt<CollectionSchemaView>, doc: Opt<Doc>) {
             manager.SelectedSchemaDocument = doc;
+            manager.SelectedSchemaCollection = collectionView;
         }
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
@@ -33,6 +33,7 @@ export namespace SelectionManager {
             } else if (!ctrlPressed && Array.from(manager.SelectedDocuments.entries()).length > 1) {
                 Array.from(manager.SelectedDocuments.keys()).map(dv => dv !== docView && dv.props.whenActiveChanged(false));
                 manager.SelectedSchemaDocument = undefined;
+                manager.SelectedSchemaCollection = undefined;
                 manager.SelectedDocuments.clear();
                 manager.SelectedDocuments.set(docView, true);
             }
@@ -49,6 +50,7 @@ export namespace SelectionManager {
         }
         @action
         DeselectAll(): void {
+            manager.SelectedSchemaCollection = undefined;
             manager.SelectedSchemaDocument = undefined;
             Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments.clear();
@@ -64,8 +66,8 @@ export namespace SelectionManager {
     export function SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
         manager.SelectDoc(docView, ctrlPressed);
     }
-    export function SelectSchemaDoc(document: Opt<Doc>): void {
-        manager.SelectSchemaDoc(document);
+    export function SelectSchemaDoc(colSchema: Opt<CollectionSchemaView>, document: Opt<Doc>): void {
+        manager.SelectSchemaDoc(colSchema, document);
     }
 
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
@@ -96,5 +98,8 @@ export namespace SelectionManager {
     }
     export function SelectedSchemaDoc(): Doc | undefined {
         return manager.SelectedSchemaDocument;
+    }
+    export function SelectedSchemaCollection(): CollectionSchemaView | undefined {
+        return manager.SelectedSchemaCollection;
     }
 }
