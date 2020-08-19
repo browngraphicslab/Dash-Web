@@ -624,7 +624,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
         return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
     }
-    private NumResults = 50;
+    private NumResults = 500;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
         if (this.lockPromise) {
