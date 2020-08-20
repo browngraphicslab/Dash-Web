@@ -4,7 +4,7 @@ import { action, computed, observable, runInAction, reaction, IReactionDisposer 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc, DocListCast, Opt } from '../../../fields/Doc';
+import { Doc, DocListCast, Opt, Field } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
@@ -153,10 +153,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (d.data !== undefined) {
                             d._searchDocs = new List<Doc>();
                             d._docFilters = new List();
-                            const newdocs = DocListCast(d.data);
-                            newdocs.forEach((newdoc) => {
-                                newarray.push(newdoc);
-                            });
+                            DocListCast(d.data).forEach((newdoc) => newarray.push(newdoc));
                         }
                     });
                     docs = newarray;
@@ -421,19 +418,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
-                    d ? console.log(Cast(d.context, Doc)) : null;
                     if (d.data !== undefined) {
                         newarray.push(...DocListCast(d.data));
                     }
                     const hlights: string[] = [];
-                    const protos = Doc.GetAllPrototypes(d);
-                    protos.forEach(proto => {
-                        Object.keys(proto).forEach(key => {
-                            if (StrCast(d[key]).toLowerCase().includes(query) && !hlights.includes(key)) {
-                                hlights.push(key);
-                            }
-                        });
-                    });
+                    this.documentKeys(d).forEach(key =>
+                        Field.toString(d[key] as Field).toLowerCase().includes(query) && !hlights.includes(key) && hlights.push(key));
                     if (hlights.length > 0) {
                         found.push([d, hlights, []]);
                         docsforFilter.push(d);
@@ -448,13 +438,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
                 while (docs.length > 0) {
                     newarray = [];
-                    docs.forEach((d) => {
-                        if (d.data !== undefined) {
+                    docs.forEach(d => {
+                        const docs = DocListCast(d.data);
+                        if (docs.length) {
                             d._searchDocs = new List<Doc>(docsforFilter);
-                            const newdocs = DocListCast(d.data);
-                            newdocs.forEach((newdoc) => {
-                                newarray.push(newdoc);
-                            });
+                            docs.forEach((newdoc) => newarray.push(newdoc));
                         }
                     });
                     docs = newarray;
