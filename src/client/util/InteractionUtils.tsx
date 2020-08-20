@@ -300,19 +300,52 @@ export namespace InteractionUtils {
 
                 return points;
             case "circle":
+                // const centerX = (right + left) / 2;
+                // const centerY = (bottom + top) / 2;
+                // const radius = bottom - centerY;
+
+                // for (var y = top; y < bottom; y++) {
+                //     const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                //     points.push({ X: x, Y: y });
+                // }
+                // for (var y = bottom; y > top; y--) {
+                //     const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                //     const newX = centerX - (x - centerX);
+                //     points.push({ X: newX, Y: y });
+                // }
+                // points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 const centerX = (right + left) / 2;
                 const centerY = (bottom + top) / 2;
-                const radius = bottom - centerY;
-                for (var y = top; y < bottom; y++) {
-                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
-                    points.push({ X: x, Y: y });
+                if ((bottom - centerY) < (right - centerX)) {
+                    const radius = bottom - centerY;
+                    for (var y = top; y < bottom; y++) {
+                        const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                        points.push({ X: x, Y: y });
+                    }
+                    for (var y = bottom; y > top; y--) {
+                        const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                        const newX = centerX - (x - centerX);
+                        points.push({ X: newX, Y: y });
+                    }
+                    points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+
+                } else {
+                    //right = bottom
+                    //left = top
+                    const radius = right - centerX;
+                    for (var x = left; x < right; x++) {
+                        const y = Math.sqrt(Math.pow(radius, 2) - (Math.pow((x - centerX), 2))) + centerY;
+                        points.push({ X: x, Y: y });
+                    }
+                    for (var x = right; x > left; x--) {
+                        const y = Math.sqrt(Math.pow(radius, 2) - (Math.pow((x - centerX), 2))) + centerY;
+                        const newY = centerY - (y - centerY);
+                        points.push({ X: x, Y: newY });
+                    }
+                    points.push({ X: left, Y: Math.sqrt(Math.pow(radius, 2) - (Math.pow((left - centerX), 2))) + centerY });
+
+
                 }
-                for (var y = bottom; y > top; y--) {
-                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
-                    const newX = centerX - (x - centerX);
-                    points.push({ X: newX, Y: y });
-                }
-                points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
                 return points;
             // case "arrow":
             //     const x1 = left;
