@@ -541,19 +541,14 @@ export class MainView extends React.Component {
         } else {
             let panelDoc: Doc | undefined;
             switch (this.panelContent = title) {
-                case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
-                case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
+                case "Settings": SettingsManager.Instance.open(); break;
                 case "Catalog": SearchBox.Instance._searchFullDB = "My Stuff";
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
-
                 // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
-                case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
-                case "Settings": SettingsManager.Instance.open(); break;
-                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
-                case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
-                case "User Doc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
+                default:
+                    panelDoc = button.target as any; break;
             }
             this.sidebarContent.proto = panelDoc;
             if (panelDoc) {

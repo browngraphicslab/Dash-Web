@@ -522,7 +522,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         //this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex));
     }
     returnHeight = () => 31 + 31 * 6;
-    returnLength = () => 51 + 205 * Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
+    returnLength = () => Math.min(window.innerWidth, 51 + 205 * Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length);
 
     @action
     changeSearchScope = (scope: string) => {

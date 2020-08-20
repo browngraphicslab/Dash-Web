@@ -506,19 +506,19 @@ export class CurrentUserUtils {
     }
 
     static menuBtnDescriptions(doc: Doc): {
-        title: string, icon: string, click: string, watchedDocuments?: Doc
+        title: string, target: Doc, icon: string, click: string, watchedDocuments?: Doc
     }[] {
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
-            { title: "Sharing", icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
-            { title: "Workspace", icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Catalog", icon: "file", click: 'selectMainMenu(self)' },
-            { title: "Archive", icon: "archive", click: 'selectMainMenu(self)' },
-            { title: "Import", icon: "upload", click: 'selectMainMenu(self)' },
-            { title: "Tools", icon: "wrench", click: 'selectMainMenu(self)' },
-            { title: "Help", icon: "question-circle", click: 'selectMainMenu(self)' },
-            { title: "Settings", icon: "cog", click: 'selectMainMenu(self)' },
-            { title: "User Doc", icon: "address-card", click: 'selectMainMenu(self)' },
+            { title: "Sharing", target: Cast(doc["sidebar-sharing"], Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
+            { title: "Workspace", target: Cast(doc["sidebar-workspaces"], Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
+            { title: "Archive", target: Cast(doc["sidebar-recentlyClosed"], Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Import", target: Cast(doc["sidebar-import"], Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
+            { title: "Tools", target: Cast(doc["sidebar-tools"], Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
+            { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
+            { title: "User Doc", target: Cast(doc["sidebar-userDoc"], Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
         ];
     }
 
@@ -532,11 +532,12 @@ export class CurrentUserUtils {
     }
     static setupMenuPanel(doc: Doc) {
         if (doc.menuStack === undefined) {
-            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, icon, click, watchedDocuments }) =>
+            const menuBtns = CurrentUserUtils.menuBtnDescriptions(doc).map(({ title, target, icon, click, watchedDocuments }) =>
                 Docs.Create.FontIconDocument({
                     icon,
                     iconShape: "square",
                     title,
+                    target,
                     _backgroundColor: "black",
                     dropAction: "alias",
                     removeDropProperties: new List<string>(["dropAction"]),
@@ -959,11 +960,11 @@ export class CurrentUserUtils {
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupImportSidebar(doc);
         this.setupActiveMobileMenu(doc); // sets up the current mobile menu for Dash Mobile
-        this.setupMenuPanel(doc);
         this.setupSearchPanel(doc);
         this.setupOverlays(doc);  // documents in overlay layer
         this.setupDockedButtons(doc);  // the bottom bar of font icons
         await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
+        this.setupMenuPanel(doc);
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
         doc.globalScriptDatabase = Docs.Prototypes.MainScriptDocument();
         doc.globalGroupDatabase = Docs.Prototypes.MainGroupDocument();
