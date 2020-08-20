@@ -183,7 +183,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
         }
         if (container) {
             const alias = Doc.MakeAlias(container.props.Document);
-            alias.viewType = CollectionViewType.Time;
+            alias._viewType = CollectionViewType.Time;
             let list = Cast(alias._columnHeaders, listSpec(SchemaHeaderField));
             if (!list) {
                 alias._columnHeaders = list = new List<SchemaHeaderField>();

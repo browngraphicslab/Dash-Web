@@ -360,7 +360,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
             this.Interacting = true;
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
-            SelectionManager.SelectedDocuments()[0].props.setupDragLines?.();
+            SelectionManager.SelectedDocuments()[0].props.setupDragLines?.(e.ctrlKey || e.shiftKey);
         }
         this._snapX = e.pageX;
         this._snapY = e.pageY;

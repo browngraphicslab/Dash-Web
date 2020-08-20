@@ -13,56 +13,10 @@ import { SearchBox } from "../search/SearchBox";
 import { ColumnType } from "./CollectionSchemaView";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
-import * as fa from '@fortawesome/free-solid-svg-icons';
 
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-export interface HeaderProps {
-    keyValue: SchemaHeaderField;
-    possibleKeys: string[];
-    existingKeys: string[];
-    keyType: ColumnType;
-    typeConst: boolean;
-    onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
-    setIsEditing: (isEditing: boolean) => void;
-    deleteColumn: (column: string) => void;
-    setColumnType: (column: SchemaHeaderField, type: ColumnType) => void;
-    setColumnSort: (column: SchemaHeaderField, desc: boolean | undefined) => void;
-    setColumnColor: (column: SchemaHeaderField, color: string) => void;
-
-}
-
-export class CollectionSchemaHeader extends React.Component<HeaderProps> {
-    render() {
-        const icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "sort-amount-down" :
-                this.props.keyType === ColumnType.Image ? "image" : this.props.keyType === ColumnType.List ? "list-ul" : this.props.keyType === ColumnType.Date ? "calendar" :
-                    "align-justify";
-        return (
-            <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
-                <CollectionSchemaColumnMenu
-                    columnField={this.props.keyValue}
-                    // keyValue={this.props.keyValue.heading}
-                    possibleKeys={this.props.possibleKeys}
-                    existingKeys={this.props.existingKeys}
-                    // keyType={this.props.keyType}
-                    typeConst={this.props.typeConst}
-                    menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{this.props.keyValue.heading}</div>}
-                    addNew={false}
-                    onSelect={this.props.onSelect}
-                    setIsEditing={this.props.setIsEditing}
-                    deleteColumn={this.props.deleteColumn}
-                    onlyShowOptions={false}
-                    setColumnType={this.props.setColumnType}
-                    setColumnSort={this.props.setColumnSort}
-                    setColumnColor={this.props.setColumnColor}
-                />
-            </div>
-        );
-    }
-}
 
 
 export interface AddColumnHeaderProps {
@@ -77,7 +31,6 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
         );
     }
 }
-
 
 
 export interface ColumnMenuProps {
@@ -103,37 +56,29 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     @observable private _isOpen: boolean = false;
     @observable private _node: HTMLDivElement | null = null;
 
-    componentDidMount() {
-        document.addEventListener("pointerdown", this.detectClick);
-    }
+    componentDidMount() { document.addEventListener("pointerdown", this.detectClick); }
 
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.detectClick);
-    }
+    componentWillUnmount() { document.removeEventListener("pointerdown", this.detectClick); }
 
-    detectClick = (e: PointerEvent): void => {
-        if (this._node && this._node.contains(e.target as Node)) {
-        } else {
-            this._isOpen = false;
-            this.props.setIsEditing(false);
-        }
+    @action
+    detectClick = (e: PointerEvent) => {
+        !this._node?.contains(e.target as Node) && this.props.setIsEditing(this._isOpen = false);
     }
 
     @action
     toggleIsOpen = (): void => {
-        this._isOpen = !this._isOpen;
-        this.props.setIsEditing(this._isOpen);
+        this.props.setIsEditing(this._isOpen = !this._isOpen);
     }
 
-    changeColumnType = (type: ColumnType): void => {
+    changeColumnType = (type: ColumnType) => {
         this.props.setColumnType(this.props.columnField, type);
     }
 
-    changeColumnSort = (desc: boolean | undefined): void => {
+    changeColumnSort = (desc: boolean | undefined) => {
         this.props.setColumnSort(this.props.columnField, desc);
     }
 
-    changeColumnColor = (color: string): void => {
+    changeColumnColor = (color: string) => {
         this.props.setColumnColor(this.props.columnField, color);
     }
 
@@ -145,7 +90,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     renderTypes = () => {
-        if (this.props.typeConst) return <></>;
+        if (this.props.typeConst) return (null);
 
         const type = this.props.columnField.type;
         return (
@@ -291,7 +236,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable private _key: string = this.props.keyValue;
     @observable private _searchTerm: string = this.props.keyValue;
     @observable private _isOpen: boolean = false;
-    @observable private _canClose: boolean = true;
+    @observable private _node: HTMLDivElement | null = null;
     @observable private _inputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
@@ -306,6 +251,35 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.props.setIsEditing(false);
     }
 
+    @action
+    setNode = (node: HTMLDivElement): void => {
+        if (node) {
+            this._node = node;
+        }
+    }
+
+    componentDidMount() {
+        document.addEventListener("pointerdown", this.detectClick);
+    }
+
+    @action
+    detectClick = (e: PointerEvent): void => {
+        if (this._node && this._node.contains(e.target as Node)) {
+        } else {
+            this._isOpen = false;
+            this.props.setIsEditing(false);
+        }
+    }
+
+    componentWillMount() {
+        document.removeEventListener("pointerdown", this.detectClick);
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters?.includes(this._key)) {
+            runInAction(() => this.closeResultsVisibility = "contents");
+        }
+    }
+
+    private tempfilter: string = "";
     @undoBatch
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
@@ -313,23 +287,29 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 const colpos = this._searchTerm.indexOf(":");
                 const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
                 if (temp === "") {
-                    Doc.setDocFilter(this.props.Document, this._key, temp, undefined);
+                    console.log("here we are first");
+                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                    this.updateFilter();
                 }
                 else {
-                    Doc.setDocFilter(this.props.Document, this._key, temp, "match");
+                    console.log("here we are first");
+                    Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                    this.tempfilter = temp;
+                    Doc.setDocFilter(this.props.Document, this._key, temp, "check");
                     this.props.col.setColor("green");
+                    this.closeResultsVisibility = "contents";
                 }
             }
             else {
+                Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+                this.updateFilter();
                 let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-                const blockedkeys = ["_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
+                const blockedkeys = ["system", "ACL-Public", "_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
                 keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
                 if (keyOptions.length) {
                     this.onSelect(keyOptions[0]);
-                    console.log("case1");
                 } else if (this._searchTerm !== "" && this.props.canAddNew) {
                     this.setSearchTerm(this._searchTerm || this._key);
-                    console.log("case2");
                     this.onSelect(this._searchTerm);
                 }
             }
@@ -346,23 +326,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.props.setIsEditing(true);
     }
 
-    @action
-    onBlur = (e: React.FocusEvent): void => {
-        if (this._canClose) {
-            this._isOpen = false;
-            this.props.setIsEditing(false);
-        }
-    }
-
-    @action
-    onPointerEnter = (e: React.PointerEvent): void => {
-        this._canClose = false;
-    }
-
-    @action
-    onPointerOut = (e: React.PointerEvent): void => {
-        this._canClose = true;
-    }
     @action
     renderOptions = (): JSX.Element[] | JSX.Element => {
         if (!this._isOpen) {
@@ -383,7 +346,13 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 border: "1px solid lightgray",
                 width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white",
             }}
-                onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
+                onPointerDown={e => {
+                    e.stopPropagation();
+                }}
+                onClick={() => {
+                    this.onSelect(key);
+                    this.setSearchTerm("");
+                }}>{key}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
@@ -422,7 +391,6 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.defaultMenuHeight = 0;
             return <></>;
         }
-
         const keyOptions: string[] = [];
         const colpos = this._searchTerm.indexOf(":");
         const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
@@ -432,22 +400,21 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const docs = this.docSafe;
         docs.forEach((doc) => {
             const key = StrCast(doc[this._key]);
-            if (keyOptions.includes(key) === false && key.includes(temp)) {
+            if (keyOptions.includes(key) === false && key.includes(temp) && key !== "") {
                 keyOptions.push(key);
             }
         });
 
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+            this.props.col.setColor("rgb(241, 239, 235)");
+            this.closeResultsVisibility = "none";
+        }
         for (let i = 0; i < (filters?.length ?? 0) - 1; i += 3) {
             if (filters![i] === this.props.col.heading && keyOptions.includes(filters![i + 1]) === false) {
                 keyOptions.push(filters![i + 1]);
             }
         }
-
-        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
-            this.props.col.setColor("rgb(241, 239, 235)");
-        }
-
         const options = keyOptions.map(key => {
             //Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
             let bool = false;
@@ -461,12 +428,17 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 width: this.props.width, maxWidth: this.props.width, overflowX: "hidden", background: "white", backgroundColor: "white",
             }}
             >
-                <input type="checkbox" onChange={(e) => {
-                    e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, undefined);
-                    e.target.checked === true ? this.props.col.setColor("green") : "";
-                    e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, undefined);
-                }}
-                    checked={bool} ></input>
+                <input type="checkbox"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
+                    onChange={(e) => {
+                        e.target.checked === true ? Doc.setDocFilter(this.props.Document, this._key, key, "check") : Doc.setDocFilter(this.props.Document, this._key, key, undefined);
+                        e.target.checked === true ? this.closeResultsVisibility = "contents" : console.log("");
+                        e.target.checked === true ? this.props.col.setColor("green") : this.updateFilter();
+                        e.target.checked === true && SearchBox.Instance.filter === true ? Doc.setDocFilter(docs[0], this._key, key, "check") : Doc.setDocFilter(docs[0], this._key, key, undefined);
+                    }}
+                    checked={bool}
+                />
                 <span style={{ paddingLeft: 4 }}>
                     {key}
                 </span>
@@ -492,6 +464,15 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable defaultMenuHeight = 0;
 
 
+    updateFilter() {
+        const filters = Cast(this.props.Document._docFilters, listSpec("string"));
+        if (filters === undefined || filters.length === 0 || filters.includes(this._key) === false) {
+            console.log("PLEASE");
+            this.props.col.setColor("rgb(241, 239, 235)");
+            this.closeResultsVisibility = "none";
+        }
+    }
+
 
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; }
 
@@ -501,29 +482,56 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         return script ? () => script : undefined;
     }
     filterBackground = () => "rgba(105, 105, 105, 0.432)";
-
     @observable filterOpen: boolean | undefined = undefined;
+    closeResultsVisibility: string = "none";
+
+    removeFilters = (e: React.PointerEvent): void => {
+        const keyOptions: string[] = [];
+        if (this.docSafe.length === 0) {
+            this.docSafe = DocListCast(this.props.dataDoc![this.props.fieldKey]);
+        }
+        const docs = this.docSafe;
+        docs.forEach((doc) => {
+            const key = StrCast(doc[this._key]);
+            if (keyOptions.includes(key) === false) {
+                keyOptions.push(key);
+            }
+        });
+
+        keyOptions.forEach(key => {
+            Doc.setDocFilter(this.props.Document, this._key, key, undefined);
+        }
+        );
+        Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+        this.props.col.setColor("rgb(241, 239, 235)");
+        this.closeResultsVisibility = "none";
+    }
     render() {
         return (
-            <div style={{ display: "flex" }}>
+            <div style={{ display: "flex" }} ref={this.setNode}>
                 <FontAwesomeIcon onClick={e => { this.props.openHeader(this.props.col, e.clientX, e.clientY); e.stopPropagation(); }} icon={this.props.icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} />
 
                 {/* <FontAwesomeIcon icon={fa.faSearchMinus} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} onClick={e => {
                     runInAction(() => { this._isOpen === undefined ? this._isOpen = true : this._isOpen = !this._isOpen })
                 }} /> */}
 
-                <div className="keys-dropdown" style={{ zIndex: 10, width: this.props.width, maxWidth: this.props.width }}>
+                <div className="keys-dropdown" style={{ zIndex: 1, width: this.props.width, maxWidth: this.props.width }}>
                     <input className="keys-search" style={{ width: "100%" }}
                         ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
-                        onChange={e => this.onChange(e.target.value)}
+                        onChange={e => {
+                            this.onChange(e.target.value);
+                        }}
                         onClick={(e) => {
                             //this._inputRef.current!.select();
                             e.stopPropagation();
-                        }} onFocus={this.onFocus} onBlur={this.onBlur}></input>
+                        }} onFocus={this.onFocus} ></input>
+                    <div style={{ display: this.closeResultsVisibility }}>
+                        <FontAwesomeIcon onPointerDown={this.removeFilters} icon={"times-circle"} size="lg"
+                            style={{ cursor: "hand", color: "grey", padding: 2, left: -20, top: -1, height: 15, position: "relative" }} />
+                    </div>
                     {!this._isOpen ? (null) : <div className="keys-options-wrapper" style={{
                         width: this.props.width, maxWidth: this.props.width, height: "auto",
-                    }}
-                        onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
+                    }}>
                         {this._searchTerm.includes(":") ? this.renderFilterOptions() : this.renderOptions()}
                     </div>}
                 </div >

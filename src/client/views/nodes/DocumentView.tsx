@@ -69,7 +69,7 @@ export interface DocumentViewProps {
     removeDocument?: (doc: Doc | Doc[]) => boolean;
     moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    setupDragLines?: () => void;
+    setupDragLines?: (snapToDraggedDoc: boolean) => void;
     renderDepth: number;
     ContentScaling: () => number;
     PanelWidth: () => number;
@@ -291,7 +291,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let stopPropagate = true;
             let preventDefault = true;
             !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
-            if (this._doubleTap && this.props.renderDepth) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && (this.props.Document.type !== DocumentType.FONTICON || !this.onDoubleClickHandler)) {// && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (!(e.nativeEvent as any).formattedHandled) {
                     if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                         const func = () => this.onDoubleClickHandler.script.run({
@@ -617,6 +617,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             LinkDescriptionPopup.popupY = de.y;
             LinkDescriptionPopup.descriptionPopup = true;
 
+            const rect = document.body.getBoundingClientRect();
+            if (LinkDescriptionPopup.popupX + 200 > rect.width) {
+                LinkDescriptionPopup.popupX -= 190;
+                TaskCompletionBox.popupX -= 40;
+            }
+            if (LinkDescriptionPopup.popupY + 100 > rect.height) {
+                LinkDescriptionPopup.popupY -= 40;
+                TaskCompletionBox.popupY -= 40;
+            }
+
             setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
         });
         if (de.complete.annoDragData) {
@@ -684,7 +694,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
+    onContextMenu = (e: React.MouseEvent | Touch) => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
         if (!(e instanceof Touch)) {
             if (e.button === 0 && !e.ctrlKey) {
@@ -703,7 +713,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const cm = ContextMenu.Instance;
-        if (!cm) return;
+        if (!cm || (e?.nativeEvent as any)?.SchemaHandled) return;
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>

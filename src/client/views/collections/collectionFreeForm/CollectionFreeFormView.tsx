@@ -179,7 +179,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 }
             }
             if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
-                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentFrame);
+                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentFrame, true);
             }
         }
         return retVal;
@@ -214,7 +214,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const layoutDoc = Doc.Layout(d);
             if (this.Document.currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.opacity);
+                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.scroll, vals.opacity);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];
@@ -1315,7 +1315,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @action
-    setupDragLines = () => {
+    setupDragLines = (snapToDraggedDoc: boolean = false) => {
         const activeDocs = this.getActiveDocuments();
         if (activeDocs.length > 50) {
             DragManager.SetSnapLines([], []);
@@ -1337,7 +1337,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
         const horizLines: number[] = [];
         const vertLines: number[] = [];
-        snappableDocs.filter(doc => !DragManager.docsBeingDragged.includes(Cast(doc.rootDocument, Doc, null) || doc)).forEach(doc => {
+        snappableDocs.filter(doc => snapToDraggedDoc || !DragManager.docsBeingDragged.includes(Cast(doc.rootDocument, Doc, null) || doc)).forEach(doc => {
             const { left, top, width, height } = docDims(doc);
             const topLeftInScreen = this.getTransform().inverse().transformPoint(left, top);
             const docSize = this.getTransform().inverse().transformDirection(width, height);
@@ -1349,7 +1349,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
     onPointerOver = (e: React.PointerEvent) => {
         if (SnappingManager.GetIsDragging()) {
-            this.setupDragLines();
+            this.setupDragLines(e.ctrlKey || e.shiftKey);
         }
         e.stopPropagation();
     }

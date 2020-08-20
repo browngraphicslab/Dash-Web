@@ -129,9 +129,15 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                             LinkDescriptionPopup.popupY = e.screenY - 100;
                             LinkDescriptionPopup.descriptionPopup = true;
 
-                            LinkDescriptionPopup.popupX = e.screenX;
-                            LinkDescriptionPopup.popupY = e.screenY - 100;
-                            LinkDescriptionPopup.descriptionPopup = true;
+                            const rect = document.body.getBoundingClientRect();
+                            if (LinkDescriptionPopup.popupX + 200 > rect.width) {
+                                LinkDescriptionPopup.popupX -= 190;
+                                TaskCompletionBox.popupX -= 40;
+                            }
+                            if (LinkDescriptionPopup.popupY + 100 > rect.height) {
+                                LinkDescriptionPopup.popupY -= 40;
+                                TaskCompletionBox.popupY -= 40;
+                            }
 
                             setTimeout(action(() => TaskCompletionBox.taskCompleted = false), 2500);
                         }
@@ -176,6 +182,17 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                     LinkDescriptionPopup.popupY = screenY - 100;
                     LinkDescriptionPopup.descriptionPopup = true;
                 }
+
+                const rect = document.body.getBoundingClientRect();
+                if (LinkDescriptionPopup.popupX + 200 > rect.width) {
+                    LinkDescriptionPopup.popupX -= 190;
+                    TaskCompletionBox.popupX -= 40;
+                }
+                if (LinkDescriptionPopup.popupY + 100 > rect.height) {
+                    LinkDescriptionPopup.popupY -= 40;
+                    TaskCompletionBox.popupY -= 40;
+                }
+
                 setTimeout(action(() => { TaskCompletionBox.taskCompleted = false; }), 2500);
             }
         }
@@ -245,7 +262,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                         border: DocumentLinksButton.StartLink ? "" : "none"
                     }}
                     onPointerDown={DocumentLinksButton.StartLink ? this.completeLink : emptyFunction}
-                    onClick={e => DocumentLinksButton.StartLink ? DocumentLinksButton.finishLinkClick(e.screenX, e.screenY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View) : emptyFunction} /> : (null)
+                    onClick={e => DocumentLinksButton.StartLink ? DocumentLinksButton.finishLinkClick(e.clientX, e.clientY, DocumentLinksButton.StartLink, this.props.View.props.Document, true, this.props.View) : emptyFunction} /> : (null)
             }
             {
                 DocumentLinksButton.StartLink === this.props.View.props.Document && this.props.InMenu && this.props.StartLink ? <div className={"documentLinksButton-startLink"}

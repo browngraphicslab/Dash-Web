@@ -152,7 +152,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch,
             m => {
-                if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), true);
+                if (m !== undefined) (this._lastSearch = true) && this.search(Doc.SearchQuery(), true);
                 else !(this._lastSearch = false) && setTimeout(() => !this._lastSearch && this.search("", false, true), 200);
             }, { fireImmediately: true });
 
@@ -313,7 +313,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 annoDocs.push(annoDoc);
                 anno.remove();
                 (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
-                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc.width), maxX));
+                (annoDoc.x !== undefined) && (maxX = Math.max(NumCast(annoDoc.x) + NumCast(annoDoc._width), maxX));
             }));
 
             mainAnnoDocProto.y = Math.max(minY, 0);

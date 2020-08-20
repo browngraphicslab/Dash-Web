@@ -73,6 +73,13 @@ async function deserializeScript(script: ScriptField) {
         throw new Error("Couldn't compile loaded script");
     }
     (script as any).script = comp;
+    if (script.setterscript) {
+        const compset = CompileScript(script.setterscript?.originalScript, script.setterscript.options);
+        if (!compset.compiled) {
+            throw new Error("Couldn't compile setter script");
+        }
+        (script as any).setterscript = compset;
+    }
 }
 
 @scriptingGlobal

@@ -12,7 +12,7 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch } from "../../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { ContextMenu } from "../../ContextMenu";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { PreviewCursor } from "../../PreviewCursor";
@@ -140,6 +140,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                     tbox.layoutKey = "layout_" + StrCast(template.title);
                     Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
                 }
+                FormattedTextBox.LiveTextUndo = UndoManager.StartBatch("live text batch");
                 this.props.addLiveTextDocument(tbox);
                 e.stopPropagation();
             }
@@ -754,14 +755,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             </div>;
 
         } else {
-            //subtracted 250 for offset
+            //subtracted for offset
             var str: string = "";
             for (var i = 0; i < this._pointsX.length; i++) {
                 var x = 0;
-                x = this._pointsX[i] - 250;
+                x = this._pointsX[i] - 64;
                 str += x.toString();
                 str += ",";
-                str += this._pointsY[i].toString();
+                str += (this._pointsY[i] - 85).toString();
                 str += (" ");
             }
 

@@ -4,14 +4,14 @@ import { action, computed, observable, runInAction, reaction, IReactionDisposer 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc, DocListCast, Opt } from '../../../fields/Doc';
+import { Doc, DocListCast, Opt, Field } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { returnFalse, Utils } from '../../../Utils';
+import { returnFalse, Utils, returnZero } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -153,10 +153,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (d.data !== undefined) {
                             d._searchDocs = new List<Doc>();
                             d._docFilters = new List();
-                            const newdocs = DocListCast(d.data);
-                            newdocs.forEach((newdoc) => {
-                                newarray.push(newdoc);
-                            });
+                            DocListCast(d.data).forEach((newdoc) => newarray.push(newdoc));
                         }
                     });
                     docs = newarray;
@@ -189,21 +186,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    enter = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+    enter = action((e: React.KeyboardEvent | undefined) => {
+        if (!e || e.key === "Enter") {
             this.layoutDoc._searchString = this.newsearchstring;
-            runInAction(() => this._pageStart = 0);
-
-            if (StrCast(this.layoutDoc._searchString) !== "" || !this.searchFullDB) {
-                runInAction(() => this.open = true);
-            }
-            else {
-                runInAction(() => this.open = false);
-
-            }
+            this._pageStart = 0;
+            this.open = StrCast(this.layoutDoc._searchString) !== "" || this.searchFullDB !== "DB";
             this.submitSearch();
         }
-    }
+    });
 
     @observable open: boolean = false;
 
@@ -428,19 +418,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
-                    d ? console.log(Cast(d.context, Doc)) : null;
                     if (d.data !== undefined) {
                         newarray.push(...DocListCast(d.data));
                     }
                     const hlights: string[] = [];
-                    const protos = Doc.GetAllPrototypes(d);
-                    protos.forEach(proto => {
-                        Object.keys(proto).forEach(key => {
-                            if (StrCast(d[key]).toLowerCase().includes(query) && !hlights.includes(key)) {
-                                hlights.push(key);
-                            }
-                        });
-                    });
+                    this.documentKeys(d).forEach(key =>
+                        Field.toString(d[key] as Field).toLowerCase().includes(query) && !hlights.includes(key) && hlights.push(key));
                     if (hlights.length > 0) {
                         found.push([d, hlights, []]);
                         docsforFilter.push(d);
@@ -455,19 +438,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
                 while (docs.length > 0) {
                     newarray = [];
-                    docs.forEach((d) => {
-                        if (d.data !== undefined) {
+                    docs.forEach(d => {
+                        const docs = DocListCast(d.data);
+                        if (docs.length) {
                             d._searchDocs = new List<Doc>(docsforFilter);
-                            const newdocs = DocListCast(d.data);
-                            newdocs.forEach((newdoc) => {
-                                newarray.push(newdoc);
-                            });
+                            docs.forEach((newdoc) => newarray.push(newdoc));
                         }
                     });
                     docs = newarray;
                 }
             }
             this._numTotalResults = found.length;
+            this.realTotalResults = found.length;
         }
         else {
             this.noresults = "No collection selected :(";
@@ -576,7 +558,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }, 60000);
         }
 
-        if (query !== "") {
+        if (query !== "" || this.searchFullDB === "My Stuff") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
@@ -591,7 +573,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    @observable searchFullDB = true;
+    @observable searchFullDB = "DB";
 
     @observable _timeout: any = undefined;
 
@@ -608,10 +590,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private get filterQuery() {
         const types = ["preselement", "docholder", "search", "searchitem", "fonticonbox"]; // this.filterTypes;
         const baseExpr = "NOT system_b:true";
+        const authorExpr = this.searchFullDB === "My Stuff" ? ` author_t:${Doc.CurrentUserEmail}` : undefined;
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
         const typeExpr = this._onlyAliases ? "NOT {!join from=id to=proto_i}type_t:*" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, typeExpr].join(" AND ").replace(/AND $/, "");
+        const query = [baseExpr, authorExpr, includeDeleted, typeExpr].filter(q => q).join(" AND ").replace(/AND $/, "");
         return query;
     }
 
@@ -629,7 +612,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
         return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
     }
-    private NumResults = 50;
+    private NumResults = 500;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
         if (this.lockPromise) {
@@ -637,7 +620,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, sort: this.primarySort, fq: this.filterQuery, start: 0, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { onlyAliases: true, allowAliases: true, /*sort: this.primarySort,*/ fq: this.filterQuery, start: 0, rows: this.NumResults, hl: true, "hl.fl": "*", }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     this.realTotalResults = res.numFound <= 0 ? 0 : res.numFound;
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -724,6 +707,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     openSearch(e: React.SyntheticEvent) {
+        this._results.forEach(result => {
+            Doc.BrushDoc(result[0]);
+        });
         e.stopPropagation();
         this._openNoResults = false;
         this._resultsOpen = true;
@@ -734,6 +720,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     closeSearch = () => {
+        this._results.forEach(result => {
+            Doc.UnBrushDoc(result[0]);
+            result[0].searchMatch = undefined;
+        });
         //this.closeResults();
         this._searchbarOpen = false;
     }
@@ -875,20 +865,49 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.resultsScrolled();
     }
+    returnHeight = () => 31 + 31 * 6;
+    returnLength = () => {
+        const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
+        return cols * 205 + 51;
+    }
+    @action
+    changeSearchScope = (scope: string) => {
+        scope && (this.filter = false);
+        this.searchFullDB = scope;
+        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+        if (this.currentSelectedCollection !== undefined) {
+            let newarray: Doc[] = [];
+            let docs: Doc[] = [];
+            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
+            while (docs.length > 0) {
+                newarray = [];
+                docs.forEach((d) => {
+                    if (d.data !== undefined) {
+                        d._searchDocs = new List<Doc>();
+                        d._docFilters = new List();
+                        const newdocs = DocListCast(d.data);
+                        newdocs.forEach((newdoc) => {
+                            newarray.push(newdoc);
+                        });
+                    }
+                });
+                docs = newarray;
+            }
+            this.currentSelectedCollection.props.Document._docFilters = new List();
+            this.currentSelectedCollection.props.Document._searchDocs = undefined;
+            this.currentSelectedCollection = undefined;
+        }
+        this.submitSearch();
+    }
     render() {
         this.props.Document._chromeStatus === "disabled";
         this.props.Document._searchDoc = true;
-        const cols = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length;
-        let length = 0;
-        length = cols * 205 + 51;
-        let height = 0;
         const rows = this.children;
-        height = 31 + 31 * 6;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{Doc.CurrentUserEmail}</div>
                 <div className="searchBox-bar">
-                    <div style={{ position: "relative", display: "flex", width: 400 }}>
+                    <div style={{ position: "relative", display: "flex", width: 450 }}>
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                             style={{ padding: 1, paddingLeft: 20, paddingRight: 60, color: "black", height: 20, width: 250 }} />
@@ -921,9 +940,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                         if (d.data !== undefined) {
                                                             d._searchDocs = new List<Doc>(this.docsforfilter);
                                                             const newdocs = DocListCast(d.data);
-                                                            newdocs.forEach((newdoc) => {
-                                                                newarray.push(newdoc);
-                                                            });
+                                                            newdocs.forEach(newdoc => newarray.push(newdoc));
                                                         }
                                                     });
                                                     docs = newarray;
@@ -943,9 +960,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                                             d._searchDocs = new List<Doc>();
                                                             d._docFilters = new List();
                                                             const newdocs = DocListCast(d.data);
-                                                            newdocs.forEach((newdoc) => {
-                                                                newarray.push(newdoc);
-                                                            });
+                                                            newdocs.forEach(newdoc => newarray.push(newdoc));
                                                         }
                                                     });
                                                     docs = newarray;
@@ -965,78 +980,24 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                 paddingRight: "4px",
                                 border: "1px solid gray",
                                 borderRadius: "0.3em",
-                                borderBottom: this.open === false ? "1px solid" : "none",
+                                borderBottom: !this.open ? "1px solid" : "none",
                             }}>
                                 <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                                     <div style={{ display: "contents" }}>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => {
-                                                    runInAction(() => {
-                                                        this.searchFullDB = !this.searchFullDB;
-                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                        if (this.currentSelectedCollection !== undefined) {
-                                                            let newarray: Doc[] = [];
-                                                            let docs: Doc[] = [];
-                                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                                            while (docs.length > 0) {
-                                                                newarray = [];
-                                                                docs.forEach((d) => {
-                                                                    if (d.data !== undefined) {
-                                                                        d._searchDocs = new List<Doc>();
-                                                                        d._docFilters = new List();
-                                                                        const newdocs = DocListCast(d.data);
-                                                                        newdocs.forEach((newdoc) => {
-                                                                            newarray.push(newdoc);
-                                                                        });
-                                                                    }
-                                                                });
-                                                                docs = newarray;
-                                                            }
-                                                            this.currentSelectedCollection.props.Document._docFilters = new List();
-                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                            this.currentSelectedCollection = undefined;
-                                                        }
-                                                        this.submitSearch();
-                                                    });
-                                                }} />
-                                            Collection
-                                        </label>
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this.searchFullDB} onChange={() => this.changeSearchScope("")} />
+                                                Collection
+                                            </label>
                                         </div>
                                         <div className="radio" style={{ margin: 0 }}>
                                             <label style={{ fontSize: 12, marginTop: 6 }} >
-                                                <input style={{ marginLeft: -16, marginTop: -1 }} type="radio" checked={this.searchFullDB} onChange={() => {
-                                                    runInAction(() => {
-                                                        this.searchFullDB = !this.searchFullDB;
-                                                        this.dataDoc[this.fieldKey] = new List<Doc>([]);
-                                                        this.filter = false;
-                                                        if (this.currentSelectedCollection !== undefined) {
-                                                            let newarray: Doc[] = [];
-                                                            let docs: Doc[] = [];
-                                                            docs = DocListCast(this.currentSelectedCollection.dataDoc[Doc.LayoutFieldKey(this.currentSelectedCollection.dataDoc)]);
-                                                            while (docs.length > 0) {
-                                                                newarray = [];
-                                                                docs.forEach((d) => {
-                                                                    if (d.data !== undefined) {
-                                                                        d._searchDocs = new List<Doc>();
-                                                                        d._docFilters = new List();
-                                                                        const newdocs = DocListCast(d.data);
-                                                                        newdocs.forEach((newdoc) => {
-                                                                            newarray.push(newdoc);
-                                                                        });
-                                                                    }
-                                                                });
-                                                                docs = newarray;
-                                                            }
-                                                            this.currentSelectedCollection.props.Document._docFilters = new List();
-                                                            this.currentSelectedCollection.props.Document._searchDocs = undefined;
-                                                            this.currentSelectedCollection = undefined;
-                                                        }
-                                                        this.submitSearch();
-                                                    });
-                                                }} />
+                                                <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={this.searchFullDB?.length ? true : false} onChange={() => this.changeSearchScope("DB")} />
                                                 DB
-                                        </label>
+                                                <span onClick={action(() => this.searchFullDB = this.searchFullDB === "My Stuff" ? "DB" : "My Stuff")}>
+                                                    {this.searchFullDB === "My Stuff" ? "(me)" : "(full)"}
+                                                </span>
+                                            </label>
                                         </div>
                                     </div>
                                 </form>
@@ -1048,13 +1009,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 <div style={{ zIndex: 20000, color: "black" }}>
                     {this._searchbarOpen === true ?
                         <div style={{ display: "flex", justifyContent: "center", }}>
-                            {this.noresults === "" ? <div style={{ display: this.open === true ? "flex" : "none", overflow: "auto", }}>
+                            {this.noresults === "" ? <div style={{ display: this.open ? "flex" : "none", overflow: "auto", }}>
                                 <CollectionView {...this.props}
                                     Document={this.props.Document}
                                     moveDocument={returnFalse}
                                     removeDocument={returnFalse}
-                                    PanelHeight={this.open === true ? () => height : () => 0}
-                                    PanelWidth={this.open === true ? () => length : () => 0}
+                                    PanelHeight={this.open ? this.returnHeight : returnZero}
+                                    PanelWidth={this.open ? this.returnLength : returnZero}
                                     overflow={length > window.innerWidth || rows > 6 ? true : false}
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}

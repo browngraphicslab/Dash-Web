@@ -11,14 +11,15 @@ import { Id } from "../../../fields/FieldSymbols";
 import { InkTool } from "../../../fields/InkField";
 import { List } from "../../../fields/List";
 import { ObjectField } from "../../../fields/ObjectField";
-import { RichTextField } from "../../../fields/RichTextField";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { WebField } from "../../../fields/URLField";
 import { emptyFunction, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { DragManager } from "../../util/DragManager";
+import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
 import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
@@ -161,9 +162,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _viewCommand = {
         params: ["target"], title: "bookmark view",
-        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale'];",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; }),
-        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; },
+        script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale']; gotoFrame(self.target, self['target-currentFrame']);",
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target.currentFrame = 0; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; button['target-currentFrame'] = this.target.currentFrame; },
     };
     _clusterCommand = {
         params: ["target"], title: "fit content",
@@ -607,6 +608,158 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             </div>;
     }
 
+    @action
+    onUrlDrop = (e: React.DragEvent) => {
+        const { dataTransfer } = e;
+        const html = dataTransfer.getData("text/html");
+        const uri = dataTransfer.getData("text/uri-list");
+        const url = uri || html || this._url;
+        this._url = url.startsWith(window.location.origin) ?
+            url.replace(window.location.origin, this._url.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
+        this.submitURL();
+        e.stopPropagation();
+    }
+    onUrlDragover = (e: React.DragEvent) => {
+        e.preventDefault();
+    }
+
+    @computed get _url() {
+        return this.selectedDoc ? Cast(this.selectedDoc.data, WebField, null)?.url.toString() : "hello";
+    }
+
+    set _url(value) { this.selectedDoc && (this.selectedDoc.data = value); }
+
+    @action
+    submitURL = () => {
+        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
+        try {
+            const URLy = new URL(this._url);
+            const future = this.selectedDoc ? Cast(this.selectedDoc["data-future"], listSpec("string"), null) : null;
+            const history = this.selectedDoc ? Cast(this.selectedDoc["data-history"], listSpec("string"), null) : [];
+            const annos = this.selectedDoc ? DocListCast(this.selectedDoc["data-annotations"]) : undefined;
+            const url = this.selectedDoc ? Cast(this.selectedDoc.data, WebField, null)?.url.toString() : null;
+            if (url) {
+                if (history === undefined) {
+                    this.selectedDoc && (this.selectedDoc["data-history"] = new List<string>([url]));
+
+                } else {
+                    history.push(url);
+                }
+                future && (future.length = 0);
+                this.selectedDoc && (this.selectedDoc["data-" + this.urlHash(url)] = new List<Doc>(annos));
+            }
+            this.selectedDoc && (this.selectedDoc.data = new WebField(URLy));
+            this.selectedDoc && (this.selectedDoc["data-annotations"] = new List<Doc>([]));
+        } catch (e) {
+            console.log("WebBox URL error:" + this._url);
+        }
+    }
+
+    urlHash(s: string) {
+        return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
+    }
+
+    toggleAnnotationMode = () => {
+        this.props.docView.layoutDoc.isAnnotating = !this.props.docView.layoutDoc.isAnnotating;
+    }
+
+    @action
+    onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._url = e.target.value;
+    }
+
+    onValueKeyDown = async (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            this.submitURL();
+        }
+        e.stopPropagation();
+    }
+
+    @action
+    forward = () => {
+        const future = this.selectedDoc && (Cast(this.selectedDoc["data-future"], listSpec("string"), null));
+        const history = this.selectedDoc && Cast(this.selectedDoc["data-history"], listSpec("string"), null);
+        if (future?.length) {
+            history?.push(this._url);
+            this.selectedDoc && (this.selectedDoc["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations"])));
+            this.selectedDoc && (this.selectedDoc.data = new WebField(new URL(this._url = future.pop()!)));
+            this.selectedDoc && (this.selectedDoc["data-annotations"] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations" + "-" + this.urlHash(this._url)])));
+        }
+    }
+
+    @action
+    back = () => {
+        const future = this.selectedDoc && (Cast(this.selectedDoc["data-future"], listSpec("string"), null));
+        const history = this.selectedDoc && Cast(this.selectedDoc["data-history"], listSpec("string"), null);
+        if (history?.length) {
+            if (future === undefined) this.selectedDoc && (this.selectedDoc["data-future"] = new List<string>([this._url]));
+            else future.push(this._url);
+            this.selectedDoc && (this.selectedDoc["data-annotations" + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations"])));
+            this.selectedDoc && (this.selectedDoc.data = new WebField(new URL(this._url = history.pop()!)));
+            this.selectedDoc && (this.selectedDoc["data-annotations"] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations" + "-" + this.urlHash(this._url)])));
+        }
+    }
+
+    private _keyInput = React.createRef<HTMLInputElement>();
+
+    @computed get urlEditor() {
+        return (
+            <div className="webBox-urlEditor"
+                onDrop={this.onUrlDrop}
+                onDragOver={this.onUrlDragover} style={{ top: 0 }}>
+                <div className="urlEditor">
+                    <div className="editorBase">
+                        <div className="webBox-buttons"
+                            onDrop={this.onUrlDrop}
+                            onDragOver={this.onUrlDragover} style={{ display: "flex" }}>
+                            <div className="webBox-freeze" title={"Annotate"}
+                                style={{ background: this.props.docView.layoutDoc.isAnnotating ? "lightBlue" : "gray" }}
+                                onClick={this.toggleAnnotationMode} >
+                                <FontAwesomeIcon icon="pen" size={"2x"} />
+                            </div>
+                            <div className="webBox-freeze" title={"Select"}
+                                style={{ background: !this.props.docView.layoutDoc.isAnnotating ? "lightBlue" : "gray" }}
+                                onClick={this.toggleAnnotationMode} >
+                                <FontAwesomeIcon icon={"mouse-pointer"} size={"2x"} />
+                            </div>
+                            <input className="webpage-urlInput"
+                                placeholder="ENTER URL"
+                                value={this._url}
+                                onDrop={this.onUrlDrop}
+                                onDragOver={this.onUrlDragover}
+                                onChange={this.onURLChange}
+                                onKeyDown={this.onValueKeyDown}
+                                onClick={(e) => {
+                                    this._keyInput.current!.select();
+                                    e.stopPropagation();
+                                }}
+                                ref={this._keyInput}
+                            />
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                maxWidth: "120px",
+                            }}>
+                                <button className="submitUrl" onClick={this.submitURL}
+                                    onDragOver={this.onUrlDragover} onDrop={this.onUrlDrop}>
+                                    GO
+                                </button>
+                                <button className="submitUrl" onClick={this.back}>
+                                    <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
+                                </button>
+                                <button className="submitUrl" onClick={this.forward}>
+                                    <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+
     @observable viewType = this.selectedDoc?._viewType;
 
     render() {
@@ -648,6 +801,9 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         </button>
                     </Tooltip>
                 }
+                {/* {!this.props.isOverlay || this.document.type !== DocumentType.WEB || this.isText || this.props.isDoc ? (null) :
+                    this.urlEditor
+                } */}
                 {!this.isText ?
                     <>
                         {this.drawButtons}
@@ -1079,3 +1235,14 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
         );
     }
 }
+Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
+    const dataField = doc[Doc.LayoutFieldKey(doc)];
+    const childDocs = DocListCast(dataField);
+    const currentFrame = Cast(doc.currentFrame, "number", null);
+    if (currentFrame === undefined) {
+        doc.currentFrame = 0;
+        CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
+    }
+    CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
+    doc.currentFrame = Math.max(0, newFrame);
+});

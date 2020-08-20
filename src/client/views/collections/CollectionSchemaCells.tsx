@@ -35,6 +35,7 @@ import { DateField } from "../../../fields/DateField";
 import { RichTextField } from "../../../fields/RichTextField";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SearchUtil } from "../../util/SearchUtil";
+import { DocumentType } from "../../documents/DocumentTypes";
 const path = require('path');
 
 library.add(faExpand);
@@ -146,10 +147,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     }
 
     protected dropRef = (ele: HTMLElement | null) => {
-        this._dropDisposer && this._dropDisposer();
-        if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
-        }
+        this._dropDisposer?.();
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
     }
 
     // expandDoc = (e: React.PointerEvent) => {
@@ -326,7 +325,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents"
-                        ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
+                        ref={type === undefined || type === "document" ? this.dropRef : null}>
                         {!search ?
                             <EditableView
                                 positions={positions.length > 0 ? positions : undefined}
@@ -439,30 +438,22 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         );
     }
 
-    render() {
-        return this.renderCellWithType(undefined);
-    }
+    render() { return this.renderCellWithType(undefined); }
 }
 
 @observer
 export class CollectionSchemaNumberCell extends CollectionSchemaCell {
-    render() {
-        return this.renderCellWithType("number");
-    }
+    render() { return this.renderCellWithType("number"); }
 }
 
 @observer
 export class CollectionSchemaBooleanCell extends CollectionSchemaCell {
-    render() {
-        return this.renderCellWithType("boolean");
-    }
+    render() { return this.renderCellWithType("boolean"); }
 }
 
 @observer
 export class CollectionSchemaStringCell extends CollectionSchemaCell {
-    render() {
-        return this.renderCellWithType("string");
-    }
+    render() { return this.renderCellWithType("string"); }
 }
 
 @observer
@@ -788,29 +779,11 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     @observable private _selectedNum = 0;
 
     @action
-    toggleOpened(open: boolean) {
-        this._opened = open;
-    }
-
-    // @action
-    // onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    //     this._text = e.target.value;
-
-    //     // change if its a document
-    //     this._optionsList[this._selectedNum] = this._text;
-    // }
-
-    @action
     onSetValue = (value: string) => {
-
-
-        this._text = value;
-
         // change if its a document
-        this._optionsList[this._selectedNum] = this._text;
+        this._optionsList[this._selectedNum] = this._text = value;
 
         (this.prop.Document[this.prop.fieldKey] as List<any>).splice(this._selectedNum, 1, value);
-
     }
 
     @action
@@ -824,55 +797,34 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
-
     render() {
-
-        const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
-
         let type = "list";
-
         let link = false;
-        let doc = false;
         const reference = React.createRef<HTMLDivElement>();
 
         if (typeof this._field === "object" && this._optionsList[0]) {
-
-            const options = this._optionsList.map((element, index) => {
-
-                if (element instanceof Doc) {
-                    doc = true;
-                    type = "document";
-                    if (this.prop.fieldKey.toLowerCase() === "links") {
-                        link = true;
-                        type = "link";
+            const options = !this._opened ? (null) : <div>
+                {this._optionsList.map((element, index) => {
+                    let title = "";
+                    if (element instanceof Doc) {
+                        type = "document";
+                        if (this.prop.fieldKey.toLowerCase() === "links") {
+                            link = true;
+                            type = "link";
+                        }
+                        title = StrCast(element.title);
                     }
-                    const document = FieldValue(Cast(element, Doc));
-                    const title = element.title;
-                    return <div
-                        className="collectionSchemaView-dropdownOption"
-                        onPointerDown={(e) => { this.onSelected(StrCast(element.title), index); }}
-                        style={{ padding: "6px" }}>
+                    return <div className="collectionSchemaView-dropdownOption" style={{ padding: "6px" }}
+                        onPointerDown={(e) => this.onSelected(StrCast(element), index)} >
+                        {element}
                         {title}
                     </div>;
-
-                } else {
-                    return <div
-                        className="collectionSchemaView-dropdownOption"
-                        onPointerDown={(e) => { this.onSelected(StrCast(element), index); }}
-                        style={{ padding: "6px" }}>{element}</div>;
-                }
-            });
+                })}
+            </div>;
 
             const plainText = <div style={{ padding: "5.9px" }}>{this._text}</div>;
-            // const textarea = <textarea onChange={this.onChange} value={this._text}
-            //     onFocus={doc ? this.onFocus : undefined}
-            //     onBlur={doc ? e => this._overlayDisposer?.() : undefined}
-            //     style={{ resize: "none" }}
-            //     placeholder={"select an item"}></textarea>;
-
-            const textarea = <div className="collectionSchemaView-cellContents"
-                style={{ padding: "5.9px" }}
-                ref={type === undefined || type === "document" ? this.dropRef : null} key={this.prop.Document[Id]}>
+            const textarea = <div className="collectionSchemaView-cellContents" key={this.prop.Document[Id]} style={{ padding: "5.9px" }}
+                ref={type === undefined || type === "document" ? this.dropRef : null} >
                 <EditableView
                     editing={this._isEditing}
                     isEditingCallback={this.isEditingCallback}
@@ -880,11 +832,8 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                     contents={this._text}
                     height={"auto"}
                     maxHeight={Number(MAX_ROW_HEIGHT)}
-                    GetValue={() => {
-                        return this._text;
-                    }}
+                    GetValue={() => this._text}
                     SetValue={action((value: string) => {
-
                         // add special for params 
                         this.onSetValue(value);
                         return true;
@@ -893,35 +842,24 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
             </div >;
 
             //☰
-
-            const dropdown = <div>
-                {options}
-            </div>;
-
             return (
                 <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
                     <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
                         <div className="collectionSchemaView-dropDownWrapper">
-                            <button type="button" className="collectionSchemaView-dropdownButton" onClick={(e) => { this.toggleOpened(!this._opened); }}
-                                style={{ right: "length", position: "relative" }}>
-                                {this._opened ? <FontAwesomeIcon icon="caret-up" size="lg" ></FontAwesomeIcon>
-                                    : <FontAwesomeIcon icon="caret-down" size="lg" ></FontAwesomeIcon>}
+                            <button type="button" className="collectionSchemaView-dropdownButton" style={{ right: "length", position: "relative" }}
+                                onClick={action(e => this._opened = !this._opened)} >
+                                <FontAwesomeIcon icon={this._opened ? "caret-up" : "caret-down"} size="lg" />
                             </button>
                             <div className="collectionSchemaView-dropdownText"> {link ? plainText : textarea} </div>
                         </div>
-
-                        {this._opened ? dropdown : null}
+                        {options}
                     </div >
                 </div>
             );
-        } else {
-            return this.renderCellWithType("list");
         }
+        return this.renderCellWithType("list");
     }
 }
-
-
-
 
 
 @observer
@@ -932,15 +870,13 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     toggleChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._isChecked = e.target.checked;
         const script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
-        if (script.compiled) {
-            this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
-        }
+        script.compiled && this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
     }
 
     render() {
         const reference = React.createRef<HTMLDivElement>();
         const onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
+            (!this.props.CollectionView?.props.isSelected() ? undefined :
                 SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         return (
@@ -956,62 +892,28 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
 
 @observer
 export class CollectionSchemaButtons extends CollectionSchemaCell {
-
     render() {
+        const doc = this.props.rowProps.original;
+        const searchMatch = (backward: boolean = true) => { doc.searchMatch = undefined; setTimeout(() => doc.searchMatch = backward, 0); };
         // const reference = React.createRef<HTMLDivElement>();
         // const onItemDown = (e: React.PointerEvent) => {
         //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
         //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         // };
-        const doc = this.props.rowProps.original;
-        let buttons: JSX.Element | undefined = undefined;
-        buttons = <div style={{
-            paddingTop: 8,
-            paddingLeft: 3,
-        }}><button onClick={() => {
-            doc.searchMatch = false;
-            setTimeout(() => doc.searchMatch = true, 0);
-        }} style={{ padding: 2, left: 77 }}>
-                <FontAwesomeIcon icon="arrow-up" size="sm" />
-            </button>
-            <button onClick={() => {
-                {
-                    doc.searchMatchAlt = false;
-                    setTimeout(() => doc.searchMatchAlt = true, 0);
-                }
-            }} style={{ padding: 2 }}>
-                <FontAwesomeIcon icon="arrow-down" size="sm" />
-            </button></div>;
-        const type = StrCast(doc.type);
-        if (type === "pdf") {
-            buttons = <div><button
-                style={{
-                    position: "relative",
-                    height: 30,
-                    width: 28,
-                    left: 1,
-                }}
-
-                onClick={() => {
-                    doc.searchMatch = false;
-                    setTimeout(() => doc.searchMatch = true, 0);
-                }}>
-                <FontAwesomeIcon icon="arrow-down" size="sm" />
-            </button></div >;
-        }
-        else if (type !== "rtf") {
-            buttons = undefined;
-        }
-
-        if (BoolCast(this.props.Document._searchDoc) === true) {
-
-        }
-        else {
-            buttons = undefined;
-        }
-        return (
-            <div> {buttons}</div>
-        );
+        return !BoolCast(this.props.Document._searchDoc) ? <></>
+            : StrCast(doc.type) === DocumentType.PDF ?
+                <button style={{ position: "relative", height: 30, width: 28, left: 1, }} onClick={() => searchMatch(false)}>
+                    <FontAwesomeIcon icon="arrow-down" size="sm" />
+                </button>
+                : StrCast(doc.type) === DocumentType.RTF ?
+                    <div style={{ paddingTop: 8, paddingLeft: 3, }} >
+                        <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>
+                            <FontAwesomeIcon icon="arrow-up" size="sm" />
+                        </button>
+                        <button style={{ padding: 2 }} onClick={() => searchMatch(false)} >
+                            <FontAwesomeIcon icon="arrow-down" size="sm" />
+                        </button>
+                    </div> :
+                    <></>;
     }
 }
-

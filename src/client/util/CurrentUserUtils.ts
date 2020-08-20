@@ -46,7 +46,7 @@ export class CurrentUserUtils {
         if (doc["template-button-query"] === undefined) {
             const queryTemplate = Docs.Create.MulticolumnDocument(
                 [
-                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, lockedPosition: true, title: "query", _height: 200, system: true }),
+                    Docs.Create.SearchDocument({ _viewType: CollectionViewType.Schema, ignoreClick: true, forceActive: true, _chromeStatus: "disabled", lockedPosition: true, title: "query", _height: 200, system: true }),
                     Docs.Create.FreeformDocument([], { title: "data", _height: 100, system: true })
                 ],
                 { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, hideFilterView: true, system: true }
@@ -862,10 +862,10 @@ export class CurrentUserUtils {
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-undo"] === undefined) {
-            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), onDoubleClick: ScriptField.MakeScript(""), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), toolTip: "click to undo", title: "undo", icon: "undo-alt", system: true });
         }
         if (doc["dockedBtn-redo"] === undefined) {
-            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), onDoubleClick: ScriptField.MakeScript(""), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), toolTip: "click to redo", title: "redo", icon: "redo-alt", system: true });
         }
         if (doc.dockedBtns === undefined) {
             doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc]);
