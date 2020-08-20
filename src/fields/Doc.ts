@@ -206,11 +206,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym] = (clear?: boolean) => { return clear ? this.___fields = this.___fieldKeys = {} : this.___fields; }
-    public [WidthSym] = () => { return NumCast(this[SelfProxy]._width); }
-    public [HeightSym] = () => { return NumCast(this[SelfProxy]._height); }
-    public [ToScriptString] = () => { return `DOC-"${this[Self][Id]}"-`; }
-    public [ToString] = () => { return `Doc(${GetEffectiveAcl(this) === AclPrivate ? "-inaccessible-" : this.title})`; }
+    public [FieldsSym] = (clear?: boolean) => clear ? this.___fields = this.___fieldKeys = {} : this.___fields;
+    public [WidthSym] = () => NumCast(this[SelfProxy]._width);
+    public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
+    public [ToString] = () => `Doc(${GetEffectiveAcl(this) === AclPrivate ? "-inaccessible-" : this.title})`;
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];

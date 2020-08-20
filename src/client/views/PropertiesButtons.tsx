@@ -301,7 +301,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
             const [left, top] = [e.clientX, e.clientY];
             dragData.dropAction = "alias";
-            DragManager.StartDocumentDrag([this._dragRef.current!], dragData, left, top, {
+            DragManager.StartDocumentDrag([this._dragRef.current], dragData, left, top, {
                 offsetX: dragData.offset[0],
                 offsetY: dragData.offset[1],
                 hideSource: false

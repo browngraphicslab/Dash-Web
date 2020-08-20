@@ -275,7 +275,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         document.removeEventListener("pointerdown", this.detectClick);
         const filters = Cast(this.props.Document._docFilters, listSpec("string"));
         if (filters?.includes(this._key)) {
-            runInAction(() => { this.closeResultsVisibility = "contents" });
+            runInAction(() => this.closeResultsVisibility = "contents");
         }
     }
 

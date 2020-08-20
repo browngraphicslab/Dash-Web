@@ -779,16 +779,9 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     @observable private _selectedNum = 0;
 
     @action
-    toggleOpened(open: boolean) {
-        this._opened = open;
-    }
-
-    @action
     onSetValue = (value: string) => {
-        this._text = value;
-
         // change if its a document
-        this._optionsList[this._selectedNum] = this._text;
+        this._optionsList[this._selectedNum] = this._text = value;
 
         (this.prop.Document[this.prop.fieldKey] as List<any>).splice(this._selectedNum, 1, value);
     }
@@ -854,7 +847,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
                     <div className="collectionSchemaView-cellContents" key={this._document[Id]} ref={reference}>
                         <div className="collectionSchemaView-dropDownWrapper">
                             <button type="button" className="collectionSchemaView-dropdownButton" style={{ right: "length", position: "relative" }}
-                                onClick={e => this.toggleOpened(!this._opened)} >
+                                onClick={action(e => this._opened = !this._opened)} >
                                 <FontAwesomeIcon icon={this._opened ? "caret-up" : "caret-down"} size="lg" />
                             </button>
                             <div className="collectionSchemaView-dropdownText"> {link ? plainText : textarea} </div>

@@ -624,10 +624,10 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     }
 
     @computed get _url() {
-        return this.selectedDoc ? Cast(this.selectedDoc["data"], WebField, null)?.url.toString() : "hello";
+        return this.selectedDoc ? Cast(this.selectedDoc.data, WebField, null)?.url.toString() : "hello";
     }
 
-    set _url(value) { this.selectedDoc && (this.selectedDoc["data"] = value); }
+    set _url(value) { this.selectedDoc && (this.selectedDoc.data = value); }
 
     @action
     submitURL = () => {
@@ -637,7 +637,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             const future = this.selectedDoc ? Cast(this.selectedDoc["data-future"], listSpec("string"), null) : null;
             const history = this.selectedDoc ? Cast(this.selectedDoc["data-history"], listSpec("string"), null) : [];
             const annos = this.selectedDoc ? DocListCast(this.selectedDoc["data-annotations"]) : undefined;
-            const url = this.selectedDoc ? Cast(this.selectedDoc["data"], WebField, null)?.url.toString() : null;
+            const url = this.selectedDoc ? Cast(this.selectedDoc.data, WebField, null)?.url.toString() : null;
             if (url) {
                 if (history === undefined) {
                     this.selectedDoc && (this.selectedDoc["data-history"] = new List<string>([url]));
@@ -648,7 +648,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 future && (future.length = 0);
                 this.selectedDoc && (this.selectedDoc["data-" + this.urlHash(url)] = new List<Doc>(annos));
             }
-            this.selectedDoc && (this.selectedDoc["data"] = new WebField(URLy));
+            this.selectedDoc && (this.selectedDoc.data = new WebField(URLy));
             this.selectedDoc && (this.selectedDoc["data-annotations"] = new List<Doc>([]));
         } catch (e) {
             console.log("WebBox URL error:" + this._url);
@@ -682,7 +682,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         if (future?.length) {
             history?.push(this._url);
             this.selectedDoc && (this.selectedDoc["data-annotations-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations"])));
-            this.selectedDoc && (this.selectedDoc["data"] = new WebField(new URL(this._url = future.pop()!)));
+            this.selectedDoc && (this.selectedDoc.data = new WebField(new URL(this._url = future.pop()!)));
             this.selectedDoc && (this.selectedDoc["data-annotations"] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations" + "-" + this.urlHash(this._url)])));
         }
     }
@@ -695,7 +695,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             if (future === undefined) this.selectedDoc && (this.selectedDoc["data-future"] = new List<string>([this._url]));
             else future.push(this._url);
             this.selectedDoc && (this.selectedDoc["data-annotations" + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations"])));
-            this.selectedDoc && (this.selectedDoc["data"] = new WebField(new URL(this._url = history.pop()!)));
+            this.selectedDoc && (this.selectedDoc.data = new WebField(new URL(this._url = history.pop()!)));
             this.selectedDoc && (this.selectedDoc["data-annotations"] = new List<Doc>(DocListCast(this.selectedDoc["data-annotations" + "-" + this.urlHash(this._url)])));
         }
     }

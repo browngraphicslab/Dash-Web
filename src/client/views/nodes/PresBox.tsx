@@ -1061,7 +1061,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 DockedFrameRenderer.PinDoc(doc, false);
                 this.gotoDocument(this.childDocs.length, this.itemIndex);
             } else {
-                this.props.addDocTab(doc as Doc, "onRight");
+                this.props.addDocTab(doc, "onRight");
             }
         }
     }

@@ -415,7 +415,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     createRow = action(() => {
         this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
         this._focusedCell = { row: this.childDocs.length, col: this._focusedCell.col };
-    })
+    });
 
     @undoBatch
     @action
