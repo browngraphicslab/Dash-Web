@@ -46,7 +46,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     public static Instance: SearchBox;
 
     private _allIcons: string[] = [DocumentType.INK, DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.RTF, DocumentType.VID, DocumentType.WEB];
-    private _numResultsPerPage = 4;
+    private _numResultsPerPage = 500;
     private _numTotalResults = -1;
     private _endIndex = -1;
     private _lockPromise?: Promise<void>;
