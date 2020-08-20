@@ -1,12 +1,14 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faHireAHelper, faBuffer } from '@fortawesome/free-brands-svg-icons';
+import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
+import * as rp from 'request-promise';
 import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
@@ -14,16 +16,20 @@ import { listSpec } from '../../fields/Schema';
 import { ScriptField } from '../../fields/ScriptField';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils, simulateMouseClick } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
+import { Networking } from '../Network';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import GroupManager from '../util/GroupManager';
 import { HistoryUtil } from '../util/History';
+import { Hypothesis } from '../util/HypothesisUtils';
+import { LinkManager } from '../util/LinkManager';
 import { Scripting } from '../util/Scripting';
+import { SearchUtil } from '../util/SearchUtil';
 import { SelectionManager } from '../util/SelectionManager';
 import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
@@ -53,18 +59,11 @@ import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { RadialMenu } from './nodes/RadialMenu';
 import { TaskCompletionBox } from './nodes/TaskCompletedBox';
+import { WebBox } from './nodes/WebBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { Hypothesis } from '../util/HypothesisUtils';
-import { WebBox } from './nodes/WebBox';
-import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
-import { SearchUtil } from '../util/SearchUtil';
-import { Networking } from '../Network';
-import * as rp from 'request-promise';
-import { LinkManager } from '../util/LinkManager';
-import RichTextMenu from './nodes/formattedText/RichTextMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -544,7 +543,7 @@ export class MainView extends React.Component {
             switch (this.panelContent = title) {
                 case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
                 case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
-                case "Catalog": SearchBox.Instance.searchFullDB = "My Stuff";
+                case "Catalog": SearchBox.Instance._searchFullDB = "My Stuff";
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
