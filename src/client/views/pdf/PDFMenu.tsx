@@ -154,7 +154,7 @@ export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
         const buttons = this.Status === "pdf" ?
             [
                 this.highlighter,
-                <button key="2" className="antimodeMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
+                <button key="2" className="antimodeMenu-button annotate" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown} style={{ cursor: "grab" }}>
                     <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
             ] : [
                 <button key="5" className="antimodeMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}>

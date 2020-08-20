@@ -132,6 +132,7 @@ export class PreviewCursor extends React.Component<{}> {
             e.key !== "Insert" && e.key !== "Home" && e.key !== "End" && e.key !== "PageUp" && e.key !== "PageDown" &&
             e.key !== "NumLock" && e.key !== " " &&
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
+            (e.keyCode < 173 || e.keyCode > 183 || e.key === "-") && // mute, volume up/down etc, - is there specifically because its keycode is 173 in Firefox so shouldn't be avoided
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
             if ((!e.metaKey && !e.ctrlKey) || (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 65 && e.keyCode <= 90)) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
