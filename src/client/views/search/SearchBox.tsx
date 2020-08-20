@@ -24,18 +24,7 @@ import { DocumentView } from '../nodes/DocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
 
-export const searchSchema = createSchema({
-    id: "string",
-    Document: Doc,
-    searchQuery: "string",
-});
-
-export enum Keys {
-    TITLE = "title",
-    AUTHOR = "author",
-    DATA = "data",
-    TEXT = "text"
-}
+export const searchSchema = createSchema({ Document: Doc });
 
 type SearchBoxDocument = makeInterface<[typeof documentSchema, typeof searchSchema]>;
 const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
@@ -55,6 +44,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private _maxSearchIndex: number = 0;
     private _curRequest?: Promise<any> = undefined;
     private _disposers: { [name: string]: IReactionDisposer } = {};
+    private _blockedTypes = [DocumentType.PRESELEMENT, DocumentType.KVP, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
 
     private currentSelectedCollection: DocumentView | undefined = undefined;
     private docsforfilter: Doc[] = [];
@@ -105,10 +95,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             if (this.currentSelectedCollection) {
                 this.doLoop(this.currentSelectedCollection, undefined);
             }
-            this._results.forEach(result => {
-                Doc.UnBrushDoc(result[0]);
-                result[0].searchMatch = undefined;
-            });
+            this.closeSearch(false);
 
             if (this.currentSelectedCollection !== undefined) {
                 this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
@@ -196,23 +183,18 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     }
                 }
             }
-
         }
 
         return query.replace(/-\s+/g, '');
     }
 
-
     @action
     filterDocsByType(docs: Doc[]) {
         const finalDocs: Doc[] = [];
-        const blockedTypes: string[] = [DocumentType.PRESELEMENT, DocumentType.DOCHOLDER, DocumentType.SEARCH, DocumentType.SEARCHITEM, DocumentType.FONTICON, DocumentType.BUTTON, DocumentType.SCRIPTING];
         docs.forEach(doc => {
-            const layoutresult = Cast(doc.type, "string");
-            if (layoutresult && !blockedTypes.includes(layoutresult)) {
-                if (layoutresult && this._icons.includes(layoutresult)) {
-                    finalDocs.push(doc);
-                }
+            const layoutresult = StrCast(doc.type, "string") as DocumentType;
+            if (layoutresult && !this._blockedTypes.includes(layoutresult) && this._icons.includes(layoutresult)) {
+                finalDocs.push(doc);
             }
         });
         return finalDocs;
@@ -244,7 +226,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
     searchCollection(query: string) {
-        const selectedCollection: DocumentView = SelectionManager.SelectedDocuments()[0];
+        const selectedCollection = SelectionManager.SelectedDocuments()[0];
         query = query.toLowerCase();
 
         if (selectedCollection !== undefined) {
@@ -296,23 +278,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
         //  is displayed (unlikely) it won't show up until something else changes.
         //TODO Types
-        Doc.GetAllPrototypes(doc).map
-            (proto => Object.keys(proto).forEach(key => keys[key] = false));
+        Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false));
         return Array.from(Object.keys(keys));
-    }
-
-
-    basicFieldFilters(query: string, type: string): string {
-        let mod = "";
-        switch (type) {
-            case Keys.AUTHOR: mod = " author_t:"; break;
-            case Keys.TITLE: mod = " title_t:"; break;
-            case Keys.TEXT: mod = " text_t:"; break;
-        }
-
-        const newWords: string[] = [];
-        query.split(" ").forEach(word => newWords.push(mod + word));
-        return newWords.join(" ");
     }
 
     @action
@@ -332,10 +299,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         let query = StrCast(this.layoutDoc._searchString);
         Doc.SetSearchQuery(query);
         this._searchFullDB ? query = this.getFinalQuery(query) : console.log("local");
-        this._results.forEach(result => {
-            Doc.UnBrushDoc(result[0]);
-            result[0].searchMatch = undefined;
-        });
+        this.closeSearch(false);
         this._results = [];
         this._resultsSet.clear();
         this._visibleElements = [];
@@ -358,11 +322,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        const types = ["preselement", "docholder", "search", "searchitem", "fonticonbox"]; // this.filterTypes;
         const baseExpr = "NOT system_b:true";
         const authorExpr = this._searchFullDB === "My Stuff" ? ` author_t:${Doc.CurrentUserEmail}` : undefined;
         const includeDeleted = this._deletedDocsStatus ? "" : " NOT deleted_b:true";
-        const typeExpr = this._onlyAliases ? "NOT {!join from=id to=proto_i}type_t:*" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${types.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
+        const typeExpr = this._onlyAliases ? "NOT {!join from=id to=proto_i}type_t:*" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${this._blockedTypes.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
         const query = [baseExpr, authorExpr, includeDeleted, typeExpr].filter(q => q).join(" AND ").replace(/AND $/, "");
         return query;
@@ -380,6 +343,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []);
         return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
     }
+
     getResults = async (query: string) => {
         this._lockPromise && (await this._lockPromise);
         this._lockPromise = new Promise(async res => {
@@ -467,12 +431,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     @action.bound
-    closeSearch = () => {
+    closeSearch = (closesearchbar = true) => {
         this._results.forEach(result => {
             Doc.UnBrushDoc(result[0]);
             result[0].searchMatch = undefined;
         });
-        this._searchbarOpen = false;
+        closesearchbar && (this._searchbarOpen = false);
     }
 
     @action.bound

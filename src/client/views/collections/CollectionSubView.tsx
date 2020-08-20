@@ -138,37 +138,24 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
                 console.log(searchDocs);
                 searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
-                console.log(this.docFilters());
-                console.log(searchDocs);
                 childDocs.forEach((d) => {
                     if (d.data !== undefined) {
                         let newdocs = DocListCast(d.data);
                         if (newdocs.length > 0) {
-                            let displaycheck: boolean | undefined = undefined;
+                            let displaycheck = false;
                             let newarray: Doc[] = [];
                             while (newdocs.length > 0) {
                                 newarray = [];
                                 newdocs.forEach((t) => {
-                                    if (d.data !== undefined) {
-                                        const newdocs = DocListCast(t.data);
-                                        newdocs.forEach((newdoc) => {
-                                            newarray.push(newdoc);
-                                        });
-                                    }
-                                    if (searchDocs.includes(t)) {
-                                        displaycheck = true;
-                                    }
+                                    DocListCast(t.data).forEach((newdoc) => newarray.push(newdoc));
+                                    displaycheck = displaycheck || searchDocs.includes(t);
                                 });
                                 newdocs = newarray;
                             }
-                            if (displaycheck === true) {
-                                docsforFilter.push(d);
-                            }
+                            displaycheck && docsforFilter.push(d);
                         }
                     }
-                    if (searchDocs.includes(d)) {
-                        docsforFilter.push(d);
-                    }
+                    searchDocs.includes(d) && docsforFilter.push(d);
                 });
                 return docsforFilter;
             }
