@@ -469,7 +469,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return <>
             <div className="docContainer" ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
                 style={{
-                    fontWeight: this.doc.searchMatch ? "bold" : undefined,
+                    fontWeight: this.doc.searchMatch !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
                     outline: BoolCast(this.doc.workspaceBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SnappingManager.GetIsDragging() ? undefined : "none"

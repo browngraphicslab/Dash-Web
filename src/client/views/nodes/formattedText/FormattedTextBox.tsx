@@ -374,7 +374,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
         }
     }
-    public highlightSearchTerms = (terms: string[], alt: boolean) => {
+    public highlightSearchTerms = (terms: string[], backward: boolean) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
 
 
@@ -391,7 +391,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             else {
                 this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-                if (alt === true) {
+                if (backward === true) {
                     if (this._searchIndex > 1) {
                         this._searchIndex += -2;
                     }
@@ -907,12 +907,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._disposers.searchAlt = reaction(() => this.rootDoc.searchMatchAlt,
-            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], false) : this.unhighlightSearchTerms(),
-            { fireImmediately: true });
         this._disposers.search = reaction(() => this.rootDoc.searchMatch,
-            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], true) : this.unhighlightSearchTerms(),
-            { fireImmediately: this.rootDoc.searchMatch ? true : false });
+            search => search !== undefined ? this.highlightSearchTerms([Doc.SearchQuery()], BoolCast(search)) : this.unhighlightSearchTerms(),
+            { fireImmediately: this.rootDoc.searchMatch !== undefined ? true : false });
 
         this._disposers.record = reaction(() => this._recording,
             () => {
