@@ -471,7 +471,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 style={{
                     fontWeight: this.doc.searchMatch !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
-                    outline: BoolCast(this.doc.sceneBrush) ? "dashed 1px #06123232" : undefined,
+                    outline: BoolCast(this.doc.dashboardBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SnappingManager.GetIsDragging() ? undefined : "none"
                 }} >
                 {view}
@@ -725,9 +725,9 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myScenes) {
-            ContextMenu.Instance.addItem({ description: "Create Scene", event: () => MainView.Instance.createNewScene(), icon: "plus" });
-            ContextMenu.Instance.addItem({ description: "Delete Scene", event: () => this.remove(this.doc), icon: "minus" });
+        if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myDashboards) {
+            ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => MainView.Instance.createNewDashboard(), icon: "plus" });
+            ContextMenu.Instance.addItem({ description: "Delete Dashboard", event: () => this.remove(this.doc), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);

@@ -820,7 +820,9 @@ export namespace Docs {
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            Doc.GetProto(inst).data = new List<Doc>(documents);
+            const tabs = TreeDocument(documents, { title: "Active Tabs" });
+            const all = TreeDocument([], { title: "Other Tabs" });
+            Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }
 

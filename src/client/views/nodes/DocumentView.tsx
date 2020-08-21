@@ -564,8 +564,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     deleteClicked = (): void => {
-        if (Doc.UserDoc().activeScene === this.props.Document) {
-            alert("Can't delete the active scene");
+        if (Doc.UserDoc().activeDashboard === this.props.Document) {
+            alert("Can't delete the active dashboard");
         } else {
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
@@ -601,7 +601,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (this.props.Document === Doc.UserDoc().activeScene) {
+        if (this.props.Document === Doc.UserDoc().activeDashboard) {
             alert("linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
@@ -1011,7 +1011,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
-        const highlightColors = Cast(Doc.UserDoc().activeScene, Doc, null)?.darkScheme ?
+        const highlightColors = Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];

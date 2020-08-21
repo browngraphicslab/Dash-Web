@@ -31,9 +31,10 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { listSpec } from '../../../fields/Schema';
 import { clamp } from 'lodash';
 import { PresBox } from '../nodes/PresBox';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { InkTool } from '../../../fields/InkField';
+import { List } from '../../../fields/List';
+import { lstat } from 'fs';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -79,9 +80,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         } else {
             config = {
                 type: 'row',
-                content: dragDocs.map((doc, i) => {
-                    CollectionDockingView.makeDocumentConfig(doc);
-                })
+                content: dragDocs.map((doc, i) => CollectionDockingView.makeDocumentConfig(doc))
             };
         }
         const div = document.createElement("div");
@@ -96,7 +95,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
         if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
-            return MainView.Instance.openScene(docView.props.Document);
+            return MainView.Instance.openDashboard(docView.props.Document);
         }
         const document = Doc.MakeAlias(docView.props.Document);
         const newItemStackConfig = {
@@ -154,7 +153,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
         this._goldenLayout.emit('stateChanged');
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
-        if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
         this.stateChanged();
     }
     @undoBatch
@@ -410,8 +408,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
-                        DocListCast((Doc.UserDoc().myScenes as Doc).data).map(d => d.sceneBrush = false);
-                        this.props.Document.sceneBrush = true;
+                        DocListCast((Doc.UserDoc().myDashboards as Doc).data).map(d => d.dashboardBrush = false);
+                        this.props.Document.dashboardBrush = true;
                     }
                     this._ignoreStateChange = "";
                 }, { fireImmediately: true });
@@ -421,7 +419,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     componentWillUnmount: () => void = () => {
         try {
-            this.props.Document.sceneBrush = false;
+            this.props.Document.dashboardBrush = false;
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
@@ -481,8 +479,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         if (docids) {
             const docs = (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
-            docs.map(doc => Doc.AddDocToList(Doc.GetProto(this.props.Document), this.props.fieldKey, doc));
-            // Doc.GetProto(this.props.Document)[this.props.fieldKey] = new List<Doc>(docs);
+            const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
+            const tabs = Cast(sublists[0], Doc, null);
+            const other = Cast(sublists[1], Doc, null);
+            const tabdocs = DocListCast(tabs.data);
+            const otherdocs = DocListCast(other.data);
+            Doc.GetProto(tabs).data = new List<Doc>(docs);
+            const otherSet = new Set<Doc>();
+            otherdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+            tabdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+            Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
         }
     }
 
@@ -586,7 +592,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
                 if (doc instanceof Doc) {
                     const theDoc = doc;
-                    CollectionDockingView.Instance._removedDocs.push(theDoc);
 
                     const recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc);
                     if (recent) {
@@ -607,7 +612,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
         }
     }
-    _removedDocs: Doc[] = [];
 
     stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
@@ -652,7 +656,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                         }
                         const theDoc = doc;
-                        CollectionDockingView.Instance._removedDocs.push(theDoc);
                     }
                 });
                 //}
@@ -668,7 +671,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     render() {
         if (this.props.renderDepth > 0) {
-            return <div style={{ width: "100%", height: "100%" }}>Nested scenes can't be rendered</div>;
+            return <div style={{ width: "100%", height: "100%" }}>Nested dashboards can't be rendered</div>;
         }
         return <div className="collectiondockingview-container" id="menuContainer"
             onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />;
@@ -834,7 +837,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
         if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
-            return MainView.Instance.openScene(doc);
+            return MainView.Instance.openDashboard(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {

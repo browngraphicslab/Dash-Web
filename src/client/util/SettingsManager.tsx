@@ -158,7 +158,7 @@ export default class SettingsManager extends React.Component<{}> {
                 <div className="settings-title">Settings</div>
                 <div className="settings-username">{Doc.CurrentUserEmail}</div>
                 <button className="logout-button" onClick={() => window.location.assign(Utils.prepend("/logout"))} >
-                    {CurrentUserUtils.GuestScene ? "Exit" : "Log Out"}
+                    {CurrentUserUtils.GuestDashboard ? "Exit" : "Log Out"}
                 </button>
                 <div className="close-button" onClick={this.close}>
                     <FontAwesomeIcon icon={fa.faTimes} color="black" size={"lg"} />
