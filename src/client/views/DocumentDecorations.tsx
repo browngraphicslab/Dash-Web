@@ -596,7 +596,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
     render() {
-        const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
+        const darkScheme = Cast(Doc.UserDoc().activeScene, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 1 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {

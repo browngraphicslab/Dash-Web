@@ -36,7 +36,7 @@ export class CurrentUserUtils {
     @computed public static get UserDocument() { return Doc.UserDoc(); }
 
     @observable public static GuestTarget: Doc | undefined;
-    @observable public static GuestWorkspace: Doc | undefined;
+    @observable public static GuestScene: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
 
     @observable public static propertiesWidth: number = 0;
@@ -511,7 +511,7 @@ export class CurrentUserUtils {
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
             { title: "Sharing", target: Cast(doc["sidebar-sharing"], Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
-            { title: "Workspace", target: Cast(doc["sidebar-workspaces"], Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Scenes", target: Cast(doc["sidebar-scenes"], Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
             { title: "Archive", target: Cast(doc["sidebar-recentlyClosed"], Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Import", target: Cast(doc["sidebar-import"], Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
@@ -592,7 +592,7 @@ export class CurrentUserUtils {
     // SEts up mobile buttons for inside mobile menu
     static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "WORKSPACES", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Workspaces from your mobile, and navigate through all of your documents. " },
+            { title: "SCENES", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Scenes from your mobile, and navigate through all of your documents. " },
             { title: "UPLOAD", icon: "upload", click: 'openMobileUploads()', backgroundColor: "lightgrey", info: "Upload files from your mobile device so they can be accessed on Dash Web." },
             { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploadCollection()', backgroundColor: "lightgrey", info: "Access the collection of your mobile uploads." },
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey", info: "Use your phone to record, dictate and then upload audio onto Dash Web." },
@@ -689,7 +689,7 @@ export class CurrentUserUtils {
     }
 
     static setupLibrary(userDoc: Doc) {
-        return CurrentUserUtils.setupWorkspaces(userDoc);
+        return CurrentUserUtils.setupScenes(userDoc);
     }
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
@@ -724,28 +724,28 @@ export class CurrentUserUtils {
         }
     }
 
-    static async setupWorkspaces(doc: Doc) {
-        // setup workspaces library item
-        await doc.myWorkspaces;
-        if (doc.myWorkspaces === undefined) {
-            doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+    static async setupScenes(doc: Doc) {
+        // setup scenes library item
+        await doc.myScenes;
+        if (doc.myScenes === undefined) {
+            doc.myScenes = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "SCENES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
             }));
         }
-        if (doc["sidebar-workspaces"] === undefined) {
-            const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
-            (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
-            (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
+        if (doc["sidebar-scenes"] === undefined) {
+            const newScene = ScriptField.MakeScript(`createNewScene()`);
+            (doc.myScenes as Doc).contextMenuScripts = new List<ScriptField>([newScene!]);
+            (doc.myScenes as Doc).contextMenuLabels = new List<string>(["Create New Scene"]);
 
-            const workspaces = doc.myWorkspaces as Doc;
+            const scenes = doc.myScenes as Doc;
 
-            doc["sidebar-workspaces"] = new PrefetchProxy(Docs.Create.TreeDocument([workspaces], {
+            doc["sidebar-scenes"] = new PrefetchProxy(Docs.Create.TreeDocument([scenes], {
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
-        return doc.myWorkspaces as any as Doc;
+        return doc.myScenes as any as Doc;
     }
 
     static setupCatalog(doc: Doc) {
@@ -821,7 +821,7 @@ export class CurrentUserUtils {
     static async setupSidebarButtons(doc: Doc) {
         CurrentUserUtils.setupSidebarContainer(doc);
         await CurrentUserUtils.setupToolsBtnPanel(doc);
-        CurrentUserUtils.setupWorkspaces(doc);
+        CurrentUserUtils.setupScenes(doc);
         CurrentUserUtils.setupCatalog(doc);
         CurrentUserUtils.setupRecentlyClosed(doc);
         CurrentUserUtils.setupUserDoc(doc);
@@ -1002,8 +1002,8 @@ export class CurrentUserUtils {
     }
 }
 
-Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
-    "creates a new workspace when called");
+Scripting.addGlobal(function createNewScene() { return MainView.Instance.createNewScene(); },
+    "creates a new scene when called");
 
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
     "returns all the links to the document or its annotations", "(doc: any)");

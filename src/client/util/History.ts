@@ -197,7 +197,7 @@ export namespace HistoryUtil {
             await Promise.all(Object.keys(init).map(id => initDoc(id, init[id])));
         }
         if (field instanceof Doc) {
-            MainView.Instance.openWorkspace(field, true);
+            MainView.Instance.openScene(field, true);
         }
     }
 

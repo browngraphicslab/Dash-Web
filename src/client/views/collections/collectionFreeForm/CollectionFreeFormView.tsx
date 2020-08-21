@@ -641,7 +641,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     handle1PointerMove = (e: TouchEvent, me: InteractionUtils.MultiTouchEvent<TouchEvent>) => {
-        // panning a workspace
         if (!e.cancelBubble) {
             const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt = myTouches[0];

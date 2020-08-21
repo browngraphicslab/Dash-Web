@@ -96,7 +96,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
         if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
-            return MainView.Instance.openWorkspace(docView.props.Document);
+            return MainView.Instance.openScene(docView.props.Document);
         }
         const document = Doc.MakeAlias(docView.props.Document);
         const newItemStackConfig = {
@@ -410,8 +410,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
-                        DocListCast((Doc.UserDoc().myWorkspaces as Doc).data).map(d => d.workspaceBrush = false);
-                        this.props.Document.workspaceBrush = true;
+                        DocListCast((Doc.UserDoc().myScenes as Doc).data).map(d => d.sceneBrush = false);
+                        this.props.Document.sceneBrush = true;
                     }
                     this._ignoreStateChange = "";
                 }, { fireImmediately: true });
@@ -421,7 +421,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     componentWillUnmount: () => void = () => {
         try {
-            this.props.Document.workspaceBrush = false;
+            this.props.Document.sceneBrush = false;
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
@@ -668,7 +668,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     render() {
         if (this.props.renderDepth > 0) {
-            return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
+            return <div style={{ width: "100%", height: "100%" }}>Nested scenes can't be rendered</div>;
         }
         return <div className="collectiondockingview-container" id="menuContainer"
             onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />;
@@ -834,7 +834,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
         if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
-            return MainView.Instance.openWorkspace(doc);
+            return MainView.Instance.openScene(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {

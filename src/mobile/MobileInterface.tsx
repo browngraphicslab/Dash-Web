@@ -58,7 +58,7 @@ export class MobileInterface extends React.Component {
     @observable private _menuListView: boolean = false; //to switch between menu view (list / icon)
     @observable private _ink: boolean = false; //toggle whether ink is being dispalyed
     @observable private _homeMenu: boolean = true; // to determine whether currently at home menu
-    @observable private _child: Doc | null = null; // currently selected document
+    @observable private scenes: Doc | null = null; // currently selected document
     @observable private _activeDoc: Doc = this._mainDoc; // doc updated as the active mobile page is updated (initially home menu)
     @observable private _homeDoc: Doc = this._mainDoc; // home menu as a document
     @observable private _parents: Array<Doc> = []; // array of parent docs (for pathbar)
@@ -136,19 +136,19 @@ export class MobileInterface extends React.Component {
     back = () => {
         const header = document.getElementById("header") as HTMLElement;
         const doc = Cast(this._parents.pop(), Doc) as Doc; // Parent document
-        // Case 1: Parent document is 'workspaces'
+        // Case 1: Parent document is 'scenes'
         if (doc === Cast(this._library, Doc) as Doc) {
-            this._child = null;
+            this.scenes = null;
             this._library.then(library => this.switchCurrentView(library));
             // Case 2: Parent document is the 'home' menu (root node)
         } else if (doc === Cast(this._homeDoc, Doc) as Doc) {
             this._homeMenu = true;
             this._parents = [];
-            this._child = null;
+            this.scenes = null;
             this.switchCurrentView(this._homeDoc);
             // Case 3: Parent document is any document
         } else if (doc) {
-            this._child = doc;
+            this.scenes = doc;
             this.switchCurrentView(doc);
             this._homeMenu = false;
             header.textContent = String(doc.title);
@@ -164,7 +164,7 @@ export class MobileInterface extends React.Component {
         if (!this._homeMenu || this._sidebarActive) {
             this._homeMenu = true;
             this._parents = [];
-            this._child = null;
+            this.scenes = null;
             this.switchCurrentView(this._homeDoc);
         }
         if (this._sidebarActive) {
@@ -173,14 +173,14 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Return to primary Workspace in library (Workspaces Doc)
+     * Return to primary Scene in library (Scenes Doc)
      */
     @action
     returnMain = () => {
         this._parents = [this._homeDoc];
         this._library.then(library => this.switchCurrentView(library));
         this._homeMenu = false;
-        this._child = null;
+        this.scenes = null;
     }
 
     /**
@@ -194,7 +194,7 @@ export class MobileInterface extends React.Component {
     /**
      * DocumentView for graphic display of all documents
      */
-    @computed get displayWorkspaces() {
+    @computed get displayScenes() {
         return !this.mainContainer ? (null) :
             <div style={{ position: "relative", top: '198px', height: `calc(100% - 350px)`, width: "100%", left: "0%" }}>
                 <DocumentView
@@ -243,7 +243,7 @@ export class MobileInterface extends React.Component {
                 this._parents.push(this._activeDoc);
                 this.switchCurrentView(doc);
                 this._homeMenu = false;
-                this._child = doc;
+                this.scenes = doc;
             }
         });
     }
@@ -258,7 +258,7 @@ export class MobileInterface extends React.Component {
         this._parents.push(this._activeDoc);
         this.switchCurrentView(doc);
         this._homeMenu = false;
-        this._child = doc;
+        this.scenes = doc;
         this.toggleSidebar();
     }
 
@@ -290,13 +290,13 @@ export class MobileInterface extends React.Component {
     handlePathClick = async (doc: Doc, index: number) => {
         const library = await this._library;
         if (doc === library) {
-            this._child = null;
+            this.scenes = null;
             this.switchCurrentView(doc);
             this._parents.length = index;
         } else if (doc === this._homeDoc) {
             this.returnHome();
         } else {
-            this._child = doc;
+            this.scenes = doc;
             this.switchCurrentView(doc);
             this._parents.length = index;
         }
@@ -321,13 +321,13 @@ export class MobileInterface extends React.Component {
                 </div>
             );
         }
-        // stores workspace documents as 'workspaces' variable
-        let workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
-        if (this._child) {
-            workspaces = this._child;
+        // stores scenes documents as 'scenes' variable
+        let scenes = Cast(Doc.UserDoc().myScenes, Doc) as Doc;
+        if (this.scenes) {
+            scenes = this.scenes;
         }
         // returns a list of navbar buttons as 'buttons'
-        const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
+        const buttons = DocListCast(scenes.data).map((doc: Doc, index: any) => {
             if (doc.type !== "ink") {
                 return (
                     <div
@@ -357,7 +357,7 @@ export class MobileInterface extends React.Component {
                 {this.renderPathbar()}
                 <div className={`sidebar ${this._sidebarActive ? "active" : ""}`}>
                     <div className="sidebarButtons">
-                        {this._child ?
+                        {this.scenes ?
                             <>
                                 {buttons}
                                 <div
@@ -365,7 +365,7 @@ export class MobileInterface extends React.Component {
                                     onClick={this.returnMain}
                                     style={{ opacity: 0.7 }}>
                                     <FontAwesomeIcon className="right" icon="angle-double-left" size="lg" />
-                                    <div className="item-type">Return to workspaces</div>
+                                    <div className="item-type">Return to scenes</div>
                                 </div>
                             </> :
                             <>
@@ -373,9 +373,9 @@ export class MobileInterface extends React.Component {
                                 <div
                                     className="item"
                                     style={{ opacity: 0.7 }}
-                                    onClick={() => this.createNewWorkspace()}>
+                                    onClick={() => this.createNewScene()}>
                                     <FontAwesomeIcon className="right" icon="plus" size="lg" />
-                                    <div className="item-type">Create New Workspace</div>
+                                    <div className="item-type">Create New Scene</div>
                                 </div>
                             </>
                         }
@@ -388,27 +388,27 @@ export class MobileInterface extends React.Component {
     }
 
     /**
-     * Handles the 'Create New Workspace' button in the menu (taken from MainView.tsx)
+     * Handles the 'Create New Scene' button in the menu (taken from MainView.tsx)
      */
     @action
-    createNewWorkspace = async (id?: string) => {
-        const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc) as Doc;
-        const workspaceCount = DocListCast(workspaces.data).length + 1;
+    createNewScene = async (id?: string) => {
+        const scens = Cast(Doc.UserDoc().myScenes, Doc) as Doc;
+        const sceneCount = DocListCast(scens.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            title: "Collection " + workspaceCount,
+            title: "Collection " + sceneCount,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const sceneDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Scene ${sceneCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
-        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
-        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
+        const cloneScene = ScriptField.MakeScript(`cloneScene()`);
+        sceneDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneScene!]);
+        sceneDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Scene Layout"]);
 
-        Doc.AddDocToList(workspaces, "data", workspaceDoc);
+        Doc.AddDocToList(scens, "data", sceneDoc);
     }
 
     // Button for switching between pen and ink mode
@@ -612,7 +612,7 @@ export class MobileInterface extends React.Component {
     }
 
     // Radial menu can only be used if it is a colleciton and it is not a homeDoc 
-    // (and cannot be used on Workspace to avoid pin to presentation opening on right)
+    // (and cannot be used on Scene to avoid pin to presentation opening on right)
     @computed get displayRadialMenu() {
         return this._activeDoc.type === "collection" && this._activeDoc !== this._homeDoc &&
             this._activeDoc._viewType !== CollectionViewType.Docking ? <RadialMenu /> : (null);
@@ -657,7 +657,7 @@ export class MobileInterface extends React.Component {
                         {this.drawInk}
                         {this.uploadImageButton}
                     </div>
-                    {this.displayWorkspaces}
+                    {this.displayScenes}
                     {this.renderDefaultContent}
                 </GestureOverlay>
                 {this.displayRadialMenu}
@@ -669,7 +669,7 @@ export class MobileInterface extends React.Component {
 
 //Global functions for mobile menu
 Scripting.addGlobal(function switchToMobileLibrary() { return MobileInterface.Instance.switchToLibrary(); },
-    "opens the library to navigate through workspaces on Dash Mobile");
+    "opens the library to navigate through scenes on Dash Mobile");
 Scripting.addGlobal(function openMobileUploads() { return MobileInterface.Instance.toggleUpload(); },
     "opens the upload files menu for Dash Mobile");
 Scripting.addGlobal(function switchToMobileUploadCollection() { return MobileInterface.Instance.switchToMobileUploads(); },

@@ -77,10 +77,10 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = false;
     @observable public flyoutWidth: number = 0;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeScene, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
-    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
+    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeScene, Doc)) : CurrentUserUtils.GuestScene; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
 
@@ -224,12 +224,12 @@ export class MainView extends React.Component {
     }
 
     initAuthenticationRouters = async () => {
-        // Load the user's active workspace, or create a new one if initial session after signup
+        // Load the user's active scene, or create a new one if initial session after signup
         const received = CurrentUserUtils.MainDocId;
         if (received && !this.userDoc) {
             reaction(
                 () => CurrentUserUtils.GuestTarget,
-                target => target && this.createNewWorkspace(),
+                target => target && this.createNewScene(),
                 { fireImmediately: true }
             );
         } else {
@@ -242,21 +242,21 @@ export class MainView extends React.Component {
                     }),
                 );
             }
-            const doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
+            const doc = this.userDoc && await Cast(this.userDoc.activeScene, Doc);
             if (doc) {
-                this.openWorkspace(doc);
+                this.openScene(doc);
             } else {
-                this.createNewWorkspace();
+                this.createNewScene();
             }
         }
     }
 
     @action
-    createNewWorkspace = async (id?: string) => {
+    createNewScene = async (id?: string) => {
         const myCatalog = Doc.UserDoc().myCatalog as Doc;
         const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
-        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-        const workspaceCount = DocListCast(workspaces.data).length + 1;
+        const scenes = Cast(this.userDoc.myScenes, Doc) as Doc;
+        const sceneCount = DocListCast(scenes.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
@@ -265,28 +265,28 @@ export class MainView extends React.Component {
             title: "Untitled Collection",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const sceneDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Scene ${sceneCount}` }, id, "row");
         Doc.AddDocToList(myCatalog, "data", freeformDoc);
         Doc.AddDocToList(myCatalog, "data", presentation);
         Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        const copyWorkspace = ScriptField.MakeScript(`copyWorkspace()`);
-        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyWorkspace!]);
-        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Workspace"]);
+        const copyScene = ScriptField.MakeScript(`copyScene()`);
+        sceneDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyScene!]);
+        sceneDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Scene"]);
 
-        Doc.AddDocToList(workspaces, "data", workspaceDoc);
+        Doc.AddDocToList(scenes, "data", sceneDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => this.openWorkspace(workspaceDoc), 0);
+        setTimeout(() => this.openScene(sceneDoc), 0);
     }
 
     @action
-    openWorkspace = (doc: Doc, fromHistory = false) => {
+    openScene = (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
 
-        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
+        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest scene
             !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
-            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
+            this.userDoc ? (this.userDoc.activeScene = doc) : (CurrentUserUtils.GuestScene = doc);
         }
         const state = this._urlState;
         if (state.sharing === true && !this.userDoc) {
@@ -438,7 +438,7 @@ export class MainView extends React.Component {
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
-            doc.dockingConfig ? this.openWorkspace(doc) :
+            doc.dockingConfig ? this.openScene(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
@@ -977,12 +977,12 @@ export class MainView extends React.Component {
 }
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
-Scripting.addGlobal(function copyWorkspace() {
-    const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
-    const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
-    Doc.AddDocToList(workspaces, "data", copiedWorkspace);
+Scripting.addGlobal(function copyScene() {
+    const copiedScene = Doc.MakeCopy(Cast(Doc.UserDoc().activeScene, Doc, null), true);
+    const scenes = Cast(Doc.UserDoc().myScenes, Doc, null);
+    Doc.AddDocToList(scenes, "data", copiedScene);
     // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-    setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
+    setTimeout(() => MainView.Instance.openScene(copiedScene), 0);
 });
 Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
     "imports files from device directly into the import sidebar");

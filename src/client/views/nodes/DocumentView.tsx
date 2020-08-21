@@ -564,8 +564,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     deleteClicked = (): void => {
-        if (Doc.UserDoc().activeWorkspace === this.props.Document) {
-            alert("Can't delete the active workspace");
+        if (Doc.UserDoc().activeScene === this.props.Document) {
+            alert("Can't delete the active scene");
         } else {
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
@@ -601,7 +601,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (this.props.Document === Doc.UserDoc().activeWorkspace) {
+        if (this.props.Document === Doc.UserDoc().activeScene) {
             alert("linking to document tabs not yet supported.  Drop link on document content.");
             return;
         }
@@ -713,7 +713,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const cm = ContextMenu.Instance;
-        if (!cm || (e?.nativeEvent as any)?.SchemaHandled) return;
+        if (!cm || (e as any)?.nativeEvent?.SchemaHandled) return;
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
@@ -1011,7 +1011,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
-        const highlightColors = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ?
+        const highlightColors = Cast(Doc.UserDoc().activeScene, Doc, null)?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];

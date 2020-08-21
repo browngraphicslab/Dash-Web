@@ -175,7 +175,7 @@ export class DashDocView extends React.Component<IDashDocView> {
         const outerStyle = {
             position: "relative" as "relative",
             textIndent: "0",
-            border: "1px solid " + StrCast(this._textBox.Document.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray")),
+            border: "1px solid " + StrCast(this._textBox.Document.color, (Cast(Doc.UserDoc().activeScene, Doc, null).darkScheme ? "dimGray" : "lightGray")),
             width: this.props.node.props.width,
             height: this.props.node.props.height,
             display: this.props.node.props.hidden ? "none" : "inline-block",
@@ -202,7 +202,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                 ({ dim, color }) => {
                     spanStyle.width = outerStyle.width = Math.max(20, dim[0]) + "px";
                     spanStyle.height = outerStyle.height = Math.max(20, dim[1]) + "px";
-                    outerStyle.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+                    outerStyle.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeScene, Doc, null).darkScheme ? "dimGray" : "lightGray"));
                 }, { fireImmediately: true });
 
             if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
