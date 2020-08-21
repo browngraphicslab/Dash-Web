@@ -78,7 +78,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._inputRef.current.focus();
             this._searchbarOpen = true;
         }
-    })
+    });
 
     componentWillUnmount() {
         Object.values(this._disposers).forEach(disposer => disposer?.());
