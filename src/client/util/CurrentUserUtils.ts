@@ -592,7 +592,7 @@ export class CurrentUserUtils {
     // SEts up mobile buttons for inside mobile menu
     static setupMobileButtons(doc?: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, info: string, dragFactory?: Doc }[] = [
-            { title: "SCENES", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Dashboards from your mobile, and navigate through all of your documents. " },
+            { title: "DASHBOARDS", icon: "bars", click: 'switchToMobileLibrary()', backgroundColor: "lightgrey", info: "Access your Dashboards from your mobile, and navigate through all of your documents. " },
             { title: "UPLOAD", icon: "upload", click: 'openMobileUploads()', backgroundColor: "lightgrey", info: "Upload files from your mobile device so they can be accessed on Dash Web." },
             { title: "MOBILE UPLOAD", icon: "mobile", click: 'switchToMobileUploadCollection()', backgroundColor: "lightgrey", info: "Access the collection of your mobile uploads." },
             { title: "RECORD", icon: "microphone", click: 'openMobileAudio()', backgroundColor: "lightgrey", info: "Use your phone to record, dictate and then upload audio onto Dash Web." },
@@ -729,7 +729,8 @@ export class CurrentUserUtils {
         await doc.myDashboards;
         if (doc.myDashboards === undefined) {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "SCENES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+                title: "DASHBOARDS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true,
+                treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data",
             }));
         }
         if (doc["sidebar-dashboards"] === undefined) {
@@ -773,7 +774,8 @@ export class CurrentUserUtils {
         doc.myRecentlyClosed === undefined;
         if (doc.myRecentlyClosed === undefined) {
             doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true
+                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true,
+                treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data",
             }));
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready

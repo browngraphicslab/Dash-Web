@@ -192,6 +192,8 @@ export interface DocumentOptions {
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
+    treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
+    treeViewDefaultExpandedView?: string; // default expanded view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -819,9 +821,9 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            const tabs = TreeDocument(documents, { title: "Active Tabs" });
-            const all = TreeDocument([], { title: "Other Tabs" });
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const tabs = TreeDocument(documents, { title: "Active Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const all = TreeDocument([], { title: "Other Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }

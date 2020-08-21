@@ -88,14 +88,16 @@ class TreeView extends React.Component<TreeViewProps> {
     get doc() { return this.props.document; }
     get noviceMode() { return BoolCast(Doc.UserDoc().noviceMode, false); }
     get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
-    get defaultExpandedView() { return this.childDocs.length ? this.fieldKey : StrCast(this.doc.defaultExpandedView, this.noviceMode ? "layout" : "fields"); }
+    get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
+    get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.noviceMode ? "layout" : "fields"); }
+    get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs.length ? this.fieldKey : this.defaultExpandedView); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     set treeViewOpen(c: boolean) {
         if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
         else this.doc.treeViewOpen = this._overrideTreeViewOpen = c;
     }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && !this.doc.treeViewPreventOpen && BoolCast(this.doc.treeViewOpen)) || this._overrideTreeViewOpen; }
-    @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.defaultExpandedView); }
+    @computed get treeViewExpandedView() { return StrCast(this.doc.treeViewExpandedView, this.treeViewDefaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
     @computed get dataDoc() { return this.doc[DataSym]; }
     @computed get layoutDoc() { return Doc.Layout(this.doc); }
@@ -422,11 +424,12 @@ class TreeView extends React.Component<TreeViewProps> {
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                     onPointerDown={action(() => {
                         if (this.treeViewOpen) {
-                            this.doc.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode ? "layout" : "fields") :
-                                this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
-                                    this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
-                                        (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
-                                            this.childDocs.length ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
+                            this.doc.treeViewExpandedView = this.treeViewLockExpandedView ? this.doc.treeViewExpandedView :
+                                this.treeViewExpandedView === this.fieldKey ? (Doc.UserDoc().noviceMode ? "layout" : "fields") :
+                                    this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
+                                        this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
+                                            (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
+                                                this.childDocs.length ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
                         }
                         this.treeViewOpen = true;
                     })}>

@@ -83,6 +83,8 @@ export const documentSchema = createSchema({
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
+    treeViewLockExpandedView: "boolean", // whether the expanded view can be changed
+    treeViewDefaultExpandedView: "string", // name of field whose contents are displayed by default
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
 
     // interaction and linking properties
