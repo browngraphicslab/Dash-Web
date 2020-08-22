@@ -133,7 +133,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             // );
         }
         else if (field instanceof List) {
-            return <div> {field.map(f => Field.toString(f)).join(", ")}  </div>;
+            return <div> {field.length ? field.map(f => Field.toString(f)).join(", ") : "[]"}  </div>;
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         else if (field instanceof WebField) {

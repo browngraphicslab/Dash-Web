@@ -91,6 +91,9 @@ export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
+export function DocListCastOrNull(field: FieldResult) {
+    return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined;
+}
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");

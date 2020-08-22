@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
+import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym, DocListCastOrNull } from '../../../fields/Doc';
 import { Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { PrefetchProxy } from '../../../fields/Proxy';
@@ -90,7 +90,7 @@ class TreeView extends React.Component<TreeViewProps> {
     get displayName() { return "TreeView(" + this.doc.title + ")"; }  // this makes mobx trace() statements more descriptive
     get treeViewLockExpandedView() { return this.doc.treeViewLockExpandedView; }
     get defaultExpandedView() { return StrCast(this.doc.treeViewDefaultExpandedView, this.noviceMode ? "layout" : "fields"); }
-    get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs.length ? this.fieldKey : this.defaultExpandedView); }
+    get treeViewDefaultExpandedView() { return this.treeViewLockExpandedView ? this.defaultExpandedView : (this.childDocs ? this.fieldKey : this.defaultExpandedView); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     set treeViewOpen(c: boolean) {
         if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c;
@@ -104,9 +104,9 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed get fieldKey() { const splits = StrCast(Doc.LayoutField(this.doc)).split("fieldKey={\'"); return splits.length > 1 ? splits[1].split("\'")[0] : "data"; }
     childDocList(field: string) {
         const layout = Doc.LayoutField(this.doc) instanceof Doc ? Doc.LayoutField(this.doc) as Doc : undefined;
-        return ((this.props.dataDoc ? DocListCast(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
-            (layout ? DocListCast(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
-            DocListCast(this.doc[field])); // otherwise use the document's data field
+        return ((this.props.dataDoc ? DocListCastOrNull(this.props.dataDoc[field]) : undefined) || // if there's a data doc for an expanded template, use it's data field
+            (layout ? DocListCastOrNull(layout[field]) : undefined) || // else if there's a layout doc, display it's fields
+            DocListCastOrNull(this.doc[field])); // otherwise use the document's data field
     }
     @computed get childDocs() { return this.childDocList(this.fieldKey); }
     @computed get childLinks() { return this.childDocList("links"); }
@@ -429,7 +429,7 @@ class TreeView extends React.Component<TreeViewProps> {
                                     this.treeViewExpandedView === "fields" && this.layoutDoc ? "layout" :
                                         this.treeViewExpandedView === "layout" && DocListCast(this.doc.links).length ? "links" :
                                             (this.treeViewExpandedView === "links" || this.treeViewExpandedView === "layout") && DocListCast(this.doc[this.fieldKey + "-annotations"]).length ? "annotations" :
-                                                this.childDocs.length ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
+                                                this.childDocs ? this.fieldKey : (Doc.UserDoc().noviceMode ? "layout" : "fields");
                         }
                         this.treeViewOpen = true;
                     })}>
@@ -734,8 +734,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        } else if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myInactiveDocs) {
-            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myInactiveDocs = new List<Doc>(), icon: "plus" });
+        } else if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myRecentlyClosed) {
+            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myRecentlyClosed = new List<Doc>(), icon: "plus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
