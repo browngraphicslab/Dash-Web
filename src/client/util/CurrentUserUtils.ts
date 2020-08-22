@@ -53,7 +53,7 @@ export class CurrentUserUtils {
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
             });
@@ -72,7 +72,7 @@ export class CurrentUserUtils {
                 this.mobileTextContainer({},
                     [this.mobileButtonText({}, "NEW MOBILE BUTTON"), this.mobileButtonInfo({}, "You can customize this button and make it your own.")])]);
             doc["template-mobile-button"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "mobile button", icon: "mobile"
             });
@@ -88,7 +88,7 @@ export class CurrentUserUtils {
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(slideTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "address-card"
             });
@@ -105,7 +105,7 @@ export class CurrentUserUtils {
             (descriptionTemplate.proto as Doc).isTemplateDoc = makeTemplate(descriptionTemplate.proto as Doc, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize", system: true
             });
@@ -152,7 +152,7 @@ export class CurrentUserUtils {
             linkTemplate.header = new RichTextField(JSON.stringify(rtf2), "");
 
             doc["template-button-link"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(linkTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "link view", icon: "window-maximize", system: true
             });
@@ -184,7 +184,7 @@ export class CurrentUserUtils {
             box.isTemplateDoc = makeTemplate(box, true, "switch");
 
             doc["template-button-switch"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(box) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "data switch", icon: "toggle-on", system: true
             });
@@ -234,7 +234,7 @@ export class CurrentUserUtils {
             long.title = "Long Description";
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('copyDragFactory(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(detailView) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize", system: true
             });
@@ -395,31 +395,37 @@ export class CurrentUserUtils {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
                 { title: "Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+            ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
                 { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyCollection as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyPane === undefined) {
             doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _width: 500, _height: 800, title: "Untitled Tab", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyPane as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyComparison === undefined) {
             doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyScript === undefined) {
             doc.emptyScript = Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250, title: "script", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyScript as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyScreenshot === undefined) {
             doc.emptyScreenshot = Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyAudio === undefined) {
             doc.emptyAudio = Docs.Create.AudioDocument(nullAudio, { _width: 200, title: "ready to record audio", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyAudio as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyImage === undefined) {
             doc.emptyImage = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth: 250, title: "an image of a cat", system: true });
         }
         if (doc.emptyButton === undefined) {
             doc.emptyButton = Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding: 10, _yPadding: 10, title: "Button", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            ((doc.emptyButton as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyDocHolder === undefined) {
             doc.emptyDocHolder = Docs.Create.DocumentDocument(
@@ -433,18 +439,18 @@ export class CurrentUserUtils {
             this.setupActiveMobileMenu(doc);
         }
         return [
-            { toolTip: "Tap to create a collection in a new pane, drag for a collection", title: "Col", icon: "folder", click: 'openOnRight(getCopy(this.clickFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc, noviceMode: true, clickFactory: doc.emptyPane as Doc, },
-            { toolTip: "Tap to create a webpage in a new pane, drag for a webpage", title: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
-            { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyImage as Doc },
-            { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
-            { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScreenshot as Doc },
+            { toolTip: "Tap to create a collection in a new pane, drag for a collection", title: "Col", icon: "folder", click: 'openOnRight(copyDragFactory(this.clickFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyCollection as Doc, noviceMode: true, clickFactory: doc.emptyPane as Doc, },
+            { toolTip: "Tap to create a webpage in a new pane, drag for a webpage", title: "Web", icon: "globe-asia", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyWebpage as Doc, noviceMode: true },
+            { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
+            { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
+            { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc },
             //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
-            { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
+            { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
+            { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
 
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Present", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
-            { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
-            { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Present", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySearch as Doc },
+            { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
             // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
@@ -453,7 +459,7 @@ export class CurrentUserUtils {
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
-            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyDocHolder as Doc },
+            { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
             { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];

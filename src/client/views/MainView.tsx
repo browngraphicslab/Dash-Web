@@ -257,13 +257,14 @@ export class MainView extends React.Component {
         const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const dashboards = Cast(this.userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
-        this.userDoc.myTabCount = NumCast(this.userDoc.myTabCount) + 1;
+        const emptyPane = Cast(this.userDoc.emptyPane, Doc, null);
+        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: `Untitled Tab ${NumCast(this.userDoc.myTabCount)}`,
+            title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");

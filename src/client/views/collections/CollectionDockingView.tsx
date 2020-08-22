@@ -641,8 +641,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
-                Doc.UserDoc().myTabCount = NumCast(Doc.UserDoc().myTabCount) + 1;
-                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(Doc.UserDoc().myTabCount)}` }));
+                const emptyPane = Cast(Doc.UserDoc().emptyPane, Doc, null);
+                emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+                this.AddTab(stack, Docs.Create.FreeformDocument([], {
+                    _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`
+                }));
             }
         });
 
@@ -855,7 +858,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return Transform.Identity();
     }
     get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}%` : undefined; }
+    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}% ` : undefined; }
 
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
@@ -942,10 +945,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             />
             <div className="miniOverlay" onPointerDown={this.miniDown} >
                 <div className="miniThumb" style={{
-                    width: `${this.miniWidth}%`,
-                    height: `${this.miniHeight}%`,
-                    left: `${this.miniLeft}%`,
-                    top: `${this.miniTop}%`,
+                    width: `${this.miniWidth}% `,
+                    height: `${this.miniHeight}% `,
+                    left: `${this.miniLeft}% `,
+                    top: `${this.miniTop}% `,
                 }}
                 />
             </div>
