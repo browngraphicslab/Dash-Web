@@ -475,19 +475,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
         const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", ""));
 
-        if (docids) {
-            const docs = (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
-            const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
-            const tabs = Cast(sublists[0], Doc, null);
-            const other = Cast(sublists[1], Doc, null);
-            const tabdocs = DocListCast(tabs.data);
-            const otherdocs = DocListCast(other.data);
-            Doc.GetProto(tabs).data = new List<Doc>(docs);
-            const otherSet = new Set<Doc>();
-            otherdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            tabdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
-            Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
-        }
+        const docs = !docids ? [] : (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
+        const sublists = DocListCast(this.props.Document[this.props.fieldKey]);
+        const tabs = Cast(sublists[0], Doc, null);
+        const other = Cast(sublists[1], Doc, null);
+        const tabdocs = DocListCast(tabs.data);
+        const otherdocs = DocListCast(other.data);
+        Doc.GetProto(tabs).data = new List<Doc>(docs);
+        const otherSet = new Set<Doc>();
+        otherdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+        tabdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
+        Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
     }
 
     public static async Copy(doc: Doc) {
