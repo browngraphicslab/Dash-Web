@@ -354,7 +354,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.layoutDoc._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = Math.min(1200, Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
+                            Doc.Layout(doc)._height = Math.min(NumCast(this.layoutDoc._maxHeight, Number.MAX_SAFE_INTEGER), Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
                         }
                     }));
                     this.observer.observe(ref);
@@ -484,7 +484,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     style={{
                         overflowY: this.props.active() ? "auto" : "hidden",
                         transform: `scale(${this.scaling}`,
-                        height: this.layoutDoc._autoHeight ? "auto" : `${1 / this.scaling * 100}%`,
+                        height: `${1 / this.scaling * 100}%`,
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
                     }}

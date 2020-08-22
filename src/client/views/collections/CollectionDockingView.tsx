@@ -438,9 +438,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onResize = (event: any) => {
         const cur = this._containerRef.current;
-
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout?.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        cur && this._goldenLayout?.updateSize(cur.getBoundingClientRect().width, cur.getBoundingClientRect().height);
     }
 
     @action
@@ -583,6 +582,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }, returnFalse, emptyFunction);
                 };
 
+                tab.selectionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
+                    (sel) => {
+                        const selected = sel.some(v => v.props.Document === doc);
+                        selected && tab.contentItem !== tab.header.parent.getActiveContentItem() && tab.header.parent.setActiveContentItem(tab.contentItem);
+                    }
+                );
                 tab.buttonDisposer = reaction(() => ((view: Opt<DocumentView>) => view ? [view] : [])(DocumentManager.Instance.getDocumentView(doc)),
                     (views) => {
                         if (views.length) {
@@ -607,6 +612,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
         tab.closeElement.off('click') //unbind the current click handler
             .click(async function () {
+                tab.selectionDisposer?.();
                 tab.reactionDisposer?.();
                 tab.buttonDisposer?.();
                 const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
@@ -782,8 +788,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }));
         observer.observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
-        this.props.glContainer.on("tab", this.onActiveContentItemChanged);
-        this.onActiveContentItemChanged();
+        this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
         this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white") }),
             (data) => {
                 const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
@@ -795,14 +800,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     componentWillUnmount() {
         this._tabReaction?.();
         this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
-        this.props.glContainer.off("tab", this.onActiveContentItemChanged);
     }
 
     @action.bound
     private onActiveContentItemChanged() {
-        if (this.props.glContainer.tab) {
+        if (this.props.glContainer.tab && this._isActive !== this.props.glContainer.tab.isActive) {
             this._isActive = this.props.glContainer.tab.isActive;
-            setTimeout(() => {
+            this._isActive && setTimeout(() => {
                 const dv = this._document && DocumentManager.Instance.getFirstDocumentView(this._document);
                 dv && SelectionManager.SelectDoc(dv, false);
             });
