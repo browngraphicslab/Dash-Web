@@ -29,6 +29,7 @@ export interface FieldViewProps {
     dropAction: dropActionType;
     backgroundHalo?: () => boolean;
     docFilters: () => string[];
+    searchFilterDocs: () => Doc[];
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;

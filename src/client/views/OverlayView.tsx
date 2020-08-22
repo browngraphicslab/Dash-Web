@@ -4,7 +4,7 @@ import * as React from "react";
 import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
 import { NumCast, Cast } from "../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents, returnEmptyFilter } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 import { DocumentView } from "./nodes/DocumentView";
@@ -205,6 +205,7 @@ export class OverlayView extends React.Component {
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;

@@ -4,7 +4,7 @@ import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import { Doc, DocCastAsync, Opt } from "../../../../fields/Doc";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne, returnEmptyFilter } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne, returnEmptyFilter, returnEmptyDoclist } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { schema } from "./schema_rts";
@@ -302,6 +302,7 @@ export class FormattedTextBoxComment {
                                             pinToPres={returnFalse}
                                             dontRegisterView={true}
                                             docFilters={returnEmptyFilter}
+                                            searchFilterDocs={returnEmptyDoclist}
                                             ContainingCollectionDoc={undefined}
                                             ContainingCollectionView={undefined}
                                             renderDepth={0}

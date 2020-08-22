@@ -8,7 +8,7 @@ import { PrefetchProxy } from '../../../fields/Proxy';
 import { Document, listSpec } from '../../../fields/Schema';
 import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils, returnEmptyFilter } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils, returnEmptyFilter, returnEmptyDoclist } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -359,6 +359,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     focus={returnFalse}
                     ScreenToLocalTransform={this.docTransform}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.containingCollection}
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}
@@ -466,6 +467,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 bringToFront={emptyFunction}
                 dontRegisterView={BoolCast(this.props.treeViewDoc.dontRegisterChildViews)}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={this.props.containingCollection}
             />;

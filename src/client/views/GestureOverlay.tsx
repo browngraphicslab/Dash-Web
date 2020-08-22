@@ -7,7 +7,7 @@ import { Cast, FieldValue, NumCast } from "../../fields/Types";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { MobileInkOverlayContent } from "../../server/Message";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents } from "../../Utils";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, setupMoveUpEvents, returnEmptyDoclist } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocUtils } from "../documents/Documents";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
@@ -935,6 +935,7 @@ export default class GestureOverlay extends Touchable {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
             />;

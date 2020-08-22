@@ -5,7 +5,7 @@ import { Id } from "../../../../fields/FieldSymbols";
 import { ObjectField } from "../../../../fields/ObjectField";
 import { ComputedField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero, returnEmptyFilter } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero, returnEmptyFilter, returnEmptyDoclist } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { DocumentView } from "../DocumentView";
@@ -255,6 +255,7 @@ export class DashDocView extends React.Component<IDashDocView> {
                             bringToFront={emptyFunction}
                             dontRegisterView={false}
                             docFilters={this.props.tbox?.props.docFilters || returnEmptyFilter}
+                            searchFilterDocs={this.props.tbox?.props.searchFilterDocs || returnEmptyDoclist}
                             ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                             ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                             ContentScaling={this.contentScaling}

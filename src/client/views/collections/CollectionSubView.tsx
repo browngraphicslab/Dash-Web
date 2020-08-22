@@ -111,6 +111,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return this.props.ignoreFields?.includes("_docFilters") ? [] :
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
+        searchFilterDocs = () => {
+            return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
+        }
         @computed get childDocs() {
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
@@ -128,34 +131,31 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            let searchDocs = DocListCast(this.props.Document._searchDocs);
-
+            let searchDocs = this.searchFilterDocs();
 
             let docsforFilter: Doc[] = childDocs;
 
-            if (searchDocs !== undefined && searchDocs.length > 0) {
+            if (searchDocs.length > 0) {
                 docsforFilter = [];
                 const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-                console.log(searchDocs);
                 searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
                 childDocs.forEach((d) => {
+                    let notFiltered = searchDocs.includes(d) || d.z;
                     if (d.data !== undefined) {
-                        let newdocs = DocListCast(d.data);
-                        if (newdocs.length > 0) {
-                            let displaycheck = false;
+                        let subDocs = DocListCast(d.data);
+                        if (subDocs.length > 0) {
                             let newarray: Doc[] = [];
-                            while (newdocs.length > 0) {
+                            while (subDocs.length > 0 && !notFiltered) {
                                 newarray = [];
-                                newdocs.forEach((t) => {
+                                subDocs.forEach((t) => {
+                                    notFiltered = notFiltered || searchDocs.includes(t);
                                     DocListCast(t.data).forEach((newdoc) => newarray.push(newdoc));
-                                    displaycheck = displaycheck || searchDocs.includes(t);
                                 });
-                                newdocs = newarray;
+                                subDocs = newarray;
                             }
-                            displaycheck && docsforFilter.push(d);
                         }
                     }
-                    searchDocs.includes(d) && docsforFilter.push(d);
+                    notFiltered && docsforFilter.push(d);
                 });
                 return docsforFilter;
             }

@@ -8,7 +8,7 @@ import { EditableView } from "../../EditableView";
 import { KeyValueBox } from "../../nodes/KeyValueBox";
 import { Cast, NumCast, StrCast } from "../../../../fields/Types";
 import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
-import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils } from "../../../../Utils";
+import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils, returnEmptyDoclist } from "../../../../Utils";
 import { Id } from "../../../../fields/FieldSymbols";
 import { Transform } from "../../../util/Transform";
 import { PropertiesButtons } from "../../PropertiesButtons";
@@ -284,6 +284,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     focus={returnFalse}
                     ScreenToLocalTransform={this.getTransform}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={undefined}
                     ContainingCollectionView={undefined}
                     addDocument={returnFalse}

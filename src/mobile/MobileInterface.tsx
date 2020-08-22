@@ -14,7 +14,7 @@ import { action, computed, observable, reaction, trace, runInAction } from 'mobx
 import { observer } from 'mobx-react';
 import { Doc, DocListCast } from '../fields/Doc';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter } from '../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, returnEmptyDoclist } from '../Utils';
 import { Docs, DocumentOptions } from '../client/documents/Documents';
 import { Scripting } from '../client/util/Scripting';
 import { DocumentView } from '../client/views/nodes/DocumentView';
@@ -220,6 +220,7 @@ export class MobileInterface extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                 />

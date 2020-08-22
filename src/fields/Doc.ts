@@ -1024,10 +1024,10 @@ export namespace Doc {
         const fieldVal = doc[key];
         if (Cast(fieldVal, listSpec("string"), []).length) {
             const vals = Cast(fieldVal, listSpec("string"), []);
-            return vals.some(v => v === value);
+            return vals.some(v => v.includes(value));  // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
         }
         const fieldStr = Field.toString(fieldVal as Field);
-        return fieldStr === value;
+        return fieldStr.includes(value); // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
     }
 
     export function deiconifyView(doc: any) {
@@ -1056,18 +1056,14 @@ export namespace Doc {
         }
     }
 
-    export function aliasDocs(field: any) {
-        return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d)));
-    }
-
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) {
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i += 3) {
-                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
+                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match" || modifiers === "remove")) {
                     if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
                     docFilters.splice(i, 3);
                     container._docFilters = new List<string>(docFilters);
@@ -1077,7 +1073,7 @@ export namespace Doc {
             if (typeof modifiers === "string") {
                 if (!docFilters.length && modifiers === "match" && value === undefined) {
                     container._docFilters = undefined;
-                } else {
+                } else if (modifiers !== "remove") {
                     docFilters.push(key);
                     docFilters.push(value);
                     docFilters.push(modifiers);
@@ -1274,7 +1270,6 @@ Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTempla
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
-Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });

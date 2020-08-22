@@ -229,7 +229,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
         const onItemDown = async (e: React.PointerEvent) => {
-            if (this.props.Document._searchDoc !== undefined) {
+            if (this.props.Document._searchDoc) {
                 const doc = Doc.GetProto(this.props.rowProps.original);
                 const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
                 let targetContext = undefined;
@@ -315,7 +315,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             }
         }
         let search = false;
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             search = true;
         }
 
@@ -900,7 +900,7 @@ export class CollectionSchemaButtons extends CollectionSchemaCell {
         //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
         //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         // };
-        return !BoolCast(this.props.Document._searchDoc) ? <></>
+        return !this.props.Document._searchDoc ? <></>
             : [DocumentType.PDF, DocumentType.RTF].includes(StrCast(doc.type) as DocumentType) ?
                 <div style={{ paddingTop: 8, paddingLeft: 3, }} >
                     <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>

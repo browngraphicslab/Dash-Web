@@ -14,7 +14,7 @@ import { FieldId } from "../../../fields/RefField";
 import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils, returnEmptyDoclist } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -938,6 +938,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 addDocTab={this.addDocTab}
                 pinToPres={DockedFrameRenderer.PinDoc}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 fitToBox={true}
             />
             <div className="miniOverlay" onPointerDown={this.miniDown} >
@@ -979,6 +980,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 addDocTab={this.addDocTab}
                 pinToPres={DockedFrameRenderer.PinDoc}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
             {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}

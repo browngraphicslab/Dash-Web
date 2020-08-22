@@ -525,7 +525,7 @@ export class CurrentUserUtils {
     static setupSearchPanel(doc: Doc) {
         if (doc["search-panel"] === undefined) {
             doc["search-panel"] = new PrefetchProxy(Docs.Create.SearchDocument({
-                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true,
+                _width: 500, _height: 400, backgroundColor: "dimGray", ignoreClick: true, _searchDoc: true,
                 childDropAction: "alias", lockedPosition: true, _viewType: CollectionViewType.Schema, _chromeStatus: "disabled", title: "sidebar search stack", system: true
             })) as any as Doc;
         }

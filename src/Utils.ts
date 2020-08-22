@@ -422,6 +422,8 @@ export function returnEmptyString() { return ""; }
 
 export function returnEmptyFilter() { return [] as string[]; }
 
+export function returnEmptyDoclist() { return [] as Doc[]; }
+
 export let emptyPath = [];
 
 export function emptyFunction() { }

@@ -131,7 +131,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _contentCommand = {
         params: ["target", "source"], title: "set content",
         script: "getProto(self.target).data = copyField(self.source);",
-        immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)), // Doc.aliasDocs(source),
+        immediate: undoBatch((source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source)),
         initialize: emptyFunction,
     };
     _onClickCommand = {
@@ -180,12 +180,16 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _saveFilterCommand = {
         params: ["target"], title: "save filter",
-        script: "self.target._docFilters = copyField(self['target-docFilters']);",
-        immediate: undoBatch((source: Doc[]) => this.target._docFilters = undefined),
-        initialize: (button: Doc) => { button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : ""; },
+        script: `self.target._docFilters = copyField(self['target-docFilters']); 
+                 self.target._searchFilterDocs = compareLists(self['target-searchFilterDocs'],self.target._searchFilterDocs) ? undefined: copyField(self['target-searchFilterDocs']);`,
+        immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
+        initialize: (button: Doc) => {
+            button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = this.target._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(this.target._searchFilterDocs as any as ObjectField) : undefined;
+        },
     };
 
-    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
+    @computed get _freeform_commands() { return Doc.UserDoc().noviceMode ? [this._viewCommand, this._saveFilterCommand] : [this._viewCommand, this._saveFilterCommand, this._contentCommand, this._templateCommand, this._narrativeCommand]; }
     @computed get _stacking_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
     @computed get _masonry_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._contentCommand, this._templateCommand]; }
     @computed get _schema_commands() { return Doc.UserDoc().noviceMode ? undefined : [this._templateCommand, this._narrativeCommand]; }

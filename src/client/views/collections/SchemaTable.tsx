@@ -12,7 +12,7 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
@@ -627,6 +627,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         PanelHeight={() => 150}
                         ScreenToLocalTransform={this.getPreviewTransform}
                         docFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                         ContainingCollectionView={this.props.CollectionView}
                         moveDocument={this.props.moveDocument}

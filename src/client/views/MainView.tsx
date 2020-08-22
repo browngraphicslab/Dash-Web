@@ -16,7 +16,7 @@ import { listSpec } from '../../fields/Schema';
 import { ScriptField } from '../../fields/ScriptField';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils, returnEmptyDoclist } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -206,7 +206,7 @@ export class MainView extends React.Component {
                 }
             });
             if (check === false) {
-                SearchBox.Instance.closeSearch();
+                SearchBox.Instance.resetSearch(true);
             }
         }
 
@@ -394,6 +394,7 @@ export class MainView extends React.Component {
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             docFilters={returnEmptyFilter}
+            searchFilterDocs={returnEmptyDoclist}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
             renderDepth={-1}
@@ -476,6 +477,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     relative={true}
@@ -510,6 +512,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 relative={true}
@@ -703,6 +706,7 @@ export class MainView extends React.Component {
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;
@@ -775,6 +779,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
             /></div>
@@ -808,6 +813,7 @@ export class MainView extends React.Component {
                     NativeWidth={() => 800}
                     ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                 />
             </div>;
     }
@@ -878,6 +884,7 @@ export class MainView extends React.Component {
                             NativeWidth={() => 800}
                             ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
+                            searchFilterDocs={returnEmptyDoclist}
                         />
                     </div>;
                 </span>, ele);

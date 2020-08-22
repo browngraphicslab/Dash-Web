@@ -10,7 +10,7 @@ import { Doc, DocListCast } from "../../fields/Doc";
 import { Docs, DocUtils, } from "../documents/Documents";
 import { StrCast, Cast } from "../../fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
-import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero, returnEmptyFilter } from "../../Utils";
+import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero, returnEmptyFilter, returnEmptyDoclist } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ScriptField, ComputedField } from "../../fields/ScriptField";
 import { Scripting } from "../util/Scripting";
@@ -133,6 +133,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 rootSelected={returnFalse}
                 onCheckedClick={this.scriptField}
                 onChildClick={this.scriptField}

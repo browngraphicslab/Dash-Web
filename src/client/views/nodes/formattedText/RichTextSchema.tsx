@@ -155,6 +155,7 @@ export class DashDocView {
                     bringToFront={emptyFunction}
                     dontRegisterView={false}
                     docFilters={this._textBox.props.docFilters}
+                    searchFilterDocs={this._textBox.props.searchFilterDocs}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                     ContentScaling={this.contentScaling}

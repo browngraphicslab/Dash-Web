@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import wiki from "wikijs";
 import { Doc, DocCastAsync, HeightSym, Opt, WidthSym } from "../../../fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Transform } from "../../util/Transform";
@@ -101,6 +101,7 @@ export class LinkDocPreview extends React.Component<Props> {
                 pinToPres={returnFalse}
                 dontRegisterView={true}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionDoc={undefined}
                 ContainingCollectionView={undefined}
                 renderDepth={0}

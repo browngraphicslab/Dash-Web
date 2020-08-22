@@ -72,6 +72,7 @@ export interface DocumentOptions {
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
+    _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
@@ -822,8 +823,8 @@ export namespace Docs {
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            const tabs = TreeDocument(documents, { title: "Active Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
-            const all = TreeDocument([], { title: "Inactive Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }
