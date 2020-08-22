@@ -1,40 +1,39 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, Lambda, observable, reaction, runInAction, trace, IReactionDisposer } from "mobx";
+import { clamp } from 'lodash';
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { DateField } from '../../../fields/DateField';
-import { Doc, DocListCast, Field, Opt, DataSym } from "../../../fields/Doc";
+import { DataSym, Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from '../../../fields/FieldSymbols';
+import { InkTool } from '../../../fields/InkField';
+import { List } from '../../../fields/List';
 import { FieldId } from "../../../fields/RefField";
+import { listSpec } from '../../../fields/Schema';
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, returnTrue, Utils, returnZero, returnEmptyFilter, setupMoveUpEvents, returnFalse, emptyPath, aggregateBounds } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
+import { InteractionUtils } from '../../util/InteractionUtils';
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
+import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from "../../util/UndoManager";
 import { MainView } from '../MainView';
 import { DocumentView } from "../nodes/DocumentView";
+import { PresBox } from '../nodes/PresBox';
 import "./CollectionDockingView.scss";
+import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { SubCollectionViewProps } from "./CollectionSubView";
+import { CollectionViewType } from './CollectionView';
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
-import { CollectionViewType } from './CollectionView';
-import { SnappingManager } from '../../util/SnappingManager';
-import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { listSpec } from '../../../fields/Schema';
-import { clamp } from 'lodash';
-import { PresBox } from '../nodes/PresBox';
-import { InteractionUtils } from '../../util/InteractionUtils';
-import { InkTool } from '../../../fields/InkField';
-import { List } from '../../../fields/List';
-import { lstat } from 'fs';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -490,6 +489,27 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             tabdocs.filter(doc => !docs.includes(doc)).forEach(doc => otherSet.add(doc));
             Doc.GetProto(other).data = new List<Doc>(Array.from(otherSet.values()));
         }
+    }
+
+    public static async Copy(doc: Doc) {
+        let json = StrCast(doc.dockingConfig);
+        const matches = json.match(/\"documentId\":\"[a-z0-9-]+\"/g);
+        const docids = matches?.map(m => m.replace("\"documentId\":\"", "").replace("\"", "")) || [];
+        const docs = (await Promise.all(docids.map(id => DocServer.GetRefField(id)))).filter(f => f).map(f => f as Doc);
+        const newtabs = docs.map(doc => {
+            const copy = Doc.MakeAlias(doc);
+            json = json.replace(doc[Id], copy[Id]);
+            return copy;
+        });
+        const copy = Docs.Create.DockDocument(newtabs, json, { title: "Snapshot: " + doc.title });
+        const docsublists = DocListCast(doc.data);
+        const copysublists = DocListCast(copy.data);
+        const docother = Cast(docsublists[1], Doc, null);
+        const copyother = Cast(copysublists[1], Doc, null);
+        const newother = DocListCast(docother.data).map(doc => Doc.MakeAlias(doc));
+        Doc.GetProto(copyother).data = new List<Doc>(newother);
+
+        return copy;
     }
 
     @undoBatch

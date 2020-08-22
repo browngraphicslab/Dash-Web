@@ -978,11 +978,12 @@ export class MainView extends React.Component {
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function copyDashboard() {
-    const copiedDashboard = Doc.MakeCopy(Cast(Doc.UserDoc().activeDashboard, Doc, null), true);
-    const dashboards = Cast(Doc.UserDoc().myDashboards, Doc, null);
-    Doc.AddDocToList(dashboards, "data", copiedDashboard);
-    // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-    setTimeout(() => MainView.Instance.openDashboard(copiedDashboard), 0);
+    const activeDashboard = Cast(Doc.UserDoc().activeDashboard, Doc, null);
+    CollectionDockingView.Copy(activeDashboard).then(copy => {
+        Doc.AddDocToList(Cast(Doc.UserDoc().myDashboards, Doc, null), "data", copy);
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => MainView.Instance.openDashboard(copy), 0);
+    });
 });
 Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
     "imports files from device directly into the import sidebar");
