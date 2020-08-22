@@ -590,7 +590,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const rows = this.children;
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{Doc.CurrentUserEmail}</div>
+                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{`${Doc.CurrentUserEmail}/${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.title}`}</div>
                 <div className="searchBox-bar">
                     <div style={{ position: "relative", display: "flex", width: 450 }}>
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
@@ -622,8 +622,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             {this.scopeButtons}
                         </div>
 
-                    </div>
-                </div>
+                    </div >
+                </div >
                 {!this._searchbarOpen ? (null) : <div style={{ zIndex: 20000, color: "black" }}>
                     <div style={{ display: "flex", justifyContent: "center", }}>
                         <div style={{ display: this.open ? "flex" : "none", overflow: "auto", }}>
@@ -639,7 +639,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             />
                         </div>
                     </div>
-                </div>}
+                </div>
+                }
             </div >
         );
     }
