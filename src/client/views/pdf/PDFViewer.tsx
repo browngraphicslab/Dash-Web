@@ -150,9 +150,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
-        this._searchReactionDisposer = reaction(() => this.Document.searchMatch,
+        this._searchReactionDisposer = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
-                if (m !== undefined) (this._lastSearch = true) && this.search(Doc.SearchQuery(), true);
+                if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), m.searchMatch > 0);
                 else !(this._lastSearch = false) && setTimeout(() => !this._lastSearch && this.search("", false, true), 200);
             }, { fireImmediately: true });
 

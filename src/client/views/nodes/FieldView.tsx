@@ -58,9 +58,6 @@ export interface FieldViewProps {
 
     ChromeHeight?: () => number;
     childLayoutTemplate?: () => Opt<Doc>;
-    highlighting?: string[];
-    lines?: string[];
-    doc?: Doc;
     // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
     height?: number;
     width?: number;

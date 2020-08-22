@@ -84,21 +84,17 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         Object.values(this._disposers).forEach(disposer => disposer?.());
     }
 
-    @action
-    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc)
-
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this.layoutDoc._searchString = e.target.value;
         this.newsearchstring = e.target.value;
         if (e.target.value === "") {
             if (this.currentSelectedCollection) {
-                this.doLoop(this.currentSelectedCollection, undefined);
+                this.setSearchDocsRecursive(this.currentSelectedCollection, undefined);
             }
             this.closeSearch(false);
 
             if (this.currentSelectedCollection !== undefined) {
-                this.currentSelectedCollection.props.Document._searchDocs = new List<Doc>([]);
                 this.currentSelectedCollection = undefined;
                 this.props.Document.selectedDoc = undefined;
             }
@@ -242,14 +238,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             while (docs.length > 0) {
                 newarray = [];
                 docs.forEach((d) => {
-                    if (d.data !== undefined) {
-                        newarray.push(...DocListCast(d.data));
-                    }
-                    const hlights: string[] = [];
+                    d.data && newarray.push(...DocListCast(d.data));
+                    const hlights = new Set<string>();
                     this.documentKeys(d).forEach(key =>
-                        Field.toString(d[key] as Field).toLowerCase().includes(query) && !hlights.includes(key) && hlights.push(key));
-                    if (hlights.length > 0) {
-                        found.push([d, hlights, []]);
+                        Field.toString(d[key] as Field).toLowerCase().includes(query) && hlights.add(key));
+                    if (Array.from(hlights.keys()).length > 0) {
+                        found.push([d, Array.from(hlights.keys()), []]);
                         docsforFilter.push(d);
                     }
                 });
@@ -259,7 +253,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this.docsforfilter = docsforFilter;
             if (this.filter === true) {
                 selectedCollection.props.Document._searchDocs = new List<Doc>(docsforFilter);
-                this.doLoop(selectedCollection, docsforFilter);
+                this.setSearchDocsRecursive(selectedCollection, docsforFilter);
             }
             this._numTotalResults = found.length;
             this.realTotalResults = found.length;
@@ -285,7 +279,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     submitSearch = async (reset?: boolean) => {
         if (this.currentSelectedCollection !== undefined) {
-            this.doLoop(this.currentSelectedCollection, undefined);
+            this.setSearchDocsRecursive(this.currentSelectedCollection, undefined);
         }
         if (reset) {
             this.layoutDoc._searchString = "";
@@ -434,7 +428,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     closeSearch = (closesearchbar = true) => {
         this._results.forEach(result => {
             Doc.UnBrushDoc(result[0]);
-            result[0].searchMatch = undefined;
+            Doc.ClearSearchMatches();
         });
         closesearchbar && (this._searchbarOpen = false);
     }
@@ -479,9 +473,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                 const lines = new List<string>(result[2]);
                 highlights.forEach((item) => headers.add(item));
-                result[0].lines = lines;
-                result[0].highlighting = highlights.join(", ");
-                result[0].searchMatch = true;
+                Doc.SetSearchMatch(result[0], { searchMatch: 1 });
                 if (i < this._visibleDocuments.length) {
                     this._visibleDocuments[i] = result[0];
                     Doc.BrushDoc(result[0]);
@@ -530,7 +522,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._searchFullDB = scope;
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         if (this.currentSelectedCollection !== undefined) {
-            this.doLoop(this.currentSelectedCollection, undefined);
+            this.setSearchDocsRecursive(this.currentSelectedCollection, undefined);
         }
         this.submitSearch();
     }
@@ -566,7 +558,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         </div>;
     }
 
-    doLoop = (collectionView: DocumentView, filter: Doc[] | undefined) => {
+    setSearchDocsRecursive = (collectionView: DocumentView, filter: Doc[] | undefined) => {
         let docs = DocListCast(collectionView.dataDoc[Doc.LayoutFieldKey(collectionView.dataDoc)]);
         let newarray: Doc[] = [];
         while (docs.length > 0) {
@@ -614,7 +606,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                             onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => this.layoutDoc._searchString ? this.startDragCollection() : undefined); }}
                                             onClick={action(() => {
                                                 this.filter = !this.filter && !this._searchFullDB;
-                                                this.currentSelectedCollection && this.doLoop(this.currentSelectedCollection, this.filter ? this.docsforfilter : undefined);
+                                                this.currentSelectedCollection && this.setSearchDocsRecursive(this.currentSelectedCollection, this.filter ? this.docsforfilter : undefined);
                                             })} />
                                     </div>
                                 </Tooltip>

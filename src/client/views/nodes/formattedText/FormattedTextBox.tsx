@@ -376,8 +376,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     public highlightSearchTerms = (terms: string[], backward: boolean) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
-
-
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             const activeMark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight, { selected: true });
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
@@ -385,24 +383,19 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
-            if (BoolCast(Doc.GetProto(this.dataDoc).resetSearch) === true) {
-                this._searchIndex = 0;
-                Doc.GetProto(this.dataDoc).resetSearch = undefined;
-            }
-            else {
-                this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
-                if (backward === true) {
-                    if (this._searchIndex > 1) {
-                        this._searchIndex += -2;
-                    }
-                    else if (this._searchIndex === 1) {
-                        this._searchIndex = length - 1;
-                    }
-                    else if (this._searchIndex === 0 && length !== 1) {
-                        this._searchIndex = length - 2;
-                    }
-
+            console.log("Search:" + this.rootDoc.title + " " + this._searchIndex + " => " + (this._searchIndex + 1 > flattened.length - 1 ? 0 : this._searchIndex + 1));
+            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+            if (backward === true) {
+                if (this._searchIndex > 1) {
+                    this._searchIndex += -2;
                 }
+                else if (this._searchIndex === 1) {
+                    this._searchIndex = length - 1;
+                }
+                else if (this._searchIndex === 0 && length !== 1) {
+                    this._searchIndex = length - 2;
+                }
+
             }
 
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
@@ -909,9 +902,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._disposers.search = reaction(() => this.rootDoc.searchMatch,
-            search => search !== undefined ? this.highlightSearchTerms([Doc.SearchQuery()], BoolCast(search)) : this.unhighlightSearchTerms(),
-            { fireImmediately: this.rootDoc.searchMatch !== undefined ? true : false });
+        this._disposers.search = reaction(() => Doc.IsSearchMatch(this.rootDoc),
+            search => {
+                search ? this.highlightSearchTerms([Doc.SearchQuery()], search.searchMatch < 0) : this.unhighlightSearchTerms();
+            },
+            { fireImmediately: Doc.IsSearchMatch(this.rootDoc) ? true : false });
 
         this._disposers.record = reaction(() => this._recording,
             () => {

@@ -894,26 +894,22 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
 export class CollectionSchemaButtons extends CollectionSchemaCell {
     render() {
         const doc = this.props.rowProps.original;
-        const searchMatch = (backward: boolean = true) => { doc.searchMatch = undefined; setTimeout(() => doc.searchMatch = backward, 0); };
+        const searchMatch = (backward: boolean = true) => Doc.SearchMatchNext(doc, backward);
         // const reference = React.createRef<HTMLDivElement>();
         // const onItemDown = (e: React.PointerEvent) => {
         //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
         //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         // };
         return !BoolCast(this.props.Document._searchDoc) ? <></>
-            : StrCast(doc.type) === DocumentType.PDF ?
-                <button style={{ position: "relative", height: 30, width: 28, left: 1, }} onClick={() => searchMatch(false)}>
-                    <FontAwesomeIcon icon="arrow-down" size="sm" />
-                </button>
-                : StrCast(doc.type) === DocumentType.RTF ?
-                    <div style={{ paddingTop: 8, paddingLeft: 3, }} >
-                        <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>
-                            <FontAwesomeIcon icon="arrow-up" size="sm" />
-                        </button>
-                        <button style={{ padding: 2 }} onClick={() => searchMatch(false)} >
-                            <FontAwesomeIcon icon="arrow-down" size="sm" />
-                        </button>
-                    </div> :
-                    <></>;
+            : [DocumentType.PDF, DocumentType.RTF].includes(StrCast(doc.type) as DocumentType) ?
+                <div style={{ paddingTop: 8, paddingLeft: 3, }} >
+                    <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>
+                        <FontAwesomeIcon icon="arrow-up" size="sm" />
+                    </button>
+                    <button style={{ padding: 2 }} onClick={() => searchMatch(false)} >
+                        <FontAwesomeIcon icon="arrow-down" size="sm" />
+                    </button>
+                </div> :
+                <></>;
     }
 }
