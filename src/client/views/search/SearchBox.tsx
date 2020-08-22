@@ -5,7 +5,7 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
-import { Id } from '../../../fields/FieldSymbols';
+import { Id, Copy } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
@@ -15,12 +15,11 @@ import { Docs } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
-import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionSchemaView, ColumnType } from "../collections/CollectionSchemaView";
 import { CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { DocumentView } from '../nodes/DocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
 
@@ -48,9 +47,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     private docsforfilter: Doc[] | undefined = [];
     private realTotalResults: number = 0;
-    private collectionRef = React.createRef<HTMLSpanElement>();
+    private collectionRef = React.createRef<HTMLDivElement>();
 
-    @observable _currentSelectedCollection: DocumentView | undefined = undefined;
     @observable _icons: string[] = this._allIcons;
     @observable _results: [Doc, string[], string[]][] = [];
     @observable _visibleElements: JSX.Element[] = [];
@@ -64,7 +62,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable open = false;
     @observable children = 0;
     @observable newsearchstring = "";
-    @computed get filter() { return this._results?.length && (this._currentSelectedCollection?.props.Document._searchFilterDocs || this._currentSelectedCollection?.props.Document._docFilters); }
+    @computed get filter() { return this._results?.length && (this.currentSelectedCollection?.props.Document._searchFilterDocs || this.currentSelectedCollection?.props.Document._docFilters); }
 
     constructor(props: any) {
         super(props);
@@ -77,12 +75,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._searchbarOpen = true;
         }
         this._disposers.filters = reaction(() => this.props.Document._docFilters,
-            (filters: any) => this.setSearchFilter(this._currentSelectedCollection, this.filter ? undefined : this.docsforfilter));
+            (filters: any) => this.setSearchFilter(this.currentSelectedCollection, !this.filter ? undefined : this.docsforfilter));
     });
 
     componentWillUnmount() {
         Object.values(this._disposers).forEach(disposer => disposer?.());
     }
+
+    @computed get currentSelectedCollection() { return CollectionDockingView.Instance; }
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -90,12 +90,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this.newsearchstring = e.target.value;
         if (e.target.value === "") {
             this.docsforfilter = undefined;
-            this.setSearchFilter(this._currentSelectedCollection, undefined);
+            this.setSearchFilter(this.currentSelectedCollection, undefined);
             this.resetSearch(false);
 
-            if (this._currentSelectedCollection !== undefined) {
-                this._currentSelectedCollection = undefined;
-            }
             this.open = false;
             this._results = [];
             this._resultsSet.clear();
@@ -149,9 +146,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 const mod = "_t:";
                 const newWords: string[] = [];
                 const oldWords = values[0].split(" ");
-                oldWords.forEach((word, i) => {
-                    i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"");
-                });
+                oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\""));
                 query = `(${query}) AND (${newWords.join(" ")})`;
             }
             else {
@@ -159,22 +154,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const mod = "_t:";
                     const newWords: string[] = [];
                     const oldWords = values[i].split(" ");
-                    oldWords.forEach((word, i) => {
-                        i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\"");
-                    });
+                    oldWords.forEach((word, i) => i === 0 ? newWords.push(key + mod + "\"" + word + "\"") : newWords.push("AND " + key + mod + "\"" + word + "\""));
                     const v = "(" + newWords.join(" ") + ")";
                     if (i === 0) {
-                        query = `(${query}) AND (${v}`;
-                        if (values.length === 1) {
-                            query = query + ")";
-                        }
+                        query = `(${query}) AND (${v}` + (values.length === 1 ? ")" : "");
                     }
-                    else if (i === values.length - 1) {
-                        query = query + " OR " + v + ")";
-                    }
-                    else {
-                        query = query + " OR " + v;
-                    }
+                    else query = query + " OR " + v + (i === values.length - 1 ? ")" : "");
                 }
             }
         }
@@ -194,40 +179,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return finalDocs;
     }
 
-    //TODO: basically all of this
-    //gets all of the collections of all the docviews that are selected
-    //if a collection is the only thing selected, search only in that collection (not its container)
-    getCurCollections(): Doc[] {
-        const selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
-        const collections: Doc[] = [];
-        selectedDocs.forEach(async element => {
-            const layout: string = StrCast(element.props.Document.layout);
-            //checks if selected view (element) is a collection. if it is, adds to list to search through
-            if (layout.indexOf("Collection") > -1) {
-                //makes sure collections aren't added more than once
-                if (!collections.includes(element.props.Document)) {
-                    collections.push(element.props.Document);
-                }
-            }
-            //makes sure collections aren't added more than once
-            if (element.props.ContainingCollectionDoc && !collections.includes(element.props.ContainingCollectionDoc)) {
-                collections.push(element.props.ContainingCollectionDoc);
-            }
-        });
-
-        return collections;
-    }
-
-
+    @action
     searchCollection(query: string) {
-        const selectedCollection = SelectionManager.SelectedDocuments()[0];
+        const selectedCollection = this.currentSelectedCollection;//SelectionManager.SelectedDocuments()[0];
         query = query.toLowerCase();
 
         if (selectedCollection !== undefined) {
-            this._currentSelectedCollection = selectedCollection;
+            // this._currentSelectedCollection = selectedCollection;
             let docs = DocListCast(selectedCollection.dataDoc[Doc.LayoutFieldKey(selectedCollection.dataDoc)]);
             const found: [Doc, string[], string[]][] = [];
-            const docsforFilter: Doc[] = [];
             let newarray: Doc[] = [];
 
             while (docs.length > 0) {
@@ -239,14 +199,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         Field.toString(d[key] as Field).toLowerCase().includes(query) && hlights.add(key));
                     if (Array.from(hlights.keys()).length > 0) {
                         found.push([d, Array.from(hlights.keys()), []]);
-                        docsforFilter.push(d);
                     }
                 });
                 docs = newarray;
             }
             this._results = found;
-            this.docsforfilter = docsforFilter;
-            this.setSearchFilter(selectedCollection, this.filter && found.length ? docsforFilter : undefined);
+            this.docsforfilter = this._results.map(r => r[0]);
+            this.setSearchFilter(selectedCollection, this.filter && found.length ? this.docsforfilter : undefined);
             this._numTotalResults = found.length;
             this.realTotalResults = found.length;
         }
@@ -285,11 +244,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._visibleElements = [];
         this._visibleDocuments = [];
 
-        if (query !== "" || this._searchFullDB === "My Stuff") {
+        if (query || this._searchFullDB === "My Stuff") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
-            this._searchFullDB ? await this.getResults(query) : this.searchCollection(query);
+            this._searchFullDB ? await this.searchDatabase(query) : this.searchCollection(query);
             runInAction(() => {
                 this._searchbarOpen = true;
                 this.resultsScrolled();
@@ -307,8 +266,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const includeDeleted = this._deletedDocsStatus ? "" : " NOT deleted_b:true";
         const typeExpr = this._onlyAliases ? "NOT {!join from=id to=proto_i}type_t:*" : `(type_t:* OR {!join from=id to=proto_i}type_t:*) ${this._blockedTypes.map(type => `NOT ({!join from=id to=proto_i}type_t:${type}) AND NOT type_t:${type}`).join(" AND ")}`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, authorExpr, includeDeleted, typeExpr].filter(q => q).join(" AND ").replace(/AND $/, "");
-        return query;
+        return [baseExpr, authorExpr, includeDeleted, typeExpr].filter(q => q).join(" AND ").replace(/AND $/, "");
     }
 
     @computed get primarySort() {
@@ -324,7 +282,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return headers.reduce((p: Opt<string>, header: SchemaHeaderField) => p || (header.desc !== undefined && suffixMap(header.type) ? (header.heading + suffixMap(header.type) + (header.desc ? " desc" : " asc")) : undefined), undefined);
     }
 
-    getResults = async (query: string) => {
+    searchDatabase = async (query: string) => {
         this._lockPromise && (await this._lockPromise);
         this._lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
@@ -368,6 +326,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
 
             this.resultsScrolled();
+
+            const selectedCollection = this.currentSelectedCollection;//SelectionManager.SelectedDocuments()[0];
+            this.docsforfilter = this._results.map(r => r[0]);
+            this.setSearchFilter(selectedCollection, this.filter ? this.docsforfilter : undefined);
             res();
         });
         return this._lockPromise;
@@ -400,7 +362,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 y += 300;
             }
         }
-        return Docs.Create.SchemaDocument(Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []), DocListCast(this.dataDoc[this.fieldKey]), { _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString) });
+        const headers = Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).map(h => { const v = h[Copy](); v.color = "#f1efeb"; return v; });
+        return Docs.Create.SchemaDocument(headers, DocListCast(this.dataDoc[this.fieldKey]), { _autoHeight: true, _viewType: CollectionViewType.Schema, title: StrCast(this.layoutDoc._searchString) });
     }
 
     @action.bound
@@ -416,9 +379,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             Doc.UnBrushDoc(result[0]);
             Doc.ClearSearchMatches();
         });
-        if (close) {
-            this._searchbarOpen = false;
-        }
+        close && (this._searchbarOpen = false);
     }
 
     @action.bound
@@ -470,16 +431,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
         }
-        const oldSchemaHeaders = Cast(this.props.Document._schemaHeaders, listSpec("string"), []);
-        if (oldSchemaHeaders?.length && typeof oldSchemaHeaders[0] !== "object") {
-            const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
-            headers.forEach(header => {
-                if (oldSchemaHeaders.includes(header) === false) {
-                    newSchemaHeaders.push(new SchemaHeaderField(header, "#f1efeb"));
-                }
-            });
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
-        } else if (this.props.Document._schemaHeaders === undefined) {
+        if (this.props.Document._schemaHeaders === undefined) {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb")]);
         }
         if (this._maxSearchIndex >= this._numTotalResults) {
@@ -488,44 +440,29 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
 
-    findCommonElements(arr2: string[]) {
-        const arr1 = ["layout", "data"];
-        return arr1.some(item => arr2.includes(item));
-    }
-
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight();
-
-    selectElement = (doc: Doc) => {
-        //this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex));
-    }
+    selectElement = (doc: Doc) => { /* this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex)); */ }
     returnHeight = () => 31 + 31 * 6;
     returnLength = () => Math.min(window.innerWidth, 51 + 205 * Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length);
 
     @action
     changeSearchScope = (scope: string) => {
         this.docsforfilter = undefined;
-        this.setSearchFilter(this._currentSelectedCollection, undefined);
+        this.setSearchFilter(this.currentSelectedCollection, undefined);
         this._searchFullDB = scope;
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.submitSearch();
     }
 
     @computed get scopeButtons() {
-        return <div style={{
-            height: 25,
-            paddingLeft: "4px",
-            paddingRight: "4px",
-            border: "1px solid gray",
-            borderRadius: "0.3em",
-            borderBottom: !this.open ? "1px solid" : "none",
-        }}>
+        return <div style={{ height: 25, paddingLeft: "4px", paddingRight: "4px", border: "1px solid gray", borderRadius: "0.3em", borderBottom: !this.open ? "1px solid" : "none", }}>
             <form className="beta" style={{ justifyContent: "space-evenly", display: "flex" }}>
                 <div style={{ display: "contents" }}>
                     <div className="radio" style={{ margin: 0 }}>
                         <label style={{ fontSize: 12, marginTop: 6 }} >
                             <input type="radio" style={{ marginLeft: -16, marginTop: -1 }} checked={!this._searchFullDB} onChange={() => this.changeSearchScope("")} />
-                            Collection
+                            Dashboard
                         </label>
                     </div>
                     <div className="radio" style={{ margin: 0 }}>
@@ -542,7 +479,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         </div>;
     }
 
-    setSearchFilter = (collectionView: DocumentView | undefined, docsForFilter: Doc[] | undefined) => {
+    setSearchFilter = (collectionView: { props: { Document: Doc } }, docsForFilter: Doc[] | undefined) => {
         if (collectionView) {
             const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), null);
             collectionView.props.Document._searchFilterDocs = docsForFilter?.length ? new List<Doc>(docsForFilter) : undefined;
@@ -561,7 +498,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         <div style={{ display: "flex", alignItems: "center" }}>
                             <div style={{ position: "absolute", left: 10 }}>
                                 <Tooltip title={<div className="dash-tooltip" >drag search results as collection</div>}>
-                                    <div><FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
+                                    <div ref={this.collectionRef}><FontAwesomeIcon onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} icon={"search"} size="lg"
                                         style={{ cursor: "hand", color: "black", padding: 1, position: "relative" }} /></div>
                                 </Tooltip>
                             </div>
@@ -574,7 +511,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                         <FontAwesomeIcon icon={"filter"} size="lg"
                                             style={{ cursor: "hand", padding: 1, backgroundColor: this.filter ? "white" : "lightgray", color: this.filter ? "black" : "white" }}
                                             onPointerDown={e => { e.stopPropagation(); SetupDrag(this.collectionRef, () => this.layoutDoc._searchString ? this.startDragCollection() : undefined); }}
-                                            onClick={action(() => this.setSearchFilter(this._currentSelectedCollection, this.filter ? undefined : this.docsforfilter))} />
+                                            onClick={action(() => this.setSearchFilter(this.currentSelectedCollection, this.filter ? undefined : this.docsforfilter))} />
                                     </div>
                                 </Tooltip>
                             </div>

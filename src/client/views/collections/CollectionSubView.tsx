@@ -136,6 +136,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             let docsforFilter: Doc[] = childDocs;
 
             if (searchDocs.length > 0) {
+                searchDocs = [...searchDocs, ...docs.filter(d => d.z)];
                 docsforFilter = [];
                 const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
                 searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);

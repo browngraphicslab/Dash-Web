@@ -873,6 +873,7 @@ export namespace DocUtils {
         }
 
         const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            if (d.z) return true;
             for (const facetKey of Object.keys(filterFacets)) {
                 const facet = filterFacets[facetKey];
                 const satisfiesFacet = Object.keys(facet).some(value => {

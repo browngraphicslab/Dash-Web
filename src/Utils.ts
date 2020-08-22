@@ -422,7 +422,7 @@ export function returnEmptyString() { return ""; }
 
 export function returnEmptyFilter() { return [] as string[]; }
 
-export function returnEmptyDoclist() { return [] as Doc[]; }
+export function returnEmptyDoclist() { return [] as any[]; }
 
 export let emptyPath = [];
 

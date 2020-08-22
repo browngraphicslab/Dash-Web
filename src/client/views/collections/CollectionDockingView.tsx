@@ -30,14 +30,14 @@ import { DocumentView } from "../nodes/DocumentView";
 import { PresBox } from '../nodes/PresBox';
 import "./CollectionDockingView.scss";
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { SubCollectionViewProps } from "./CollectionSubView";
+import { SubCollectionViewProps, CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
-export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
+export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @observable public static Instances: CollectionDockingView[] = [];
     @computed public static get Instance() { return CollectionDockingView.Instances[0]; }
     public static makeDocumentConfig(document: Doc, width?: number, libraryPath?: Doc[]) {
@@ -73,20 +73,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         DragManager.StartWindowDrag = this.StartOtherDrag;
     }
     public StartOtherDrag = (e: any, dragDocs: Doc[]) => {
-        let config: any;
-        if (dragDocs.length === 1) {
-            config = CollectionDockingView.makeDocumentConfig(dragDocs[0]);
-        } else {
-            config = {
+        const config = dragDocs.length === 1 ? CollectionDockingView.makeDocumentConfig(dragDocs[0]) :
+            {
                 type: 'row',
                 content: dragDocs.map((doc, i) => CollectionDockingView.makeDocumentConfig(doc))
             };
-        }
-        const div = document.createElement("div");
-        const dragSource = this._goldenLayout.createDragSource(div, config);
-        dragSource._dragListener.on("dragStop", () => {
-            dragSource.destroy();
-        });
+        const dragSource = this._goldenLayout.createDragSource(document.createElement("div"), config);
+        dragSource._dragListener.on("dragStop", () => dragSource.destroy());
         dragSource._dragListener.onMouseDown(e);
     }
 
@@ -939,8 +932,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
                 addDocTab={this.addDocTab}
                 pinToPres={DockedFrameRenderer.PinDoc}
-                docFilters={returnEmptyFilter}
-                searchFilterDocs={returnEmptyDoclist}
+                docFilters={CollectionDockingView.Instance.docFilters}
+                searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 fitToBox={true}
             />
             <div className="miniOverlay" onPointerDown={this.miniDown} >
@@ -981,8 +974,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
                 addDocTab={this.addDocTab}
                 pinToPres={DockedFrameRenderer.PinDoc}
-                docFilters={returnEmptyFilter}
-                searchFilterDocs={returnEmptyDoclist}
+                docFilters={CollectionDockingView.Instance.docFilters}
+                searchFilterDocs={CollectionDockingView.Instance.searchFilterDocs}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined} />
             {document._viewType === CollectionViewType.Freeform && !this._document?.hideMinimap ? this.renderMiniMap() : (null)}

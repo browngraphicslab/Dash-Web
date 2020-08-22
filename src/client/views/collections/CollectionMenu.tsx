@@ -180,12 +180,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _saveFilterCommand = {
         params: ["target"], title: "save filter",
-        script: `self.target._docFilters = copyField(self['target-docFilters']); 
+        script: `self.target._docFilters = compareLists(self['target-docFilters'],self.target._docFilters) ? undefined : copyField(self['target-docFilters']); 
                  self.target._searchFilterDocs = compareLists(self['target-searchFilterDocs'],self.target._searchFilterDocs) ? undefined: copyField(self['target-searchFilterDocs']);`,
         immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
         initialize: (button: Doc) => {
-            button['target-docFilters'] = this.target._docFilters instanceof ObjectField ? ObjectField.MakeCopy(this.target._docFilters as any as ObjectField) : undefined;
-            button['target-searchFilterDocs'] = this.target._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(this.target._searchFilterDocs as any as ObjectField) : undefined;
+            button['target-docFilters'] = Cast(Doc.UserDoc()["search-panel"], Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc()["search-panel"], Doc, null)._docFilters as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = Cast(Doc.UserDoc()["search-panel"], Doc, null)._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc()["search-panel"], Doc, null)._searchFilterDocs as any as ObjectField) : undefined;
         },
     };
 

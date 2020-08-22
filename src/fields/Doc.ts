@@ -915,6 +915,10 @@ export namespace Doc {
                 brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
         })(doc);
     }
+    export function IsSearchMatchUnmemoized(doc: Doc) {
+        return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+            brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+    }
     export function SetSearchMatch(doc: Doc, results: { searchMatch: number }) {
         if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
         brushManager.SearchMatchDoc.set(doc, results);
@@ -1276,7 +1280,7 @@ Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) {
         Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
     }
     return ndoc;
-})
+});
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });

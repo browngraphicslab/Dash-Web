@@ -3,7 +3,7 @@ import { action, observable, trace, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils, emptyPath } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils, emptyPath, returnEmptyDoclist } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -199,6 +199,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             rootSelected: returnFalse,
             fieldKey: this.props.rowProps.column.id as string,
             docFilters: returnEmptyFilter,
+            searchFilterDocs: returnEmptyDoclist,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,
@@ -511,7 +512,8 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         addDocTab: this.props.addDocTab,
         pinToPres: this.props.pinToPres,
         ContentScaling: returnOne,
-        docFilters: returnEmptyFilter
+        docFilters: returnEmptyFilter,
+        searchFilterDocs: returnEmptyDoclist,
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
     @observable private _doc = FieldValue(Cast(this._field, Doc));
@@ -691,7 +693,8 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
             addDocTab: this.props.addDocTab,
             pinToPres: this.props.pinToPres,
             ContentScaling: returnOne,
-            docFilters: returnEmptyFilter
+            docFilters: returnEmptyFilter,
+            searchFilterDocs: returnEmptyDoclist,
         };
 
         let image = true;
@@ -770,7 +773,8 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         addDocTab: this.props.addDocTab,
         pinToPres: this.props.pinToPres,
         ContentScaling: returnOne,
-        docFilters: returnEmptyFilter
+        docFilters: returnEmptyFilter,
+        searchFilterDocs: returnEmptyDoclist,
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
     @observable private _optionsList = this._field as List<any>;

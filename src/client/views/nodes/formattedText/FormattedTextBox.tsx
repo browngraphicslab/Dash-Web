@@ -906,7 +906,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             search => {
                 search ? this.highlightSearchTerms([Doc.SearchQuery()], search.searchMatch < 0) : this.unhighlightSearchTerms();
             },
-            { fireImmediately: Doc.IsSearchMatch(this.rootDoc) ? true : false });
+            { fireImmediately: Doc.IsSearchMatchUnmemoized(this.rootDoc) ? true : false });
 
         this._disposers.record = reaction(() => this._recording,
             () => {

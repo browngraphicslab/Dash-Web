@@ -334,5 +334,5 @@ Scripting.addGlobal("List", List);
 Scripting.addGlobal(function compareLists(l1: any, l2: any) {
     const L1 = Cast(l1, listSpec("string"), []);
     const L2 = Cast(l2, listSpec("string"), []);
-    return L1 && L2 && L1.length === L2.length && L2.reduce((p, v) => p && L1.includes(v), true);
+    return !L1 && !L2 ? true : L1 && L2 && L1.length === L2.length && L2.reduce((p, v) => p && L1.includes(v), true);
 }, "compare two lists");
