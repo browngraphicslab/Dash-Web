@@ -484,12 +484,12 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     style={{
                         overflowY: this.props.active() ? "auto" : "hidden",
                         transform: `scale(${this.scaling}`,
-                        height: `${1 / this.scaling * 100}%`,
+                        height: this.layoutDoc._autoHeight ? "auto" : `${1 / this.scaling * 100}%`,
                         width: `${1 / this.scaling * 100}%`,
                         transformOrigin: "top left",
                     }}
                     onScroll={action(e => {
-                        if (!this.props.isSelected() && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
+                        if (!this.props.isSelected(true) && this.props.renderDepth) e.currentTarget.scrollTop = this._scroll;
                         else this._scroll = e.currentTarget.scrollTop;
                     })}
                     onDrop={this.onExternalDrop.bind(this)}

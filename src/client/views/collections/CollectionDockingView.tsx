@@ -613,7 +613,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     const theDoc = doc;
 
-                    const recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc);
+                    const recent = await Cast(Doc.UserDoc().myInactiveDocs, Doc);
                     if (recent) {
                         Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
@@ -637,7 +637,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
-                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: "Untitled Collection" }));
+                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: "Untitled Tab" }));
             }
         });
 
@@ -672,7 +672,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     const doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
                         let recent: Doc | undefined;
-                        if (recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc)) {
+                        if (recent = await Cast(Doc.UserDoc().myInactiveDocs, Doc)) {
                             Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                         }
                         const theDoc = doc;

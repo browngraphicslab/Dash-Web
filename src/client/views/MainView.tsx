@@ -262,7 +262,7 @@ export class MainView extends React.Component {
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: "Untitled Collection",
+            title: "Untitled Tab",
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");
@@ -339,7 +339,7 @@ export class MainView extends React.Component {
 
         if (doc?.type === DocumentType.COL) {
             if (doc.title === "Basic Item Creators" || doc.title === "sidebar-tools"
-                || doc.title === "sidebar-recentlyClosed" || doc.title === "sidebar-catalog"
+                || doc.title === "sidebar-inactiveDocs" || doc.title === "sidebar-catalog"
                 || doc.title === "Mobile Uploads" || doc.title === "COLLECTION_PROTO"
                 || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
                 return "lightgrey";

@@ -823,7 +823,7 @@ export namespace Docs {
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
             const tabs = TreeDocument(documents, { title: "Active Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
-            const all = TreeDocument([], { title: "Other Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const all = TreeDocument([], { title: "Inactive Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }

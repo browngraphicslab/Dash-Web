@@ -401,7 +401,7 @@ export class CurrentUserUtils {
                 { _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: "freeform", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyPane === undefined) {
-            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Collection", system: true, cloneFieldFilter: new List<string>(["system"]) });
+            doc.emptyPane = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, title: "Untitled Tab", system: true, cloneFieldFilter: new List<string>(["system"]) });
         }
         if (doc.emptyComparison === undefined) {
             doc.emptyComparison = Docs.Create.ComparisonDocument({ title: "compare", _width: 300, _height: 300, system: true, cloneFieldFilter: new List<string>(["system"]) });
@@ -512,7 +512,7 @@ export class CurrentUserUtils {
         return [
             { title: "Dashboards", target: Cast(doc["sidebar-dashboards"], Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
             { title: "Catalog", target: undefined as any, icon: "file", click: 'selectMainMenu(self)' },
-            { title: "Archive", target: Cast(doc["sidebar-recentlyClosed"], Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Inactive", target: Cast(doc["sidebar-inactiveDocs"], Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Import", target: Cast(doc["sidebar-import"], Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc["sidebar-sharing"], Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
             { title: "Tools", target: Cast(doc["sidebar-tools"], Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
@@ -769,26 +769,26 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
     }
-    static setupRecentlyClosed(doc: Doc) {
+    static setupInactiveDocs(doc: Doc) {
         // setup Recently Closed library item
-        doc.myRecentlyClosed === undefined;
-        if (doc.myRecentlyClosed === undefined) {
-            doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true,
+        doc.myInactiveDocs === undefined;
+        if (doc.myInactiveDocs === undefined) {
+            doc.myInactiveDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "CLOSED DOCS", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, treeViewOpen: true, _stayInCollection: true, system: true,
                 treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data",
             }));
         }
-        // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
-        PromiseValue(Cast(doc.myRecentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
-        if (doc["sidebar-recentlyClosed"] === undefined) {
+        // this is equivalent to using PrefetchProxies to make sure the inactiveDocs doc is ready
+        PromiseValue(Cast(doc.myInactiveDocs, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
+        if (doc["sidebar-inactiveDocs"] === undefined) {
             const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-            (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+            (doc.myInactiveDocs as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myInactiveDocs as Doc).contextMenuLabels = new List<string>(["Clear All"]);
 
-            const recentlyClosed = doc.myRecentlyClosed as Doc;
+            const inactiveDocs = doc.myInactiveDocs as Doc;
 
-            doc["sidebar-recentlyClosed"] = new PrefetchProxy(Docs.Create.TreeDocument([recentlyClosed], {
-                title: "sidebar-recentlyClosed",
+            doc["sidebar-inactiveDocs"] = new PrefetchProxy(Docs.Create.TreeDocument([inactiveDocs], {
+                title: "sidebar-inactiveDocs",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
@@ -825,7 +825,7 @@ export class CurrentUserUtils {
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupCatalog(doc);
-        CurrentUserUtils.setupRecentlyClosed(doc);
+        CurrentUserUtils.setupInactiveDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
 
