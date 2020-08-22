@@ -14,7 +14,7 @@ import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { ScriptField } from '../../fields/ScriptField';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
 import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils, returnEmptyDoclist } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
@@ -257,12 +257,13 @@ export class MainView extends React.Component {
         const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const dashboards = Cast(this.userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
+        this.userDoc.myTabCount = NumCast(this.userDoc.myTabCount) + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: "Untitled Tab",
+            title: `Untitled Tab ${NumCast(this.userDoc.myTabCount)}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");

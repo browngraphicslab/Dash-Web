@@ -641,7 +641,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
-                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: "Untitled Tab" }));
+                Doc.UserDoc().myTabCount = NumCast(Doc.UserDoc().myTabCount) + 1;
+                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: `Untitled Tab ${NumCast(Doc.UserDoc().myTabCount)}` }));
             }
         });
 
