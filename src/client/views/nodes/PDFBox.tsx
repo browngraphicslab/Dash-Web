@@ -99,9 +99,9 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
     public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
     public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
-    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); };
-    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); };
-    public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
+    public backPage = () => { this.Document.curPage = (this.Document.curPage || 1) - 1; };
+    public forwardPage = () => { this.Document.curPage = (this.Document.curPage || 1) + 1; };
+    public gotoPage = (p: number) => { this.Document.curPage = p; };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
@@ -177,7 +177,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
 
                 <div className="pdfBox-pageNums">
                     <input value={curPage}
-                        onChange={e => this.gotoPage(Number(e.currentTarget.value))}
+                        onChange={e => this.Document.curPage = Number(e.currentTarget.value)}
                         style={{ width: `${curPage > 99 ? 4 : 3}ch`, pointerEvents: "all" }}
                         onClick={action(() => this._pageControls = !this._pageControls)} />
                     {this._pageControls ? pageBtns : (null)}

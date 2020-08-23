@@ -181,40 +181,38 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const doc = this.dataDoc;
             doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
             const rows: JSX.Element[] = [];
-            for (const key of Object.keys(ids).slice().sort()) {
-                if ((key[0] === key[0].toUpperCase() && key.substring(0, 3) !== "ACL" && key !== "UseCors")
-                    || key[0] === "#" || key === "author" ||
-                    key === "creationDate" || key.indexOf("lastModified") !== -1) {
-
-                    const contents = doc[key];
-                    if (key[0] === "#") {
+            const noviceReqFields = ["author", "creationDate"];
+            const noviceLayoutFields = ["curPage"];
+            const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL") && key !== "UseCors")),
+            ...noviceReqFields, ...noviceLayoutFields]
+            for (const key of noviceKeys.sort()) {
+                const contents = this.selectedDoc[key];
+                if (key[0] === "#") {
+                    rows.push(<div className="uneditable-field" key={key}>
+                        <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
+                        &nbsp;
+                    </div>);
+                } else if (contents !== undefined) {
+                    const value = Field.toString(contents as Field);
+                    if (noviceReqFields.includes(key) || key.indexOf("lastModified") !== -1) {
                         rows.push(<div className="uneditable-field" key={key}>
-                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key}</span>
-                    &nbsp;
-                </div>);
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
+                            <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
+                        </div>);
                     } else {
-                        const value = Field.toString(contents as Field);
-                        if (key === "author" || key === "creationDate" || key.indexOf("lastModified") !== -1) {
-                            rows.push(<div className="uneditable-field" key={key}>
-                                <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ": "}</span>
-                                <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
-                            </div>);
-                        } else {
-                            let contentElement: (JSX.Element | null)[] | JSX.Element = [];
-                            contentElement = <EditableView key="editableView"
-                                contents={contents !== undefined ? Field.toString(contents as Field) : "null"}
-                                height={13}
-                                fontSize={10}
-                                GetValue={() => Field.toKeyValueString(doc, key)}
-                                SetValue={(value: string) => KeyValueBox.SetField(doc, key, value, true)}
-                            />;
+                        let contentElement = <EditableView key="editableView"
+                            contents={value}
+                            height={13}
+                            fontSize={10}
+                            GetValue={() => Field.toKeyValueString(this.selectedDoc!, key)}
+                            SetValue={(value: string) => KeyValueBox.SetField(noviceLayoutFields.includes(key) ? this.selectedDoc! : doc, key, value, true)}
+                        />;
 
-                            rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
-                                <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
-                            &nbsp;
-                            {contentElement}
-                            </div>);
-                        }
+                        rows.push(<div style={{ display: "flex", overflowY: "visible", marginBottom: "-1px" }} key={key}>
+                            <span style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>{key + ":"}</span>
+                        &nbsp;
+                        {contentElement}
+                        </div>);
                     }
                 }
             }
@@ -322,7 +320,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             onChange={e => this.changePermissions(e, user)}>
             {Object.values(SharingPermissions).map(permission => {
                 return (
-                    <option key={permission} value={permission} selected={this.selectedDoc![`ACL-${user.replace(".", "_")}`] === permission}>
+                    <option key={permission} value={permission}>
                         {permission}
                     </option>);
             })}
