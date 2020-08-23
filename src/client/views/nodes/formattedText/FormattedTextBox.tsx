@@ -350,7 +350,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     updateTitle = () => {
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
-            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.rootDoc.customTitle) {
+            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.dataDoc["title-custom"]) {
             let node = this._editorView.state.doc;
             while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
@@ -1029,7 +1029,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }, 0);
             dataDoc.title = exportState.title;
-            this.rootDoc.customTitle = true;
+            this.dataDoc["title-custom"] = true;
             dataDoc.unchanged = true;
         } else {
             delete dataDoc[GoogleRef];

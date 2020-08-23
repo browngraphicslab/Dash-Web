@@ -302,7 +302,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
                 this.updateFilter();
                 let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-                const blockedkeys = ["system", "customTitle", "limitHeight", "proto", "x", "y", "zIndex", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
+                const blockedkeys = ["system", "title-custom", "limitHeight", "proto", "x", "y", "zIndex", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
                 keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
                 if (keyOptions.length) {
                     this.onSelect(keyOptions[0]);
