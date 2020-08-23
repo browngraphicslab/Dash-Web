@@ -60,6 +60,7 @@ export namespace Hypothesis {
                 DocumentLinksButton.AnnotationId = annotationId;
                 DocumentLinksButton.AnnotationUri = annotationUri;
                 DocumentLinksButton.StartLink = sourceDoc;
+                DocumentLinksButton.StartLinkView = undefined;
             });
         } else { // if a link has already been started, complete the link to sourceDoc
             runInAction(() => {

@@ -36,6 +36,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     private _linkButton = React.createRef<HTMLDivElement>();
 
     @observable public static StartLink: Doc | undefined;
+    @observable public static StartLinkView: DocumentView | undefined;
     @observable public static AnnotationId: string | undefined;
     @observable public static AnnotationUri: string | undefined;
 
@@ -79,8 +80,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
                 //action(() => Doc.BrushDoc(this.props.View.Document));
                 if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                     DocumentLinksButton.StartLink = undefined;
+                    DocumentLinksButton.StartLinkView = undefined;
                 } else {
                     DocumentLinksButton.StartLink = this.props.View.props.Document;
+                    DocumentLinksButton.StartLinkView = this.props.View;
                 }
             } else if (!this.props.InMenu) {
                 DocumentLinksButton.EditLink = this.props.View;
@@ -95,8 +98,10 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             DocumentLinksButton.AnnotationUri = undefined;
             if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                 DocumentLinksButton.StartLink = undefined;
+                DocumentLinksButton.StartLinkView = undefined;
             } else {
                 DocumentLinksButton.StartLink = this.props.View.props.Document;
+                DocumentLinksButton.StartLinkView = this.props.View;
             }
 
             //action(() => Doc.BrushDoc(this.props.View.Document));
@@ -110,6 +115,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             if (doubleTap && !this.props.StartLink) {
                 if (DocumentLinksButton.StartLink === this.props.View.props.Document) {
                     DocumentLinksButton.StartLink = undefined;
+                    DocumentLinksButton.StartLinkView = undefined;
                     DocumentLinksButton.AnnotationId = undefined;
                 } else if (DocumentLinksButton.StartLink && DocumentLinksButton.StartLink !== this.props.View.props.Document) {
                     const sourceDoc = DocumentLinksButton.StartLink;
@@ -150,6 +156,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
     public static finishLinkClick = undoBatch(action((screenX: number, screenY: number, startLink: Doc, endLink: Doc, startIsAnnotation: boolean, endLinkView?: DocumentView,) => {
         if (startLink === endLink) {
             DocumentLinksButton.StartLink = undefined;
+            DocumentLinksButton.StartLinkView = undefined;
             DocumentLinksButton.AnnotationId = undefined;
             DocumentLinksButton.AnnotationUri = undefined;
             //!this.props.StartLink 
@@ -157,8 +164,12 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
             const linkDoc = DocUtils.MakeLink({ doc: startLink }, { doc: endLink }, DocumentLinksButton.AnnotationId ? "hypothes.is annotation" : "long drag");
             // this notifies any of the subviews that a document is made so that they can make finer-grained hyperlinks ().  see note above in onLInkButtonMoved
             if (endLinkView) {
-                startLink._link = endLinkView._link = linkDoc;
-                setTimeout(action(() => startLink._link = endLinkView._link = undefined), 0);
+                endLinkView._link = linkDoc;
+                DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView._link = linkDoc);
+                setTimeout(action(() => {
+                    DocumentLinksButton.StartLinkView && (DocumentLinksButton.StartLinkView._link = undefined);
+                    endLinkView._link = undefined;
+                }), 0);
             }
             LinkManager.currentLink = linkDoc;
 
@@ -203,6 +214,7 @@ export class DocumentLinksButton extends React.Component<DocumentLinksButtonProp
 
     @action clearLinks() {
         DocumentLinksButton.StartLink = undefined;
+        DocumentLinksButton.StartLinkView = undefined;
     }
 
     @computed

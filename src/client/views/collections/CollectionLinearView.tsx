@@ -89,6 +89,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             }
         }
         DocumentLinksButton.StartLink = undefined;
+        DocumentLinksButton.StartLinkView = undefined;
     }
 
     @action

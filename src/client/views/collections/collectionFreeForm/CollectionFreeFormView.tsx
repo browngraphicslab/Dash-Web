@@ -591,7 +591,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     onClick = (e: React.MouseEvent) => {
         if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (Date.now() - this._lastTap < 300) {
-                runInAction(() => DocumentLinksButton.StartLink = undefined);
+                runInAction(() => {
+                    DocumentLinksButton.StartLink = undefined;
+                    DocumentLinksButton.StartLinkView = undefined;
+                });
                 const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
                 this.scaleAtPt(docpt, 1);
                 e.stopPropagation();

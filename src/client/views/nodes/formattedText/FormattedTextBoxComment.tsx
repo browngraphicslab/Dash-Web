@@ -324,8 +324,8 @@ export class FormattedTextBoxComment {
 
                                 ReactDOM.render(docPreview, FormattedTextBoxComment.tooltipText);
 
-                                FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
-                                FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.width = "100%";
+                                FormattedTextBoxComment.tooltip.style.height = "100%";
                             }
                         }
                     });
