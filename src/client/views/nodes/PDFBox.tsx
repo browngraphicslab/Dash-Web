@@ -21,6 +21,7 @@ import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../fields/documentSchemas';
+import { CollectionViewType } from '../collections/CollectionView';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -99,20 +100,28 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
     public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
     public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
     public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
-    public backPage = () => { this.Document.curPage = (this.Document.curPage || 1) - 1; };
-    public forwardPage = () => { this.Document.curPage = (this.Document.curPage || 1) + 1; };
+    public backPage = () => { this.Document.curPage = (this.Document.curPage || 1) - 1; return true; };
+    public forwardPage = () => { this.Document.curPage = (this.Document.curPage || 1) + 1; return true; };
     public gotoPage = (p: number) => { this.Document.curPage = p; };
 
     @undoBatch
     onKeyDown = action((e: KeyboardEvent) => {
+        let processed = false;
         if (e.key === "f" && e.ctrlKey) {
             this._searching = true;
             setTimeout(() => this._searchRef.current && this._searchRef.current.focus(), 100);
+            processed = true;
+        }
+        if (e.key === "PageDown") processed = this.forwardPage();
+        if (e.key === "PageUp") processed = this.backPage();
+        if (e.target instanceof HTMLInputElement || this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) {
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") processed = this.forwardPage();
+            if (e.key === "ArrowUp" || e.key === "ArrowLeft") processed = this.backPage();
+        }
+        if (processed) {
             e.stopImmediatePropagation();
             e.preventDefault();
         }
-        if (e.key === "PageDown" || e.key === "ArrowDown" || e.key === "ArrowRight") this.forwardPage();
-        if (e.key === "PageUp" || e.key === "ArrowUp" || e.key === "ArrowLeft") this.backPage();
     });
 
     @undoBatch
