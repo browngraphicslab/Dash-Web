@@ -1045,7 +1045,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         } else if (viewDef.type === "div") {
             return [x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customDiv" title={viewDef.payload?.join(" ")} key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
+                    ele: <div className="collectionFreeform-customDiv" title={viewDef.payload?.join(" ")} key={"div" + x + y + z + viewDef.payload} onClick={e => this.onViewDefDivClick(e, viewDef)}
                         style={{ width, height, backgroundColor: color, transform }} />,
                     bounds: viewDef
                 };
@@ -1597,18 +1597,15 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
             const vfWidth: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
             const vfTop: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
             const vfHeight: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
-            return (
-                <>
-                    {!activeItem.editZoomProgressivize ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
-                        <div className='resizers'>
-                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
-                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
-                        </div>
-                    </div>}
-                </>
-            );
+            return !activeItem.editZoomProgressivize ? (null) :
+                <div id="resizable" key="zoomProgressivize" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                    <div className='resizers'>
+                        <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                        <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                        <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                        <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                    </div>
+                </div>;
         }
     }
 
@@ -1622,30 +1619,30 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
 
     @computed get presPaths() {
         const presPaths = "presPaths" + (this.props.presPaths ? "" : "-hidden");
-        return !(PresBox.Instance) ? (null) : (<>
-            {!this.props.presPaths ? (null) : <><div>{PresBox.Instance.order}</div>
-                <svg className={presPaths}>
-                    <defs>
-                        <marker id="arrow" markerWidth="3" overflow="visible" markerHeight="3" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
-                            <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
-                        </marker>
-                        <marker id="square" markerWidth="3" markerHeight="3" overflow="visible"
-                            refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
-                            <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#69a6db" />
-                        </marker>
-                        <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
-                            orient="auto" overflow="visible">
-                            <rect x="1" y="1" width="5" height="5" fill="#69a6db" />
-                        </marker>
+        return !PresBox.Instance || !this.props.presPaths ? (null) : <>
+            <div key="presorder">{PresBox.Instance.order}</div>
+            <svg key="svg" className={presPaths}>
+                <defs>
+                    <marker id="arrow" markerWidth="3" overflow="visible" markerHeight="3" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#69a6db" />
+                    </marker>
+                    <marker id="square" markerWidth="3" markerHeight="3" overflow="visible"
+                        refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+                        <path d="M 5,1 L 9,5 5,9 1,5 z" fill="#69a6db" />
+                    </marker>
+                    <marker id="markerSquare" markerWidth="7" markerHeight="7" refX="4" refY="4"
+                        orient="auto" overflow="visible">
+                        <rect x="1" y="1" width="5" height="5" fill="#69a6db" />
+                    </marker>
 
-                        <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="7"
-                            orient="auto" overflow="visible">
-                            <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
-                        </marker>
-                    </defs>;
-                    {PresBox.Instance.paths}
-                </svg></>}
-        </>);
+                    <marker id="markerArrow" markerWidth="5" markerHeight="5" refX="2" refY="7"
+                        orient="auto" overflow="visible">
+                        <path d="M2,2 L2,13 L8,7 L2,2" fill="#69a6db" />
+                    </marker>
+                </defs>
+                {PresBox.Instance.paths}
+            </svg>
+        </>;
     }
 
     render() {

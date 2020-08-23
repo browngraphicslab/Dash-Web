@@ -304,7 +304,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 (e: PointerEvent, doubleTap?: boolean) => {
                     if (doubleTap) {
                         undoBatch(action(() => {
-                            const text = Docs.Create.TextDocument("", { _width: 150, _height: 50 });
+                            const text = Docs.Create.TextDocument("", { _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 150, _height: 50 });
                             FormattedTextBox.SelectOnLoad = text[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
                             Doc.AddDocToList(this.props.Document, this.props.fieldKey, text);
                             this.setLayoutList(this.addLayoutItem(this.savedLayoutList, this.makeLayoutItem(text, this.screenToCell(e.clientX, e.clientY))));

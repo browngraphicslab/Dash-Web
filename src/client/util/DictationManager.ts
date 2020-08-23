@@ -6,7 +6,6 @@ import { DocumentType } from "../documents/DocumentTypes";
 import { Doc, Opt } from "../../fields/Doc";
 import { List } from "../../fields/List";
 import { Docs } from "../documents/Documents";
-import { CollectionViewType } from "../views/collections/CollectionView";
 import { Cast, CastCtor } from "../../fields/Types";
 import { listSpec } from "../../fields/Schema";
 import { AudioField, ImageField } from "../../fields/URLField";
@@ -88,7 +87,7 @@ export namespace DictationManager {
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
 
-            const overlay = options !== undefined && options.useOverlay;
+            const overlay = options?.useOverlay;
             if (overlay) {
                 DictationOverlay.Instance.dictationOverlayVisible = true;
                 DictationOverlay.Instance.isListening = { interim: false };
@@ -100,11 +99,11 @@ export namespace DictationManager {
                     Utils.CopyText(results);
                     if (overlay) {
                         DictationOverlay.Instance.isListening = false;
-                        const execute = options && options.tryExecute;
+                        const execute = options?.tryExecute;
                         DictationOverlay.Instance.dictatedPhrase = execute ? results.toLowerCase() : results;
                         DictationOverlay.Instance.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
                     }
-                    options && options.tryExecute && await DictationManager.Commands.execute(results);
+                    options?.tryExecute && await DictationManager.Commands.execute(results);
                 }
             } catch (e) {
                 if (overlay) {
@@ -129,12 +128,12 @@ export namespace DictationManager {
             }
             isListening = true;
 
-            const handler = options ? options.interimHandler : undefined;
-            const continuous = options ? options.continuous : undefined;
+            const handler = options?.interimHandler;
+            const continuous = options?.continuous;
             const indefinite = continuous && continuous.indefinite;
-            const language = options ? options.language : undefined;
-            const intra = options && options.delimiters ? options.delimiters.intra : undefined;
-            const inter = options && options.delimiters ? options.delimiters.inter : undefined;
+            const language = options?.language;
+            const intra = options?.delimiters?.intra;
+            const inter = options?.delimiters?.inter;
 
             recognizer.onstart = () => console.log("initiating speech recognition session...");
             recognizer.interimResults = handler !== undefined;
@@ -154,7 +153,7 @@ export namespace DictationManager {
                 recognizer.onresult = (e: SpeechRecognitionEvent) => {
                     current = synthesize(e, intra);
                     let matchedTerminator: string | undefined;
-                    if (options && options.terminators && (matchedTerminator = options.terminators.find(end => current ? current.trim().toLowerCase().endsWith(end.toLowerCase()) : false))) {
+                    if (options?.terminators && (matchedTerminator = options.terminators.find(end => current ? current.trim().toLowerCase().endsWith(end.toLowerCase()) : false))) {
                         current = matchedTerminator;
                         recognizer.abort();
                         return complete();

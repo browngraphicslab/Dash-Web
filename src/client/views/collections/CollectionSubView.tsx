@@ -284,7 +284,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
                     } else if (text) {
-                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
+                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 100, _height: 25 }));
                     }
                     return;
                 }
@@ -460,7 +460,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
+                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
                 }
             }
             disposer();

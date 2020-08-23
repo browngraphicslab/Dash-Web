@@ -182,7 +182,7 @@ export class MainView extends React.Component {
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
             fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft, fa.faAngleUp,
             fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer, fa.faHashtag, fa.faAlignJustify, fa.faCheckSquare, fa.faListUl,
-            fa.faWindowMinimize, fa.faWindowRestore);
+            fa.faWindowMinimize, fa.faWindowRestore, fa.faTextWidth, fa.faClosedCaptioning);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }

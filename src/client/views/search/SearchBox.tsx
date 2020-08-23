@@ -442,7 +442,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight();
-    selectElement = (doc: Doc) => { /* this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex)); */ }
+    selectElement = (doc: Doc) => { /* this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex)); */ };
     returnHeight = () => 31 + 31 * 6;
     returnLength = () => Math.min(window.innerWidth, 51 + 205 * Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length);
 

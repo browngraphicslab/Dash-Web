@@ -54,6 +54,7 @@ export default class SettingsManager extends React.Component<{}> {
     }
 
     @undoBatch selectUserMode = action((e: React.ChangeEvent) => Doc.UserDoc().noviceMode = (e.currentTarget as any)?.value === "Novice");
+    @undoBatch changeShowTitle = action((e: React.ChangeEvent) => Doc.UserDoc().showTitle = (e.currentTarget as any).value);
     @undoBatch changeFontFamily = action((e: React.ChangeEvent) => Doc.UserDoc().fontFamily = (e.currentTarget as any).value);
     @undoBatch changeFontSize = action((e: React.ChangeEvent) => Doc.UserDoc().fontSize = (e.currentTarget as any).value);
     @undoBatch switchColor = action((color: ColorState) => Doc.UserDoc().activeCollectionBackground = String(color.hex));
@@ -90,13 +91,17 @@ export default class SettingsManager extends React.Component<{}> {
                 {colorFlyout}
             </div>
             <div className="preferences-font">
-                <div className="preferences-font-text">Default Font</div>
+                <div className="preferences-font-text">Font</div>
                 <select className="font-select" onChange={this.changeFontFamily} value={StrCast(Doc.UserDoc().fontFamily, "Times New Roman")} >
                     {fontFamilies.map(font => <option key={font} value={font} defaultValue={StrCast(Doc.UserDoc().fontFamily)}> {font} </option>)}
                 </select>
                 <select className="size-select" onChange={this.changeFontSize} value={StrCast(Doc.UserDoc().fontSize, "7pt")}>
                     {fontSizes.map(size => <option key={size} value={size} defaultValue={StrCast(Doc.UserDoc().fontSize)}> {size} </option>)}
                 </select>
+                <div>
+                    Show title
+                    <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = !Doc.UserDoc().showTitle} checked={BoolCast(Doc.UserDoc().showTitle)} />
+                </div>
             </div>
         </div>;
     }

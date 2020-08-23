@@ -303,7 +303,6 @@
                 margin-left: auto;
 
                 .permissions-select {
-                    z-index: 1;
                     border: none;
                     background-color: inherit;
                     width: 75px;
@@ -734,7 +733,7 @@
     background: #eeeeee;
     border-top: 1px solid;
     border-left: 1px solid;
-    
+
     &:hover {
         border: 0.75px solid rgb(122, 28, 28);
     }

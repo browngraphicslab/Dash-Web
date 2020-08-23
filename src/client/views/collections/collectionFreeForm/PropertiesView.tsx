@@ -184,7 +184,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             const noviceReqFields = ["author", "creationDate"];
             const noviceLayoutFields = ["curPage"];
             const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL") && key !== "UseCors")),
-            ...noviceReqFields, ...noviceLayoutFields]
+            ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
                 const contents = this.selectedDoc[key];
                 if (key[0] === "#") {
@@ -200,7 +200,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             <div style={{ whiteSpace: "nowrap", overflowX: "hidden" }}>{value}</div>
                         </div>);
                     } else {
-                        let contentElement = <EditableView key="editableView"
+                        const contentElement = <EditableView key="editableView"
                             contents={value}
                             height={13}
                             fontSize={10}

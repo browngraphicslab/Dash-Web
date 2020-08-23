@@ -109,12 +109,14 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
         this._linkPlayDisposer?.();
         this._scrubbingDisposer?.();
     }
+
+    @action
     componentDidMount() {
         if (!this.dataDoc.markerAmount) {
             this.dataDoc.markerAmount = 0;
         }
 
-        runInAction(() => this.audioState = this.path ? "paused" : undefined);
+        this.audioState = this.path ? "paused" : undefined;
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
                 if (scrollLinkId) {
@@ -285,7 +287,7 @@ export class AudioBox extends ViewBoxAnnotatableComponent<FieldViewProps, AudioD
     // creates a text document for dictation
     onFile = (e: any) => {
         const newDoc = Docs.Create.TextDocument("", {
-            title: "", _chromeStatus: "disabled",
+            _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, title: "", _chromeStatus: "disabled",
             x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document._height) + 10,
             _width: NumCast(this.props.Document._width), _height: 2 * NumCast(this.props.Document._height)
         });

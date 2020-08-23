@@ -100,7 +100,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _pause: boolean = false;
 
     @computed get _recording() { return this.dataDoc.audioState === "recording"; }
-    set _recording(value) { this.dataDoc.audioState = value ? "recording" : undefined; }
+    set _recording(value) {
+        this.dataDoc.audioState = value ? "recording" : undefined;
+    }
 
     @observable private _entered = false;
 
@@ -350,7 +352,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     updateTitle = () => {
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
-            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.dataDoc["title-custom"]) {
+            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.dataDoc["title-custom"] &&
+            Doc.LayoutFieldKey(this.rootDoc) === this.fieldKey) {
             let node = this._editorView.state.doc;
             while (node.firstChild && node.firstChild.type.name !== "text") node = node.firstChild;
             const str = node.textContent;
@@ -383,7 +386,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             let tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
-            console.log("Search:" + this.rootDoc.title + " " + this._searchIndex + " => " + (this._searchIndex + 1 > flattened.length - 1 ? 0 : this._searchIndex + 1));
             this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
             if (backward === true) {
                 if (this._searchIndex > 1) {
@@ -658,7 +660,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const newBullets: Doc[] = this.recursiveProgressivize(1, list)[0];
             mainBulletList.push.apply(mainBulletList, newBullets);
         }
-        console.log(mainBulletList.length);
         const title = Docs.Create.TextDocument(StrCast(this.rootDoc.title), { title: "Title", _width: 800, _height: 70, x: 20, y: -10, _fontSize: '20pt', backgroundColor: "rgba(0,0,0,0)", appearFrame: 0, _fontWeight: 700 });
         mainBulletList.push(title);
         const doc = Docs.Create.FreeformDocument(mainBulletList, {
@@ -713,7 +714,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
     recordDictation = () => {
         DictationManager.Controls.listen({
-            interimHandler: this.setCurrentBulletContent,
+            interimHandler: this.setDictationContent,
             continuous: { indefinite: false },
         }).then(results => {
             if (results && [DictationManager.Controls.Infringed].includes(results)) {
@@ -724,22 +725,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
     stopDictation = (abort: boolean) => { DictationManager.Controls.stop(!abort); };
 
-    recordBullet = async () => {
-        const completedCue = "end session";
-        const results = await DictationManager.Controls.listen({
-            interimHandler: this.setCurrentBulletContent,
-            continuous: { indefinite: false },
-            terminators: [completedCue, "bullet", "next"]
-        });
-        if (results && [DictationManager.Controls.Infringed, completedCue].includes(results)) {
-            DictationManager.Controls.stop();
-            return;
-        }
-        this.nextBullet(this._editorView!.state.selection.to);
-        setTimeout(this.recordBullet, 2000);
-    }
-
-    setCurrentBulletContent = (value: string) => {
+    setDictationContent = (value: string) => {
         if (this._editorView) {
             const state = this._editorView.state;
             const now = Date.now();
@@ -754,31 +740,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     }
                 }
             }
-            const recordingStart = DateCast(this.props.Document.recordingStart).date.getTime();
-            this._break = false;
-            value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
             const from = state.selection.from;
-            const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
-            this._editorView.dispatch(inserted.setSelection(TextSelection.create(inserted.doc, from, from + value.length + 1)));
-        }
-    }
-
-    nextBullet = (pos: number) => {
-        if (this._editorView) {
-            const frag = Fragment.fromArray(this.newListItems(2));
-            if (this._editorView.state.doc.resolve(pos).depth >= 2) {
-                const slice = new Slice(frag, 2, 2);
-                let state = this._editorView.state;
-                this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
-                pos += 4;
-                state = this._editorView.state;
-                this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
+            this._break = false;
+            if (this.props.Document.recordingStart) {
+                const recordingStart = DateCast(this.props.Document.recordingStart)?.date.getTime();
+                value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
             }
+            const tr = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
+            this._editorView.dispatch(tr.setSelection(TextSelection.create(tr.doc, from, from + value.length + 1)));
         }
-    }
-
-    private newListItems = (count: number) => {
-        return numberRange(count).map(x => schema.nodes.list_item.create(undefined, schema.nodes.paragraph.create()));
     }
 
     _keymap: any = undefined;
@@ -903,21 +873,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.setupEditor(this.config, this.props.fieldKey);
 
         this._disposers.search = reaction(() => Doc.IsSearchMatch(this.rootDoc),
-            search => {
-                search ? this.highlightSearchTerms([Doc.SearchQuery()], search.searchMatch < 0) : this.unhighlightSearchTerms();
-            },
+            search => search ? this.highlightSearchTerms([Doc.SearchQuery()], search.searchMatch < 0) : this.unhighlightSearchTerms(),
             { fireImmediately: Doc.IsSearchMatchUnmemoized(this.rootDoc) ? true : false });
 
-        this._disposers.record = reaction(() => this._recording,
-            () => {
-                if (this._recording) {
-                    setTimeout(action(() => {
-                        this.stopDictation(true);
-                        setTimeout(() => this.recordDictation(), 500);
-                    }), 500);
-                } else setTimeout(() => this.stopDictation(true), 0);
-            }
-        );
+        this._disposers.selected = reaction(() => this.props.isSelected(), action(() => this._recording = false));
+
+        if (!this.props.dontRegisterView) {
+            this._disposers.record = reaction(() => this._recording,
+                () => {
+                    if (this._recording) {
+                        setTimeout(action(() => {
+                            this.stopDictation(true);
+                            setTimeout(() => this.recordDictation(), 500);
+                        }), 500);
+                    } else setTimeout(() => this.stopDictation(true), 0);
+                }
+            );
+        }
         this._disposers.scrollToRegion = reaction(
             () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
@@ -1410,7 +1382,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const self = this;
         return new Plugin({
             view(newView) {
-                self.props.isSelected(true) && (RichTextMenu.Instance.view = newView);
+                self.props.isSelected(true) && RichTextMenu.Instance && (RichTextMenu.Instance.view = newView);
                 return self.menuPlugin = new RichTextMenuPlugin({ editorProps: this.props });
             }
         });
@@ -1432,7 +1404,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public static HadSelection: boolean = false;
     onBlur = (e: any) => {
         FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
-        //DictationManager.Controls.stop(false);
         this.endUndoTypingBatch();
         this.doLinkOnDeselect();
 
@@ -1545,13 +1516,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                         width: "100%",
                         height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
                         background: Doc.UserDoc().renderStyle === "comic" ? "transparent" : this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
-                        opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                         color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                         pointerEvents: interactive ? undefined : "none",
                         fontSize: Cast(this.layoutDoc._fontSize, "string", null),
                         fontWeight: Cast(this.layoutDoc._fontWeight, "number", null),
                         fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
-                        transition: "opacity 1s"
                     }}
                     onContextMenu={this.specificContextMenu}
                     onKeyDown={this.onKeyPress}
@@ -1615,14 +1584,14 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                             <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} />
                         </div>}
                     {!this.layoutDoc._showAudio ? (null) :
-                        <div className="formattedTextBox-dictation"
-                            onPointerDown={e => {
-                                runInAction(() => this._recording = !this._recording);
-                                setTimeout(() => this._editorView!.focus(), 500);
-                                e.stopPropagation();
-                            }} >
+                        <div className="formattedTextBox-dictation" onClick={action(e => this._recording = !this._recording)} >
                             <FontAwesomeIcon className="formattedTextBox-audioFont"
-                                style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
+                                style={{
+                                    color: this._recording ? "red" : "blue",
+                                    transitionDelay: "0.6s",
+                                    opacity: this._recording ? 1 : 0.25,
+                                }}
+                                icon={"microphone"} size="sm" />
                         </div>}
                 </div>
             </div>

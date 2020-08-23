@@ -988,7 +988,7 @@ export namespace DocUtils {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
             layout = CollectionView.LayoutString;
         } else {
-            created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+            created = Docs.Create.TextDocument("", { ...{ _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, _height: 25, _autoHeight: true }, ...resolved });
             layout = FormattedTextBox.LayoutString;
         }
         if (created) {
@@ -1048,7 +1048,7 @@ export namespace DocUtils {
                 description: ":" + StrCast(note.title),
                 event: undoBatch((args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {
-                        _width: 200, x, y, _autoHeight: note._autoHeight !== false,
+                        _width: 200, x, y, _autoHeight: note._autoHeight !== false, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
                         title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
                     });
                     textDoc.layoutKey = "layout_" + note.title;
@@ -1175,7 +1175,7 @@ export namespace DocUtils {
         }
         const options = optionsCollection as Doc;
         const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
-        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
+        const docFind = `options.data?.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
         targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
         targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
         targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));

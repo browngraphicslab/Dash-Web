@@ -771,7 +771,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
             }
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
-            Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()) && moreItems.push({ description: "Toggle Always Show Link End", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
+            Doc.AreProtosEqual(this.props.Document, Cast(Doc.UserDoc()["sidebar-userDoc"], Doc, null)) && moreItems.push({ description: "Toggle Always Show Link End", event: () => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"], icon: "eye" });
         }
 
         const collectionAcl = GetEffectiveAcl(this.props.ContainingCollectionDoc?.[DataSym]);
