@@ -319,13 +319,13 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
         return !docView ? (null) :
-            <Tooltip title={<><div className="dash-tooltip">Customize layout</div></>} placement="top">
+            <Tooltip title={<div className="dash-tooltip">Customize layout</div>} placement="top">
                 <div className="propertiesButtons-linkFlyout">
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP} //onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
                         content={<TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
                         <div>
                             <div className={"propertiesButtons-linkButton-empty"} >
-                                {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="lg" />}
+                                <FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="lg" />
                             </div>
                             <div className="propertiesButtons-title">Layout</div>
                         </div>
@@ -350,13 +350,13 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed
     get copyButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Tap or Drag to create an alias"}</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
                     ref={this._dragRef}
                     onPointerDown={this.onAliasButtonDown}
                     onClick={this.onCopy}>
-                    {<FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />}
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
                 </div>
                 <div className="propertiesButtons-title">Alias</div>
             </div>
@@ -373,15 +373,13 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get lockButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{this.selectedDoc?.lockedPosition ?
-                "Unlock Position" : "Lock Position"}</div></>} placement="top">
+            title={<div className="dash-tooltip">{`${this.selectedDoc?.lockedPosition ? "Unlock" : "Lock"} " Position"`}</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    style={{ backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "" }}
-                    onPointerDown={this.onLock} >
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        color={BoolCast(this.selectedDoc?.lockedPosition) ? "black" : "white"}
-                        icon={BoolCast(this.selectedDoc?.lockedPosition) ? "unlock" : "lock"} size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={this.onLock}
+                    style={{ backgroundColor: BoolCast(this.selectedDoc?.lockedPosition) ? "white" : "" }} >
+                    <FontAwesomeIcon className="documentdecorations-icon" size="lg"
+                        color={this.selectedDoc?.lockedPosition ? "black" : "white"}
+                        icon={this.selectedDoc?.lockedPosition ? "unlock" : "lock"} />
                 </div>
                 <div className="propertiesButtons-title"
                 // style={{
@@ -397,16 +395,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get downloadButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{"Download Document"}</div></>} placement="top">
+            title={<div className="dash-tooltip">{"Download Document"}</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={async () => {
-                        if (this.selectedDoc) {
-                            Doc.Zip(this.selectedDoc);
-                        }
-                    }}>
-                    {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="download" size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={() => this.selectedDoc && Doc.Zip(this.selectedDoc)}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="download" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> downld </div>
             </div>
@@ -416,13 +408,10 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     @computed
     get deleteButton() {
         const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">Close Document</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">Close Document</div>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={this.deleteDocument}>
-                    {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="times" size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={this.deleteDocument}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="times" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> close </div>
             </div>
@@ -444,14 +433,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">{"Share Document"}</div></>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={() => {
-                        if (this.selectedDocumentView) {
-                            SharingManager.Instance.open(docView, this.selectedDoc);
-                        }
-                    }}>
-                    {<FontAwesomeIcon className="propertiesButtons-icon"
-                        icon="users" size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={() => this.selectedDocumentView && SharingManager.Instance.open(docView, this.selectedDoc)}>
+                    <FontAwesomeIcon className="propertiesButtons-icon" icon="users" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> share </div>
             </div>
@@ -564,13 +547,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             title={<><div className="dash-tooltip">{"Export to Google Photos"}</div></>} placement="top">
             <div>
                 <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={() => {
-                        if (this.selectedDoc) {
-                            GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDoc }).then(console.log);
-                        }
-                    }}>
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        icon="cloud-upload-alt" size="lg" />}
+                    onPointerDown={() => this.selectedDoc && GooglePhotos.Export.CollectionToAlbum({ collection: this.selectedDoc }).then(console.log)}>
+                    {<FontAwesomeIcon className="documentdecorations-icon" icon="cloud-upload-alt" size="lg" />}
                 </div>
                 <div className="propertiesButtons-title"> google </div>
             </div>
@@ -651,10 +629,8 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         return !targetDoc ? (null) : <Tooltip
             title={<><div className="dash-tooltip">Make Mask</div></>} placement="top">
             <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    onPointerDown={this.makeMask}>
-                    {<FontAwesomeIcon className="documentdecorations-icon"
-                        color="white" icon="paint-brush" size="lg" />}
+                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={this.makeMask}>
+                    <FontAwesomeIcon className="documentdecorations-icon" color="white" icon="paint-brush" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> mask </div>
             </div>
