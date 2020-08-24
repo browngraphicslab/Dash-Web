@@ -85,7 +85,7 @@ export class SettingsManager extends React.Component<{}> {
 
         return <div className="preferences-content">
             <div className="preferences-color">
-                <div className="preferences-color-text">Background Color</div>
+                <div className="preferences-color-text">Back. Color</div>
                 {colorFlyout}
             </div>
             <div className="preferences-font">
@@ -99,6 +99,11 @@ export class SettingsManager extends React.Component<{}> {
                 <div>
                     Show title
                     <input type="checkbox" onChange={e => Doc.UserDoc().showTitle = !Doc.UserDoc().showTitle} checked={BoolCast(Doc.UserDoc().showTitle)} />
+                </div>
+                <div>
+                    Alt Btns
+                    <input type="checkbox" onChange={e => Doc.UserDoc()["documentLinksButton-hideEnd"] = !Doc.UserDoc()["documentLinksButton-hideEnd"]}
+                        checked={BoolCast(Doc.UserDoc()["documentLinksButton-hideEnd"])} />
                 </div>
             </div>
         </div>;

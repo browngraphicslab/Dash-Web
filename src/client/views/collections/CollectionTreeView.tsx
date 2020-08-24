@@ -421,7 +421,7 @@ class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const headerElements = this.props.treeViewHideHeaderFields() ? (null) :
             <>
-                <FontAwesomeIcon icon="cog" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
+                <FontAwesomeIcon icon="bars" size="sm" onClick={e => { this.showContextMenu(e); e.stopPropagation(); }} />
                 <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                     onPointerDown={action(() => {
                         if (this.treeViewOpen) {

@@ -587,7 +587,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const maximizeIcon = minimal ? (
             <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top">
                 <div className="documentDecorations-contextMenu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="cog" />
+                    <FontAwesomeIcon size="lg" icon="bars" />
                 </div></Tooltip>) : canDelete ? (
                     <Tooltip title={<><div className="dash-tooltip">Close</div></>} placement="top">
                         <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
@@ -614,7 +614,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             </> :
             <>
                 {minimal ? (null) : <Tooltip title={<><div className="dash-tooltip">Show context menu</div></>} placement="top"><div className="documentDecorations-contextMenu" key="menu" onPointerDown={this.onSettingsDown}>
-                    <FontAwesomeIcon size="lg" icon="cog" />
+                    <FontAwesomeIcon size="lg" icon="bars" />
                 </div></Tooltip>}
                 <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
                     <span style={{ width: "100%", display: "inline-block", cursor: "move" }}>{`${this.selectionTitle}`}</span>
