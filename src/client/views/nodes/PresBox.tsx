@@ -156,7 +156,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 this._moveOnFromAudio = true;
             } else this._moveOnFromAudio = false;
         } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
-            console.log('loop');
             const nextSelected = 0;
             this.gotoDocument(0, this.itemIndex);
         }
@@ -479,10 +478,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
      */
     @undoBatch
     updateMovement = action((movement: any, activeItem: Doc, targetDoc: Doc) => {
-        console.log(movement);
         switch (movement) {
             case 'zoom': //Pan and zoom
-                console.log('zoom');
                 activeItem.presNavButton = false;
                 activeItem.presZoomButton = !activeItem.presZoomButton;
                 targetDoc.presTransition = activeItem.presTransition;
@@ -513,14 +510,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     });
 
-    setMovementName = action((movement: any): string => {
+    setMovementName = action((movement: any, activeItem: Doc): string => {
         let output: string = 'none';
-        console.log(movement);
         switch (movement) {
             case 'zoom': output = 'Zoom'; break; //Pan and zoom
             case 'pan': output = 'Pan'; break; //Pan
             case 'jump': output = 'Jump cut'; break; //Jump Cut
-            case 'none': default: output = 'None'; break; //None
+            case 'none': output = 'None'; break; //None
+            default: output = 'Zoom'; activeItem.presMovement = 'zoom'; break; //default set as zoom
         }
         return output;
     });
@@ -804,7 +801,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Movement
                         <div className="presBox-dropdown" onClick={action(e => { e.stopPropagation(); this.openMovementDropdown = !this.openMovementDropdown; })} style={{ borderBottomLeftRadius: this.openMovementDropdown ? 0 : 5, border: this.openMovementDropdown ? 'solid 2px #5B9FDD' : 'solid 1px black' }}>
-                            {this.setMovementName(activeItem.presMovement)}
+                            {this.setMovementName(activeItem.presMovement, activeItem)}
                             <FontAwesomeIcon className='presBox-dropdownIcon' style={{ gridColumn: 2, color: this.openMovementDropdown ? '#5B9FDD' : 'black' }} icon={"angle-down"} />
                             <div className={'presBox-dropdownOptions'} id={'presBoxMovementDropdown'} onPointerDown={e => e.stopPropagation()} style={{ display: this.openMovementDropdown ? "grid" : "none" }}>
                                 <div className={`presBox-dropdownOption ${activeItem.presMovement === 'none' ? "active" : ""}`} onPointerDown={e => e.stopPropagation()} onClick={() => this.updateMovement('none', activeItem, targetDoc)}>None</div>
@@ -1262,7 +1259,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             </div>
                             <div className="ribbon-doubleButton" style={{ display: activeItem.presProgressivize ? "inline-flex" : "none" }}>
                                 <div className="presBox-subheading">Active text color</div>
-                                <div className="ribbon-property" style={{ backgroundColor: activeFontColor }} onClick={action(() => { console.log("hi"); this.openActiveColorPicker = !this.openActiveColorPicker; })}>
+                                <div className="ribbon-property" style={{ backgroundColor: activeFontColor }} onClick={action(() => { this.openActiveColorPicker = !this.openActiveColorPicker; })}>
                                 </div>
                             </div>
                             {this.activeColorPicker}
@@ -1674,10 +1671,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : 'white' }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
             <div className="presPanel-divider"></div>
             <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={() => {
-                if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
-                else this.pauseAutoPres();
-            }}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
+            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
             <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
             <div className="presPanel-button-text" style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
@@ -1692,6 +1686,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         </div>);
     }
 
+    @action
+    startOrPause = () => {
+        if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
+        else this.pauseAutoPres();
+    }
+
     render() {
         // calling this method for keyEvents
         this.isPres;
@@ -1704,10 +1704,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="miniPres-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
                     <div className="miniPres-divider"></div>
                     <div className="miniPres-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="miniPres-button" onClick={() => {
-                        if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
-                        else this.pauseAutoPres();
-                    }}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
+                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="miniPres-button" onClick={this.startOrPause}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="miniPres-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="miniPres-divider"></div>
                     <div className="miniPres-button-text">
