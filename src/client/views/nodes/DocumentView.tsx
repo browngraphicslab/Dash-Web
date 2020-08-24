@@ -322,13 +322,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     }
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                const shiftKey = e.shiftKey;
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
                     scriptContext: this.props.scriptContext,
                     thisContainer: this.props.ContainingCollectionDoc,
                     documentView: this,
-                    shiftKey: e.shiftKey
+                    shiftKey
                 }, console.log);
                 const clickFunc = () => {
                     if (!Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-undo"] as Doc) && !Doc.AreProtosEqual(this.props.Document, Doc.UserDoc()["dockedBtn-redo"] as Doc)) {

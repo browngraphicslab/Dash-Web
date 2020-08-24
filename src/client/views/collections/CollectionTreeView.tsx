@@ -327,7 +327,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true), true);
             const docs = expandKey === "links" ? this.childLinks : expandKey === "annotations" ? this.childAnnos : this.childDocs;
             const sortKey = `${this.fieldKey}-sortAscending`;
-            return <ul key={expandKey + "more"} className={this.doc.treeViewHideTopDoc ? "no-indent" : ""} onClick={(e) => {
+            return <ul key={expandKey + "more"} className={this.doc.treeViewHideTopLevel ? "no-indent" : ""} onClick={(e) => {
                 this.doc[sortKey] = (this.doc[sortKey] ? false : (this.doc[sortKey] === false ? undefined : true));
                 e.stopPropagation();
             }}>
@@ -506,7 +506,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             }
         } else this._editMaxWidth = "";
-        return this.doc.treeViewHideTopDoc && this.props.firstLevel ? !this.treeViewOpen || this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? (null) : this.renderContent :
+        return this.doc.treeViewHideTopLevel && this.props.firstLevel ? !this.treeViewOpen || this.props.renderedIds.indexOf(this.doc[Id]) !== -1 ? (null) : this.renderContent :
             <div className="treeViewItem-container" ref={this.createTreeDropTarget} onPointerDown={e => this.props.active(true) && SelectionManager.DeselectAll()}>
                 <li className="collection-child">
                     <div className={`treeViewItem-header` + (this._editMaxWidth ? "-editing" : "")} ref={this._header} style={{ maxWidth: this._editMaxWidth }} onClick={e => {
@@ -678,7 +678,7 @@ class TreeView extends React.Component<TreeViewProps> {
 }
 
 export type collectionTreeViewProps = {
-    treeViewHideTopDoc?: boolean;
+    treeViewHideTopLevel?: boolean;
     treeViewHideHeaderFields?: boolean;
     onCheckedClick?: () => ScriptField;
     onChildClick?: () => ScriptField;
@@ -754,7 +754,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             const layoutItems: ContextMenuProps[] = [];
             layoutItems.push({ description: (this.doc.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.doc.treeViewPreventOpen = !this.doc.treeViewPreventOpen, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.doc.treeViewHideHeaderFields = !this.doc.treeViewHideHeaderFields, icon: "paint-brush" });
-            layoutItems.push({ description: (this.doc.treeViewHideTopDoc ? "Show" : "Hide") + " Title", event: () => this.doc.treeViewHideTopDoc = !this.doc.treeViewHideTopDoc, icon: "paint-brush" });
+            layoutItems.push({ description: (this.doc.treeViewHideTopLevel ? "Show" : "Hide") + " Title", event: () => this.doc.treeViewHideTopLevel = !this.doc.treeViewHideTopLevel, icon: "paint-brush" });
             layoutItems.push({ description: (this.doc.treeViewHideLinkLines ? "Show" : "Hide") + " Link Lines", event: () => this.doc.treeViewHideLinkLines = !this.doc.treeViewHideLinkLines, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
         }
@@ -831,7 +831,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             this.outerXf, this.props.active, this.props.PanelWidth, this.props.ChromeHeight, this.props.renderDepth, () => this.props.treeViewHideHeaderFields || BoolCast(this.doc.treeViewHideHeaderFields),
             BoolCast(this.doc.treeViewPreventOpen), [], this.props.LibraryPath, this.props.onCheckedClick,
             this.onChildClick, this.props.ignoreFields, true, BoolCast(this.props.Document.treeViewOpen));
-        const hideTitle = this.props.treeViewHideTopDoc || this.doc.treeViewHideTopDoc;
+        const hideTitle = this.props.treeViewHideTopLevel || this.doc.treeViewHideTopLevel;
         return !childDocs ? (null) : (
             <div className="collectionTreeView-container" onContextMenu={this.onContextMenu}>
                 <div className="collectionTreeView-dropTarget" id="body"

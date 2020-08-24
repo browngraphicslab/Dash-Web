@@ -694,7 +694,7 @@ export namespace Docs {
             linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
-                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTopDoc", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTopLevel", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 

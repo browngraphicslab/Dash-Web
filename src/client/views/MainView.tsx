@@ -293,8 +293,9 @@ export class MainView extends React.Component {
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const copyDashboard = ScriptField.MakeScript(`copyDashboard()`);
-        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyDashboard!]);
-        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard"]);
+        const createDashboard = ScriptField.MakeScript(`createDashb oard()`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyDashboard!, createDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
 
         Doc.AddDocToList(dashboards, "data", dashboardDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
@@ -1005,5 +1006,6 @@ Scripting.addGlobal(function copyDashboard() {
         setTimeout(() => MainView.Instance.openDashboard(copy), 0);
     });
 });
+Scripting.addGlobal(function createDashboard() { MainView.Instance.createNewDashboard(); });
 Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
     "imports files from device directly into the import sidebar");
