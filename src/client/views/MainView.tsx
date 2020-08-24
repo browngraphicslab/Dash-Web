@@ -65,6 +65,7 @@ import { Networking } from '../Network';
 import * as rp from 'request-promise';
 import { LinkManager } from '../util/LinkManager';
 import RichTextMenu from './nodes/formattedText/RichTextMenu';
+import { PrefetchProxy } from '../../fields/Proxy';
 
 @observer
 export class MainView extends React.Component {
@@ -253,10 +254,24 @@ export class MainView extends React.Component {
     }
 
     @action
+    createNewPresentation = async () => {
+        await this.userDoc.myPresentations;
+        if (this.userDoc.myPresentations === undefined) {
+            this.userDoc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+            }));
+        }
+        const pres = Docs.Create.PresDocument(new List<Doc>(),
+            { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+        CollectionDockingView.AddRightSplit(pres);
+        Doc.UserDoc().activePresentation = pres;
+        const myPresentations = Doc.UserDoc().myPresentations as Doc;
+        Doc.AddDocToList(myPresentations, "data", pres);
+    }
+
+    @action
     createNewWorkspace = async (id?: string) => {
         const myCatalog = Doc.UserDoc().myCatalog as Doc;
-        const myPresentations = Doc.UserDoc().myPresentations as Doc;
-        const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
         const freeformOptions: DocumentOptions = {
@@ -269,9 +284,6 @@ export class MainView extends React.Component {
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Workspace ${workspaceCount}` }, id, "row");
         Doc.AddDocToList(myCatalog, "data", freeformDoc);
-        Doc.AddDocToList(myCatalog, "data", presentation);
-        Doc.AddDocToList(myPresentations, "data", presentation);
-        Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const copyWorkspace = ScriptField.MakeScript(`copyWorkspace()`);
@@ -550,8 +562,8 @@ export class MainView extends React.Component {
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
-
                 // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
+                case "Pres. Trails": panelDoc = Doc.UserDoc()["sidebar-presentations"] as Doc ?? undefined; break;
                 case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
                 case "Settings": SettingsManager.Instance.open(); break;
                 case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;

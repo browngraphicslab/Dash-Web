@@ -394,7 +394,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
@@ -441,8 +441,7 @@ export class CurrentUserUtils {
             //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
-
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
@@ -512,7 +511,7 @@ export class CurrentUserUtils {
         return [
             { title: "Sharing", icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
             { title: "Workspace", icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Pres. Trails", icon: "desktop", click: 'selectMainMenu(self)' },
+            { title: "Pres. Trails", icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Catalog", icon: "file", click: 'selectMainMenu(self)' },
             { title: "Archive", icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Import", icon: "upload", click: 'selectMainMenu(self)' },
@@ -748,25 +747,39 @@ export class CurrentUserUtils {
         return doc.myWorkspaces as any as Doc;
     }
 
-    static setupPresentations(doc: Doc) {
-        doc.myPresentations === undefined;
+    static async addToPresList(doc: Doc, pres: Doc) {
+        await doc.myPresentations;
         if (doc.myPresentations === undefined) {
-            doc.myPresentations = new PrefetchProxy(Docs.Create.SchemaDocument([], [], {
-                title: "Pres. Trails", _height: 1000, _fitWidth: true, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false,
-                childDropAction: "alias", targetDropAction: "same", _stayInCollection: true, treeViewOpen: true, system: true
+            doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+            }));
+        }
+        const myPresentations = doc.myPresentations as Doc;
+        doc.activePresentation = pres;
+        Doc.AddDocToList(myPresentations, "data", pres);
+    }
+
+    static async setupPresentations(doc: Doc) {
+        await doc.myPresentations;
+        if (doc.myPresentations === undefined) {
+            doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
             }));
         }
 
         if (doc["sidebar-presentations"] === undefined) {
+            const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
+            (doc.myPresentations as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
+            (doc.myPresentations as Doc).contextMenuLabels = new List<string>(["Create New Presentation"]);
             const presentations = doc.myPresentations as Doc;
 
             doc["sidebar-presentations"] = new PrefetchProxy(Docs.Create.TreeDocument([presentations], {
-                title: "sidebar-presentations",
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;
         }
+        return doc.myPresentations as any as Doc;
     }
 
     static setupCatalog(doc: Doc) {
@@ -1026,9 +1039,10 @@ export class CurrentUserUtils {
     }
 }
 
+Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); },
+    "creates a new presentation when called");
 Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
     "creates a new workspace when called");
-
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },
