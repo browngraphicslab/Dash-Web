@@ -401,6 +401,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 CollectionDockingView.AddRightSplit(curPres);
             }
+            const myPresentations = Doc.UserDoc().myPresentations as Doc;
+            const presData = DocListCast(myPresentations.data);
+            if (!presData.includes(curPres)) Doc.AddDocToList(myPresentations, "data", curPres);
             if (e instanceof KeyboardEvent ? e.key === "c" : true) {
                 const x = this.Bounds.left + this.Bounds.width / 2;
                 const y = this.Bounds.top + this.Bounds.height / 2;

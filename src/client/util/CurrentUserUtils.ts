@@ -908,9 +908,7 @@ export class CurrentUserUtils {
     // Import sidebar is where shared documents are contained
     static setupImportSidebar(doc: Doc) {
         if (doc["sidebar-import-documents"] === undefined) {
-            const sidebar = Cast(doc["sidebar-import-documents"], Doc, null);
-            const height: number = sidebar ? NumCast(sidebar._height) - 150 : 400;
-            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _autoHeight: true, _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true, _height: height }));
+            doc["sidebar-import-documents"] = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Imported Documents", forceActive: true, _showTitle: "title", childDropAction: "alias", _yMargin: 30, lockedPosition: true, _chromeStatus: "disabled", system: true, _height: 500 }));
         }
         if (doc["sidebar-import"] === undefined) {
             const uploads = Cast(doc["sidebar-import-documents"], Doc, null);
