@@ -344,6 +344,9 @@ export namespace Doc {
     export function IsBaseProto(doc: Doc) {
         return GetT(doc, "baseProto", "boolean", true);
     }
+    export function IsSystem(doc: Doc) {
+        return GetT(doc, "system", "boolean", true);
+    }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         const hasProto = doc.proto instanceof Doc;
         const onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;

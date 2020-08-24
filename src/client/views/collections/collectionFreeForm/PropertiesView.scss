@@ -394,6 +394,40 @@
             cursor: auto;
         }
     }
+    .propertiesView-contexts {
+
+        .propertiesView-contexts-title {
+            font-weight: bold;
+            font-size: 12.5px;
+            padding: 4px;
+            display: flex;
+            color: white;
+            padding-left: 8px;
+            background-color: rgb(51, 51, 51);
+
+            &:hover {
+                cursor: pointer;
+            }
+
+            .propertiesView-contexts-title-icon {
+                float: right;
+                justify-items: right;
+                align-items: flex-end;
+                margin-left: auto;
+                margin-right: 9px;
+
+                &:hover {
+                    cursor: pointer;
+                }
+            }
+        }
+
+        .propertiesView-contexts-content {
+            overflow: hidden;
+            padding: 10px;
+        }
+
+    }
 
     .propertiesView-layout {
 

@@ -357,7 +357,7 @@ export class MainView extends React.Component {
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
         if (doc?.type === DocumentType.COL) {
-            const system = Object.getOwnPropertyNames(doc).indexOf("system") !== -1;
+            const system = Doc.IsSystem(doc);
             return system ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {

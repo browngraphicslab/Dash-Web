@@ -825,8 +825,8 @@ export namespace Docs {
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
-            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", system: true });
             Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }

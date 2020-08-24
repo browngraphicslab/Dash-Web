@@ -558,27 +558,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         </Tooltip>;
     }
 
-    @computed
-    get contextButton() {
-        if (this.selectedDoc) {
-            return <Tooltip title={<><div className="dash-tooltip">Show Context</div></>} placement="top">
-                <div>
-                    <div className={"propertiesButtons-linkButton-empty"}>
-                        <ParentDocSelector Document={this.selectedDoc} addDocTab={(doc, where) => {
-                            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
-                                this.selectedDocumentView?.props.addDocTab(doc, "onRight");
-                            return true;
-                        }} />
-                    </div>
-                    <div className="propertiesButtons-title"> context </div>
-                </div>
-            </Tooltip>;
-        } else {
-            return false;
-        }
-
-    }
-
     // @computed
     // get importButton() {
     //     const targetDoc = this.selectedDoc;
@@ -607,8 +586,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
         const isInk = this.selectedDoc[Doc.LayoutFieldKey(this.selectedDoc)] instanceof InkField;
         const isCollection = this.selectedDoc.type === DocumentType.COL ? true : false;
         const isFreeForm = this.selectedDoc._viewType === "freeform" ? true : false;
-        const hasContext = this.selectedDoc.context ? true : false;
-        const collectionAcl = GetEffectiveAcl(this.selectedDocumentView?.props.ContainingCollectionDoc?.[DataSym]);
+        //const collectionAcl = GetEffectiveAcl(this.selectedDocumentView?.props.ContainingCollectionDoc?.[DataSym]);
 
         return <div><div className="propertiesButtons" style={{ paddingBottom: "5.5px" }}>
             {/* <div className="propertiesButtons-button">
@@ -639,9 +617,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 : (null)} */}
             <div className="propertiesButtons-button">
                 {this.onClickButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.contextButton}
             </div>
             <div className="propertiesButtons-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}

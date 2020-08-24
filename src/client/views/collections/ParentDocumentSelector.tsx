@@ -19,6 +19,7 @@ export const Flyout = higflyout.default;
 type SelectorProps = {
     Document: Doc,
     Stack?: any,
+    hideTitle?: boolean,
     addDocTab(doc: Doc, location: string): void
 };
 
@@ -35,20 +36,15 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
         this._reaction?.();
     }
     async fetchDocuments() {
-        const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document));
-        const containerProtoSets = await Promise.all(aliases.map(async alias =>
-            ((await SearchUtil.Search("", true, { fq: `data_l:"${alias[Id]}"` })).docs)));
+        const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
+        const containerProtoSets = await Promise.all(aliases.map(async alias => ((await SearchUtil.Search("", true, { fq: `data_l:"${alias[Id]}"` })).docs)));
         const containerProtos = containerProtoSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>());
-        const containerSets = await Promise.all(Array.from(containerProtos.keys()).map(async container => {
-            return (SearchUtil.GetAliasesOfDocument(container));
-        }));
+        const containerSets = await Promise.all(Array.from(containerProtos.keys()).map(async container => SearchUtil.GetAliasesOfDocument(container)));
         const containers = containerSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>());
-        const doclayoutSets = await Promise.all(Array.from(containers.keys()).map(async (dp) => {
-            return (SearchUtil.GetAliasesOfDocument(dp));
-        }));
+        const doclayoutSets = await Promise.all(Array.from(containers.keys()).map(async (dp) => SearchUtil.GetAliasesOfDocument(dp)));
         const doclayouts = Array.from(doclayoutSets.reduce((p, set) => { set.map(s => p.add(s)); return p; }, new Set<Doc>()).keys());
         runInAction(() => {
-            this._docs = doclayouts.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
+            this._docs = doclayouts.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).filter(doc => !Doc.IsSystem(doc)).map(doc => ({ col: doc, target: this.props.Document }));
             this._otherDocs = [];
         });
     }
@@ -68,7 +64,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 
     render() {
         return <div >
-            <p key="contexts">Contexts:</p>
+            {this.props.hideTitle ? (null) : <p key="contexts">Contexts:</p>}
             {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
             {this._otherDocs.length ? <hr key="hr" /> : null}
             {this._otherDocs.map(doc => <p key={"p" + doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}

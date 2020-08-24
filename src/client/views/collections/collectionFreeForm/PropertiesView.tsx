@@ -25,6 +25,8 @@ import { PropertiesButtons } from "../../PropertiesButtons";
 import { FormatShapePane } from "./FormatShapePane";
 import "./FormatShapePane.scss";
 import "./PropertiesView.scss";
+import { CollectionDockingView } from "../CollectionDockingView";
+import { ParentDocSelector, SelectorContextMenu } from "../ParentDocumentSelector";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -64,6 +66,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openSharing: boolean = true;
     @observable openFields: boolean = true;
     @observable openLayout: boolean = true;
+    @observable openContexts: boolean = true;
     @observable openAppearance: boolean = true;
     @observable openTransform: boolean = true;
     // @observable selectedUser: string = "";
@@ -249,6 +252,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             this.transform = new Transform(-cliRect.x, -cliRect.y, 1);
         }));
         ref && observer.observe(ref);
+    }
+
+    @computed get contexts() {
+        return !this.selectedDoc ? (null) : <SelectorContextMenu Document={this.selectedDoc} hideTitle={true} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
     previewBackground = () => "lightgrey";
@@ -958,6 +965,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                             <div className="propertiesView-fields-content">
                                 {novice ? this.noviceFields : this.expandedField}
                             </div>}
+                    </div>
+                    <div className="propertiesView-contexts">
+                        <div className="propertiesView-contexts-title"
+                            onPointerDown={action(() => this.openContexts = !this.openContexts)}
+                            style={{ backgroundColor: this.openContexts ? "black" : "" }}>
+                            Contexts
+                        <div className="propertiesView-contexts-title-icon">
+                                <FontAwesomeIcon icon={this.openContexts ? "caret-down" : "caret-right"} size="lg" color="white" />
+                            </div>
+                        </div>
+                        {this.openContexts ? <div className="propertiesView-contexts-content"  >{this.contexts}</div> : null}
                     </div>
                     <div className="propertiesView-layout">
                         <div className="propertiesView-layout-title"
