@@ -46,7 +46,6 @@ enum UtilityButtonState {
 
 @observer
 export class PropertiesButtons extends React.Component<{}, {}> {
-    private _dragRef = React.createRef<HTMLDivElement>();
     private _pullAnimating = false;
     private _pushAnimating = false;
     private _pullColorAnimating = false;
@@ -200,54 +199,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             </div>
         </Tooltip>;
     }
-    @computed
-    get pinButton() {
-        const targetDoc = this.selectedDoc;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
-            <div>
-                <div className={`propertiesButtons-linkButton-empty toggle-${isPinned ? "on" : "off"}`} onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
-                </div>
-
-                <div className="propertiesButtons-title">{Doc.isDocPinned(targetDoc) ? "Unpin" : "Pin"}</div>
-            </div>
-        </Tooltip>;
-    }
-
-    @computed
-    get pinWithViewButton() {
-        const targetDoc = this.selectedDoc;
-        if (targetDoc) {
-            const x = targetDoc._panX;
-            const y = targetDoc._panY;
-            const scale = targetDoc._viewScale;
-        }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation with current view"}</div></>} placement="top">
-            <div>
-                <div className="propertiesButtons-linker"
-                    onClick={e => {
-                        if (targetDoc) {
-                            DockedFrameRenderer.PinDoc(targetDoc, false);
-                            const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
-                            const x = targetDoc._panX;
-                            const y = targetDoc._panY;
-                            const scale = targetDoc._viewScale;
-                            activeDoc.presPinView = true;
-                            activeDoc.presPinViewX = x;
-                            activeDoc.presPinViewY = y;
-                            activeDoc.presPinViewScale = scale;
-                        }
-                    }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
-                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(0, -28px)', color: 'rgba(250,250,250,0.55)' }}>V</div>
-                </div>
-
-                <div className="propertiesButtons-title">{"View"}</div>
-            </div>
-        </Tooltip>;
-    }
-
 
     @computed
     get metadataButton() {
@@ -269,26 +220,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             return null;
         }
 
-    }
-
-    @observable _aliasDown = false;
-    onAliasButtonDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    }
-    @undoBatch
-    onAliasButtonMoved = (e: PointerEvent) => {
-        if (this._dragRef.current && this.selectedDoc) {
-            const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
-            const [left, top] = [e.clientX, e.clientY];
-            dragData.dropAction = "alias";
-            DragManager.StartDocumentDrag([this._dragRef.current], dragData, left, top, {
-                offsetX: dragData.offset[0],
-                offsetY: dragData.offset[1],
-                hideSource: false
-            });
-            return true;
-        }
-        return false;
     }
 
     @computed
@@ -313,35 +244,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 </div></Tooltip>;
     }
 
-    @undoBatch
-    onCopy = () => {
-        if (this.selectedDoc && this.selectedDocumentView) {
-            // const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
-            // copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
-            // copy.y = NumCast(this.selectedDoc.y) + 30;
-            // this.selectedDocumentView.props.addDocument?.(copy);
-            const alias = Doc.MakeAlias(this.selectedDoc);
-            alias.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
-            alias.y = NumCast(this.selectedDoc.y) + 30;
-            this.selectedDocumentView.props.addDocument?.(alias);
-        }
-    }
-
-    @computed
-    get copyButton() {
-        const targetDoc = this.selectedDoc;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
-            <div>
-                <div className={"propertiesButtons-linkButton-empty"}
-                    ref={this._dragRef}
-                    onPointerDown={this.onAliasButtonDown}
-                    onClick={this.onCopy}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
-                </div>
-                <div className="propertiesButtons-title">Alias</div>
-            </div>
-        </Tooltip>;
-    }
 
     @action @undoBatch
     onLock = () => {
@@ -474,20 +376,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                     <FontAwesomeIcon className="propertiesButtons-icon" icon="edit" size="lg" />
                 </div>
                 <div className="propertiesButtons-title"> Controls </div>
-            </div>
-        </Tooltip>;
-    }
-
-    @computed
-    get sharingButton() {
-        const targetDoc = this.selectedDoc;
-        const docView = this.selectedDocumentView?.props.Document === this.selectedDoc ? this.selectedDocumentView : undefined;
-        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Share Document"}</div>} placement="top">
-            <div>
-                <div className={"propertiesButtons-linkButton-empty"} onPointerDown={() => this.selectedDocumentView && SharingManager.Instance.open(docView, this.selectedDoc)}>
-                    <FontAwesomeIcon className="propertiesButtons-icon" icon="users" size="lg" />
-                </div>
-                <div className="propertiesButtons-title"> share </div>
             </div>
         </Tooltip>;
     }
@@ -730,15 +618,6 @@ export class PropertiesButtons extends React.Component<{}, {}> {
                 {this.metadataButton}
             </div> */}
             <div className="propertiesButtons-button">
-                {this.pinButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.pinWithViewButton}
-            </div>
-            <div className="propertiesButtons-button" style={{ display: hasContext ? "" : "none" }}>
-                {this.copyButton}
-            </div>
-            <div className="propertiesButtons-button">
                 {this.titleButton}
             </div>
             <div className="propertiesButtons-button">
@@ -753,19 +632,13 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             <div className="propertiesButtons-button" style={{ display: isText || isImage ? "" : "none" }}>
                 {this.dictationButton}
             </div>
-            <div className="propertiesButtons-button">
-                {this.downloadButton}
-            </div>
-            {collectionAcl === AclAdmin || collectionAcl === AclEdit ?
+            {/* {collectionAcl === AclAdmin || collectionAcl === AclEdit ?
                 <div className="propertiesButtons-button">
                     {this.deleteButton}
                 </div>
-                : (null)}
+                : (null)} */}
             <div className="propertiesButtons-button">
                 {this.onClickButton}
-            </div>
-            <div className="propertiesButtons-button">
-                {this.sharingButton}
             </div>
             <div className="propertiesButtons-button">
                 {this.contextButton}

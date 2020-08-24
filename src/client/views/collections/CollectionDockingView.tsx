@@ -890,8 +890,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     getCurrentFrame = (): number => {
         const presTargetDoc = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex].presentationTargetDoc, Doc, null);
-        const currentFrame = Cast(presTargetDoc.currentFrame, "number", null);
-        return currentFrame;
+        return Cast(presTargetDoc._currentFrame, "number", null);
     }
 
     renderMiniMap() {

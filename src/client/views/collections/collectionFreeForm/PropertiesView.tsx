@@ -60,7 +60,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @observable layoutFields: boolean = false;
 
-    @observable openActions: boolean = true;
+    @observable openOptions: boolean = true;
     @observable openSharing: boolean = true;
     @observable openFields: boolean = true;
     @observable openLayout: boolean = true;
@@ -76,7 +76,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @observable openAddSlide: boolean = false;
     @observable openSlideOptions: boolean = false;
 
-    @observable inActions: boolean = false;
+    @observable inOptions: boolean = false;
     @observable _controlBtn: boolean = false;
     @observable _lock: boolean = false;
 
@@ -177,7 +177,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
             const rows: JSX.Element[] = [];
             const noviceReqFields = ["author", "creationDate"];
-            const noviceLayoutFields = ["curPage"];
+            const noviceLayoutFields = ["_curPage"];
             const noviceKeys = [...Array.from(Object.keys(ids)).filter(key => key[0] === "#" || key.indexOf("lastModified") !== -1 || (key[0] === key[0].toUpperCase() && !key.startsWith("ACL") && key !== "UseCors")),
             ...noviceReqFields, ...noviceLayoutFields];
             for (const key of noviceKeys.sort()) {
@@ -843,17 +843,17 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                     </div>
-                    <div className="propertiesView-settings" onPointerEnter={() => runInAction(() => { this.inActions = true; })}
-                        onPointerLeave={action(() => this.inActions = false)}>
+                    <div className="propertiesView-settings" onPointerEnter={() => runInAction(() => { this.inOptions = true; })}
+                        onPointerLeave={action(() => this.inOptions = false)}>
                         <div className="propertiesView-settings-title"
-                            onPointerDown={() => runInAction(() => { this.openActions = !this.openActions; })}
-                            style={{ backgroundColor: this.openActions ? "black" : "" }}>
-                            Actions
+                            onPointerDown={() => runInAction(() => { this.openOptions = !this.openOptions; })}
+                            style={{ backgroundColor: this.openOptions ? "black" : "" }}>
+                            Options
                         <div className="propertiesView-settings-title-icon">
-                                <FontAwesomeIcon icon={this.openActions ? "caret-down" : "caret-right"} size="lg" color="white" />
+                                <FontAwesomeIcon icon={this.openOptions ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
-                        {!this.openActions ? (null) :
+                        {!this.openOptions ? (null) :
                             <div className="propertiesView-settings-content">
                                 <PropertiesButtons />
                             </div>}

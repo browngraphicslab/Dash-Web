@@ -50,9 +50,9 @@ import React = require("react");
 export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
-    currentTimecode: "number",
+    _currentTimecode: "number",
     displayTimecode: "number",
-    currentFrame: "number",
+    _currentFrame: "number",
     arrangeInit: ScriptField,
     _useClusters: "boolean",
     fitToBox: "boolean",
@@ -173,8 +173,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     newBox.y = y;
                 }
             }
-            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
-                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentFrame, true);
+            if (this.Document._currentFrame !== undefined && !this.props.isAnnotationOverlay) {
+                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document._currentFrame, true);
             }
         }
         return retVal;
@@ -184,7 +184,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc, this.props.CollectionView)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
     }
-    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
+    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document._currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
@@ -207,9 +207,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
             const d = docDragData.droppedDocuments[i];
             const layoutDoc = Doc.Layout(d);
-            if (this.Document.currentFrame !== undefined) {
+            if (this.Document._currentFrame !== undefined) {
                 const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.scroll, vals.opacity);
+                CollectionFreeFormDocumentView.setValues(this.Document._currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.h, vals.w, vals.scroll, vals.opacity);
             } else {
                 d.x = x + NumCast(d.x) - dropPos[0];
                 d.y = y + NumCast(d.y) - dropPos[1];
@@ -1005,8 +1005,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     });
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const layoutDoc = Doc.Layout(params.pair.layout);
-        const { x, y, opacity } = this.Document.currentFrame === undefined ? params.pair.layout :
-            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentFrame || 0);
+        const { x, y, opacity } = this.Document._currentFrame === undefined ? params.pair.layout :
+            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document._currentFrame || 0);
         const { z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),

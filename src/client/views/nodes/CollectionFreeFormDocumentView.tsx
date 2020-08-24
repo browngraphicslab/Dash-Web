@@ -127,7 +127,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const scrollList = new List<number>();
         scrollList[timecode] = NumCast(doc._scrollTop);
         doc["scroll-indexed"] = scrollList;
-        doc.activeFrame = ComputedField.MakeFunction("self.currentFrame");
+        doc.activeFrame = ComputedField.MakeFunction("self._currentFrame");
         doc._scrollTop = ComputedField.MakeInterpolated("scroll", "activeFrame");
     }
 
@@ -198,7 +198,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             doc["w-indexed"] = wlist;
             doc["h-indexed"] = hlist;
             doc["opacity-indexed"] = olist;
-            doc.activeFrame = ComputedField.MakeFunction("self.context?.currentFrame||0");
+            doc.activeFrame = ComputedField.MakeFunction("self.context?._currentFrame||0");
             doc._height = ComputedField.MakeInterpolated("h", "activeFrame");
             doc._width = ComputedField.MakeInterpolated("w", "activeFrame");
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");

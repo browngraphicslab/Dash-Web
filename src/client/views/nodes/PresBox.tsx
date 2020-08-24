@@ -128,16 +128,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
         const childDocs = DocListCast(targetDoc[Doc.LayoutFieldKey(targetDoc)]);
-        const currentFrame = Cast(targetDoc.currentFrame, "number", null);
+        const currentFrame = Cast(targetDoc._currentFrame, "number", null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
-        const curFrame = NumCast(targetDoc.currentFrame);
+        const curFrame = NumCast(targetDoc._currentFrame);
         let internalFrames: boolean = false;
         if (targetDoc.presProgressivize || activeItem.zoomProgressivize || targetDoc.scrollProgressivize) internalFrames = true;
         // Case 1: There are still other frames and should go through all frames before going to next slide
         if (internalFrames && lastFrame !== undefined && curFrame < lastFrame) {
             targetDoc._viewTransition = "all 1s";
             setTimeout(() => targetDoc._viewTransition = undefined, 1010);
-            targetDoc.currentFrame = curFrame + 1;
+            targetDoc._currentFrame = curFrame + 1;
             if (targetDoc.scrollProgressivize) CollectionFreeFormDocumentView.updateScrollframe(targetDoc, currentFrame);
             if (targetDoc.presProgressivize) CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, targetDoc);
             else targetDoc.editing = true;
@@ -176,14 +176,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const prevItem = Cast(this.childDocs[Math.max(0, this.itemIndex - 1)], Doc, null);
         const prevTargetDoc = Cast(prevItem.presentationTargetDoc, Doc, null);
         const lastFrame = Cast(targetDoc.lastFrame, "number", null);
-        const curFrame = NumCast(targetDoc.currentFrame);
+        const curFrame = NumCast(targetDoc._currentFrame);
         if (lastFrame !== undefined && curFrame >= 1) {
             this.prevKeyframe(targetDoc, activeItem);
         } else if (activeItem) {
             let prevSelected = this.itemIndex;
             prevSelected = Math.max(0, prevSelected - 1);
             this.gotoDocument(prevSelected, this.itemIndex);
-            if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc.currentFrame = NumCast(prevTargetDoc.lastFrame);
+            if (NumCast(prevTargetDoc.lastFrame) > 0) prevTargetDoc._currentFrame = NumCast(prevTargetDoc.lastFrame);
         }
     }
 
@@ -1172,7 +1172,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     nextKeyframe = (tagDoc: Doc, curDoc: Doc): void => {
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
-        const currentFrame = Cast(tagDoc.currentFrame, "number", null);
+        const currentFrame = Cast(tagDoc._currentFrame, "number", null);
         if (currentFrame === undefined) {
             tagDoc.currentFrame = 0;
             CollectionFreeFormDocumentView.setupScroll(tagDoc, 0);
@@ -1180,8 +1180,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
         CollectionFreeFormDocumentView.updateScrollframe(tagDoc, currentFrame);
         CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0, tagDoc);
-        tagDoc.currentFrame = Math.max(0, (currentFrame || 0) + 1);
-        tagDoc.lastFrame = Math.max(NumCast(tagDoc.currentFrame), NumCast(tagDoc.lastFrame));
+        tagDoc._currentFrame = Math.max(0, (currentFrame || 0) + 1);
+        tagDoc.lastFrame = Math.max(NumCast(tagDoc._currentFrame), NumCast(tagDoc.lastFrame));
         if (curDoc.zoomProgressivize) {
             const resize = document.getElementById('resizable');
             if (resize) {
@@ -1197,13 +1197,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     prevKeyframe = (tagDoc: Doc, actItem: Doc): void => {
         const childDocs = DocListCast(tagDoc[Doc.LayoutFieldKey(tagDoc)]);
-        const currentFrame = Cast(tagDoc.currentFrame, "number", null);
+        const currentFrame = Cast(tagDoc._currentFrame, "number", null);
         if (currentFrame === undefined) {
-            tagDoc.currentFrame = 0;
+            tagDoc._currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
         }
         CollectionFreeFormDocumentView.gotoKeyframe(childDocs.slice());
-        tagDoc.currentFrame = Math.max(0, (currentFrame || 0) - 1);
+        tagDoc._currentFrame = Math.max(0, (currentFrame || 0) - 1);
         if (actItem.zoomProgressivize) {
             const resize = document.getElementById('resizable');
             if (resize) {
@@ -1287,7 +1287,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                     </div>
                                     <div key="num" title="toggle view all" className="numKeyframe" style={{ color: targetDoc.editing ? "white" : "black", backgroundColor: targetDoc.editing ? "#5B9FDD" : "#AEDDF8" }}
                                         onClick={action(() => targetDoc.editing = !targetDoc.editing)} >
-                                        {NumCast(targetDoc.currentFrame)}
+                                        {NumCast(targetDoc._currentFrame)}
                                     </div>
                                     <div key="fwd" title="forward frame" className="fwdKeyframe" onClick={e => { e.stopPropagation(); this.nextKeyframe(targetDoc, activeItem); }}>
                                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
@@ -1391,10 +1391,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         activeItem.scrollProgressivize = !activeItem.scrollProgressivize;
         const targetDoc: Doc = this.targetDoc;
         targetDoc.scrollProgressivize = !targetDoc.scrollProgressivize;
-        CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc.currentFrame));
+        CollectionFreeFormDocumentView.setupScroll(targetDoc, NumCast(targetDoc._currentFrame));
         if (targetDoc.editScrollProgressivize) {
             targetDoc.editScrollProgressivize = false;
-            targetDoc.currentFrame = 0;
+            targetDoc._currentFrame = 0;
             targetDoc.lastFrame = 0;
         }
     }
@@ -1410,7 +1410,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         CollectionFreeFormDocumentView.setupZoom(activeItem, targetDoc);
         if (activeItem.editZoomProgressivize) {
             activeItem.editZoomProgressivize = false;
-            targetDoc.currentFrame = 0;
+            targetDoc._currentFrame = 0;
             targetDoc.lastFrame = 0;
         }
     }
@@ -1420,7 +1420,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     editProgressivize = (e: React.MouseEvent) => {
         const activeItem: Doc = this.activeItem;
         const targetDoc: Doc = this.targetDoc;
-        targetDoc.currentFrame = targetDoc.lastFrame;
+        targetDoc._currentFrame = targetDoc.lastFrame;
         if (!targetDoc.editProgressivize) {
             if (!activeItem.presProgressivize) { activeItem.presProgressivize = true; targetDoc.presProgressivize = true; }
             targetDoc.editProgressivize = true;
@@ -1439,14 +1439,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             targetDoc.editing = false;
             activeItem.presProgressivize = true;
             targetDoc.presProgressivize = true;
-            targetDoc.currentFrame = 0;
+            targetDoc._currentFrame = 0;
             docs.forEach((doc, i) => CollectionFreeFormDocumentView.setupKeyframes([doc], i, true));
             targetDoc.lastFrame = docs.length - 1;
         } else {
             targetDoc.editProgressivize = false;
             activeItem.presProgressivize = false;
             targetDoc.presProgressivize = false;
-            targetDoc.currentFrame = 0;
+            targetDoc._currentFrame = 0;
             targetDoc.lastFrame = 0;
             targetDoc.editing = true;
         }
@@ -1488,12 +1488,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     checkList = (doc: Doc, list: any): number => {
         const x: List<number> = list;
-        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
-            return x[NumCast(doc.currentFrame)];
+        if (x && x.length >= NumCast(doc._currentFrame) + 1) {
+            return x[NumCast(doc._currentFrame)];
         } else if (x) {
-            x.length = NumCast(doc.currentFrame) + 1;
-            x[NumCast(doc.currentFrame)] = x[NumCast(doc.currentFrame) - 1];
-            return x[NumCast(doc.currentFrame)];
+            x.length = NumCast(doc._currentFrame) + 1;
+            x[NumCast(doc._currentFrame)] = x[NumCast(doc._currentFrame) - 1];
+            return x[NumCast(doc._currentFrame)];
         } else return 100;
     }
 
@@ -1506,7 +1506,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 tags.push(<div style={{ position: 'absolute', display: doc.displayMovement ? "block" : "none" }}>{this.checkMovementLists(doc, doc["x-indexed"], doc["y-indexed"])}</div>);
             }
             tags.push(
-                <div className="progressivizeButton" key={index} onPointerLeave={() => { if (NumCast(targetDoc.currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0; }} onPointerOver={() => { if (NumCast(targetDoc.currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0.5; }} onClick={e => { this.toggleDisplayMovement(doc); e.stopPropagation(); }} style={{ backgroundColor: doc.displayMovement ? "#aedff8" : "#c8c8c8", top: NumCast(doc.y), left: NumCast(doc.x) }}>
+                <div className="progressivizeButton" key={index} onPointerLeave={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0; }} onPointerOver={() => { if (NumCast(targetDoc._currentFrame) < NumCast(doc.appearFrame)) doc.opacity = 0.5; }} onClick={e => { this.toggleDisplayMovement(doc); e.stopPropagation(); }} style={{ backgroundColor: doc.displayMovement ? "#aedff8" : "#c8c8c8", top: NumCast(doc.y), left: NumCast(doc.x) }}>
                     <div className="progressivizeButton-prev"><FontAwesomeIcon icon={"caret-left"} size={"lg"} onClick={e => { e.stopPropagation(); this.prevAppearFrame(doc, index); }} /></div>
                     <div className="progressivizeButton-frame">{doc.appearFrame}</div>
                     <div className="progressivizeButton-next"><FontAwesomeIcon icon={"caret-right"} size={"lg"} onClick={e => { e.stopPropagation(); this.nextAppearFrame(doc, index); }} /></div>
@@ -1657,7 +1657,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return (
             <>
                 {this.targetDoc ? <div className="miniPres-button-frame" style={{ display: targetDoc.lastFrame !== undefined && targetDoc.lastFrame >= 0 ? "inline-flex" : "none" }}>
-                    <div>{targetDoc.currentFrame}</div>
+                    <div>{targetDoc._currentFrame}</div>
                     <div className="miniPres-divider" style={{ border: 'solid 0.5px white', height: '60%' }}></div>
                     <div>{targetDoc.lastFrame}</div>
                 </div> : null}

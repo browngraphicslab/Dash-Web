@@ -167,7 +167,7 @@ export class MainView extends React.Component {
         }
 
         library.add(fa.faEdit, fa.faTrash, fa.faTrashAlt, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faCalendar,
-            fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
+            fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faMapMarker, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock,
             fa.faLock, fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointLeft, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone, fa.faKeyboard,
             fa.faQuestion, fa.faTasks, fa.faPalette, fa.faAngleLeft, fa.faAngleRight, fa.faBell, fa.faCamera, fa.faExpand, fa.faCaretDown, fa.faCaretLeft, fa.faCaretRight,
             fa.faCaretSquareDown, fa.faCaretSquareRight, fa.faArrowsAltH, fa.faPlus, fa.faMinus, fa.faTerminal, fa.faToggleOn, fa.faFile, fa.faLocationArrow,

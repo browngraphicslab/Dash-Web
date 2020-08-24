@@ -23,7 +23,7 @@ import { SnappingManager } from "../../util/SnappingManager";
 const path = require('path');
 
 export const timeSchema = createSchema({
-    currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
+    _currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
 });
 type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
 const VideoDocument = makeInterface(documentSchema, timeSchema);
@@ -109,14 +109,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         if (!this._videoRef) {
             const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
-                _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString(),
+                _width: 150, _height: 50, title: (this.layoutDoc._currentTimecode || 0).toString(),
             });
             b.isLinkButton = true;
             this.props.addDocument?.(b);
             DocUtils.MakeLink({ doc: b }, { doc: this.rootDoc }, "video snapshot");
             Networking.PostToServer("/youtubeScreenshot", {
                 id: this.youtubeVideoId,
-                timecode: this.layoutDoc.currentTimecode
+                timecode: this.layoutDoc._currentTimecode
             }).then(response => {
                 const resolved = response?.accessPaths?.agnostic?.client;
                 if (resolved) {
@@ -128,7 +128,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc.currentTimecode || 0).toString().replace(/\./, "_")));
+            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc._currentTimecode || 0).toString().replace(/\./, "_")));
             VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) => {
                 if (returnedFilename) {
                     this.createRealSummaryLink(returnedFilename);
@@ -144,7 +144,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const imageSummary = Docs.Create.ImageDocument(url, {
             _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
             x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
-            _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc.currentTimecode || 0) + " image-"
+            _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc._currentTimecode || 0) + " image-"
         });
         Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
         Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
@@ -155,8 +155,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     @action
     updateTimecode = () => {
-        this.player && (this.layoutDoc.currentTimecode = this.player.currentTime);
-        this._youtubePlayer && (this.layoutDoc.currentTimecode = this._youtubePlayer.getCurrentTime());
+        this.player && (this.layoutDoc._currentTimecode = this.player.currentTime);
+        this._youtubePlayer && (this.layoutDoc._currentTimecode = this._youtubePlayer.getCurrentTime());
     }
 
     componentDidMount() {
@@ -187,7 +187,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._videoRef!.ontimeupdate = this.updateTimecode;
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             this._reactionDisposer && this._reactionDisposer();
-            this._reactionDisposer = reaction(() => (this.layoutDoc.currentTimecode || 0),
+            this._reactionDisposer = reaction(() => (this.layoutDoc._currentTimecode || 0),
                 time => !this._playing && (vref.currentTime = time), { fireImmediately: true });
         }
     }
@@ -272,7 +272,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         const onYoutubePlayerReady = (event: any) => {
             this._reactionDisposer?.();
             this._youtubeReactionDisposer?.();
-            this._reactionDisposer = reaction(() => this.layoutDoc.currentTimecode, () => !this._playing && this.Seek((this.layoutDoc.currentTimecode || 0)));
+            this._reactionDisposer = reaction(() => this.layoutDoc._currentTimecode, () => !this._playing && this.Seek((this.layoutDoc._currentTimecode || 0)));
             this._youtubeReactionDisposer = reaction(
                 () => Doc.GetSelectedTool() === InkTool.None && this.props.isSelected(true) && !SnappingManager.GetIsDragging() && !DocumentDecorations.Instance.Interacting,
                 (interactive) => iframe.style.pointerEvents = interactive ? "all" : "none", { fireImmediately: true });
@@ -286,7 +286,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     }
     private get uIButtons() {
-        const curTime = (this.layoutDoc.currentTimecode || 0);
+        const curTime = (this.layoutDoc._currentTimecode || 0);
         return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} >
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
@@ -328,7 +328,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     onResetMove = (e: PointerEvent) => {
         this._isResetClick += Math.abs(e.movementX) + Math.abs(e.movementY);
-        this.Seek(Math.max(0, (this.layoutDoc.currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
+        this.Seek(Math.max(0, (this.layoutDoc._currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
         e.stopImmediatePropagation();
     }
 
@@ -336,14 +336,14 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     onResetUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onResetMove, true);
         document.removeEventListener("pointerup", this.onResetUp, true);
-        this._isResetClick < 10 && (this.layoutDoc.currentTimecode = 0);
+        this._isResetClick < 10 && (this.layoutDoc._currentTimecode = 0);
     }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
         const style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
-        const start = untracked(() => Math.round((this.layoutDoc.currentTimecode || 0)));
+        const start = untracked(() => Math.round((this.layoutDoc._currentTimecode || 0)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.layoutDoc._nativeWidth || 640)} height={(this.layoutDoc._nativeHeight || 390)}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=0&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
@@ -353,7 +353,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     addDocumentWithTimestamp(doc: Doc | Doc[]): boolean {
         const docs = doc instanceof Doc ? [doc] : doc;
         docs.forEach(doc => {
-            const curTime = (this.layoutDoc.currentTimecode || -1);
+            const curTime = (this.layoutDoc._currentTimecode || -1);
             curTime !== -1 && (doc.displayTimecode = curTime);
         });
         return this.addDocument(doc);

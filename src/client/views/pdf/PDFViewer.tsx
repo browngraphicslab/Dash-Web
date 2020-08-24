@@ -36,7 +36,7 @@ const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
 export const pageSchema = createSchema({
-    curPage: "number",
+    _curPage: "number",
     rotation: "number",
     scrollHeight: "number",
     serachMatch: "boolean"
@@ -129,7 +129,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             const coreFilename = pathComponents.pop()!.split(".")[0];
             const params: any = {
                 coreFilename,
-                pageNum: this.Document.curPage || 1,
+                pageNum: this.Document._curPage || 1,
             };
             if (pathComponents.length) {
                 params.subtree = `${pathComponents.join("/")}/`;
@@ -138,7 +138,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         } else {
             const params: any = {
                 coreFilename: relative.split("/")[relative.split("/").length - 1],
-                pageNum: this.Document.curPage || 1,
+                pageNum: this.Document._curPage || 1,
             };
             this._coverPath = "http://cs.brown.edu/~bcz/face.gif";//href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         }
@@ -173,7 +173,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             { fireImmediately: true }
         );
         this._disposers.curPage = reaction(
-            () => this.Document.curPage,
+            () => this.Document._curPage,
             (page) => page !== undefined && page !== this._pdfViewer?.currentPageNumber && this.gotoPage(page),
             { fireImmediately: true }
         );
@@ -241,7 +241,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
 
     pagesinit = action(() => {
         this._pdfViewer.currentScaleValue = this._zoomed = 1;
-        this.gotoPage(this.Document.curPage || 1);
+        this.gotoPage(this.Document._curPage || 1);
         document.removeEventListener("pagesinit", this.pagesinit);
     });
 
@@ -358,7 +358,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     @action
     onScroll = (e: React.UIEvent<HTMLElement>) => {
         this.Document._scrollY === undefined && (this.layoutDoc._scrollTop = this._mainCont.current!.scrollTop);
-        this._pdfViewer && (this.Document.curPage = this._pdfViewer.currentPageNumber);
+        this._pdfViewer && (this.Document._curPage = this._pdfViewer.currentPageNumber);
     }
 
     // get the page index that the vertical offset passed in is on

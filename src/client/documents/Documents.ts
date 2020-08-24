@@ -135,10 +135,10 @@ export interface DocumentOptions {
     _fontSize?: string;
     _fontWeight?: number;
     _fontFamily?: string;
-    curPage?: number;
-    currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _curPage?: number;
+    _currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
+    _currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
     lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
     activeFrame?: number; // the active frame of a document in a frame base collection
     appearFrame?: number; // the frame in which the document appears
@@ -270,7 +270,7 @@ export namespace Docs {
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: defaultDataKey },
-                options: { currentTimecode: 0 },
+                options: { _currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox, dataField: defaultDataKey },
@@ -278,7 +278,7 @@ export namespace Docs {
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: defaultDataKey },
-                options: { curPage: 1 }
+                options: { _curPage: 1 }
             }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: defaultDataKey },
@@ -688,8 +688,8 @@ export namespace Docs {
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
+            linkDocProto.anchor1_timecode = source.doc._currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);

@@ -31,6 +31,8 @@ import { DocumentView } from "../nodes/DocumentView";
 import { RichTextMenu } from "../nodes/formattedText/RichTextMenu";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
+import { DockedFrameRenderer } from "./CollectionDockingView";
+import { PresBox } from "../nodes/PresBox";
 
 @observer
 export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
@@ -163,8 +165,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     _viewCommand = {
         params: ["target"], title: "bookmark view",
         script: "self.target._panX = self['target-panX']; self.target._panY = self['target-panY']; self.target._viewScale = self['target-viewScale']; gotoFrame(self.target, self['target-currentFrame']);",
-        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target.currentFrame = 0; }),
-        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; button['target-currentFrame'] = this.target.currentFrame; },
+        immediate: undoBatch((source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target._viewScale = 1; this.target._currentFrame = 0; }),
+        initialize: (button: Doc) => { button['target-panX'] = this.target._panX; button['target-panY'] = this.target._panY; button['target-viewScale'] = this.target._viewScale; button['target-currentFrame'] = this.target._currentFrame; },
     };
     _clusterCommand = {
         params: ["target"], title: "fit content",
@@ -371,6 +373,94 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
         }
         else return false;
     }
+    @computed
+    get pinButton() {
+        const targetDoc = this.selectedDoc;
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        return !targetDoc ? (null) : <Tooltip key="pin" title={<div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div>} placement="top">
+            <button className="antimodeMenu-button" style={{ backgroundColor: isPinned ? "121212" : undefined, borderRight: "1px solid gray" }}
+                onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-pin" />
+            </button>
+        </Tooltip>;
+    }
+
+    @undoBatch
+    onAlias = () => {
+        if (this.selectedDoc && this.selectedDocumentView) {
+            // const copy = Doc.MakeCopy(this.selectedDocumentView.props.Document, true);
+            // copy.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            // copy.y = NumCast(this.selectedDoc.y) + 30;
+            // this.selectedDocumentView.props.addDocument?.(copy);
+            const alias = Doc.MakeAlias(this.selectedDoc);
+            alias.x = NumCast(this.selectedDoc.x) + NumCast(this.selectedDoc._width);
+            alias.y = NumCast(this.selectedDoc.y) + 30;
+            this.selectedDocumentView.props.addDocument?.(alias);
+        }
+    }
+    private _dragRef = React.createRef<HTMLButtonElement>();
+
+    @observable _aliasDown = false;
+    onAliasButtonDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
+    }
+    @undoBatch
+    onAliasButtonMoved = (e: PointerEvent) => {
+        if (this._dragRef.current && this.selectedDoc) {
+            const dragData = new DragManager.DocumentDragData([this.selectedDoc]);
+            const [left, top] = [e.clientX, e.clientY];
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([this._dragRef.current], dragData, left, top, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
+                hideSource: false
+            });
+            return true;
+        }
+        return false;
+    }
+
+    @computed
+    get aliasButton() {
+        const targetDoc = this.selectedDoc;
+        return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
+            <button className="antidmodeMenu-button"
+                ref={this._dragRef}
+                onPointerDown={this.onAliasButtonDown}
+                onClick={this.onAlias}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
+            </button>
+        </Tooltip>;
+    }
+
+    @computed
+    get pinWithViewButton() {
+        const targetDoc = this.selectedDoc;
+        if (targetDoc) {
+            const x = targetDoc._panX;
+            const y = targetDoc._panY;
+            const scale = targetDoc._viewScale;
+        }
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation with current view"}</div></>} placement="top">
+            <button className="antidmodeMenu-button" style={{ borderRight: "1px solid gray" }}
+                onClick={e => {
+                    if (targetDoc) {
+                        DockedFrameRenderer.PinDoc(targetDoc, false);
+                        const activeDoc = PresBox.Instance.childDocs[PresBox.Instance.childDocs.length - 1];
+                        const x = targetDoc._panX;
+                        const y = targetDoc._panY;
+                        const scale = targetDoc._viewScale;
+                        activeDoc.presPinView = true;
+                        activeDoc.presPinViewX = x;
+                        activeDoc.presPinViewY = y;
+                        activeDoc.presPinViewScale = scale;
+                    }
+                }}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="lg" icon="map-marker" />
+            </button>
+        </Tooltip>;
+    }
+
 
     render() {
         return (
@@ -396,6 +486,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                                     <FontAwesomeIcon icon={["fab", "buffer"]} size={"lg"} />
                                 </button>
                             </Tooltip>}
+                        {this.aliasButton}
+                        {this.pinButton}
+                        {this.props.docView.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform ? (null) : this.pinWithViewButton}
                     </div>
                     {this.subChrome}
                 </div>
@@ -444,25 +537,25 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     @undoBatch
     @action
     nextKeyframe = (): void => {
-        const currentFrame = Cast(this.document.currentFrame, "number", null);
+        const currentFrame = Cast(this.document._currentFrame, "number", null);
         if (currentFrame === undefined) {
-            this.document.currentFrame = 0;
+            this.document._currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentFrame || 0);
-        this.document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
-        this.document.lastFrame = Math.max(NumCast(this.document.currentFrame), NumCast(this.document.lastFrame));
+        this.document._currentFrame = Math.max(0, (currentFrame || 0) + 1);
+        this.document.lastFrame = Math.max(NumCast(this.document._currentFrame), NumCast(this.document.lastFrame));
     }
     @undoBatch
     @action
     prevKeyframe = (): void => {
-        const currentFrame = Cast(this.document.currentFrame, "number", null);
+        const currentFrame = Cast(this.document._currentFrame, "number", null);
         if (currentFrame === undefined) {
-            this.document.currentFrame = 0;
+            this.document._currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
-        this.document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
+        this.document._currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
     @undoBatch
     @action
@@ -784,7 +877,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                 {!this.isText && !this.props.isDoc ? <Tooltip key="num" title={<div className="dash-tooltip">Toggle View All</div>} placement="bottom">
                     <div className="numKeyframe" style={{ color: this.document.editing ? "white" : "black", backgroundColor: this.document.editing ? "#5B9FDD" : "#AEDDF8" }}
                         onClick={action(() => this.document.editing = !this.document.editing)} >
-                        {NumCast(this.document.currentFrame)}
+                        {NumCast(this.document._currentFrame)}
                     </div>
                 </Tooltip> : null}
                 {!this.isText && !this.props.isDoc ? <Tooltip key="fwd" title={<div className="dash-tooltip">Forward Frame</div>} placement="bottom">
@@ -1242,11 +1335,11 @@ export class CollectionGridViewChrome extends React.Component<CollectionMenuProp
 Scripting.addGlobal(function gotoFrame(doc: any, newFrame: any) {
     const dataField = doc[Doc.LayoutFieldKey(doc)];
     const childDocs = DocListCast(dataField);
-    const currentFrame = Cast(doc.currentFrame, "number", null);
+    const currentFrame = Cast(doc._currentFrame, "number", null);
     if (currentFrame === undefined) {
-        doc.currentFrame = 0;
+        doc._currentFrame = 0;
         CollectionFreeFormDocumentView.setupKeyframes(childDocs, 0);
     }
     CollectionFreeFormDocumentView.updateKeyframe(childDocs, currentFrame || 0);
-    doc.currentFrame = Math.max(0, newFrame);
+    doc._currentFrame = Math.max(0, newFrame);
 });
