@@ -1,26 +1,20 @@
-import * as React from "react";
-import './ParentDocumentSelector.scss';
-import { Doc } from "../../../fields/Doc";
-import { observer } from "mobx-react";
-import { observable, action, runInAction, trace, computed, reaction, IReactionDisposer } from "mobx";
-import { Id } from "../../../fields/FieldSymbols";
-import { SearchUtil } from "../../util/SearchUtil";
-import { CollectionDockingView } from "./CollectionDockingView";
-import { NumCast, StrCast } from "../../../fields/Types";
-import { CollectionViewType } from "./CollectionView";
-import { DocumentButtonBar } from "../DocumentButtonBar";
-import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCog, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { DocumentView } from "../nodes/DocumentView";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Tooltip } from "@material-ui/core";
+import { computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
+import { Doc } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { NumCast } from "../../../fields/Types";
+import { SearchUtil } from "../../util/SearchUtil";
+import { DocumentButtonBar } from "../DocumentButtonBar";
+import { DocumentView } from "../nodes/DocumentView";
+import { CollectionDockingView } from "./CollectionDockingView";
+import { CollectionViewType } from "./CollectionView";
+import './ParentDocumentSelector.scss';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faCog);
 
 type SelectorProps = {
     Document: Doc,
@@ -93,7 +87,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
         return <div title="Show Contexts" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
                 <span className="parentDocumentSelector-button" >
-                    <FontAwesomeIcon icon={faChevronCircleUp} size={"lg"} />
+                    <FontAwesomeIcon icon={"chevron-circle-up"} size={"lg"} />
                 </span>
             </Flyout>
         </div>;

@@ -9,13 +9,13 @@ import { InkField } from "../../../../fields/InkField";
 import { BoolCast, Cast, NumCast } from "../../../../fields/Types";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { SelectionManager } from "../../../util/SelectionManager";
-import AntimodeMenu, { AntimodeMenuProps } from "../../AntimodeMenu";
+import { AntimodeMenu, AntimodeMenuProps } from "../../AntimodeMenu";
 import "./FormatShapePane.scss";
 import { undoBatch } from "../../../util/UndoManager";
 import { ColorState, SketchPicker } from 'react-color';
 
 @observer
-export default class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
+export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: FormatShapePane;
 
     private _lastFill = "#D0021B";

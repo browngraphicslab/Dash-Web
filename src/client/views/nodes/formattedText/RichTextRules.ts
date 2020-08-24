@@ -9,7 +9,7 @@ import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
-import RichTextMenu from "./RichTextMenu";
+import { RichTextMenu } from "./RichTextMenu";
 import { schema } from "./schema_rts";
 import { List } from "../../../../fields/List";
 

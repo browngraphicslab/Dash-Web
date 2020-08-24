@@ -1,29 +1,28 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, DataSym, AclEdit, AclAddonly, AclAdmin } from "../../../../fields/Doc";
-import { GetEffectiveAcl } from "../../../../fields/util";
+import { AclAddonly, AclAdmin, AclEdit, DataSym, Doc, DocListCast, Opt } from "../../../../fields/Doc";
 import { InkData, InkField, InkTool } from "../../../../fields/InkField";
 import { List } from "../../../../fields/List";
 import { RichTextField } from "../../../../fields/RichTextField";
 import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
+import { GetEffectiveAcl } from "../../../../fields/util";
 import { Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";
+import { DocumentManager } from "../../../util/DocumentManager";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { ContextMenu } from "../../ContextMenu";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { PreviewCursor } from "../../PreviewCursor";
+import { CollectionDockingView } from "../CollectionDockingView";
 import { SubCollectionViewProps } from "../CollectionSubView";
 import { CollectionView } from "../CollectionView";
-import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
+import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { ContextMenuItem } from "../../ContextMenuItem";
-import { CollectionDockingView } from "../CollectionDockingView";
-import { DocumentManager } from "../../../util/DocumentManager";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;

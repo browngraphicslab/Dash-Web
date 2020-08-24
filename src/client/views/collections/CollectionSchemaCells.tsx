@@ -1,44 +1,40 @@
 import React = require("react");
-import { action, observable, trace, computed, runInAction } from "mobx";
-import { observer } from "mobx-react";
-import { CellInfo } from "react-table";
-import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils, emptyPath, returnEmptyDoclist } from "../../../Utils";
-import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
-import { KeyCodes } from "../../util/KeyCodes";
-import { SetupDrag, DragManager } from "../../util/DragManager";
-import { CompileScript } from "../../util/Scripting";
-import { Transform } from "../../util/Transform";
-import { MAX_ROW_HEIGHT, COLLECTION_BORDER_WIDTH } from '../globalCssVariables.scss';
-import '../DocumentDecorations.scss';
-import { EditableView } from "../EditableView";
-import { FieldView, FieldViewProps } from "../nodes/FieldView";
-import "./CollectionSchemaView.scss";
-import { CollectionView, Flyout } from "./CollectionView";
-import { NumCast, StrCast, BoolCast, FieldValue, Cast, DateCast } from "../../../fields/Types";
-import { Docs } from "../../documents/Documents";
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faExpand } from '@fortawesome/free-solid-svg-icons';
-import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { undoBatch } from "../../util/UndoManager";
-import { SnappingManager } from "../../util/SnappingManager";
-import { ComputedField } from "../../../fields/ScriptField";
-import { ImageField } from "../../../fields/URLField";
-import { List } from "../../../fields/List";
-import { OverlayView } from "../OverlayView";
-import { DocumentIconContainer } from "../nodes/DocumentIcon";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable } from "mobx";
+import { observer } from "mobx-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { CellInfo } from "react-table";
+import "react-table/react-table.css";
 import { DateField } from "../../../fields/DateField";
+import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
 import { RichTextField } from "../../../fields/RichTextField";
-import { DocumentManager } from "../../util/DocumentManager";
-import { SearchUtil } from "../../util/SearchUtil";
+import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ComputedField } from "../../../fields/ScriptField";
+import { BoolCast, Cast, DateCast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
+import { ImageField } from "../../../fields/URLField";
+import { emptyFunction, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero, Utils } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager, SetupDrag } from "../../util/DragManager";
+import { KeyCodes } from "../../util/KeyCodes";
+import { CompileScript } from "../../util/Scripting";
+import { SearchUtil } from "../../util/SearchUtil";
+import { SnappingManager } from "../../util/SnappingManager";
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import '../DocumentDecorations.scss';
+import { EditableView } from "../EditableView";
+import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../globalCssVariables.scss';
+import { DocumentIconContainer } from "../nodes/DocumentIcon";
+import { FieldViewProps } from "../nodes/FieldView";
+import { OverlayView } from "../OverlayView";
+import "./CollectionSchemaView.scss";
+import { CollectionView } from "./CollectionView";
 const path = require('path');
-
-library.add(faExpand);
 
 export interface CellProps {
     row: number;
@@ -287,12 +283,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && this.props.isEditable) className += " focused";
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
-
-        // let docExpander = (
-        //     <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
-        //         <FontAwesomeIcon icon="expand" size="sm" />
-        //     </div>
-        // );   
         const positions = [];
         let cfield = props.Document[props.fieldKey];
         this.type = props.fieldKey;

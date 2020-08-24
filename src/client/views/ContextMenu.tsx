@@ -3,13 +3,8 @@ import { ContextMenuItem, ContextMenuProps, OriginalMenuProps } from "./ContextM
 import { observable, action, computed, runInAction, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
-import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faCircle } from '@fortawesome/free-solid-svg-icons';
 import Measure from "react-measure";
-
-library.add(faSearch);
-library.add(faCircle);
 
 @observer
 export class ContextMenu extends React.Component {

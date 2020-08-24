@@ -7,14 +7,14 @@ import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, re
 import { Doc, Opt } from '../fields/Doc';
 import { Cast, FieldValue } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
-import MainViewModal from '../client/views/MainViewModal';
+import { MainViewModal } from '../client/views/MainViewModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { nullAudio } from '../fields/URLField';
 import { Transform } from '../client/util/Transform';
 import { DocumentView } from '../client/views/nodes/DocumentView';
 import { MobileInterface } from './MobileInterface';
 import { DictationOverlay } from '../client/views/DictationOverlay';
-import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
+import { RichTextMenu } from '../client/views/nodes/formattedText/RichTextMenu';
 import { ContextMenu } from '../client/views/ContextMenu';
 
 @observer

@@ -1,20 +1,16 @@
-import { observer } from "mobx-react";
-import React = require("react");
-import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
-import { FieldViewProps, FieldView } from "../nodes/FieldView";
-import { observable, action } from "mobx";
-import { DocumentDecorations } from "../DocumentDecorations";
-import "../../views/nodes/WebBox.scss";
-import "./DashWebRTCVideo.scss";
-import { initialize, hangup, refreshVideos } from "./WebCamLogic";
+import { faPhoneSlash, faSync } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faSync, faPhoneSlash } from "@fortawesome/free-solid-svg-icons";
+import { action, observable } from "mobx";
+import { observer } from "mobx-react";
 import { Doc } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
-
-library.add(faSync);
-library.add(faPhoneSlash);
+import "../../views/nodes/WebBox.scss";
+import { DocumentDecorations } from "../DocumentDecorations";
+import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
+import "./DashWebRTCVideo.scss";
+import { hangup, initialize, refreshVideos } from "./WebCamLogic";
+import React = require("react");
 
 
 /**

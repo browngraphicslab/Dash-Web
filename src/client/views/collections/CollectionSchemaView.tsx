@@ -1,6 +1,4 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog, faPlus, faSortDown, faSortUp, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
@@ -9,26 +7,23 @@ import { Resize } from "react-table";
 import "react-table/react-table.css";
 import { Doc, Opt } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
-import { listSpec, makeInterface, emptySchema } from "../../../fields/Schema";
+import { listSpec } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
-import { Cast, NumCast, BoolCast } from "../../../fields/Types";
+import { Cast, NumCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents } from "../../../Utils";
+import { SelectionManager } from "../../util/SelectionManager";
 import { SnappingManager } from "../../util/SnappingManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
 import '../DocumentDecorations.scss';
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { SchemaTable } from "./SchemaTable";
-import { SelectionManager } from "../../util/SelectionManager";
-import { ContextMenu } from "../ContextMenu";
-import { ContextMenuProps } from "../ContextMenuItem";
-
-library.add(faCog, faPlus, faSortUp, faSortDown);
-library.add(faTable);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 export enum ColumnType {

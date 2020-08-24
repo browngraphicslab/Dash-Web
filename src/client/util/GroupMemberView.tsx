@@ -1,17 +1,13 @@
-import * as React from "react";
-import MainViewModal from "../views/MainViewModal";
-import { observer } from "mobx-react";
-import GroupManager, { UserOptions } from "./GroupManager";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { StrCast } from "../../fields/Types";
-import { action, observable } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as fa from '@fortawesome/free-solid-svg-icons';
+import { action, observable } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
 import Select from "react-select";
 import { Doc } from "../../fields/Doc";
+import { StrCast } from "../../fields/Types";
+import { MainViewModal } from "../views/MainViewModal";
+import { GroupManager, UserOptions } from "./GroupManager";
 import "./GroupMemberView.scss";
-
-library.add(fa.faTimes, fa.faTrashAlt);
 
 interface GroupMemberViewProps {
     group: Doc;
@@ -19,7 +15,7 @@ interface GroupMemberViewProps {
 }
 
 @observer
-export default class GroupMemberView extends React.Component<GroupMemberViewProps> {
+export class GroupMemberView extends React.Component<GroupMemberViewProps> {
 
     @observable private memberSort: "ascending" | "descending" | "none" = "none";
 
@@ -43,7 +39,7 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                     >
                     </input>
                     <div className={"memberView-closeButton"} onClick={action(this.props.onCloseButtonClick)}>
-                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                        <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
                     {GroupManager.Instance.hasEditAccess(this.props.group) ?
                         <div className="group-buttons">
@@ -88,7 +84,7 @@ export default class GroupMemberView extends React.Component<GroupMemberViewProp
                             </div>
                             {hasEditAccess ?
                                 <div className={"remove-button"} onClick={() => GroupManager.Instance.removeMemberFromGroup(this.props.group, member)}>
-                                    <FontAwesomeIcon icon={fa.faTrashAlt} size={"sm"} />
+                                    <FontAwesomeIcon icon={"trash-alt"} size={"sm"} />
                                 </div>
                                 : null}
                         </div>

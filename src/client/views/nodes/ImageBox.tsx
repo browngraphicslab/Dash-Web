@@ -1,6 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
@@ -14,7 +11,8 @@ import { ComputedField } from '../../../fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { AudioField, ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
-import { emptyFunction, returnOne, Utils, returnZero } from '../../../Utils';
+import { emptyFunction, returnOne, returnZero, Utils } from '../../../Utils';
+import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { Networking } from '../../Network';
@@ -24,18 +22,13 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
-import FaceRectangles from './FaceRectangles';
+import { FaceRectangles } from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
-
-
-library.add(faImage, faEye as any, faPaintBrush, faBrain);
-library.add(faFileAudio, faAsterisk);
 
 
 export const pageSchema = createSchema({
@@ -431,7 +424,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 >
                     <FontAwesomeIcon className="imageBox-audioFont"
                         style={{ color: [DocListCast(this.dataDoc[this.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
-                        icon={!DocListCast(this.dataDoc[this.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
+                        icon={!DocListCast(this.dataDoc[this.fieldKey + "-audioAnnotations"]).length ? "microphone" : "file-audio"} size="sm" />
                 </div>}
             {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}

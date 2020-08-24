@@ -5,7 +5,7 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../fields/RefField';
 import { Id, HandleUpdate, Parent } from '../fields/FieldSymbols';
-import GestureOverlay from './views/GestureOverlay';
+import { GestureOverlay } from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 import { runInAction } from 'mobx';
 import { ObjectField } from '../fields/ObjectField';

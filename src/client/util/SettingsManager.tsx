@@ -1,27 +1,25 @@
-import { observable, runInAction, action, computed } from "mobx";
-import * as React from "react";
-import MainViewModal from "../views/MainViewModal";
-import { observer } from "mobx-react";
-import * as fa from '@fortawesome/free-solid-svg-icons';
-import { SelectionManager } from "./SelectionManager";
-import "./SettingsManager.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Networking } from "../Network";
-import { CurrentUserUtils } from "./CurrentUserUtils";
-import { Utils, addStyleSheet, addStyleSheetRule, removeStyleSheetRule } from "../../Utils";
-import { Doc } from "../../fields/Doc";
-import GroupManager from "./GroupManager";
-import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
-import { DocServer } from "../DocServer";
-import { BoolCast, StrCast, NumCast } from "../../fields/Types";
-import { undoBatch } from "./UndoManager";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
 import { ColorState, SketchPicker } from "react-color";
+import { Doc } from "../../fields/Doc";
+import { BoolCast, StrCast } from "../../fields/Types";
+import { addStyleSheet, addStyleSheetRule, Utils } from "../../Utils";
+import { GoogleAuthenticationManager } from "../apis/GoogleAuthenticationManager";
+import { DocServer } from "../DocServer";
+import { Networking } from "../Network";
+import { MainViewModal } from "../views/MainViewModal";
+import { CurrentUserUtils } from "./CurrentUserUtils";
+import { GroupManager } from "./GroupManager";
+import "./SettingsManager.scss";
+import { undoBatch } from "./UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
 @observer
-export default class SettingsManager extends React.Component<{}> {
+export class SettingsManager extends React.Component<{}> {
     public static Instance: SettingsManager;
     static _settingsStyle = addStyleSheet();
     @observable private isOpen = false;
@@ -166,7 +164,7 @@ export default class SettingsManager extends React.Component<{}> {
                     {CurrentUserUtils.GuestDashboard ? "Exit" : "Log Out"}
                 </button>
                 <div className="close-button" onClick={this.close}>
-                    <FontAwesomeIcon icon={fa.faTimes} color="black" size={"lg"} />
+                    <FontAwesomeIcon icon={"times"} color="black" size={"lg"} />
                 </div>
             </div>
             <div className="settings-content">

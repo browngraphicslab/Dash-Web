@@ -1,12 +1,9 @@
 import React = require("react");
 import { observable, action } from "mobx";
 import { observer } from "mobx-react";
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UndoManager } from "../util/UndoManager";
-
-library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
@@ -115,7 +112,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     <div className="contextMenu-description" onMouseEnter={this.onPointerEnter}
                         style={{ alignItems: "center" }} >
                         {this.props.description}
-                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
+                        <FontAwesomeIcon icon={"angle-right"} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>
                     {submenu}
                 </div>

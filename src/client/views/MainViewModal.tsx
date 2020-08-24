@@ -14,7 +14,7 @@ export interface MainViewOverlayProps {
 }
 
 @observer
-export default class MainViewModal extends React.Component<MainViewOverlayProps> {
+export class MainViewModal extends React.Component<MainViewOverlayProps> {
 
     render() {
         const p = this.props;

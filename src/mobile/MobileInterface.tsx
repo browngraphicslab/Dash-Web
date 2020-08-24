@@ -1,4 +1,4 @@
-import * as React from "react";
+
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
     faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
@@ -10,34 +10,34 @@ import {
     faAlignRight, faAlignLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, reaction, trace, runInAction } from 'mobx';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
-import { Doc, DocListCast } from '../fields/Doc';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, returnEmptyFilter, returnEmptyDoclist } from '../Utils';
+import * as React from "react";
 import { Docs, DocumentOptions } from '../client/documents/Documents';
-import { Scripting } from '../client/util/Scripting';
-import { DocumentView } from '../client/views/nodes/DocumentView';
-import { Transform } from '../client/util/Transform';
-import "./MobileInterface.scss";
-import "./ImageUpload.scss";
-import "./AudioUpload.scss";
-import SettingsManager from '../client/util/SettingsManager';
-import { Uploader } from "./ImageUpload";
-import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
-import { InkTool } from '../fields/InkField';
-import GestureOverlay from "../client/views/GestureOverlay";
-import { ScriptField } from "../fields/ScriptField";
-import { RadialMenu } from "../client/views/nodes/RadialMenu";
-import { UndoManager } from "../client/util/UndoManager";
-import { List } from "../fields/List";
-import { AudioUpload } from "./AudioUpload";
-import { Cast, FieldValue } from '../fields/Types';
-import RichTextMenu from "../client/views/nodes/formattedText/RichTextMenu";
-import { AudioBox } from "../client/views/nodes/AudioBox";
-import { CollectionViewType } from "../client/views/collections/CollectionView";
 import { DocumentType } from "../client/documents/DocumentTypes";
-import { CollectionFreeFormViewChrome } from "../client/views/collections/CollectionMenu";
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
+import { Scripting } from '../client/util/Scripting';
+import { SettingsManager } from '../client/util/SettingsManager';
+import { Transform } from '../client/util/Transform';
+import { UndoManager } from "../client/util/UndoManager";
+import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
+import { CollectionViewType } from "../client/views/collections/CollectionView";
+import { GestureOverlay } from "../client/views/GestureOverlay";
+import { AudioBox } from "../client/views/nodes/AudioBox";
+import { DocumentView } from '../client/views/nodes/DocumentView';
+import { RichTextMenu } from "../client/views/nodes/formattedText/RichTextMenu";
+import { RadialMenu } from "../client/views/nodes/RadialMenu";
+import { Doc, DocListCast } from '../fields/Doc';
+import { InkTool } from '../fields/InkField';
+import { List } from "../fields/List";
+import { ScriptField } from "../fields/ScriptField";
+import { Cast, FieldValue } from '../fields/Types';
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero } from '../Utils';
+import { AudioUpload } from "./AudioUpload";
+import { Uploader } from "./ImageUpload";
+import "./AudioUpload.scss";
+import "./ImageUpload.scss";
+import "./MobileInterface.scss";
 
 library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngleDoubleLeft, faExternalLinkSquareAlt, faMobile, faThLarge, faWindowClose, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
@@ -46,6 +46,7 @@ library.add(faTasks, faReply, faQuoteLeft, faHandPointLeft, faFolderOpen, faAngl
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
     faThumbtack, faTree, faTv, faUndoAlt, faBook, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye, faHome, faLongArrowAltLeft, faBars, faTh, faChevronLeft,
     faAlignLeft, faAlignRight);
+
 
 @observer
 export class MobileInterface extends React.Component {

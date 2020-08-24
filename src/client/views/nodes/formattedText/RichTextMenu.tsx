@@ -1,8 +1,8 @@
 import React = require("react");
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faCaretDown, faChevronLeft, faEyeDropper, faHighlighter, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faItalic, faLink, faPaintRoller, faPalette, faStrikethrough, faSubscript, faSuperscript, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, IReactionDisposer, reaction } from "mobx";
+import { Tooltip } from "@material-ui/core";
+import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { lift, wrapIn } from "prosemirror-commands";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos } from "prosemirror-model";
@@ -11,27 +11,24 @@ import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc } from "../../../../fields/Doc";
 import { DarkPastelSchemaPalette, PastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
-import { Cast, StrCast, BoolCast, NumCast } from "../../../../fields/Types";
+import { Cast, StrCast } from "../../../../fields/Types";
+import { TraceMobx } from "../../../../fields/util";
 import { unimplementedFunction, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { LinkManager } from "../../../util/LinkManager";
 import { SelectionManager } from "../../../util/SelectionManager";
-import AntimodeMenu, { AntimodeMenuProps } from "../../AntimodeMenu";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { AntimodeMenu, AntimodeMenuProps } from "../../AntimodeMenu";
 import { FieldViewProps } from "../FieldView";
 import { FormattedTextBox, FormattedTextBoxProps } from "./FormattedTextBox";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import "./RichTextMenu.scss";
 import { schema } from "./schema_rts";
-import { TraceMobx } from "../../../../fields/util";
-import { UndoManager, undoBatch } from "../../../util/UndoManager";
-import { Tooltip } from "@material-ui/core";
 const { toggleMark } = require("prosemirror-commands");
-
-library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faOutdent, faIndent, faHandPointLeft, faHandPointRight, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
 
 
 @observer
-export default class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
+export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
     static Instance: RichTextMenu;
     public overMenu: boolean = false; // kind of hacky way to prevent selects not being selectable
 

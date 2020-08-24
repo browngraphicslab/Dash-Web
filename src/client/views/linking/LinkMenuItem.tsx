@@ -1,27 +1,23 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes, faPencilAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
+import { Tooltip } from '@material-ui/core';
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt } from '../../../fields/Doc';
+import { Doc, DocListCast } from '../../../fields/Doc';
 import { Cast, StrCast } from '../../../fields/Types';
+import { WebField } from '../../../fields/URLField';
+import { emptyFunction, setupMoveUpEvents } from '../../../Utils';
+import { DocumentType } from '../../documents/DocumentTypes';
+import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from '../../util/DragManager';
+import { Hypothesis } from '../../util/HypothesisUtils';
 import { LinkManager } from '../../util/LinkManager';
+import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
+import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
+import { DocumentView } from '../nodes/DocumentView';
+import { LinkDocPreview } from '../nodes/LinkDocPreview';
 import './LinkMenuItem.scss';
 import React = require("react");
-import { DocumentManager } from '../../util/DocumentManager';
-import { setupMoveUpEvents, emptyFunction, Utils, simulateMouseClick } from '../../../Utils';
-import { DocumentView } from '../nodes/DocumentView';
-import { DocumentLinksButton } from '../nodes/DocumentLinksButton';
-import { LinkDocPreview } from '../nodes/LinkDocPreview';
-import { Hypothesis } from '../../util/HypothesisUtils';
-import { Id } from '../../../fields/FieldSymbols';
-import { Tooltip } from '@material-ui/core';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { undoBatch } from '../../util/UndoManager';
-import { WebField } from '../../../fields/URLField';
-library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp, faPencilAlt, faEyeSlash);
 
 
 interface LinkMenuItemProps {

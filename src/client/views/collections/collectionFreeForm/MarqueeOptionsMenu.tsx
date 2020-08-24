@@ -1,13 +1,12 @@
 import React = require("react");
-import AntimodeMenu, { AntimodeMenuProps } from "../../AntimodeMenu";
-import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { unimplementedFunction } from "../../../../Utils";
-import { undoBatch } from "../../../util/UndoManager";
 import { Tooltip } from "@material-ui/core";
+import { observer } from "mobx-react";
+import { unimplementedFunction } from "../../../../Utils";
+import { AntimodeMenu, AntimodeMenuProps } from "../../AntimodeMenu";
 
 @observer
-export default class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
+export class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: MarqueeOptionsMenu;
 
     public createCollection: (e: KeyboardEvent | React.PointerEvent | undefined) => void = unimplementedFunction;

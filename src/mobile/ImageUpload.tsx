@@ -1,19 +1,19 @@
-import * as rp from 'request-promise';
-import { Docs } from '../client/documents/Documents';
-import "./ImageUpload.scss";
-import React = require('react');
-import { DocServer } from '../client/DocServer';
-import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
-import { Utils } from '../Utils';
-import { Networking } from '../client/Network';
-import { Doc, Opt } from '../fields/Doc';
-import { Cast } from '../fields/Types';
-import { listSpec } from '../fields/Schema';
-import { List } from '../fields/List';
-import MainViewModal from '../client/views/MainViewModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, observable } from 'mobx';
+import { observer } from 'mobx-react';
+import * as rp from 'request-promise';
+import { DocServer } from '../client/DocServer';
+import { Docs } from '../client/documents/Documents';
+import { Networking } from '../client/Network';
+import { MainViewModal } from '../client/views/MainViewModal';
+import { Doc, Opt } from '../fields/Doc';
+import { List } from '../fields/List';
+import { listSpec } from '../fields/Schema';
+import { Cast } from '../fields/Types';
+import { Utils } from '../Utils';
+import "./ImageUpload.scss";
 import { MobileInterface } from './MobileInterface';
+import React = require('react');
 
 export interface ImageUploadProps {
     Document: Doc; // Target document for upload (upload location)

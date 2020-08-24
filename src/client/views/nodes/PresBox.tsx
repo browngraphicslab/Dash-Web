@@ -87,14 +87,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         } else { return undefined; }
     }
     @computed get isPres(): boolean {
+        document.removeEventListener("keydown", this.keyEvents, true);
         if (this.selectedDoc?.type === DocumentType.PRES) {
-            document.removeEventListener("keydown", this.keyEvents, true);
             document.addEventListener("keydown", this.keyEvents, true);
             return true;
-        } else {
-            document.removeEventListener("keydown", this.keyEvents, true);
-            return false;
         }
+        return false;
     }
     @computed get selectedDoc() { return this.selectedDocumentView?.rootDoc; }
 
@@ -373,7 +371,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         if (this.layoutDoc.presStatus === 'auto' && !this.layoutDoc.presLoop) this.layoutDoc.presStatus = "manual";
                         else if (this.layoutDoc.presLoop) this.startAutoPres(0);
                     }, duration);
-                };
+                }
             }
         };
         this.layoutDoc.presStatus = "auto";
@@ -614,6 +612,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     // Key for when the presentaiton is active
     @action
     keyEvents = (e: KeyboardEvent) => {
+        if (e.target instanceof HTMLInputElement) return;
         let handled = false;
         const anchorNode = document.activeElement as HTMLDivElement;
         if (anchorNode && anchorNode.className?.includes("lm_title")) return;
@@ -629,10 +628,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 handled = true;
             }
         } if (e.keyCode === 37 || e.keyCode === 38) { // left(37) / a(65) / up(38) to go back
-            this.back(); if (this._presTimer) clearTimeout(this._presTimer);
+            this.back();
+            if (this._presTimer) clearTimeout(this._presTimer);
             handled = true;
         } if (e.keyCode === 39 || e.keyCode === 40) { // right (39) / d(68) / down(40) to go to next
-            this.next(); if (this._presTimer) clearTimeout(this._presTimer);
+            this.next();
+            if (this._presTimer) clearTimeout(this._presTimer);
             handled = true;
         } if (e.keyCode === 32) { // spacebar to 'present' or autoplay
             if (this.layoutDoc.presStatus !== "edit") this.startAutoPres(0);
@@ -640,9 +641,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             handled = true;
         } if (e.keyCode === 8) { // delete selected items
             if (this.layoutDoc.presStatus === "edit") {
-                this._selectedArray.forEach((doc, i) => {
-                    this.removeDocument(doc);
-                });
+                this._selectedArray.forEach((doc, i) => this.removeDocument(doc));
                 this._selectedArray = [];
                 this._eleArray = [];
                 this._dragArray = [];
@@ -815,7 +814,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="ribbon-property">
                                 <input className="presBox-input"
                                     type="number" value={transitionSpeed}
-                                    onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                    onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                     onChange={action((e) => this.setTransitionTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
@@ -845,7 +844,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                             <div className="ribbon-property">
                                 <input className="presBox-input"
                                     type="number" value={duration}
-                                    onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                    onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                     onChange={action((e) => this.setDurationTime(e.target.value))} /> s
                             </div>
                             <div className="ribbon-propertyUpDown">
@@ -974,7 +973,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         <input className="presBox-input"
                                             style={{ textAlign: 'left', width: 50 }}
                                             type="number" value={NumCast(activeItem.presPinViewX)}
-                                            onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                            onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                             onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewX = Number(val); })} />
                                     </div>
                                 </div>
@@ -984,7 +983,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         <input className="presBox-input"
                                             style={{ textAlign: 'left', width: 50 }}
                                             type="number" value={NumCast(activeItem.presPinViewY)}
-                                            onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                            onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                             onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewY = Number(val); })} />
                                     </div>
                                 </div>
@@ -994,7 +993,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                                         <input className="presBox-input"
                                             style={{ textAlign: 'left', width: 50 }}
                                             type="number" value={NumCast(activeItem.presPinViewScale)}
-                                            onFocus={() => { document.removeEventListener("keydown", this.keyEvents, true); }}
+                                            onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                                             onChange={action((e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value; activeItem.presPinViewScale = Number(val); })} />
                                     </div>
                                 </div>
@@ -1044,9 +1043,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     <div className="ribbon-box">
                         Slide Title: <br></br>
                         <input className="ribbon-textInput" placeholder="..." type="text" name="fname"
-                            onFocus={() => {
-                                document.removeEventListener("keydown", this.keyEvents, true);
-                            }}
+                            onFocus={() => document.removeEventListener("keydown", this.keyEvents, true)}
                             onChange={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();

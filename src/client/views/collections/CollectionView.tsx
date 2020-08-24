@@ -1,6 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye } from '@fortawesome/free-regular-svg-icons';
-import { faColumns, faCopy, faEllipsisV, faFingerprint, faGlobeAmericas, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable } from 'mobx';
 import { observer } from "mobx-react";
@@ -52,8 +49,6 @@ export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
-
-library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faGlobeAmericas, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
     Invalid = "invalid",
@@ -528,7 +523,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             <div className="collectionTimeView-addFacet" style={{ width: `${this.facetWidth()}px` }} onPointerDown={e => e.stopPropagation()}>
                 <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
                     <div className="collectionTimeView-button">
-                        <FontAwesomeIcon icon={faEdit} size={"lg"} />
+                        <FontAwesomeIcon icon={"edit"} size={"lg"} />
                         <span className="collectionTimeView-span">Facet Filters</span>
                     </div>
                 </Flyout>

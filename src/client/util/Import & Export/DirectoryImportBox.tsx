@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCloudUploadAlt, faPlus, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { BatchedArray } from "array-batcher";
 import "fs";
@@ -47,7 +45,6 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
 
     constructor(props: FieldViewProps) {
         super(props);
-        library.add(faTag, faPlus);
         const doc = this.props.Document;
         this.editingMetadata = this.editingMetadata || false;
         this.persistent = this.persistent || false;
@@ -301,7 +298,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}>
-                                <FontAwesomeIcon icon={faCloudUploadAlt} color="#FFFFFF" size={"2x"} />
+                                <FontAwesomeIcon icon={"cloud-upload-alt"} color="#FFFFFF" size={"2x"} />
                             </div>
                             <img
                                 style={{
@@ -366,7 +363,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}
-                            icon={isEditing ? faCloudUploadAlt : faTag}
+                            icon={isEditing ? "cloud-upload-alt" : "tag"}
                             color="#FFFFFF"
                             size={"1x"}
                         />
@@ -399,7 +396,7 @@ export class DirectoryImportBox extends React.Component<FieldViewProps> {
                                         marginLeft: 6.4,
                                         marginTop: 5.2
                                     }}
-                                    icon={faPlus}
+                                    icon={"plus"}
                                     size={"1x"}
                                 />
                             </div>

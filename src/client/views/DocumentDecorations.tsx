@@ -1,5 +1,4 @@
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleDoubleLeft, faAngleDoubleRight, faAngleLeft, faAngleRight, faArrowAltCircleDown, faArrowAltCircleUp, faCaretUp, faCheckCircle, faCloudUploadAlt, faExternalLinkAlt, faFilePdf, faFilm, faImage, faLink, faObjectGroup, faPause, faShare, faStickyNote, faStopCircle, faSyncAlt, faTag, faTextHeight, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, reaction, runInAction } from "mobx";
@@ -19,34 +18,12 @@ import { SelectionManager } from "../util/SelectionManager";
 import { SnappingManager } from '../util/SnappingManager';
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import FormatShapePane from './collections/collectionFreeForm/FormatShapePane';
+import { FormatShapePane } from './collections/collectionFreeForm/FormatShapePane';
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import e = require('express');
-
-library.add(faCaretUp);
-library.add(faObjectGroup);
-library.add(faStickyNote);
-library.add(faFilePdf);
-library.add(faFilm, faTextHeight);
-library.add(faLink);
-library.add(faTag);
-library.add(faTimes);
-library.add(faArrowAltCircleDown);
-library.add(faArrowAltCircleUp);
-library.add(faStopCircle);
-library.add(faCheckCircle);
-library.add(faCloudUploadAlt);
-library.add(faSyncAlt);
-library.add(faShare);
-library.add(faAngleDoubleLeft);
-library.add(faAngleDoubleRight);
-library.add(faAngleLeft);
-library.add(faAngleRight);
-library.add(faPause);
-library.add(faExternalLinkAlt);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -587,12 +564,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
     public static DocumentIcon(layout: string) {
-        const button = layout.indexOf("PDFBox") !== -1 ? faFilePdf :
-            layout.indexOf("ImageBox") !== -1 ? faImage :
-                layout.indexOf("Formatted") !== -1 ? faStickyNote :
-                    layout.indexOf("Video") !== -1 ? faFilm :
-                        layout.indexOf("Collection") !== -1 ? faObjectGroup :
-                            faCaretUp;
+        const button = layout.indexOf("PDFBox") !== -1 ? "file-pdf" :
+            layout.indexOf("ImageBox") !== -1 ? "image" :
+                layout.indexOf("Formatted") !== -1 ? "sticky-note" :
+                    layout.indexOf("Video") !== -1 ? "film" :
+                        layout.indexOf("Collection") !== -1 ? "object-group" :
+                            "caret-up";
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
     render() {
@@ -615,7 +592,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <Tooltip title={<><div className="dash-tooltip">Close</div></>} placement="top">
                         <div className="documentDecorations-closeButton" onClick={this.onCloseClick}>
                             {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                            <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                            <FontAwesomeIcon className="documentdecorations-times" icon={"times"} size="lg" />
                         </div></Tooltip>) : (null);
 
         const titleArea = this._edtingTitle ?
@@ -705,7 +682,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         <Tooltip title={<><div className="dash-tooltip">tap to select containing document</div></>} placement="top">
                             <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
                                 onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
-                                <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                                <FontAwesomeIcon className="documentdecorations-times" icon={"arrow-alt-circle-up"} size="lg" />
                             </div></Tooltip>}
                     <div id={`documentDecorations-${useRotation ? "rotation" : "borderRadius"}`}
                         onPointerDown={useRotation ? this.onRotateDown : this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}>{useRotation && "⟲"}</div>

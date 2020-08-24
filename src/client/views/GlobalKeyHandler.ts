@@ -6,22 +6,22 @@ import { InkTool } from "../../fields/InkField";
 import { List } from "../../fields/List";
 import { ScriptField } from "../../fields/ScriptField";
 import { Cast, PromiseValue } from "../../fields/Types";
-import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
+import { GoogleAuthenticationManager } from "../apis/GoogleAuthenticationManager";
 import { DocServer } from "../DocServer";
 import { DocumentType } from "../documents/DocumentTypes";
 import { DictationManager } from "../util/DictationManager";
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import SharingManager from "../util/SharingManager";
+import { SharingManager } from "../util/SharingManager";
 import { undoBatch, UndoManager } from "../util/UndoManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { DocumentDecorations } from "./DocumentDecorations";
 import { MainView } from "./MainView";
 import { DocumentView } from "./nodes/DocumentView";
 import { DocumentLinksButton } from "./nodes/DocumentLinksButton";
-import PDFMenu from "./pdf/PDFMenu";
+import { PDFMenu } from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
-import GroupManager from "../util/GroupManager";
+import { GroupManager } from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 const modifiers = ["control", "meta", "shift", "alt"];
@@ -31,7 +31,7 @@ type KeyControlInfo = {
     stopPropagation: boolean
 };
 
-export default class KeyManager {
+export class KeyManager {
     public static Instance: KeyManager = new KeyManager();
     private router = new Map<string, KeyHandler>();
 
@@ -121,9 +121,7 @@ export default class KeyManager {
                 }
 
                 const selected = SelectionManager.SelectedDocuments().slice();
-                UndoManager.RunInBatch(() => {
-                    selected.map(dv => dv.props.removeDocument?.(dv.props.Document));
-                }, "delete");
+                UndoManager.RunInBatch(() => selected.map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
                 SelectionManager.DeselectAll();
                 break;
             case "arrowleft":

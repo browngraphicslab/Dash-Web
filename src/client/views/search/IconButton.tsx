@@ -1,30 +1,14 @@
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction, IReactionDisposer, reaction } from 'mobx';
-import "./SearchBox.scss";
-import "./IconButton.scss";
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { library, icon } from '@fortawesome/fontawesome-svg-core';
+import * as _ from "lodash";
+import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
+import { observer } from 'mobx-react';
+import * as React from 'react';
 import { DocumentType } from "../../documents/DocumentTypes";
 import '../globalCssVariables.scss';
-import * as _ from "lodash";
 import { IconBar } from './IconBar';
-import { props } from 'bluebird';
-import { Search } from '../../../server/Search';
-import { gravity } from 'sharp';
-
-library.add(faSearch);
-library.add(faObjectGroup);
-library.add(faImage);
-library.add(faStickyNote);
-library.add(faFilePdf);
-library.add(faFilm);
-library.add(faMusic);
-library.add(faLink);
-library.add(faChartBar);
-library.add(faGlobeAsia);
-library.add(faBan);
+import "./IconButton.scss";
+import "./SearchBox.scss";
+import { Font } from '@react-pdf/renderer';
 
 interface IconButtonProps {
     type: string;
@@ -47,59 +31,46 @@ export class IconButton extends React.Component<IconButtonProps>{
     componentDidMount = () => {
         this._resetReaction = reaction(
             () => IconBar.Instance._resetClicked,
-            () => {
+            action(() => {
                 if (IconBar.Instance._resetClicked) {
-                    runInAction(() => {
-                        this.reset();
-                        IconBar.Instance._reset++;
-                        if (IconBar.Instance._reset === 9) {
-                            IconBar.Instance._reset = 0;
-                            IconBar.Instance._resetClicked = false;
-                        }
-                    });
+                    this._isSelected = false;
+                    IconBar.Instance._reset++;
+                    if (IconBar.Instance._reset === 9) {
+                        IconBar.Instance._reset = 0;
+                        IconBar.Instance._resetClicked = false;
+                    }
                 }
-            },
+            }),
         );
+
         this._selectAllReaction = reaction(
             () => IconBar.Instance._selectAllClicked,
-            () => {
+            action(() => {
                 if (IconBar.Instance._selectAllClicked) {
-                    runInAction(() => {
-                        this.select();
-                        IconBar.Instance._select++;
-                        if (IconBar.Instance._select === 9) {
-                            IconBar.Instance._select = 0;
-                            IconBar.Instance._selectAllClicked = false;
-                        }
-                    });
+                    this._isSelected = true;
+                    IconBar.Instance._select++;
+                    if (IconBar.Instance._select === 9) {
+                        IconBar.Instance._select = 0;
+                        IconBar.Instance._selectAllClicked = false;
+                    }
                 }
-            },
+            }),
         );
     }
 
     @action.bound
     getIcon() {
         switch (this.props.type) {
-            case (DocumentType.NONE):
-                return faBan;
-            case (DocumentType.AUDIO):
-                return faMusic;
-            case (DocumentType.COL):
-                return faObjectGroup;
-            case (DocumentType.IMG):
-                return faImage;
-            case (DocumentType.LINK):
-                return faLink;
-            case (DocumentType.PDF):
-                return faFilePdf;
-            case (DocumentType.RTF):
-                return faStickyNote;
-            case (DocumentType.VID):
-                return faVideo;
-            case (DocumentType.WEB):
-                return faGlobeAsia;
-            default:
-                return faCaretDown;
+            case (DocumentType.NONE): return "ban";
+            case (DocumentType.AUDIO): return "music";
+            case (DocumentType.COL): return "object-group";
+            case (DocumentType.IMG): return "image";
+            case (DocumentType.LINK): return "link";
+            case (DocumentType.PDF): return "file-pdf";
+            case (DocumentType.RTF): return "sticky-note";
+            case (DocumentType.VID): return "video";
+            case (DocumentType.WEB): return "globe-asia";
+            default: return "caret-down";
         }
     }
 
@@ -136,53 +107,16 @@ export class IconButton extends React.Component<IconButtonProps>{
         //backgroundColor: "rgb(178, 206, 248)" //$darker-alt-accent
     };
 
-    @action.bound
-    public reset() { this._isSelected = false; }
-
-    @action.bound
-    public select() { this._isSelected = true; }
-
-    @action
-    onMouseLeave = () => { this._hover = false; }
-
-    @action
-    onMouseEnter = () => { this._hover = true; }
-
-    getFA = () => {
-        switch (this.props.type) {
-            case (DocumentType.NONE):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faBan} />);
-            case (DocumentType.AUDIO):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faMusic} />);
-            case (DocumentType.COL):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faObjectGroup} />);
-            case (DocumentType.IMG):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faImage} />);
-            case (DocumentType.LINK):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faLink} />);
-            case (DocumentType.PDF):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faFilePdf} />);
-            case (DocumentType.RTF):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faStickyNote} />);
-            case (DocumentType.VID):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faVideo} />);
-            case (DocumentType.WEB):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faGlobeAsia} />);
-            default:
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faCaretDown} />);
-        }
-    }
-
     render() {
         return (
             <div className="type-outer" id={this.props.type + "-filter"}
-                onMouseEnter={this.onMouseEnter}
-                onMouseLeave={this.onMouseLeave}
+                onMouseEnter={() => this._hover = true}
+                onMouseLeave={() => this._hover = false}
                 onClick={this.onClick}>
                 <div className="type-icon" id={this.props.type + "-icon"}
                     style={this._hover ? this.hoverStyle : this._isSelected ? this.selected : this.notSelected}
                 >
-                    {this.getFA()}
+                    <FontAwesomeIcon className="fontawesome-icon" icon={this.getIcon()} />
                 </div>
                 {/* <div className="filter-description">{this.props.type}</div> */}
             </div>

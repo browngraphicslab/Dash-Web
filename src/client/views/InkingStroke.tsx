@@ -1,27 +1,22 @@
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
+import { action } from "mobx";
 import { observer } from "mobx-react";
+import { Doc } from "../../fields/Doc";
 import { documentSchema } from "../../fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../fields/InkField";
 import { makeInterface } from "../../fields/Schema";
 import { Cast, StrCast } from "../../fields/Types";
 import { TraceMobx } from "../../fields/util";
+import { setupMoveUpEvents } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { InteractionUtils } from "../util/InteractionUtils";
+import { Scripting } from "../util/Scripting";
+import { UndoManager } from "../util/UndoManager";
+import { FormatShapePane } from "./collections/collectionFreeForm/FormatShapePane";
 import { ContextMenu } from "./ContextMenu";
 import { ViewBoxBaseComponent } from "./DocComponent";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
-import { Scripting } from "../util/Scripting";
-import { Doc } from "../../fields/Doc";
-import FormatShapePane from "./collections/collectionFreeForm/FormatShapePane";
-import { action } from "mobx";
-import { setupMoveUpEvents } from "../../Utils";
-import { undoBatch, UndoManager } from "../util/UndoManager";
-
-
-library.add(faPaintBrush);
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
