@@ -89,6 +89,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             }
         }
         DocumentLinksButton.StartLink = undefined;
+        DocumentLinksButton.StartLinkView = undefined;
     }
 
     @action
@@ -166,6 +167,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 docFilters={this.props.docFilters}
+                                searchFilterDocs={this.props.searchFilterDocs}
                                 ContainingCollectionView={undefined}
                                 ContainingCollectionDoc={undefined} />
                         </div>;

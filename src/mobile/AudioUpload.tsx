@@ -3,7 +3,7 @@ import "./ImageUpload.scss";
 import React = require('react');
 import { observer } from 'mobx-react';
 import { observable, action, computed } from 'mobx';
-import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter } from '../Utils';
+import { Utils, emptyPath, returnFalse, emptyFunction, returnOne, returnZero, returnTrue, returnEmptyFilter, returnEmptyDoclist } from '../Utils';
 import { Doc, Opt } from '../fields/Doc';
 import { Cast, FieldValue } from '../fields/Types';
 import { listSpec } from '../fields/Schema';
@@ -88,6 +88,7 @@ export class AudioUpload extends React.Component {
                         rootSelected={returnTrue}
                         removeDocument={undefined}
                         docFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         ContentScaling={returnOne}

@@ -132,6 +132,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 const tbox = Docs.Create.TextDocument("", {
                     _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: StrCast(Doc.UserDoc().fontSize),
                     _fontFamily: StrCast(Doc.UserDoc().fontFamily),
+                    _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
                     title: "-typed text-"
                 });
                 const template = FormattedTextBox.DefaultLayout;
@@ -528,7 +529,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
         const portal = Doc.MakeAlias(summary);
         Doc.GetProto(summary)[Doc.LayoutFieldKey(summary) + "-annotations"] = new List<Doc>(selected);
         Doc.GetProto(summary).layout_portal = CollectionView.LayoutString(Doc.LayoutFieldKey(summary) + "-annotations");
@@ -755,14 +756,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             </div>;
 
         } else {
-            //subtracted for offset
             var str: string = "";
             for (var i = 0; i < this._pointsX.length; i++) {
-                var x = 0;
-                x = this._pointsX[i] - 64;
-                str += x.toString();
+                const pt = this.props.getContainerTransform().transformPoint(this._pointsX[i], this._pointsY[i]);
+                str += pt[0].toString();
                 str += ",";
-                str += (this._pointsY[i] - 85).toString();
+                str += pt[1].toString();
                 str += (" ");
             }
 

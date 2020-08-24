@@ -56,6 +56,7 @@ interface IViewerProps {
     Document: Doc;
     DataDoc?: Doc;
     docFilters: () => string[];
+    searchFilterDocs: () => Doc[];
     ContainingCollectionView: Opt<CollectionView>;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -100,13 +101,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     private _retries = 0; // number of times tried to create the PDF viewer
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
-    private _reactionDisposer?: IReactionDisposer;
-    private _selectionReactionDisposer?: IReactionDisposer;
-    private _annotationReactionDisposer?: IReactionDisposer;
-    private _scrollTopReactionDisposer?: IReactionDisposer;
-    private _filterReactionDisposer?: IReactionDisposer;
-    private _searchReactionDisposer?: IReactionDisposer;
-    private _searchReactionDisposer2?: IReactionDisposer;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _selectionText: string = "";
@@ -150,13 +145,13 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._mainCont.current && (this._mainCont.current.scrollTop = this.layoutDoc._scrollTop || 0);
-        this._searchReactionDisposer = reaction(() => this.Document.searchMatch,
+        this._disposers.searchMatch = reaction(() => Doc.IsSearchMatch(this.rootDoc),
             m => {
-                if (m !== undefined) (this._lastSearch = true) && this.search(Doc.SearchQuery(), true);
+                if (m) (this._lastSearch = true) && this.search(Doc.SearchQuery(), m.searchMatch > 0);
                 else !(this._lastSearch = false) && setTimeout(() => !this._lastSearch && this.search("", false, true), 200);
             }, { fireImmediately: true });
 
-        this._selectionReactionDisposer = reaction(() => this.props.isSelected(),
+        this._disposers.selected = reaction(() => this.props.isSelected(),
             selected => {
                 if (!selected) {
                     this._savedAnnotations.values().forEach(v => v.forEach(a => a.remove()));
@@ -166,7 +161,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 (SelectionManager.SelectedDocuments().length === 1) && this.setupPdfJsViewer();
             },
             { fireImmediately: true });
-        this._reactionDisposer = reaction(
+        this._disposers.scrollY = reaction(
             () => this.Document._scrollY,
             (scrollY) => {
                 if (scrollY !== undefined) {
@@ -177,15 +172,15 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             },
             { fireImmediately: true }
         );
+        this._disposers.curPage = reaction(
+            () => this.Document.curPage,
+            (page) => page !== undefined && page !== this._pdfViewer?.currentPageNumber && this.gotoPage(page),
+            { fireImmediately: true }
+        );
     }
 
     componentWillUnmount = () => {
-        this._reactionDisposer?.();
-        this._scrollTopReactionDisposer?.();
-        this._annotationReactionDisposer?.();
-        this._filterReactionDisposer?.();
-        this._selectionReactionDisposer?.();
-        this._searchReactionDisposer?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
         document.removeEventListener("copy", this.copy);
     }
 
@@ -226,11 +221,11 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         this.props.setPdfViewer(this);
         await this.initialLoad();
 
-        this._scrollTopReactionDisposer = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
+        this._disposers.scrollTop = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
             (stop) => (stop !== undefined && this.layoutDoc._scrollY === undefined && this._mainCont.current) && (this._mainCont.current.scrollTop = stop),
             { fireImmediately: true });
 
-        this._filterReactionDisposer = reaction(
+        this._disposers.filterScript = reaction(
             () => Cast(this.Document.filterScript, ScriptField),
             action(scriptField => {
                 const oldScript = this._script.originalScript;

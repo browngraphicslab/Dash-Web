@@ -117,7 +117,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 this._titleControlString = this._accumulatedTitle;
             } else if (this._titleControlString.startsWith("#")) {
                 const selectionTitleFieldKey = this._titleControlString.substring(1);
-                selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._accumulatedTitle.startsWith("-"));
+                selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].dataDoc["title-custom"] = !this._accumulatedTitle.startsWith("-"));
                 UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d => {
                     const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
                     Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true);
@@ -596,7 +596,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
     render() {
-        const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
+        const darkScheme = Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
         if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 1 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
@@ -624,8 +624,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
                 {minimal ? (null) : <div className="publishBox" // title="make document referenceable by its title"
                 // onPointerDown={action(e => {
-                //     if (!seldoc.props.Document.customTitle) {
-                //         seldoc.props.Document.customTitle = true;
+                //     if (!seldoc.props.Document["title-custom"]) {
+                //         seldoc.props.Document["title-custom"] = true;
                 //         StrCast(Doc.GetProto(seldoc.props.Document).title).startsWith("-") && (Doc.GetProto(seldoc.props.Document).title = StrCast(seldoc.props.Document.title).substring(1));
                 //         this._accumulatedTitle = StrCast(seldoc.props.Document.title);
                 //     }

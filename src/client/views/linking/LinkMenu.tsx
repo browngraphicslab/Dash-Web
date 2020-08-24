@@ -93,7 +93,6 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     render() {
-        console.log("computed", this.position.x, this.position.b);
         const sourceDoc = this.props.docView.props.Document;
         const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         return <div className="linkMenu" ref={this._linkMenuRef} >

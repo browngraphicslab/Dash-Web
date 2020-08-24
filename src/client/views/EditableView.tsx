@@ -227,7 +227,10 @@ export class EditableView extends React.Component<EditableProps> {
                     ref={this._ref}
                     style={{ display: this.props.display, minHeight: "17px", whiteSpace: "nowrap", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick} placeholder={this.props.placeholder}>
-                    {this.props.highlight === undefined || this.props.positions === undefined || this.props.bing === undefined ? <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize, color: this.props.contents ? "black" : "grey" }}>{this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}</span>
+                    {this.props.highlight === undefined || this.props.positions === undefined || this.props.bing === undefined ?
+                        <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{//}, color: this.props.contents ? "black" : "grey" }}>{
+                            this.props.contents ? this.props.contents?.valueOf() : this.props.placeholder?.valueOf()}
+                        </span>
                         : this.returnHighlights()}
                 </div>
             );

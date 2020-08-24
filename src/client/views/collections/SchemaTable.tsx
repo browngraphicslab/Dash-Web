@@ -12,9 +12,8 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { ComputedField } from "../../../fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, returnEmptyDoclist } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -22,11 +21,12 @@ import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
 import '../DocumentDecorations.scss';
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell } from "./CollectionSchemaCells";
+import { CellProps, CollectionSchemaButtons, CollectionSchemaCell, CollectionSchemaCheckboxCell, CollectionSchemaDateCell, CollectionSchemaDocCell, CollectionSchemaImageCell, CollectionSchemaListCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell } from "./CollectionSchemaCells";
 import { CollectionSchemaAddColumnHeader, KeysDropdown } from "./CollectionSchemaHeaders";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 
 enum ColumnType {
@@ -91,7 +91,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: { row: number, col: number } = { row: 0, col: 0 };
-    @observable _openCollections: Array<string> = [];
+    @observable _openCollections: Set<number> = new Set;
 
     @observable _showDoc: Doc | undefined;
     @observable _showDataDoc: any = "";
@@ -136,16 +136,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeSorting = (col: any) => {
-        if (col.desc === undefined) {
-            // no sorting
-            this.props.changeColumnSort(col, true);
-        } else if (col.desc === true) {
-            // descending sort
-            this.props.changeColumnSort(col, false);
-        } else if (col.desc === false) {
-            // ascending sort
-            this.props.changeColumnSort(col, undefined);
-        }
+        this.props.changeColumnSort(col, col.desc === true ? false : col.desc === false ? undefined : true);
     }
 
     @action
@@ -153,7 +144,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
-
         const possibleKeys = this.props.documentKeys.filter(key => this.props.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1);
         const columns: Column<Doc>[] = [];
         const tableIsFocused = this.props.isFocused(this.props.Document, false);
@@ -161,27 +151,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const focusedCol = this._focusedCell.col;
         const isEditable = !this.props.headerIsEditing;
 
-        //if (this.childDocs.reduce((found, doc) => found || doc.type === DocumentType.COL, false)) {
-        columns.push(
-            {
-                expander: true,
-                Header: "",
-                width: 60,
-                Expander: (rowInfo) => {
-                    if (rowInfo.original.type === "collection") {
-                        return rowInfo.isExpanded ?
-                            <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-down"} size="lg" /></div> :
-                            <div className="collectionSchemaView-expander" onClick={() => this.onExpandCollection(rowInfo.original)}><FontAwesomeIcon icon={"caret-right"} size="lg" /></div>;
-                    } else {
-                        return null;
-                    }
-                }
+        columns.push({
+            expander: true, Header: "", width: 60,
+            Expander: (rowInfo) => {
+                return rowInfo.original.type !== DocumentType.COL ? (null) :
+                    <div className="collectionSchemaView-expander" onClick={action(() => (this._openCollections[rowInfo.isExpanded ? "delete" : "add"])(rowInfo.viewIndex))}>
+                        <FontAwesomeIcon icon={rowInfo.isExpanded ? "caret-down" : "caret-right"} size="lg" />
+                    </div>;
             }
-        );
-        // }
-        this.props.active;
-
-        const cols = this.props.columns.map(col => {
+        });
+        columns.push(...this.props.columns.map(col => {
             const icon: IconProp = this.getColumnType(col) === ColumnType.Number ? "hashtag" : this.getColumnType(col) === ColumnType.String ? "font" :
                 this.getColumnType(col) === ColumnType.Boolean ? "check-square" : this.getColumnType(col) === ColumnType.Doc ? "file" :
                     this.getColumnType(col) === ColumnType.Image ? "image" : this.getColumnType(col) === ColumnType.List ? "list-ul" :
@@ -209,25 +188,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 width={"100%"}
             />;
 
-
-
             const sortIcon = col.desc === undefined ? "caret-right" : col.desc === true ? "caret-down" : "caret-up";
-
-            const header =
-                <div //className="collectionSchemaView-header"
-                    //onClick={e => this.props.openHeader(col, menuContent, e.clientX, e.clientY)}
-                    className="collectionSchemaView-menuOptions-wrapper"
-                    style={{
-                        background: col.color, padding: "2px",
-                        display: "flex", cursor: "default", height: "100%",
-                    }}>
-                    {/* <FontAwesomeIcon onClick={e => this.props.openHeader(col, e.clientX, e.clientY)} icon={icon} size="lg" style={{ display: "inline", paddingBottom: "1px", paddingTop: "4px", cursor: "hand" }} /> */}
-                    {keysDropdown}
-                    <div onClick={e => this.changeSorting(col)}
-                        style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit", cursor: "hand" }}>
-                        <FontAwesomeIcon icon={sortIcon} size="lg" />
-                    </div>
-                </div>;
+            const header = <div className="collectionSchemaView-menuOptions-wrapper" style={{ background: col.color, padding: "2px", display: "flex", cursor: "default", height: "100%", }}>
+                {keysDropdown}
+                <div onClick={e => this.changeSorting(col)} style={{ width: 21, padding: 1, display: "inline", zIndex: 1, background: "inherit", cursor: "hand" }}>
+                    <FontAwesomeIcon icon={sortIcon} size="lg" />
+                </div>
+            </div>;
 
             return {
                 Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.props.columns} reorderColumns={this.props.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
@@ -260,21 +227,20 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         showDoc: this.showDoc,
                     };
 
-                    const colType = this.getColumnType(col);
-                    if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props} />;
-                    if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props} />;
-                    if (colType === ColumnType.Boolean) return <CollectionSchemaCheckboxCell {...props} />;
-                    if (colType === ColumnType.Doc) return <CollectionSchemaDocCell {...props} />;
-                    if (colType === ColumnType.Image) return <CollectionSchemaImageCell {...props} />;
-                    if (colType === ColumnType.List) return <CollectionSchemaListCell {...props} />;
-                    if (colType === ColumnType.Date) return <CollectionSchemaDateCell {...props} />;
-                    return <CollectionSchemaCell {...props} />;
+                    switch (this.getColumnType(col)) {
+                        case ColumnType.Number: return <CollectionSchemaNumberCell {...props} />;
+                        case ColumnType.String: return <CollectionSchemaStringCell {...props} />;
+                        case ColumnType.Boolean: return <CollectionSchemaCheckboxCell {...props} />;
+                        case ColumnType.Doc: return <CollectionSchemaDocCell {...props} />;
+                        case ColumnType.Image: return <CollectionSchemaImageCell {...props} />;
+                        case ColumnType.List: return <CollectionSchemaListCell {...props} />;
+                        case ColumnType.Date: return <CollectionSchemaDateCell {...props} />;
+                        default: return <CollectionSchemaCell {...props} />;
+                    }
                 },
                 minWidth: 200,
             };
-        });
-        columns.push(...cols);
-
+        }));
         columns.push({
             Header: <CollectionSchemaAddColumnHeader createColumn={this.createColumn} />,
             accessor: (doc: Doc) => 0,
@@ -283,8 +249,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 const rowIndex = rowProps.index;
                 const columnIndex = this.props.columns.map(c => c.heading).indexOf(rowProps.column.id!);
                 const isFocused = focusedRow === rowIndex && focusedCol === columnIndex && tableIsFocused;
-                const props: CellProps = {
-                    row: rowIndex,
+                return <CollectionSchemaButtons  {...{
+                    row: rowProps.index,
                     col: columnIndex,
                     rowProps: rowProps,
                     isFocused: isFocused,
@@ -303,9 +269,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                     setComputed: this.setComputed,
                     getField: this.getField,
                     showDoc: this.showDoc,
-                };
-
-                return <CollectionSchemaButtons {...props} />;
+                }} />;
             },
             width: 28,
             resizable: false
@@ -316,12 +280,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     constructor(props: SchemaTableProps) {
         super(props);
-        // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
-        const oldSchemaHeaders = Cast(this.props.Document._schemaHeaders, listSpec("string"), []);
-        if (oldSchemaHeaders?.length && typeof oldSchemaHeaders[0] !== "object") {
-            const newSchemaHeaders = oldSchemaHeaders.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
-            this.props.Document._schemaHeaders = new List<SchemaHeaderField>(newSchemaHeaders);
-        } else if (this.props.Document._schemaHeaders === undefined) {
+        if (this.props.Document._schemaHeaders === undefined) {
             this.props.Document._schemaHeaders = new List<SchemaHeaderField>([new SchemaHeaderField("title", "#f1efeb"), new SchemaHeaderField("author", "#f1efeb"), new SchemaHeaderField("*lastModified", "#f1efeb", ColumnType.Date),
             new SchemaHeaderField("text", "#f1efeb", ColumnType.String), new SchemaHeaderField("type", "#f1efeb"), new SchemaHeaderField("context", "#f1efeb", ColumnType.Doc)]);
         }
@@ -362,19 +321,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document, true);
         // TODO: editing border doesn't work :(
         return {
-            style: {
-                border: !this.props.headerIsEditing && isFocused ? "2px solid rgb(255, 160, 160)" : "1px solid #f1efeb"
-            }
+            style: { border: !this.props.headerIsEditing && isFocused ? "2px solid rgb(255, 160, 160)" : "1px solid #f1efeb" }
         };
     }
 
-    @action
-    onCloseCollection = (collection: Doc): void => {
-        const index = this._openCollections.findIndex(col => col === collection[Id]);
-        if (index > -1) this._openCollections.splice(index, 1);
-    }
-
-    @action onExpandCollection = (collection: Doc) => this._openCollections.push(collection[Id]);
     @action setCellIsEditing = (isEditing: boolean) => this._cellIsEditing = isEditing;
 
     @action
@@ -413,7 +363,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @undoBatch
     createRow = action(() => {
-        this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
+        this.props.addDocument(Docs.Create.TextDocument("", { title: "", _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 100, _height: 30 }));
         this._focusedCell = { row: this.childDocs.length, col: this._focusedCell.col };
     });
 
@@ -431,21 +381,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     getColumnType = (column: SchemaHeaderField): ColumnType => {
-        // added functionality to convert old column type stuff to new column type stuff -syip
         if (column.type && column.type !== 0) {
             return column.type;
         }
         if (columnTypes.get(column.heading)) {
-            column.type = columnTypes.get(column.heading)!;
-            return columnTypes.get(column.heading)!;
+            return column.type = columnTypes.get(column.heading)!;
         }
-        const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
-        if (!typesDoc) {
-            column.type = ColumnType.Any;
-            return ColumnType.Any;
-        }
-        column.type = NumCast(typesDoc[column.heading]);
-        return NumCast(typesDoc[column.heading]);
+        return column.type = ColumnType.Any;
     }
 
     @undoBatch
@@ -474,11 +416,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed
     get reactTable() {
         const children = this.childDocs;
-        const hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
-        const expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
-        const expanded = {};
-        //@ts-ignore
-        expandedRowsList.forEach(row => expanded[row] = true);
+        const hasCollectionChild = children.reduce((found, doc) => found || doc.type === DocumentType.COL, false);
+        const expanded: { [name: string]: any } = {};
+        Array.from(this._openCollections.keys()).map(col => expanded[col.toString()] = true);
         const rerender = [...this.textWrappedRows]; // TODO: get component to rerender on text wrap change without needign to console.log :((((
 
         return <ReactTable
@@ -496,17 +436,14 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             expanded={expanded}
             resized={this.resized}
             onResizedChange={this.props.onResizedChange}
-            SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== "collection") ? (null) :
+            SubComponent={!hasCollectionChild ? undefined : row => (row.original.type !== DocumentType.COL) ? (null) :
                 <div className="reactTable-sub"><SchemaTable {...this.props} Document={row.original} dataDoc={undefined} childDocs={undefined} /></div>}
 
         />;
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            // ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
-            ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" });
-        }
+        ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" });
     }
 
     getField = (row: number, col?: number) => {
@@ -588,9 +525,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     onOpenClick = () => {
-        if (this._showDoc) {
-            this.props.addDocTab(this._showDoc, "onRight");
-        }
+        this._showDoc && this.props.addDocTab(this._showDoc, "onRight");
     }
 
     getPreviewTransform = (): Transform => {
@@ -606,7 +541,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             {StrCast(this.props.Document._chromeStatus) !== "disabled" ? <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
                 : undefined}
             {!this._showDoc ? (null) :
-                <div className="collectionSchemaView-documentPreview" //onClick={() => { this.onOpenClick(); }}
+                <div className="collectionSchemaView-documentPreview"
                     style={{
                         position: "absolute", width: 150, height: 150,
                         background: "dimGray", display: "block", top: 0, left: 0,
@@ -627,6 +562,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         PanelHeight={() => 150}
                         ScreenToLocalTransform={this.getPreviewTransform}
                         docFilters={returnEmptyFilter}
+                        searchFilterDocs={returnEmptyDoclist}
                         ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                         ContainingCollectionView={this.props.CollectionView}
                         moveDocument={this.props.moveDocument}

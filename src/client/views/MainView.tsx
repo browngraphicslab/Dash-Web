@@ -1,29 +1,35 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faHireAHelper, faBuffer } from '@fortawesome/free-brands-svg-icons';
+import { faBuffer, faHireAHelper } from '@fortawesome/free-brands-svg-icons';
 import * as fa from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import Measure from 'react-measure';
+import * as rp from 'request-promise';
 import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
 import { Id } from '../../fields/FieldSymbols';
 import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { ScriptField } from '../../fields/ScriptField';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, Utils, simulateMouseClick } from '../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnTrue, returnZero, setupMoveUpEvents, simulateMouseClick, Utils, returnEmptyDoclist } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
+import { Networking } from '../Network';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DocumentManager } from '../util/DocumentManager';
 import GroupManager from '../util/GroupManager';
 import { HistoryUtil } from '../util/History';
+import { Hypothesis } from '../util/HypothesisUtils';
+import { LinkManager } from '../util/LinkManager';
 import { Scripting } from '../util/Scripting';
+import { SearchUtil } from '../util/SearchUtil';
 import { SelectionManager } from '../util/SelectionManager';
 import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
@@ -53,12 +59,10 @@ import { LinkDescriptionPopup } from './nodes/LinkDescriptionPopup';
 import { LinkDocPreview } from './nodes/LinkDocPreview';
 import { RadialMenu } from './nodes/RadialMenu';
 import { TaskCompletionBox } from './nodes/TaskCompletedBox';
+import { WebBox } from './nodes/WebBox';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { Hypothesis } from '../util/HypothesisUtils';
-import { WebBox } from './nodes/WebBox';
-import * as ReactDOM from 'react-dom';
 import { SearchBox } from './search/SearchBox';
 import { SearchUtil } from '../util/SearchUtil';
 import { Networking } from '../Network';
@@ -79,10 +83,10 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = false;
     @observable public flyoutWidth: number = 0;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeDashboard, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
-    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
+    @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeDashboard, Doc)) : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
 
@@ -184,7 +188,7 @@ export class MainView extends React.Component {
             fa.faDesktop, fa.faTrashRestore, fa.faUsers, fa.faWrench, fa.faCog, fa.faMap, fa.faBellSlash, fa.faExpandAlt, fa.faArchive, fa.faBezierCurve, fa.faCircle,
             fa.faLongArrowAltRight, fa.faPenFancy, fa.faAngleDoubleRight, faBuffer, fa.faExpand, fa.faUndo, fa.faSlidersH, fa.faAngleDoubleLeft, fa.faAngleUp,
             fa.faAngleDown, fa.faPlayCircle, fa.faClock, fa.faRocket, fa.faExchangeAlt, faBuffer, fa.faHashtag, fa.faAlignJustify, fa.faCheckSquare, fa.faListUl,
-            fa.faWindowMinimize, fa.faWindowRestore);
+            fa.faWindowMinimize, fa.faWindowRestore, fa.faTextWidth, fa.faClosedCaptioning);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -208,7 +212,7 @@ export class MainView extends React.Component {
                 }
             });
             if (check === false) {
-                SearchBox.Instance.closeSearch();
+                SearchBox.Instance.resetSearch(true);
             }
         }
 
@@ -226,12 +230,12 @@ export class MainView extends React.Component {
     }
 
     initAuthenticationRouters = async () => {
-        // Load the user's active workspace, or create a new one if initial session after signup
+        // Load the user's active dashboard, or create a new one if initial session after signup
         const received = CurrentUserUtils.MainDocId;
         if (received && !this.userDoc) {
             reaction(
                 () => CurrentUserUtils.GuestTarget,
-                target => target && this.createNewWorkspace(),
+                target => target && this.createNewDashboard(),
                 { fireImmediately: true }
             );
         } else {
@@ -244,11 +248,11 @@ export class MainView extends React.Component {
                     }),
                 );
             }
-            const doc = this.userDoc && await Cast(this.userDoc.activeWorkspace, Doc);
+            const doc = this.userDoc && await Cast(this.userDoc.activeDashboard, Doc);
             if (doc) {
-                this.openWorkspace(doc);
+                this.openDashboard(doc);
             } else {
-                this.createNewWorkspace();
+                this.createNewDashboard();
             }
         }
     }
@@ -270,38 +274,41 @@ export class MainView extends React.Component {
     }
 
     @action
-    createNewWorkspace = async (id?: string) => {
+    createNewDashboard = async (id?: string) => {
         const myCatalog = Doc.UserDoc().myCatalog as Doc;
-        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-        const workspaceCount = DocListCast(workspaces.data).length + 1;
+        const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
+        const dashboards = Cast(this.userDoc.myDashboards, Doc) as Doc;
+        const dashboardCount = DocListCast(dashboards.data).length + 1;
+        const emptyPane = Cast(this.userDoc.emptyPane, Doc, null);
+        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
             _width: this._panelWidth * .7 - this.propertiesWidth() * 0.7,
             _height: this._panelHeight,
-            title: "Untitled Collection",
+            title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");
         Doc.AddDocToList(myCatalog, "data", freeformDoc);
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        const copyWorkspace = ScriptField.MakeScript(`copyWorkspace()`);
-        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyWorkspace!]);
-        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Workspace"]);
+        const copyDashboard = ScriptField.MakeScript(`copyDashboard()`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard"]);
 
-        Doc.AddDocToList(workspaces, "data", workspaceDoc);
+        Doc.AddDocToList(dashboards, "data", dashboardDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => this.openWorkspace(workspaceDoc), 0);
+        setTimeout(() => this.openDashboard(dashboardDoc), 0);
     }
 
     @action
-    openWorkspace = (doc: Doc, fromHistory = false) => {
+    openDashboard = (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
 
-        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest workspace
+        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest dashboard
             !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
-            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
+            this.userDoc ? (this.userDoc.activeDashboard = doc) : (CurrentUserUtils.GuestDashboard = doc);
         }
         const state = this._urlState;
         if (state.sharing === true && !this.userDoc) {
@@ -354,7 +361,7 @@ export class MainView extends React.Component {
 
         if (doc?.type === DocumentType.COL) {
             if (doc.title === "Basic Item Creators" || doc.title === "sidebar-tools"
-                || doc.title === "sidebar-recentlyClosed" || doc.title === "sidebar-catalog"
+                || doc.title === "sidebar-inactiveDocs" || doc.title === "sidebar-catalog"
                 || doc.title === "Mobile Uploads" || doc.title === "COLLECTION_PROTO"
                 || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
                 return "lightgrey";
@@ -409,6 +416,7 @@ export class MainView extends React.Component {
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
             docFilters={returnEmptyFilter}
+            searchFilterDocs={returnEmptyDoclist}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
             renderDepth={-1}
@@ -453,7 +461,7 @@ export class MainView extends React.Component {
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
-            doc.dockingConfig ? this.openWorkspace(doc) :
+            doc.dockingConfig ? this.openDashboard(doc) :
                 CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     sidebarScreenToLocal = () => new Transform(0, (CollectionMenu.Instance.Pinned ? -35 : 0) - Number(SEARCH_PANEL_HEIGHT.replace("px", "")), 1);
@@ -491,6 +499,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     relative={true}
@@ -525,6 +534,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 relative={true}
@@ -556,19 +566,14 @@ export class MainView extends React.Component {
         } else {
             let panelDoc: Doc | undefined;
             switch (this.panelContent = title) {
-                case "Tools": panelDoc = Doc.UserDoc()["sidebar-tools"] as Doc ?? undefined; break;
-                case "Workspace": panelDoc = Doc.UserDoc()["sidebar-workspaces"] as Doc ?? undefined; break;
-                case "Catalog": SearchBox.Instance.searchFullDB = "My Stuff";
+                case "Settings": SettingsManager.Instance.open(); break;
+                case "Catalog": SearchBox.Instance._searchFullDB = "My Stuff";
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
                 // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
-                case "Pres. Trails": panelDoc = Doc.UserDoc()["sidebar-presentations"] as Doc ?? undefined; break;
-                case "Archive": panelDoc = Doc.UserDoc()["sidebar-recentlyClosed"] as Doc ?? undefined; break;
-                case "Settings": SettingsManager.Instance.open(); break;
-                case "Import": panelDoc = Doc.UserDoc()["sidebar-import"] as Doc ?? undefined; break;
-                case "Sharing": panelDoc = Doc.UserDoc()["sidebar-sharing"] as Doc ?? undefined; break;
-                case "User Doc": panelDoc = Doc.UserDoc()["sidebar-userDoc"] as Doc ?? undefined; break;
+                default:
+                    panelDoc = button.target as any; break;
             }
             this.sidebarContent.proto = panelDoc;
             if (panelDoc) {
@@ -723,6 +728,7 @@ export class MainView extends React.Component {
                     focus={emptyFunction}
                     whenActiveChanged={emptyFunction}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
             </div>;
@@ -795,6 +801,7 @@ export class MainView extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 docFilters={returnEmptyFilter}
+                searchFilterDocs={returnEmptyDoclist}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
             /></div>
@@ -828,6 +835,7 @@ export class MainView extends React.Component {
                     NativeWidth={() => 800}
                     ContentScaling={returnOne}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                 />
             </div>;
     }
@@ -898,6 +906,7 @@ export class MainView extends React.Component {
                             NativeWidth={() => 800}
                             ContentScaling={returnOne}
                             docFilters={returnEmptyFilter}
+                            searchFilterDocs={returnEmptyDoclist}
                         />
                     </div>;
                 </span>, ele);
@@ -997,12 +1006,13 @@ export class MainView extends React.Component {
 }
 Scripting.addGlobal(function selectMainMenu(doc: Doc, title: string) { MainView.Instance.selectMenu(doc); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
-Scripting.addGlobal(function copyWorkspace() {
-    const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
-    const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
-    Doc.AddDocToList(workspaces, "data", copiedWorkspace);
-    // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-    setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
+Scripting.addGlobal(function copyDashboard() {
+    const activeDashboard = Cast(Doc.UserDoc().activeDashboard, Doc, null);
+    CollectionDockingView.Copy(activeDashboard).then(copy => {
+        Doc.AddDocToList(Cast(Doc.UserDoc().myDashboards, Doc, null), "data", copy);
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => MainView.Instance.openDashboard(copy), 0);
+    });
 });
 Scripting.addGlobal(function importDocument() { return MainView.Instance.importDocument(); },
     "imports files from device directly into the import sidebar");

@@ -72,6 +72,7 @@ export interface DocumentOptions {
     _scrollTop?: number; // scroll location for pdfs
     _noAutoscroll?: boolean;// whether collections autoscroll when this item is dragged
     _chromeStatus?: string;
+    _searchDoc?: boolean; // is this a search document (used to change UI for search results in schema view)
     _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
@@ -192,6 +193,8 @@ export interface DocumentOptions {
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     treeViewTruncateTitleWidth?: number;
+    treeViewLockExpandedView?: boolean; // whether the expanded view can be changed
+    treeViewDefaultExpandedView?: string; // default expanded view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -819,8 +822,10 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
-            Doc.GetProto(inst).data = new List<Doc>(documents);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data", ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const tabs = TreeDocument(documents, { title: "On-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            const all = TreeDocument([], { title: "Off-Screen Tabs", treeViewLockExpandedView: true, treeViewDefaultExpandedView: "data" });
+            Doc.GetProto(inst).data = new List<Doc>([tabs, all]);
             return inst;
         }
 
@@ -868,6 +873,7 @@ export namespace DocUtils {
         }
 
         const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            if (d.z) return true;
             for (const facetKey of Object.keys(filterFacets)) {
                 const facet = filterFacets[facetKey];
                 const satisfiesFacet = Object.keys(facet).some(value => {
@@ -982,7 +988,7 @@ export namespace DocUtils {
             created = Docs.Create.StackingDocument(DocListCast(field), resolved);
             layout = CollectionView.LayoutString;
         } else {
-            created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+            created = Docs.Create.TextDocument("", { ...{ _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 200, _height: 25, _autoHeight: true }, ...resolved });
             layout = FormattedTextBox.LayoutString;
         }
         if (created) {
@@ -1042,7 +1048,7 @@ export namespace DocUtils {
                 description: ":" + StrCast(note.title),
                 event: undoBatch((args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {
-                        _width: 200, x, y, _autoHeight: note._autoHeight !== false,
+                        _width: 200, x, y, _autoHeight: note._autoHeight !== false, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
                         title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
                     });
                     textDoc.layoutKey = "layout_" + note.title;
@@ -1169,7 +1175,7 @@ export namespace DocUtils {
         }
         const options = optionsCollection as Doc;
         const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
-        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
+        const docFind = `options.data?.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
         targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
         targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
         targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));

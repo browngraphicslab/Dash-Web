@@ -18,7 +18,7 @@ import { ComputedField, ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
 import { TraceMobx, GetEffectiveAcl, SharingPermissions, distributeAcls } from '../../../fields/util';
-import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
+import { emptyFunction, emptyPath, returnEmptyFilter, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, returnEmptyDoclist } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { CurrentUserUtils } from '../../util/CurrentUserUtils';
@@ -208,7 +208,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             const value = DocListCast(targetDataDoc[this.props.fieldKey]);
             const toRemove = value.filter(v => docs.includes(v));
             if (toRemove.length !== 0) {
-                const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
+                const recent = Cast(Doc.UserDoc().myInactiveDocs, Doc) as Doc;
                 toRemove.forEach(doc => {
                     Doc.RemoveDocFromList(targetDataDoc, this.props.fieldKey, doc);
                     recent && Doc.AddDocToList(recent, "data", doc, undefined, true, true);
@@ -541,6 +541,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     fieldKey={`${this.props.fieldKey}-filter`}
                     CollectionView={this}
                     docFilters={returnEmptyFilter}
+                    searchFilterDocs={returnEmptyDoclist}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                     ContainingCollectionView={this.props.ContainingCollectionView}
                     PanelWidth={this.facetWidth}
@@ -592,7 +593,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             ChildLayoutString: this.childLayoutString,
         };
         const boxShadow = Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
-            `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
+            `${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.darkScheme ? "rgb(30, 32, 31) " : "#9c9396 "} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`;
         return (<div className={"collectionView"} onContextMenu={this.onContextMenu}
             style={{ pointerEvents: this.props.Document.isBackground ? "none" : undefined, boxShadow }}>
             {this.showIsTagged()}

@@ -85,6 +85,8 @@ export namespace SearchUtil {
             if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || testDoc.proto === undefined || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
+            } else {
+                result.numFound--;
             }
         }
 

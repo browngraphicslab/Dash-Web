@@ -43,7 +43,7 @@ export class DashDocView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.textIndent = "0";
-        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Cast(Doc.UserDoc().activeDashboard, Doc, null).darkScheme ? "dimGray" : "lightGray"));
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";
@@ -126,7 +126,7 @@ export class DashDocView {
             this._reactionDisposer = reaction(() => ({ dim: [finalLayout[WidthSym](), finalLayout[HeightSym]()], color: finalLayout.color }), ({ dim, color }) => {
                 this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
-                this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+                this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeDashboard, Doc, null).darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
 
             const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
@@ -155,6 +155,7 @@ export class DashDocView {
                     bringToFront={emptyFunction}
                     dontRegisterView={false}
                     docFilters={this._textBox.props.docFilters}
+                    searchFilterDocs={this._textBox.props.searchFilterDocs}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
                     ContentScaling={this.contentScaling}

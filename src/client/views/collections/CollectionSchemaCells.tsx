@@ -3,7 +3,7 @@ import { action, observable, trace, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils, emptyPath } from "../../../Utils";
+import { emptyFunction, returnFalse, returnZero, returnOne, returnEmptyFilter, Utils, emptyPath, returnEmptyDoclist } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { KeyCodes } from "../../util/KeyCodes";
@@ -199,6 +199,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             rootSelected: returnFalse,
             fieldKey: this.props.rowProps.column.id as string,
             docFilters: returnEmptyFilter,
+            searchFilterDocs: returnEmptyDoclist,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,
@@ -229,7 +230,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
 
         const onItemDown = async (e: React.PointerEvent) => {
-            if (this.props.Document._searchDoc !== undefined) {
+            if (this.props.Document._searchDoc) {
                 const doc = Doc.GetProto(this.props.rowProps.original);
                 const aliasdoc = await SearchUtil.GetAliasesOfDocument(doc);
                 let targetContext = undefined;
@@ -315,7 +316,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             }
         }
         let search = false;
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             search = true;
         }
 
@@ -511,7 +512,8 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
         addDocTab: this.props.addDocTab,
         pinToPres: this.props.pinToPres,
         ContentScaling: returnOne,
-        docFilters: returnEmptyFilter
+        docFilters: returnEmptyFilter,
+        searchFilterDocs: returnEmptyDoclist,
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
     @observable private _doc = FieldValue(Cast(this._field, Doc));
@@ -691,7 +693,8 @@ export class CollectionSchemaImageCell extends CollectionSchemaCell {
             addDocTab: this.props.addDocTab,
             pinToPres: this.props.pinToPres,
             ContentScaling: returnOne,
-            docFilters: returnEmptyFilter
+            docFilters: returnEmptyFilter,
+            searchFilterDocs: returnEmptyDoclist,
         };
 
         let image = true;
@@ -770,7 +773,8 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
         addDocTab: this.props.addDocTab,
         pinToPres: this.props.pinToPres,
         ContentScaling: returnOne,
-        docFilters: returnEmptyFilter
+        docFilters: returnEmptyFilter,
+        searchFilterDocs: returnEmptyDoclist,
     };
     @observable private _field = this.prop.Document[this.prop.fieldKey];
     @observable private _optionsList = this._field as List<any>;
@@ -894,26 +898,22 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
 export class CollectionSchemaButtons extends CollectionSchemaCell {
     render() {
         const doc = this.props.rowProps.original;
-        const searchMatch = (backward: boolean = true) => { doc.searchMatch = undefined; setTimeout(() => doc.searchMatch = backward, 0); };
+        const searchMatch = (backward: boolean = true) => Doc.SearchMatchNext(doc, backward);
         // const reference = React.createRef<HTMLDivElement>();
         // const onItemDown = (e: React.PointerEvent) => {
         //     (!this.props.CollectionView || !this.props.CollectionView.props.isSelected() ? undefined :
         //         SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         // };
-        return !BoolCast(this.props.Document._searchDoc) ? <></>
-            : StrCast(doc.type) === DocumentType.PDF ?
-                <button style={{ position: "relative", height: 30, width: 28, left: 1, }} onClick={() => searchMatch(false)}>
-                    <FontAwesomeIcon icon="arrow-down" size="sm" />
-                </button>
-                : StrCast(doc.type) === DocumentType.RTF ?
-                    <div style={{ paddingTop: 8, paddingLeft: 3, }} >
-                        <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>
-                            <FontAwesomeIcon icon="arrow-up" size="sm" />
-                        </button>
-                        <button style={{ padding: 2 }} onClick={() => searchMatch(false)} >
-                            <FontAwesomeIcon icon="arrow-down" size="sm" />
-                        </button>
-                    </div> :
-                    <></>;
+        return !this.props.Document._searchDoc ? <></>
+            : [DocumentType.PDF, DocumentType.RTF].includes(StrCast(doc.type) as DocumentType) ?
+                <div style={{ paddingTop: 8, paddingLeft: 3, }} >
+                    <button style={{ padding: 2, left: 77 }} onClick={() => searchMatch(true)}>
+                        <FontAwesomeIcon icon="arrow-up" size="sm" />
+                    </button>
+                    <button style={{ padding: 2 }} onClick={() => searchMatch(false)} >
+                        <FontAwesomeIcon icon="arrow-down" size="sm" />
+                    </button>
+                </div> :
+                <></>;
     }
 }

@@ -111,6 +111,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return this.props.ignoreFields?.includes("_docFilters") ? [] :
                 [...this.props.docFilters(), ...Cast(this.props.Document._docFilters, listSpec("string"), [])];
         }
+        searchFilterDocs = () => {
+            return [...this.props.searchFilterDocs(), ...DocListCast(this.props.Document._searchFilterDocs)];
+        }
         @computed get childDocs() {
             let rawdocs: (Doc | Promise<Doc>)[] = [];
             if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
@@ -128,47 +131,32 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            let searchDocs = DocListCast(this.props.Document._searchDocs);
-
+            let searchDocs = this.searchFilterDocs();
 
             let docsforFilter: Doc[] = childDocs;
 
-            if (searchDocs !== undefined && searchDocs.length > 0) {
+            if (searchDocs.length > 0) {
+                searchDocs = [...searchDocs, ...docs.filter(d => d.z)];
                 docsforFilter = [];
                 const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-                console.log(searchDocs);
                 searchDocs = DocUtils.FilterDocs(searchDocs, this.docFilters(), docRangeFilters, viewSpecScript);
-                console.log(this.docFilters());
-                console.log(searchDocs);
                 childDocs.forEach((d) => {
+                    let notFiltered = searchDocs.includes(d) || d.z;
                     if (d.data !== undefined) {
-                        let newdocs = DocListCast(d.data);
-                        if (newdocs.length > 0) {
-                            let displaycheck: boolean | undefined = undefined;
+                        let subDocs = DocListCast(d.data);
+                        if (subDocs.length > 0) {
                             let newarray: Doc[] = [];
-                            while (newdocs.length > 0) {
+                            while (subDocs.length > 0 && !notFiltered) {
                                 newarray = [];
-                                newdocs.forEach((t) => {
-                                    if (d.data !== undefined) {
-                                        const newdocs = DocListCast(t.data);
-                                        newdocs.forEach((newdoc) => {
-                                            newarray.push(newdoc);
-                                        });
-                                    }
-                                    if (searchDocs.includes(t)) {
-                                        displaycheck = true;
-                                    }
+                                subDocs.forEach((t) => {
+                                    notFiltered = notFiltered || searchDocs.includes(t);
+                                    DocListCast(t.data).forEach((newdoc) => newarray.push(newdoc));
                                 });
-                                newdocs = newarray;
-                            }
-                            if (displaycheck === true) {
-                                docsforFilter.push(d);
+                                subDocs = newarray;
                             }
                         }
                     }
-                    if (searchDocs.includes(d)) {
-                        docsforFilter.push(d);
-                    }
+                    notFiltered && docsforFilter.push(d);
                 });
                 return docsforFilter;
             }
@@ -296,7 +284,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             this.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
                     } else if (text) {
-                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
+                        this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, _width: 100, _height: 25 }));
                     }
                     return;
                 }
@@ -472,7 +460,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 completed?.();
             } else {
                 if (text && !text.includes("https://")) {
-                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
+                    UndoManager.RunInBatch(() => this.addDocument(Docs.Create.TextDocument(text, { ...options, _showTitle: Doc.UserDoc().showTitle ? "title" : undefined, title: text.substring(0, 20), _width: 400, _height: 315 })), "drop");
                 }
             }
             disposer();

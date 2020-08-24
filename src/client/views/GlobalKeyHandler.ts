@@ -89,6 +89,7 @@ export default class KeyManager {
                 //     }
                 // }
                 DocumentLinksButton.StartLink = undefined;
+                DocumentLinksButton.StartLinkView = undefined;
 
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);

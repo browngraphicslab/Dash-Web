@@ -92,7 +92,7 @@ export class RichTextRules {
                     const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
                     const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: "9pt", title: "inline comment" });
                     textDocInline.title = inlineFieldKey; // give the annotation its own title
-                    textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
+                    textDocInline["title-custom"] = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
                     textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
                     textDocInline._textContext = ComputedField.MakeFunction(`copyField(self.${inlineFieldKey})`);

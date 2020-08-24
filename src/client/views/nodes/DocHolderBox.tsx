@@ -120,6 +120,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}
@@ -149,6 +150,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     docFilters={this.props.docFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                     ContainingCollectionDoc={undefined}
                     fitToBox={true}

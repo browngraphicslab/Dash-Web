@@ -99,6 +99,9 @@
         direction: ltr;
         overflow: visible;
     }
+    .rt-noData {
+        display: none;
+    }
 
     .rt-thead {
         width: 100%;

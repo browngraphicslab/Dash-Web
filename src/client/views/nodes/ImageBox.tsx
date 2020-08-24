@@ -111,23 +111,17 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         }).then(function (stream) {
             gumStream = stream;
             recorder = new MediaRecorder(stream);
-            recorder.ondataavailable = async function (e: any) {
-                const formData = new FormData();
-                formData.append("file", e.data);
-                const res = await fetch(Utils.prepend("/uploadFormData"), {
-                    method: 'POST',
-                    body: formData
-                });
-                const files = await res.json();
-                const url = Utils.prepend(files[0].path);
-                // upload to server with known URL
-                const audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", _width: 200, _height: 32 });
-                audioDoc.treeViewExpandedView = "layout";
-                const audioAnnos = Cast(this.dataDoc[this.fieldKey + "-audioAnnotations"], listSpec(Doc));
-                if (audioAnnos === undefined) {
-                    this.dataDoc[this.fieldKey + "-audioAnnotations"] = new List([audioDoc]);
-                } else {
-                    audioAnnos.push(audioDoc);
+            recorder.ondataavailable = async (e: any) => {
+                const [{ result }] = await Networking.UploadFilesToServer(e.data);
+                if (!(result instanceof Error)) {
+                    const audioDoc = Docs.Create.AudioDocument(Utils.prepend(result.accessPaths.agnostic.client), { title: "audio test", _width: 200, _height: 32 });
+                    audioDoc.treeViewExpandedView = "layout";
+                    const audioAnnos = Cast(self.dataDoc[self.fieldKey + "-audioAnnotations"], listSpec(Doc));
+                    if (audioAnnos === undefined) {
+                        self.dataDoc[self.fieldKey + "-audioAnnotations"] = new List([audioDoc]);
+                    } else {
+                        audioAnnos.push(audioDoc);
+                    }
                 }
             };
             runInAction(() => self._audioState = 2);
@@ -489,6 +483,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
                 docFilters={this.props.docFilters}
+                searchFilterDocs={this.props.searchFilterDocs}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>

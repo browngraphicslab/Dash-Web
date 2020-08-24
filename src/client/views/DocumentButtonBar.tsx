@@ -23,7 +23,8 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { Tooltip } from '@material-ui/core';
-import { SelectionManager } from '../util/SelectionManager';
+import SharingManager from '../util/SharingManager';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -213,6 +214,27 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     }
 
     @computed
+    get shareButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Sharing Manager"}</div></>}>
+            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={e => SharingManager.Instance.open(this.view0, targetDoc)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="users"
+                />
+            </div></Tooltip >;
+    }
+
+    @computed
+    get moreButton() {
+        const targetDoc = this.view0?.props.Document;
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Open Properties Panel"}</div></>}>
+            <div className="documentButtonBar-linker" style={{ color: "white" }} onClick={action(e =>
+                CurrentUserUtils.propertiesWidth = CurrentUserUtils.propertiesWidth > 0 ? 0 : 250)}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="ellipsis-h"
+                />
+            </div></Tooltip >;
+    }
+
+    @computed
     get metadataButton() {
         const view0 = this.view0;
         return !view0 ? (null) : <Tooltip title={<><div className="dash-tooltip">Show metadata panel</div></>}>
@@ -299,6 +321,12 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
             </div> */}
             <div className="documentButtonBar-button">
                 {this.pinButton}
+            </div>
+            {/* <div className="documentButtonBar-button">
+                {this.shareButton}
+            </div> */}
+            <div className="documentButtonBar-button">
+                {this.moreButton}
             </div>
             {/* <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}

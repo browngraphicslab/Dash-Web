@@ -23,6 +23,7 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { LinkManager } from "../client/util/LinkManager";
 import JSZip = require("jszip");
 import { saveAs } from "file-saver";
+import { result } from "lodash";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -90,6 +91,9 @@ export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
 
 export function DocListCast(field: FieldResult): Doc[] {
     return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
+}
+export function DocListCastOrNull(field: FieldResult) {
+    return Cast(field, listSpec(Doc), null)?.filter(d => d instanceof Doc) as Doc[] | undefined;
 }
 
 export const WidthSym = Symbol("Width");
@@ -206,11 +210,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [FieldsSym] = (clear?: boolean) => clear ? this.___fields = this.___fieldKeys = {} : this.___fields;
+    public [FieldsSym](clear?: boolean) { return clear ? this.___fields = this.___fieldKeys = {} : this.___fields; }
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public [ToScriptString] = () => `DOC-"${this[Self][Id]}"-`;
-    public [ToString] = () => `Doc(${GetEffectiveAcl(this) === AclPrivate ? "-inaccessible-" : this.title})`;
+    public [ToString] = () => `Doc(${GetEffectiveAcl(this[SelfProxy]) === AclPrivate ? "-inaccessible-" : this[SelfProxy].title})`;
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -878,6 +882,7 @@ export namespace Doc {
 
     export class DocBrush {
         BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+        SearchMatchDoc: ObservableMap<Doc, { searchMatch: number }> = new ObservableMap();
     }
     const brushManager = new DocBrush();
 
@@ -903,6 +908,33 @@ export namespace Doc {
     export function SetSelectedTool(tool: InkTool) { Doc.UserDoc().activeInkTool = tool; }
     export function GetSelectedTool(): InkTool { return StrCast(Doc.UserDoc().activeInkTool, InkTool.None) as InkTool; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
+
+    export function IsSearchMatch(doc: Doc) {
+        return computedFn(function IsSearchMatch(doc: Doc) {
+            return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+                brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+        })(doc);
+    }
+    export function IsSearchMatchUnmemoized(doc: Doc) {
+        return brushManager.SearchMatchDoc.has(doc) ? brushManager.SearchMatchDoc.get(doc) :
+            brushManager.SearchMatchDoc.has(Doc.GetProto(doc)) ? brushManager.SearchMatchDoc.get(Doc.GetProto(doc)) : undefined;
+    }
+    export function SetSearchMatch(doc: Doc, results: { searchMatch: number }) {
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
+        brushManager.SearchMatchDoc.set(doc, results);
+        return doc;
+    }
+    export function SearchMatchNext(doc: Doc, backward: boolean) {
+        if (!doc || GetEffectiveAcl(doc) === AclPrivate || GetEffectiveAcl(Doc.GetProto(doc)) === AclPrivate) return doc;
+        const result = brushManager.SearchMatchDoc.get(doc);
+        const num = Math.abs(result?.searchMatch || 0) + 1;
+        runInAction(() => result && brushManager.SearchMatchDoc.set(doc, { searchMatch: backward ? -num : num }));
+        return doc;
+    }
+    export function ClearSearchMatches() {
+        brushManager.SearchMatchDoc.clear();
+    }
+
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
             return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
@@ -996,10 +1028,10 @@ export namespace Doc {
         const fieldVal = doc[key];
         if (Cast(fieldVal, listSpec("string"), []).length) {
             const vals = Cast(fieldVal, listSpec("string"), []);
-            return vals.some(v => v === value);
+            return vals.some(v => v.includes(value));  // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
         }
         const fieldStr = Field.toString(fieldVal as Field);
-        return fieldStr === value;
+        return fieldStr.includes(value); // bcz: arghh: Todo: comparison should be parameterized as exact, or substring
     }
 
     export function deiconifyView(doc: any) {
@@ -1028,18 +1060,14 @@ export namespace Doc {
         }
     }
 
-    export function aliasDocs(field: any) {
-        return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d)));
-    }
-
     // filters document in a container collection:
     // all documents with the specified value for the specified key are included/excluded 
     // based on the modifiers :"check", "x", undefined
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "match" | "check" | "x" | undefined) {
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "remove" | "match" | "check" | "x" | undefined) {
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         runInAction(() => {
             for (let i = 0; i < docFilters.length; i += 3) {
-                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match")) {
+                if (docFilters[i] === key && (docFilters[i + 1] === value || modifiers === "match" || modifiers === "remove")) {
                     if (docFilters[i + 2] === modifiers && modifiers && docFilters[i + 1] === value) return;
                     docFilters.splice(i, 3);
                     container._docFilters = new List<string>(docFilters);
@@ -1049,7 +1077,7 @@ export namespace Doc {
             if (typeof modifiers === "string") {
                 if (!docFilters.length && modifiers === "match" && value === undefined) {
                     container._docFilters = undefined;
-                } else {
+                } else if (modifiers !== "remove") {
                     docFilters.push(key);
                     docFilters.push(value);
                     docFilters.push(modifiers);
@@ -1245,8 +1273,15 @@ Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
+Scripting.addGlobal(function copyDragFactory(dragFactory: Doc) {
+    const ndoc = dragFactory.isTemplateDoc ? Doc.ApplyTemplate(dragFactory) : Doc.MakeCopy(dragFactory, true);
+    if (ndoc && dragFactory["dragFactory-count"] !== undefined) {
+        dragFactory["dragFactory-count"] = NumCast(dragFactory["dragFactory-count"]) + 1;
+        Doc.SetInPlace(ndoc, "title", ndoc.title + " " + NumCast(dragFactory["dragFactory-count"]).toString(), true);
+    }
+    return ndoc;
+});
 Scripting.addGlobal(function copyField(field: any) { return field instanceof ObjectField ? ObjectField.MakeCopy(field) : field; });
-Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });

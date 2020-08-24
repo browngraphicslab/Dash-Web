@@ -92,6 +92,7 @@ export class PreviewCursor extends React.Component<{}> {
                         _width: 500,
                         limitHeight: 400,
                         _autoHeight: true,
+                        _showTitle: Doc.UserDoc().showTitle ? "title" : undefined,
                         x: newPoint[0],
                         y: newPoint[1],
                         title: "-pasted text-"

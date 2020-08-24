@@ -384,6 +384,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                     renderDepth={this.props.renderDepth + 1}
                     docFilters={this.props.docFilters}
+                    searchFilterDocs={this.props.searchFilterDocs}
                     ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                     {this.contentFunc}
                 </CollectionFreeFormView>

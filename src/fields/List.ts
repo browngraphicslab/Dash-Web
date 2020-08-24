@@ -1,14 +1,16 @@
-import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/SerializationHelper";
-import { Field } from "./Doc";
-import { setter, getter, deleteProperty, updateFunction } from "./util";
-import { serializable, alias, list } from "serializr";
-import { observable, action, runInAction } from "mobx";
-import { ObjectField } from "./ObjectField";
-import { RefField } from "./RefField";
-import { ProxyField } from "./Proxy";
-import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, ToString, Copy, Id } from "./FieldSymbols";
-import { Scripting } from "../client/util/Scripting";
+import { action, observable, runInAction } from "mobx";
+import { alias, list, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
+import { Scripting } from "../client/util/Scripting";
+import { afterDocDeserialize, autoObject, Deserializable } from "../client/util/SerializationHelper";
+import { Field } from "./Doc";
+import { Copy, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { ObjectField } from "./ObjectField";
+import { ProxyField } from "./Proxy";
+import { RefField } from "./RefField";
+import { listSpec } from "./Schema";
+import { Cast } from "./Types";
+import { deleteProperty, getter, setter, updateFunction } from "./util";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -329,3 +331,8 @@ export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Pro
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;
 
 Scripting.addGlobal("List", List);
+Scripting.addGlobal(function compareLists(l1: any, l2: any) {
+    const L1 = Cast(l1, listSpec("string"), []);
+    const L2 = Cast(l2, listSpec("string"), []);
+    return !L1 && !L2 ? true : L1 && L2 && L1.length === L2.length && L2.reduce((p, v) => p && L1.includes(v), true);
+}, "compare two lists");

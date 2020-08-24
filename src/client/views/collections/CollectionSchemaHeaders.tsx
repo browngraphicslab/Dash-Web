@@ -287,12 +287,10 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 const colpos = this._searchTerm.indexOf(":");
                 const temp = this._searchTerm.slice(colpos + 1, this._searchTerm.length);
                 if (temp === "") {
-                    console.log("here we are first");
                     Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
                     this.updateFilter();
                 }
                 else {
-                    console.log("here we are first");
                     Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
                     this.tempfilter = temp;
                     Doc.setDocFilter(this.props.Document, this._key, temp, "check");
@@ -304,8 +302,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
                 this.updateFilter();
                 let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-                const blockedkeys = ["system", "ACL-Public", "_scrollTop", "customTitle", "limitHeight", "proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
-                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
+                const blockedkeys = ["system", "title-custom", "limitHeight", "proto", "x", "y", "zIndex", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
+                keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
                 if (keyOptions.length) {
                     this.onSelect(keyOptions[0]);
                 } else if (this._searchTerm !== "" && this.props.canAddNew) {
@@ -338,8 +336,8 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
         const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
-        const blockedkeys = ["proto", "x", "y", "_width", "_height", "_autoHeight", "_fontSize", "_fontFamily", "context", "zIndex", "_timeStampOnEnter", "lines", "highlighting", "searchMatch", "creationDate", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "_xMargin", "_yMargin", "layout", "layout_keyValue", "links"];
-        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n));
+        const blockedkeys = ["proto", "x", "y", "zIndex", "_timeStampOnEnter", "isPrototype", "text-annotations", "aliases", "text-lastModified", "text-noTemplate", "layoutKey", "baseProto", "layout", "layout_keyValue", "links"];
+        keyOptions = keyOptions.filter(n => !blockedkeys.includes(n) && !n.startsWith("_") && !n.startsWith("ACL"));
 
         const options = keyOptions.map(key => {
             return <div key={key} className="key-option" style={{
@@ -498,11 +496,7 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             }
         });
 
-        keyOptions.forEach(key => {
-            Doc.setDocFilter(this.props.Document, this._key, key, undefined);
-        }
-        );
-        Doc.setDocFilter(this.props.Document, this._key, this.tempfilter, undefined);
+        Doc.setDocFilter(this.props.Document, this._key, "", "remove");
         this.props.col.setColor("rgb(241, 239, 235)");
         this.closeResultsVisibility = "none";
     }
@@ -518,13 +512,9 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
                 <div className="keys-dropdown" style={{ zIndex: 1, width: this.props.width, maxWidth: this.props.width }}>
                     <input className="keys-search" style={{ width: "100%" }}
                         ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
-                        onChange={e => {
-                            this.onChange(e.target.value);
-                        }}
-                        onClick={(e) => {
-                            //this._inputRef.current!.select();
-                            e.stopPropagation();
-                        }} onFocus={this.onFocus} ></input>
+                        onChange={e => this.onChange(e.target.value)}
+                        onClick={(e) => { e.stopPropagation(); this._inputRef.current?.focus(); }}
+                        onFocus={this.onFocus} ></input>
                     <div style={{ display: this.closeResultsVisibility }}>
                         <FontAwesomeIcon onPointerDown={this.removeFilters} icon={"times-circle"} size="lg"
                             style={{ cursor: "hand", color: "grey", padding: 2, left: -20, top: -1, height: 15, position: "relative" }} />

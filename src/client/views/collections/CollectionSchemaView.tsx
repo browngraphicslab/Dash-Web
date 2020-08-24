@@ -9,7 +9,7 @@ import { Resize } from "react-table";
 import "react-table/react-table.css";
 import { Doc, Opt } from "../../../fields/Doc";
 import { List } from "../../../fields/List";
-import { listSpec } from "../../../fields/Schema";
+import { listSpec, makeInterface, emptySchema } from "../../../fields/Schema";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { Cast, NumCast, BoolCast } from "../../../fields/Types";
 import { TraceMobx } from "../../../fields/util";
@@ -73,7 +73,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get menuCoordinates() {
         let searchx = 0;
         let searchy = 0;
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             const el = document.getElementsByClassName("collectionSchemaView-searchContainer")[0];
             if (el !== undefined) {
                 const rect = el.getBoundingClientRect();
@@ -305,17 +305,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     this.columns = columns;
                     if (filter) {
                         Doc.setDocFilter(this.props.Document, newKey, filter, "match");
-                        if (this.props.Document.selectedDoc !== undefined) {
-                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
-                            Doc.setDocFilter(doc, newKey, filter, "match");
-                        }
                     }
                     else {
                         this.props.Document._docFilters = undefined;
-                        if (this.props.Document.selectedDoc !== undefined) {
-                            const doc = Cast(this.props.Document.selectedDoc, Doc) as Doc;
-                            doc._docFilters = undefined;
-                        }
                     }
                 }
             }
@@ -454,6 +446,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     PanelHeight={this.previewHeight}
                     ScreenToLocalTransform={this.getPreviewTransform}
                     docFilters={this.docFilters}
+                    searchFilterDocs={this.searchFilterDocs}
                     ContainingCollectionDoc={this.props.CollectionView?.props.Document}
                     ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
@@ -592,7 +585,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
     render() {
         let name = "collectionSchemaView-container";
-        if (this.props.Document._searchDoc !== undefined) {
+        if (this.props.Document._searchDoc) {
             name = "collectionSchemaView-searchContainer";
         }
         if (!this.props.active()) setTimeout(() => this.closeHeader(), 0);
@@ -615,7 +608,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return <div className={name}
             style={{
                 overflow: this.props.overflow === true ? "scroll" : undefined, backgroundColor: "white",
-                pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
+                pointerEvents: this.props.Document._searchDoc !== undefined && !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined,
                 width: name === "collectionSchemaView-searchContainer" ? "auto" : this.props.PanelWidth() || "100%", height: this.props.PanelHeight() || "100%", position: "relative",
             }}  >
             <div className="collectionSchemaView-tableContainer"
