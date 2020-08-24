@@ -8,6 +8,7 @@ import "./EditableView.scss";
 import { DragManager } from '../util/DragManager';
 import { ComputedField } from '../../fields/ScriptField';
 import { FieldValue } from '../../fields/Types';
+import { PresBox } from './nodes/PresBox';
 
 export interface EditableProps {
     /**

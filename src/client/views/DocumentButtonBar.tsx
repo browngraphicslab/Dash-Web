@@ -25,6 +25,7 @@ import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { Tooltip } from '@material-ui/core';
 import SharingManager from '../util/SharingManager';
 import { CurrentUserUtils } from '../util/CurrentUserUtils';
+import { SelectionManager } from '../util/SelectionManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -198,6 +199,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
         let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        // More than 1 document selected then all must be in presentation for isPinned to be true (then it will unpin all)
         if (SelectionManager.SelectedDocuments().length > 1) {
             SelectionManager.SelectedDocuments().forEach((docView: DocumentView) => {
                 if (Doc.isDocPinned(docView.props.Document)) isPinned = true;

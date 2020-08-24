@@ -756,18 +756,6 @@ export class CurrentUserUtils {
         return doc.myDashboards as any as Doc;
     }
 
-    static async addToPresList(doc: Doc, pres: Doc) {
-        await doc.myPresentations;
-        if (doc.myPresentations === undefined) {
-            doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
-            }));
-        }
-        const myPresentations = doc.myPresentations as Doc;
-        doc.activePresentation = pres;
-        Doc.AddDocToList(myPresentations, "data", pres);
-    }
-
     static async setupPresentations(doc: Doc) {
         await doc.myPresentations;
         if (doc.myPresentations === undefined) {
