@@ -610,9 +610,9 @@ export class PropertiesButtons extends React.Component<{}, {}> {
     get clustersButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip
-            title={<><div className="dash-tooltip">{this.selectedDoc?.useClusters ? "Stop Showing Clusters" : "Show Clusters"}</div></>} placement="top">
+            title={<><div className="dash-tooltip">{this.selectedDoc?._useClusters ? "Stop Showing Clusters" : "Show Clusters"}</div></>} placement="top">
             <div>
-                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc.userClusters ? "on" : "off"}`} onPointerDown={this.changeClusters}>
+                <div className={`propertiesButtons-linkButton-empty toggle-${targetDoc._useClusters ? "on" : "off"}`} onPointerDown={this.changeClusters}>
                     <FontAwesomeIcon className="documentdecorations-icon" icon="braille" size="lg" />
                 </div>
                 <div className="propertiesButtons-title" > clusters </div>
@@ -627,7 +627,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
 
     @action @undoBatch
     changeClusters = () => {
-        this.selectedDoc && (this.selectedDoc.useClusters = !this.selectedDoc.useClusters);
+        this.selectedDoc && (this.selectedDoc._useClusters = !this.selectedDoc._useClusters);
     }
 
     @computed

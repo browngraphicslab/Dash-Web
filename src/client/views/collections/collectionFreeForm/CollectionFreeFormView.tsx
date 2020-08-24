@@ -54,7 +54,7 @@ export const panZoomSchema = createSchema({
     displayTimecode: "number",
     currentFrame: "number",
     arrangeInit: ScriptField,
-    useClusters: "boolean",
+    _useClusters: "boolean",
     fitToBox: "boolean",
     _xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     _yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
@@ -301,8 +301,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @undoBatch
     @action
-    updateClusters(useClusters: boolean) {
-        this.props.Document.useClusters = useClusters;
+    updateClusters(_useClusters: boolean) {
+        this.props.Document._useClusters = _useClusters;
         this._clusterSets.length = 0;
         this.childLayoutPairs.map(pair => pair.layout).map(c => this.updateCluster(c));
     }
@@ -310,7 +310,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     updateClusterDocs(docs: Doc[]) {
         const childLayouts = this.childLayoutPairs.map(pair => pair.layout);
-        if (this.props.Document.useClusters) {
+        if (this.props.Document._useClusters) {
             const docFirst = docs[0];
             docs.map(doc => this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1)));
             const preferredInd = NumCast(docFirst.cluster);
@@ -345,7 +345,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @action
     updateCluster(doc: Doc) {
         const childLayouts = this.childLayoutPairs.map(pair => pair.layout);
-        if (this.props.Document.useClusters) {
+        if (this.props.Document._useClusters) {
             this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
             const preferredInd = NumCast(doc.cluster);
             doc.cluster = -1;
@@ -375,7 +375,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     getClusterColor = (doc: Doc) => {
         let clusterColor = this.props.backgroundColor?.(doc, this.props.renderDepth + 1);
         const cluster = NumCast(doc.cluster);
-        if (this.Document.useClusters) {
+        if (this.Document._useClusters) {
             if (this._clusterSets.length <= cluster) {
                 setTimeout(() => this.updateCluster(doc), 0);
             } else {
@@ -397,7 +397,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (e.nativeEvent.cancelBubble || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE) || InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (Doc.GetSelectedTool() === InkTool.Highlighter || Doc.GetSelectedTool() === InkTool.Pen)) {
             return;
         }
-        this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
+        this._hitCluster = this.props.Document._useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
         if (e.button === 0 && (!e.shiftKey || this._hitCluster) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
 
             // if (!this.props.Document.aliasOf && !this.props.ContainingCollectionView) {
@@ -938,7 +938,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     onChildClickHandler = () => this.props.childClickScript || ScriptCast(this.Document.onChildClick);
     onChildDoubleClickHandler = () => this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick);
-    backgroundHalo = () => BoolCast(this.Document.useClusters);
+    backgroundHalo = () => BoolCast(this.Document._useClusters);
     parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -1137,7 +1137,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             this.props.Document[this.scaleFieldKey] = Math.max(1, NumCast(this.props.Document[this.scaleFieldKey]));
         }
 
-        this.Document.useClusters && !this._clusterSets.length && this.childDocs.length && this.updateClusters(true);
+        this.Document._useClusters && !this._clusterSets.length && this.childDocs.length && this.updateClusters(true);
         return elements;
     }
 
@@ -1249,7 +1249,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
 
         !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (Doc.UserDoc().showSnapLines ? "Hide" : "Show") + " Snap Lines", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" }) : null;
-        !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (this.Document.useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" }) : null;
+        !Doc.UserDoc().noviceMode ? viewCtrlItems.push({ description: (this.Document._useClusters ? "Hide" : "Show") + " Clusters", event: () => this.updateClusters(!this.Document._useClusters), icon: "braille" }) : null;
         !viewctrls && ContextMenu.Instance.addItem({ description: "UI Controls...", subitems: viewCtrlItems, icon: "eye" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");

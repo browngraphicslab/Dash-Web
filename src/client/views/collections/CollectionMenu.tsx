@@ -174,8 +174,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     };
     _fitContentCommand = {
         params: ["target"], title: "toggle clusters",
-        script: "self.target.useClusters = !self.target.useClusters;",
-        immediate: undoBatch((source: Doc[]) => this.target.useClusters = !this.target.useClusters),
+        script: "self.target._useClusters = !self.target._useClusters;",
+        immediate: undoBatch((source: Doc[]) => this.target._useClusters = !this.target._useClusters),
         initialize: emptyFunction
     };
     _saveFilterCommand = {
