@@ -1,7 +1,7 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Checkbox, Tooltip } from "@material-ui/core";
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
 import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../../../fields/Doc";
@@ -843,10 +843,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     <div className="propertiesView-name">
                         {this.editableTitle}
                     </div>
-                    <div className="propertiesView-settings" onPointerEnter={() => runInAction(() => { this.inOptions = true; })}
+                    <div className="propertiesView-settings" onPointerEnter={action(() => this.inOptions = true)}
                         onPointerLeave={action(() => this.inOptions = false)}>
                         <div className="propertiesView-settings-title"
-                            onPointerDown={() => runInAction(() => { this.openOptions = !this.openOptions; })}
+                            onPointerDown={action(() => this.openOptions = !this.openOptions)}
                             style={{ backgroundColor: this.openOptions ? "black" : "" }}>
                             Options
                         <div className="propertiesView-settings-title-icon">
@@ -860,7 +860,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>
                     <div className="propertiesView-sharing">
                         <div className="propertiesView-sharing-title"
-                            onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
+                            onPointerDown={action(() => this.openSharing = !this.openSharing)}
                             style={{ backgroundColor: this.openSharing ? "black" : "" }}>
                             Sharing {"&"} Permissions
                         <div className="propertiesView-sharing-title-icon">
@@ -914,7 +914,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     {!this.isInk ? (null) :
                         <div className="propertiesView-appearance">
                             <div className="propertiesView-appearance-title"
-                                onPointerDown={() => runInAction(() => { this.openAppearance = !this.openAppearance; })}
+                                onPointerDown={action(() => this.openAppearance = !this.openAppearance)}
                                 style={{ backgroundColor: this.openAppearance ? "black" : "" }}>
                                 Appearance
                             <div className="propertiesView-appearance-title-icon">
@@ -929,7 +929,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     {this.isInk ? <div className="propertiesView-transform">
                         <div className="propertiesView-transform-title"
-                            onPointerDown={() => runInAction(() => { this.openTransform = !this.openTransform; })}
+                            onPointerDown={action(() => this.openTransform = !this.openTransform)}
                             style={{ backgroundColor: this.openTransform ? "black" : "" }}>
                             Transform
                         <div className="propertiesView-transform-title-icon">
@@ -943,7 +943,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
                     <div className="propertiesView-fields">
                         <div className="propertiesView-fields-title"
-                            onPointerDown={() => runInAction(() => { this.openFields = !this.openFields; })}
+                            onPointerDown={action(() => this.openFields = !this.openFields)}
                             style={{ backgroundColor: this.openFields ? "black" : "" }}>
                             Fields {"&"} Tags
                             <div className="propertiesView-fields-title-icon">
@@ -961,10 +961,10 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>
                     <div className="propertiesView-layout">
                         <div className="propertiesView-layout-title"
-                            onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}
+                            onPointerDown={action(() => this.openLayout = !this.openLayout)}
                             style={{ backgroundColor: this.openLayout ? "black" : "" }}>
                             Layout
-                        <div className="propertiesView-layout-title-icon" onPointerDown={() => runInAction(() => { this.openLayout = !this.openLayout; })}>
+                        <div className="propertiesView-layout-title-icon">
                                 <FontAwesomeIcon icon={this.openLayout ? "caret-down" : "caret-right"} size="lg" color="white" />
                             </div>
                         </div>
@@ -1002,7 +1002,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>}
                     {!selectedItem ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
+                            onPointerDown={action(() => { this.openPresProgressivize = !this.openPresProgressivize; })}
                             style={{ backgroundColor: this.openPresProgressivize ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"tasks"} /> &nbsp; Progressivize
                         <div className="propertiesView-presTrails-title-icon">
@@ -1015,7 +1015,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>}
                     {!selectedItem ? (null) : <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openSlideOptions = !this.openSlideOptions; })}
+                            onPointerDown={action(() => { this.openSlideOptions = !this.openSlideOptions; })}
                             style={{ backgroundColor: this.openSlideOptions ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"cog"} /> &nbsp; {PresBox.Instance.stringType} options
                         <div className="propertiesView-presTrails-title-icon">
@@ -1028,7 +1028,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>}
                     <div className="propertiesView-presTrails">
                         <div className="propertiesView-presTrails-title"
-                            onPointerDown={() => runInAction(() => { this.openAddSlide = !this.openAddSlide; })}
+                            onPointerDown={action(() => { this.openAddSlide = !this.openAddSlide; })}
                             style={{ backgroundColor: this.openAddSlide ? "black" : "" }}>
                             &nbsp; <FontAwesomeIcon icon={"plus"} /> &nbsp; Add new slide
                         <div className="propertiesView-presTrails-title-icon">
@@ -1041,7 +1041,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                     </div>
                     {/* <div className="propertiesView-sharing">
                         <div className="propertiesView-sharing-title"
-                            onPointerDown={() => runInAction(() => { this.openSharing = !this.openSharing; })}
+                            onPointerDown={acition(() => { this.openSharing = !this.openSharing; })}
                             style={{ backgroundColor: this.openSharing ? "black" : "" }}>
                             Sharing {"&"} Permissions
                         <div className="propertiesView-sharing-title-icon">

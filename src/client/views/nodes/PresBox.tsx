@@ -436,7 +436,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const docView = DocumentManager.Instance.getDocumentView(this.layoutDoc);
         if (this.layoutDoc.inOverlay) {
             this.layoutDoc.presStatus = 'edit';
-            Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
+            Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
             CollectionDockingView.AddRightSplit(this.rootDoc);
             this.layoutDoc.inOverlay = false;
         } else if (this.layoutDoc.context && docView) {
@@ -447,7 +447,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._height = 35;
             this.rootDoc._width = 250;
             docView.props.removeDocument?.(this.layoutDoc);
-            Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
+            Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
         } else {
             this.layoutDoc.presStatus = 'manual';
             const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
@@ -456,7 +456,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._height = 35;
             this.rootDoc._width = 250;
             this.props.addDocTab?.(this.rootDoc, "close");
-            Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
+            Doc.AddDocToList((Doc.UserDoc().myOverlayDocs as Doc), undefined, this.rootDoc);
         }
     }
 

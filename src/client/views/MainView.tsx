@@ -83,7 +83,7 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeDashboard, Doc)) : CurrentUserUtils.GuestDashboard; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get searchDoc() { return Cast(this.userDoc["search-panel"], Doc) as Doc; }
+    @computed public get searchDoc() { return Cast(this.userDoc.mySearchPanelDoc, Doc) as Doc; }
 
     @observable public sidebarContent: any = this.userDoc?.sidebar;
     @observable public panelContent: string = "none";
@@ -273,7 +273,6 @@ export class MainView extends React.Component {
 
     @action
     createNewDashboard = async (id?: string) => {
-        const myCatalog = Doc.UserDoc().myCatalog as Doc;
         const myPresentations = Doc.UserDoc().myPresentations as Doc;
         const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const dashboards = Cast(this.userDoc.myDashboards, Doc) as Doc;
@@ -288,9 +287,7 @@ export class MainView extends React.Component {
             title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");
-        Doc.AddDocToList(myCatalog, "data", freeformDoc);
-        Doc.AddDocToList(myCatalog, "data", presentation);
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
         Doc.AddDocToList(myPresentations, "data", presentation);
         Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
@@ -359,16 +356,9 @@ export class MainView extends React.Component {
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
     defaultBackgroundColors = (doc: Opt<Doc>, renderDepth: number) => {
-        if (this.panelContent === doc?.title) return "lightgrey";
-
         if (doc?.type === DocumentType.COL) {
-            if (doc.title === "Basic Item Creators" || doc.title === "sidebar-tools"
-                || doc.title === "sidebar-inactiveDocs" || doc.title === "sidebar-catalog"
-                || doc.title === "Mobile Uploads" || doc.title === "COLLECTION_PROTO"
-                || doc.title === "Advanced Item Prototypes" || doc.title === "all Creators") {
-                return "lightgrey";
-            }
-            return StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
+            const system = Object.getOwnPropertyNames(doc).indexOf("system") !== -1;
+            return system ? "lightgrey" : StrCast(renderDepth > 0 ? Doc.UserDoc().activeCollectionNestedBackground : Doc.UserDoc().activeCollectionBackground);
         }
         if (this.darkScheme) {
             switch (doc?.type) {
@@ -573,7 +563,6 @@ export class MainView extends React.Component {
                     SearchBox.Instance.newsearchstring = "";
                     SearchBox.Instance.enter(undefined);
                     break;
-                // panelDoc = Doc.UserDoc()["sidebar-catalog"] as Doc ?? undefined; break;
                 default:
                     panelDoc = button.target as any; break;
             }
@@ -932,7 +921,7 @@ export class MainView extends React.Component {
     }
 
     importDocument = () => {
-        const sidebar = Cast(Doc.UserDoc()["sidebar-import-documents"], Doc, null);
+        const sidebar = Cast(Doc.UserDoc().myImportDocs, Doc, null);
         const sidebarDocView = DocumentManager.Instance.getDocumentView(sidebar);
         const input = document.createElement("input");
         input.type = "file";

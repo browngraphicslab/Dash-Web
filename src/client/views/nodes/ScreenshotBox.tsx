@@ -73,7 +73,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                             const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
                             imageSummary.x = spt[0];
                             imageSummary.y = spt[1];
-                            Cast(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
+                            Cast(Cast(Doc.UserDoc().myOverlayDocs, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
                         } else {
                             this.props.addDocument?.(imageSummary);
                         }

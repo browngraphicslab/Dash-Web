@@ -145,7 +145,7 @@ export class OverlayView extends React.Component {
 
 
     @computed get overlayDocs() {
-        const userDocOverlays = Doc.UserDoc().myOverlayDocuments;
+        const userDocOverlays = Doc.UserDoc().myOverlayDocs;
         if (!userDocOverlays) {
             return null;
         }
@@ -165,7 +165,7 @@ export class OverlayView extends React.Component {
                     dragData.dropAction = "move";
                     dragData.removeDocument = (doc: Doc | Doc[]) => {
                         const docs = (doc instanceof Doc) ? [doc] : doc;
-                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null), "data", d));
+                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocs, Doc, null), "data", d));
                         return true;
                     };
                     dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {

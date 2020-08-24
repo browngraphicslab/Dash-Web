@@ -188,6 +188,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @action
     public static AddRightSplit(document: Doc, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
+        if (document._viewType === CollectionViewType.Docking) return MainView.Instance.openDashboard(document);
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
             type: 'stack',
@@ -854,7 +855,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
-        if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
+        if (doc._viewType === CollectionViewType.Docking) {
             return MainView.Instance.openDashboard(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);

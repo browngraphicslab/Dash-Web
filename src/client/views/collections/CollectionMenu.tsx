@@ -186,8 +186,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
                  self.target._searchFilterDocs = compareLists(self['target-searchFilterDocs'],self.target._searchFilterDocs) ? undefined: copyField(self['target-searchFilterDocs']);`,
         immediate: undoBatch((source: Doc[]) => { this.target._docFilters = undefined; this.target._searchFilterDocs = undefined; }),
         initialize: (button: Doc) => {
-            button['target-docFilters'] = Cast(Doc.UserDoc()["search-panel"], Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc()["search-panel"], Doc, null)._docFilters as any as ObjectField) : undefined;
-            button['target-searchFilterDocs'] = Cast(Doc.UserDoc()["search-panel"], Doc, null)._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc()["search-panel"], Doc, null)._searchFilterDocs as any as ObjectField) : undefined;
+            button['target-docFilters'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._docFilters as any as ObjectField) : undefined;
+            button['target-searchFilterDocs'] = Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs instanceof ObjectField ? ObjectField.MakeCopy(Cast(Doc.UserDoc().mySearchPanelDoc, Doc, null)._searchFilterDocs as any as ObjectField) : undefined;
         },
     };
 
@@ -424,10 +424,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionMenuProp
     get aliasButton() {
         const targetDoc = this.selectedDoc;
         return !targetDoc ? (null) : <Tooltip title={<div className="dash-tooltip">{"Tap or Drag to create an alias"}</div>} placement="top">
-            <button className="antidmodeMenu-button"
-                ref={this._dragRef}
-                onPointerDown={this.onAliasButtonDown}
-                onClick={this.onAlias}>
+            <button className="antimodeMenu-button" ref={this._dragRef} onPointerDown={this.onAliasButtonDown} onClick={this.onAlias}>
                 <FontAwesomeIcon className="documentdecorations-icon" icon="copy" size="lg" />
             </button>
         </Tooltip>;

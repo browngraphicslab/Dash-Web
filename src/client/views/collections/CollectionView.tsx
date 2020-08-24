@@ -178,7 +178,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                         doc._stayInCollection = undefined;
                         doc.context = this.props.Document;
                     });
-                    added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
                     (targetDataDoc[this.props.fieldKey] as List<Doc>).push(...added);
                     targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                     const lastModified = "lastModified";
@@ -550,7 +549,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     bringToFront={emptyFunction}
                     active={this.props.active}
                     whenActiveChanged={returnFalse}
-                    treeViewHideTitle={true}
+                    treeViewHideTopDoc={true}
                     ContentScaling={returnOne}
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}
