@@ -155,6 +155,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                 AudioBox.Instance.playFrom(0);
                 this._moveOnFromAudio = true;
             } else this._moveOnFromAudio = false;
+        } else if (this.childDocs[this.itemIndex + 1] === undefined && this.layoutDoc.presLoop) {
+            console.log('loop');
+            const nextSelected = 0;
+            this.gotoDocument(0, this.itemIndex);
         }
     }
 
@@ -364,17 +368,27 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                     }
                 }
                 await timer(duration); this.next(); // then the created Promise can be awaited
-                if (i === this.childDocs.length - 1) setTimeout(() => { clearTimeout(this._presTimer); if (this.layoutDoc.presStatus === 'auto') this.layoutDoc.presStatus = "manual"; }, duration);
+                if (i === this.childDocs.length - 1) {
+                    setTimeout(() => {
+                        clearTimeout(this._presTimer);
+                        if (this.layoutDoc.presStatus === 'auto' && !this.layoutDoc.presLoop) this.layoutDoc.presStatus = "manual";
+                        else if (this.layoutDoc.presLoop) this.startAutoPres(0);
+                    }, duration);
+                };
             }
         };
+        this.layoutDoc.presStatus = "auto";
+        this.startPresentation(startSlide);
+        this.gotoDocument(startSlide, this.itemIndex);
+        load();
+    }
+
+    @action
+    pauseAutoPres = () => {
         if (this.layoutDoc.presStatus === "auto") {
             if (this._presTimer) clearTimeout(this._presTimer);
             this.layoutDoc.presStatus = "manual";
-        } else {
-            this.layoutDoc.presStatus = "auto";
-            this.startPresentation(startSlide);
-            this.gotoDocument(startSlide, this.itemIndex);
-            load();
+            this.layoutDoc.presLoop = false;
         }
     }
 
@@ -1657,8 +1671,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get playButtons() {
         // Case 1: There are still other frames and should go through all frames before going to next slide
         return (<div className="presPanelOverlay" style={{ display: this.layoutDoc.presStatus !== "edit" ? "inline-flex" : "none" }}>
+            <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="presPanel-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : 'white' }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
+            <div className="presPanel-divider"></div>
             <div className="presPanel-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-            <div className="presPanel-button" onClick={() => this.startAutoPres(this.itemIndex)}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
+            <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="presPanel-button" onClick={() => {
+                if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
+                else this.pauseAutoPres();
+            }}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
             <div className="presPanel-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
             <div className="presPanel-divider"></div>
             <div className="presPanel-button-text" style={{ display: this.props.PanelWidth() > 250 ? "inline-flex" : "none" }}>
@@ -1682,8 +1701,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         return this.layoutDoc.inOverlay ?
             <div className="miniPres" style={{ width: 250, height: 35, background: '#323232', top: 0, zIndex: 3000000 }}>
                 {<div className="miniPresOverlay">
+                    <Tooltip title={<><div className="dash-tooltip">{"Loop"}</div></>}><div className="miniPres-button" style={{ color: this.layoutDoc.presLoop ? '#AEDDF8' : undefined }} onClick={() => this.layoutDoc.presLoop = !this.layoutDoc.presLoop}><FontAwesomeIcon icon={"redo-alt"} /></div></Tooltip>
+                    <div className="miniPres-divider"></div>
                     <div className="miniPres-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></div>
-                    <div className="miniPres-button" onClick={() => this.startAutoPres(this.itemIndex)}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div>
+                    <Tooltip title={<><div className="dash-tooltip">{this.layoutDoc.presStatus === "auto" ? "Pause" : "Autoplay"}</div></>}><div className="miniPres-button" onClick={() => {
+                        if (this.layoutDoc.presStatus === "manual") this.startAutoPres(this.itemIndex);
+                        else this.pauseAutoPres();
+                    }}><FontAwesomeIcon icon={this.layoutDoc.presStatus === "auto" ? "pause" : "play"} /></div></Tooltip>
                     <div className="miniPres-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></div>
                     <div className="miniPres-divider"></div>
                     <div className="miniPres-button-text">
