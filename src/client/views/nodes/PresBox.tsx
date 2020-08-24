@@ -107,6 +107,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc._replacedChrome = "replaced";
         this.layoutDoc.presStatus = "edit";
         this.layoutDoc._gridGap = 5;
+        if (!DocListCast((Doc.UserDoc().myPresentations as Doc).data).includes(this.rootDoc)) {
+            Doc.AddDocToList(Doc.UserDoc().myPresentations as Doc, "data", this.rootDoc);
+        }
     }
 
     updateCurrentPresentation = () => {

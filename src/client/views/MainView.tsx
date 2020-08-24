@@ -274,6 +274,7 @@ export class MainView extends React.Component {
     @action
     createNewDashboard = async (id?: string) => {
         const myCatalog = Doc.UserDoc().myCatalog as Doc;
+        const myPresentations = Doc.UserDoc().myPresentations as Doc;
         const presentation = Doc.MakeCopy(Doc.UserDoc().emptyPresentation as Doc, true);
         const dashboards = Cast(this.userDoc.myDashboards, Doc) as Doc;
         const dashboardCount = DocListCast(dashboards.data).length + 1;
@@ -290,6 +291,7 @@ export class MainView extends React.Component {
         const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [myCatalog] }], { title: `Dashboard ${dashboardCount}` }, id, "row");
         Doc.AddDocToList(myCatalog, "data", freeformDoc);
         Doc.AddDocToList(myCatalog, "data", presentation);
+        Doc.AddDocToList(myPresentations, "data", presentation);
         Doc.UserDoc().activePresentation = presentation;
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);

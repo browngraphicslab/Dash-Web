@@ -757,9 +757,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     CollectionDockingView.AddRightSplit(curPres);
                 }
                 DocumentManager.Instance.jumpToDocument(doc, false, undefined, Cast(doc.context, Doc, null));
-                const myPresentations = Doc.UserDoc().myPresentations as Doc;
-                const presData = DocListCast(myPresentations.data);
-                if (!presData.includes(curPres)) Doc.AddDocToList(myPresentations, "data", curPres);
             }
         }
     }

@@ -436,7 +436,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @action
     setTitle = (value: string) => {
         if (this.dataDoc) {
-            this.selectedDoc && (this.selectedDoc.title = value);
+            this.selectedDoc && Doc.SetInPlace(this.selectedDoc, "title", value, true);
             KeyValueBox.SetField(this.dataDoc, "title", value, true);
             return true;
         }
