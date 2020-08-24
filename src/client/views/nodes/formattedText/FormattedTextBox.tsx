@@ -895,14 +895,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             async (scrollToLinkID) => {
                 const findLinkFrag = (frag: Fragment, editor: EditorView) => {
                     const nodes: Node[] = [];
+                    let offset = 0;
                     frag.forEach((node, index) => {
                         const examinedNode = findLinkNode(node, editor);
                         if (examinedNode?.textContent) {
                             nodes.push(examinedNode);
-                            start += index;
+                            offset = index;
                         }
                     });
-                    return { frag: Fragment.fromArray(nodes), start: start };
+                    return { frag: Fragment.fromArray(nodes), start: start + offset };
                 };
                 const findLinkNode = (node: Node, editor: EditorView) => {
                     if (!node.isText) {

@@ -232,6 +232,16 @@ export class FormattedTextBoxComment {
             const mark = child ? findLinkMark(child.marks) : undefined;
             const href = (!mark?.attrs.docref || naft === nbef) && mark?.attrs.allLinks.find((item: { href: string }) => item.href)?.href || forceUrl;
             if (forceUrl || (href && child && nbef && naft && mark?.attrs.showPreview)) {
+                try {
+                    ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+                } catch (e) { }
+                FormattedTextBoxComment.tooltip.removeChild(FormattedTextBoxComment.tooltipText);
+                FormattedTextBoxComment.tooltipText = document.createElement("div");
+                FormattedTextBoxComment.tooltipText.style.width = "100%";
+                FormattedTextBoxComment.tooltipText.style.height = "100%";
+                FormattedTextBoxComment.tooltipText.style.textOverflow = "ellipsis";
+                FormattedTextBoxComment.tooltip.appendChild(FormattedTextBoxComment.tooltipText);
+
                 FormattedTextBoxComment.tooltipText.textContent = "external => " + href;
                 (FormattedTextBoxComment.tooltipText as any).href = href;
                 if (href.startsWith("https://en.wikipedia.org/wiki/")) {
@@ -241,12 +251,9 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.tooltipText.style.overflow = "hidden";
                 }
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    const docTarget = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     FormattedTextBoxComment.tooltipText.textContent = "target not found...";
                     (FormattedTextBoxComment.tooltipText as any).href = "";
-                    const docTarget = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    try {
-                        ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
-                    } catch (e) { }
                     docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = href;

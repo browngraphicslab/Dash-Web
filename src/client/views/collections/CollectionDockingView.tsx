@@ -775,21 +775,20 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     componentDidMount() {
+        const color = () => StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white");
+        const selected = () => SelectionManager.SelectedDocuments().some(v => Doc.AreProtosEqual(v.props.Document, this._document));
+        const updateTabColor = () => this._tab && (this._tab.style.backgroundColor = selected() ? color() : "");
         const observer = new _global.ResizeObserver(action((entries: any) => {
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
                 this._panelHeight = entry.contentRect.height;
             }
+            updateTabColor();
         }));
         observer.observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: StrCast(this._document?._backgroundColor, this._document && CollectionDockingView.Instance?.props.backgroundColor?.(this._document, 0) || "white") }),
-            (data) => {
-                const selected = data.views.some(v => Doc.AreProtosEqual(v.props.Document, this._document));
-                this._tab && (this._tab.style.backgroundColor = selected ? data.color : "");
-            }
-        );
+        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: color() }), () => updateTabColor(), { fireImmediately: true });
     }
 
     componentWillUnmount() {
