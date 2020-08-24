@@ -1,52 +1,39 @@
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faPhotoVideo, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, AclEdit, AclAdmin } from "../../fields/Doc";
+import { AclAdmin, AclEdit, DataSym, Doc } from "../../fields/Doc";
+import { InkField } from '../../fields/InkField';
 import { RichTextField } from '../../fields/RichTextField';
-import { Cast, NumCast, BoolCast } from "../../fields/Types";
-import { emptyFunction, setupMoveUpEvents, Utils } from "../../Utils";
-import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { Cast, NumCast } from "../../fields/Types";
+import { ImageField } from '../../fields/URLField';
+import { GetEffectiveAcl } from '../../fields/util';
+import { emptyFunction, setupMoveUpEvents } from "../../Utils";
+import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
+import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
 import { Docs, DocUtils } from '../documents/Documents';
+import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from '../util/DragManager';
+import { SelectionManager } from '../util/SelectionManager';
+import { SharingManager } from '../util/SharingManager';
+import { undoBatch } from '../util/UndoManager';
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
-import './PropertiesButtons.scss';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
+import { PresBox } from './nodes/PresBox';
+import './PropertiesButtons.scss';
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { Tooltip } from '@material-ui/core';
-import { SelectionManager } from '../util/SelectionManager';
-import SharingManager from '../util/SharingManager';
-import { GooglePhotos } from '../apis/google_docs/GooglePhotosClientUtils';
-import { ImageField } from '../../fields/URLField';
-import { undoBatch, UndoManager } from '../util/UndoManager';
-import { DocumentType } from '../documents/DocumentTypes';
-import { InkField } from '../../fields/InkField';
-import { PresBox } from './nodes/PresBox';
-import { GetEffectiveAcl } from '../../fields/util';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(faLink);
-library.add(faTag);
-library.add(faTimes);
-library.add(faArrowAltCircleDown);
-library.add(faArrowAltCircleUp);
-library.add(faArrowAltCircleRight);
-library.add(faStopCircle);
-library.add(faCheckCircle);
-library.add(faCloudUploadAlt);
-library.add(faSyncAlt);
-library.add(faShare);
-library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -236,7 +223,7 @@ export class PropertiesButtons extends React.Component<{}, {}> {
             const y = targetDoc._panY;
             const scale = targetDoc._viewScale;
         }
-        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin with this view"}</div></>} placement="top">
+        return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{"Pin to presentation with current view"}</div></>} placement="top">
             <div>
                 <div className="propertiesButtons-linker"
                     onClick={e => {

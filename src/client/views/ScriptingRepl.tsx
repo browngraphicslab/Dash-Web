@@ -1,17 +1,12 @@
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action } from 'mobx';
-import './ScriptingRepl.scss';
-import { Scripting, CompileScript, ts, Transformer } from '../util/Scripting';
-import { DocumentManager } from '../util/DocumentManager';
-import { OverlayView } from './OverlayView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretDown, faCaretRight } from '@fortawesome/free-solid-svg-icons';
+import { action, observable } from 'mobx';
+import { observer } from 'mobx-react';
+import * as React from 'react';
+import { DocumentManager } from '../util/DocumentManager';
+import { CompileScript, Scripting, Transformer, ts } from '../util/Scripting';
 import { DocumentIconContainer } from './nodes/DocumentIcon';
-
-library.add(faCaretDown);
-library.add(faCaretRight);
+import { OverlayView } from './OverlayView';
+import './ScriptingRepl.scss';
 
 @observer
 export class ScriptingObjectDisplay extends React.Component<{ scrollToBottom: () => void, value: { [key: string]: any }, name?: string }> {

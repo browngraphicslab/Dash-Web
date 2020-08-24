@@ -206,6 +206,15 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
+    @action
+    removeItem = (e: React.MouseEvent) => {
+        this.props.removeDocument?.(this.rootDoc);
+        if (PresBox.Instance._selectedArray.includes(this.rootDoc)) {
+            PresBox.Instance._selectedArray.splice(PresBox.Instance._selectedArray.indexOf(this.rootDoc), 1);
+        }
+        e.stopPropagation();
+    }
+
     render() {
         const className = "presElementBox-item" + (PresBox.Instance._selectedArray.includes(this.rootDoc) ? " presElementBox-active" : "");
         const pbi = "presElementBox-interaction";
@@ -254,10 +263,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <Tooltip title={<><div className="dash-tooltip">{"Presentation pin view"}</div></>}><div className="presElementBox-time" style={{ fontWeight: 700, display: this.rootDoc.presPinView && PresBox.Instance.toolbarWidth > 300 ? "block" : "none" }}>V</div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{"Remove from presentation"}</div></>}><div
                         className="presElementBox-closeIcon"
-                        onClick={e => {
-                            this.props.removeDocument?.(this.rootDoc);
-                            e.stopPropagation();
-                        }}>
+                        onClick={this.removeItem}>
                         <FontAwesomeIcon icon={"trash"} onPointerDown={e => e.stopPropagation()} />
                     </div></Tooltip>
                     <Tooltip title={<><div className="dash-tooltip">{this.rootDoc.presExpandInlineButton ? "Minimize" : "Expand"}</div></>}><div className={"presElementBox-expand" + (this.rootDoc.presExpandInlineButton ? "-selected" : "")} onClick={e => { e.stopPropagation(); this.presExpandDocumentClick(); }}>

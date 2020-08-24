@@ -1,39 +1,34 @@
 import React = require("react");
-import { observer } from "mobx-react";
-import "./PropertiesView.scss";
-import { observable, action, computed, runInAction } from "mobx";
-import { Doc, Field, WidthSym, HeightSym, AclSym, AclPrivate, AclReadonly, AclAddonly, AclEdit, AclAdmin, Opt, DocCastAsync, DataSym } from "../../../../fields/Doc";
-import { ComputedField } from "../../../../fields/ScriptField";
-import { EditableView } from "../../EditableView";
-import { KeyValueBox } from "../../nodes/KeyValueBox";
-import { Cast, NumCast, StrCast } from "../../../../fields/Types";
-import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
-import { returnFalse, returnOne, emptyFunction, emptyPath, returnTrue, returnZero, returnEmptyFilter, Utils, returnEmptyDoclist } from "../../../../Utils";
-import { Id } from "../../../../fields/FieldSymbols";
-import { Transform } from "../../../util/Transform";
-import { PropertiesButtons } from "../../PropertiesButtons";
-import { SelectionManager } from "../../../util/SelectionManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip, Checkbox } from "@material-ui/core";
-import SharingManager from "../../../util/SharingManager";
-import { DocumentType } from "../../../documents/DocumentTypes";
-import { SharingPermissions, GetEffectiveAcl } from "../../../../fields/util";
-import { InkField } from "../../../../fields/InkField";
-import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { Checkbox, Tooltip } from "@material-ui/core";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
 import { ColorState, SketchPicker } from "react-color";
-import "./FormatShapePane.scss";
-import { PresBox } from "../../nodes/PresBox";
+import { AclAddonly, AclAdmin, AclEdit, AclPrivate, AclReadonly, AclSym, DataSym, Doc, Field, HeightSym, WidthSym } from "../../../../fields/Doc";
+import { Id } from "../../../../fields/FieldSymbols";
+import { InkField } from "../../../../fields/InkField";
+import { ComputedField } from "../../../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../../../fields/Types";
+import { GetEffectiveAcl, SharingPermissions } from "../../../../fields/util";
+import { emptyFunction, emptyPath, returnEmptyDoclist, returnEmptyFilter, returnFalse, returnOne, returnZero } from "../../../../Utils";
+import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
-import FormatShapePane from "./FormatShapePane";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { SharingManager } from "../../../util/SharingManager";
+import { Transform } from "../../../util/Transform";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { EditableView } from "../../EditableView";
+import { ContentFittingDocumentView } from "../../nodes/ContentFittingDocumentView";
+import { KeyValueBox } from "../../nodes/KeyValueBox";
+import { PresBox } from "../../nodes/PresBox";
+import { PropertiesButtons } from "../../PropertiesButtons";
+import { FormatShapePane } from "./FormatShapePane";
+import "./FormatShapePane.scss";
+import "./PropertiesView.scss";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 const _global = (window /* browser */ || global /* node */) as any;
-
-// import * as fa from '@fortawesome/free-solid-svg-icons';
-// import { library } from "@fortawesome/fontawesome-svg-core";
-
-// library.add(fa.faPlus, fa.faMinus, fa.faCog);
 
 interface PropertiesViewProps {
     width: number;
@@ -441,7 +436,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
     @action
     setTitle = (value: string) => {
         if (this.dataDoc) {
-            this.selectedDoc && (this.selectedDoc.title = value);
+            this.selectedDoc && Doc.SetInPlace(this.selectedDoc, "title", value, true);
             KeyValueBox.SetField(this.dataDoc, "title", value, true);
             return true;
         }
@@ -527,7 +522,12 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
             <div className="inputBox-title"> {title} </div>
             <input className="inputBox-input"
                 type="text" value={value}
-                onChange={e => setter(e.target.value)} />
+                onChange={e => {
+                    setter(e.target.value);
+                }}
+                onKeyPress={e => {
+                    e.stopPropagation();
+                }} />
             <div className="inputBox-button">
                 <div className="inputBox-button-up" key="up2"
                     onPointerDown={undoBatch(action(() => this.upDownButtons("up", key)))} >

@@ -33,7 +33,7 @@ export let updateBullets = (tx2: Transaction, schema: Schema, assignedMapStyle?:
     return tx2;
 };
 
-export default function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
+export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
     const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {

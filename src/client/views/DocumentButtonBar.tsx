@@ -1,46 +1,33 @@
-import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleRight, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faPhotoVideo, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from '@material-ui/core';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { RichTextField } from '../../fields/RichTextField';
 import { Cast, NumCast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
-import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { GoogleAuthenticationManager } from '../apis/GoogleAuthenticationManager';
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import { Docs, DocUtils } from '../documents/Documents';
+import { Docs } from '../documents/Documents';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { DragManager } from '../util/DragManager';
+import { SelectionManager } from '../util/SelectionManager';
+import { SharingManager } from '../util/SharingManager';
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { DocumentLinksButton } from './nodes/DocumentLinksButton';
 import { DocumentView } from './nodes/DocumentView';
 import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { DocumentLinksButton } from './nodes/DocumentLinksButton';
-import { Tooltip } from '@material-ui/core';
-import SharingManager from '../util/SharingManager';
-import { CurrentUserUtils } from '../util/CurrentUserUtils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faLink);
-library.add(faTag);
-library.add(faTimes);
-library.add(faArrowAltCircleDown);
-library.add(faArrowAltCircleUp);
-library.add(faArrowAltCircleRight);
-library.add(faStopCircle);
-library.add(faCheckCircle);
-library.add(faCloudUploadAlt);
-library.add(faSyncAlt);
-library.add(faShare);
-library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -197,7 +184,14 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        let isPinned = targetDoc && Doc.isDocPinned(targetDoc);
+        // More than 1 document selected then all must be in presentation for isPinned to be true (then it will unpin all)
+        if (SelectionManager.SelectedDocuments().length > 1) {
+            SelectionManager.SelectedDocuments().forEach((docView: DocumentView) => {
+                if (Doc.isDocPinned(docView.props.Document)) isPinned = true;
+                else isPinned = false;
+            });
+        }
         return !targetDoc ? (null) : <Tooltip title={<><div className="dash-tooltip">{Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}</div></>}>
             <div className="documentButtonBar-linker"
                 style={{ backgroundColor: isPinned ? "white" : "", color: isPinned ? "black" : "white", border: isPinned ? "black 1px solid " : "" }}

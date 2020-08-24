@@ -488,7 +488,7 @@ $light-background: #ececec;
             max-width: 200px;
             overflow: visible;
 
-            
+
             .presBox-dropdownOption {
                 cursor: pointer;
                 font-size: 11;
@@ -967,10 +967,10 @@ $light-background: #ececec;
     /* border: solid 1px; */
     color: white;
     /* box-shadow: black 0.4vw 0.4vw 0.8vw; */
-    
+
     .miniPresOverlay {
         display: grid;
-        grid-template-columns: auto auto auto auto auto auto auto auto;
+        grid-template-columns: auto auto auto auto auto auto auto auto auto auto;
         grid-template-rows: 100%;
         height: 100%;
         justify-items: center;

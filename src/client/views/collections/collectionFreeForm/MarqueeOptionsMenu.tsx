@@ -1,13 +1,12 @@
 import React = require("react");
-import AntimodeMenu, { AntimodeMenuProps } from "../../AntimodeMenu";
-import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { unimplementedFunction } from "../../../../Utils";
-import { undoBatch } from "../../../util/UndoManager";
 import { Tooltip } from "@material-ui/core";
+import { observer } from "mobx-react";
+import { unimplementedFunction } from "../../../../Utils";
+import { AntimodeMenu, AntimodeMenuProps } from "../../AntimodeMenu";
 
 @observer
-export default class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
+export class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: MarqueeOptionsMenu;
 
     public createCollection: (e: KeyboardEvent | React.PointerEvent | undefined) => void = unimplementedFunction;
@@ -16,6 +15,7 @@ export default class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> 
     public inkToText: (e: KeyboardEvent | React.PointerEvent | undefined) => void = unimplementedFunction;
     public showMarquee: () => void = unimplementedFunction;
     public hideMarquee: () => void = unimplementedFunction;
+    public pinWithView: (e: KeyboardEvent | React.PointerEvent | undefined) => void = unimplementedFunction;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -51,6 +51,14 @@ export default class MarqueeOptionsMenu extends AntimodeMenu<AntimodeMenuProps> 
                     className="antimodeMenu-button"
                     onPointerDown={this.inkToText}>
                     <FontAwesomeIcon icon="font" size="lg" />
+                </button>
+            </Tooltip>,
+            <Tooltip key="pinWithView" title={<><div className="dash-tooltip">Pin to presentation with selected view</div></>} placement="bottom">
+                <button
+                    className="antimodeMenu-button"
+                    onPointerDown={this.pinWithView}>
+                    <FontAwesomeIcon icon="map-pin" size="lg" />
+                    <div style={{ position: 'relative', fontSize: 25, fontWeight: 700, transform: 'translate(-4px, -22px)', color: 'rgba(250,250,250,0.55)' }}>V</div>
                 </button>
             </Tooltip>,
         ];

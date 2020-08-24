@@ -1,17 +1,17 @@
 import React = require("react");
-import "./PDFMenu.scss";
-import { observable, action, computed, } from "mobx";
-import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { unimplementedFunction, returnFalse, Utils } from "../../../Utils";
-import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
-import { Doc, Opt } from "../../../fields/Doc";
+import { action, computed, observable } from "mobx";
+import { observer } from "mobx-react";
 import { ColorState } from "react-color";
+import { Doc, Opt } from "../../../fields/Doc";
+import { returnFalse, unimplementedFunction, Utils } from "../../../Utils";
+import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { ButtonDropdown } from "../nodes/formattedText/RichTextMenu";
+import "./PDFMenu.scss";
 
 
 @observer
-export default class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
+export class PDFMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: PDFMenu;
 
     private _commentCont = React.createRef<HTMLButtonElement>();

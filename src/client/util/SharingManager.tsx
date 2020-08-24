@@ -1,29 +1,24 @@
-import { observable, runInAction, action } from "mobx";
-import * as React from "react";
-import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, AclAdmin, AclPrivate, DocListCast, DataSym } from "../../fields/Doc";
-import { DocServer } from "../DocServer";
-import { Cast, StrCast } from "../../fields/Types";
-import * as RequestPromise from "request-promise";
-import { Utils } from "../../Utils";
-import "./SharingManager.scss";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import * as fa from '@fortawesome/free-solid-svg-icons';
-import { DocumentView } from "../views/nodes/DocumentView";
-import { SelectionManager } from "./SelectionManager";
-import { DocumentManager } from "./DocumentManager";
+import * as React from "react";
+import Select from "react-select";
+import * as RequestPromise from "request-promise";
+import { AclAdmin, AclPrivate, DataSym, Doc, DocListCast, Opt } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { Cast, StrCast } from "../../fields/Types";
+import { distributeAcls, GetEffectiveAcl, SharingPermissions } from "../../fields/util";
+import { Utils } from "../../Utils";
+import { DocServer } from "../DocServer";
 import { CollectionView } from "../views/collections/CollectionView";
 import { DictationOverlay } from "../views/DictationOverlay";
-import GroupManager, { UserOptions } from "./GroupManager";
-import GroupMemberView from "./GroupMemberView";
-import Select from "react-select";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { List } from "../../fields/List";
-import { distributeAcls, SharingPermissions, GetEffectiveAcl } from "../../fields/util";
+import { MainViewModal } from "../views/MainViewModal";
+import { DocumentView } from "../views/nodes/DocumentView";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
-import { library } from "@fortawesome/fontawesome-svg-core";
-
-library.add(fa.faInfoCircle, fa.faCaretUp, fa.faCaretRight, fa.faCaretDown);
+import { DocumentManager } from "./DocumentManager";
+import { GroupManager, UserOptions } from "./GroupManager";
+import { GroupMemberView } from "./GroupMemberView";
+import "./SharingManager.scss";
 
 export interface User {
     email: string;
@@ -58,7 +53,7 @@ interface ValidatedUser {
 
 
 @observer
-export default class SharingManager extends React.Component<{}> {
+export class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
     @observable private isOpen = false; // whether the SharingManager modal is open or not
     @observable private users: ValidatedUser[] = []; // the list of users with notificationDocs
@@ -486,7 +481,7 @@ export default class SharingManager extends React.Component<{}> {
                 >
                     <div className={"padding"}>{group.groupName}</div>
                     <div className="group-info" onClick={action(() => GroupManager.Instance.currentGroup = group)}>
-                        <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
+                        <FontAwesomeIcon icon={"info-circle"} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                     </div>
                     <div className="edit-actions">
                         <select
@@ -522,7 +517,7 @@ export default class SharingManager extends React.Component<{}> {
                             style={{ backgroundColor: this.copied ? "lawngreen" : "gainsboro" }}
                             onClick={this.copy}
                         >
-                            <FontAwesomeIcon icon={fa.faCopy} />
+                            <FontAwesomeIcon icon={"copy"} />
                         </div>
                     </div>
                 }
@@ -584,9 +579,9 @@ export default class SharingManager extends React.Component<{}> {
                             <div
                                 className="user-sort"
                                 onClick={action(() => this.individualSort = this.individualSort === "ascending" ? "descending" : this.individualSort === "descending" ? "none" : "ascending")}>
-                                Individuals {this.individualSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
-                                    : this.individualSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
-                                        : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />}
+                                Individuals {this.individualSort === "ascending" ? <FontAwesomeIcon icon={"caret-up"} size={"xs"} />
+                                    : this.individualSort === "descending" ? <FontAwesomeIcon icon={"caret-down"} size={"xs"} />
+                                        : <FontAwesomeIcon icon={"caret-right"} size={"xs"} />}
                             </div>
                             <div className={"users-list"} style={{ display: "block" }}>{/*200*/}
                                 {userListContents}
@@ -596,9 +591,9 @@ export default class SharingManager extends React.Component<{}> {
                             <div
                                 className="user-sort"
                                 onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
-                                Groups {this.groupSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
-                                    : this.groupSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
-                                        : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />}
+                                Groups {this.groupSort === "ascending" ? <FontAwesomeIcon icon={"caret-up"} size={"xs"} />
+                                    : this.groupSort === "descending" ? <FontAwesomeIcon icon={"caret-down"} size={"xs"} />
+                                        : <FontAwesomeIcon icon={"caret-right"} size={"xs"} />}
 
                             </div>
                             <div className={"groups-list"} style={{ display: !displayGroupList ? "flex" : "block" }}>{/*200*/}

@@ -1,7 +1,4 @@
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../fields/Doc";
@@ -15,7 +12,7 @@ import { ScriptField } from "../../../../fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
 import { TraceMobx } from "../../../../fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, Utils, setupMoveUpEvents } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -24,10 +21,12 @@ import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
 import { InteractionUtils } from "../../../util/InteractionUtils";
+import { LinkManager } from "../../../util/LinkManager";
+import { SearchUtil } from "../../../util/SearchUtil";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { SnappingManager } from "../../../util/SnappingManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { undoBatch } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { ContextMenu } from "../../ContextMenu";
@@ -37,20 +36,16 @@ import { DocumentLinksButton } from "../../nodes/DocumentLinksButton";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
+import { PresBox } from "../../nodes/PresBox";
 import { CollectionDockingView } from "../CollectionDockingView";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionViewType } from "../CollectionView";
 import { computePivotLayout, computerPassLayout, computerStarburstLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
-import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
+import { MarqueeOptionsMenu } from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { PresBox } from "../../nodes/PresBox";
-import { SearchUtil } from "../../../util/SearchUtil";
-import { LinkManager } from "../../../util/LinkManager";
-
-library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
 export const panZoomSchema = createSchema({
     _panX: "number",
@@ -608,7 +603,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // bcz: theres should be a better way of doing these than referencing these static instances directly
         MarqueeOptionsMenu.Instance?.fadeOut(true);// I think it makes sense for the marquee menu to go away when panned. -syip2
-        // PDFMenu.Instance.fadeOut(true); (commented out for mobile)
 
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         this.setPan((this.Document._panX || 0) - dx, (this.Document._panY || 0) - dy, undefined, true);
@@ -1261,7 +1255,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems = options && "subitems" in options ? options.subitems : [];
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
-            optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: faEye });
+            optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: "eye" });
         this.props.ContainingCollectionView &&
             optionItems.push({ description: "Undo Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
@@ -1409,7 +1403,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     centeringShiftY={this.centeringShiftY}
                     presPaths={BoolCast(this.Document.presPathView)}
                     progressivize={BoolCast(this.Document.editProgressivize)}
-                    zoomProgressivize={BoolCast(this.Document.editZoomProgressivize)}
+                    presPinView={BoolCast(this.Document.presPinView)}
                     transition={Cast(this.layoutDoc._viewTransition, "string", null)}
                     viewDefDivClick={this.props.viewDefDivClick}
                     zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
@@ -1495,7 +1489,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     transition?: string;
     presPaths?: boolean;
     progressivize?: boolean;
-    zoomProgressivize?: boolean;
+    presPinView?: boolean;
 }
 
 @observer
@@ -1562,58 +1556,40 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
                     doc.style.top = toNumber(top, e.movementY) + 'px';
                     doc.style.left = toNumber(left, e.movementX) + 'px';
             }
-            this.updateAll(height, width, top, left);
+            // this.updateAll(height, width, top, left);
             return false;
         }
         return true;
     }
 
-    @action
-    updateAll = (width: number, height: number, top: number, left: number) => {
-        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        this.updateList(targetDoc, activeItem["viewfinder-width-indexed"], width);
-        this.updateList(targetDoc, activeItem["viewfinder-height-indexed"], height);
-        this.updateList(targetDoc, activeItem["viewfinder-top-indexed"], top);
-        this.updateList(targetDoc, activeItem["viewfinder-left-indexed"], left);
-    }
-
-    @action
-    updateList = (doc: Doc, list: any, val: number) => {
-        const x: List<number> = list;
-        if (x && x.length >= NumCast(doc.currentFrame) + 1) {
-            x[NumCast(doc.currentFrame)] = val;
-            list = x;
-        } else if (doc && x) {
-            x.length = NumCast(doc.currentFrame) + 1;
-            x[NumCast(doc.currentFrame)] = val;
-            list = x;
-        }
-    }
-
     // scale: NumCast(targetDoc._viewScale),
     @computed get zoomProgressivizeContainer() {
-        const activeItem = Cast(PresBox.Instance.childDocs[PresBox.Instance.itemIndex], Doc, null);
-        const targetDoc = Cast(activeItem?.presentationTargetDoc, Doc, null);
-        if (activeItem && activeItem.zoomProgressivize) {
-            const vfLeft: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-left-indexed"]);
-            const vfWidth: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-width-indexed"]);
-            const vfTop: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-top-indexed"]);
-            const vfHeight: number = PresBox.Instance.checkList(targetDoc, activeItem["viewfinder-height-indexed"]);
-            return !activeItem.editZoomProgressivize ? (null) :
-                <div id="resizable" key="zoomProgressivize" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
-                    <div className='resizers'>
-                        <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
-                        <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
-                        <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
-                        <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
-                    </div>
-                </div>;
+        const activeItem = PresBox.Instance.activeItem;
+        // const targetDoc = PresBox.Instance.targetDoc;
+        if (activeItem && activeItem.presPinView && activeItem.id) {
+            const vfLeft: number = NumCast(activeItem.presPinViewX);
+            const vfTop: number = NumCast(activeItem.presPinViewY);
+            const vfWidth: number = 100;
+            const vfHeight: number = 100;
+            console.log(vfTop + " | " + vfLeft);
+            console.log(this.props.presPinView);
+            return (
+                <>
+                    {!this.props.presPinView ? (null) : <div id="resizable" className="resizable" onPointerDown={this.onPointerDown} style={{ width: vfWidth, height: vfHeight, top: vfTop, left: vfLeft, position: 'absolute' }}>
+                        <div className='resizers' key={'resizer' + activeItem.id}>
+                            <div id="resizer-tl" className='resizer top-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-tr" className='resizer top-right' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-bl" className='resizer bottom-left' onPointerDown={this.onPointerDown}></div>
+                            <div id="resizer-br" className='resizer bottom-right' onPointerDown={this.onPointerDown}></div>
+                        </div>
+                    </div>}
+                </>
+            );
         }
     }
 
     @computed get zoomProgressivize() {
-        return PresBox.Instance && this.props.zoomProgressivize ? this.zoomProgressivizeContainer : (null);
+        return PresBox.Instance && PresBox.Instance.activeItem && PresBox.Instance.activeItem.presPinView && PresBox.Instance.layoutDoc.presStatus === 'edit' ? this.zoomProgressivizeContainer : (null);
     }
 
     @computed get progressivize() {

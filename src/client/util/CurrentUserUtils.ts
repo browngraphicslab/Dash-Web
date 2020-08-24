@@ -394,7 +394,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
             ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
@@ -448,7 +448,7 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
 
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Present", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
             // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
@@ -522,6 +522,7 @@ export class CurrentUserUtils {
             { title: "Import", target: Cast(doc["sidebar-import"], Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc["sidebar-sharing"], Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc["sidebar-sharing"] as Doc },
             { title: "Tools", target: Cast(doc["sidebar-tools"], Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
+            { title: "Pres. Trails", target: Cast(doc["sidebar-presentations"], Doc, null), icon: "pres-trail", click: 'selectMainMenu(self)' },
             { title: "Help", target: undefined as any, icon: "question-circle", click: 'selectMainMenu(self)' },
             { title: "Settings", target: undefined as any, icon: "cog", click: 'selectMainMenu(self)' },
             { title: "User Doc", target: Cast(doc["sidebar-userDoc"], Doc, null), icon: "address-card", click: 'selectMainMenu(self)' },
@@ -698,8 +699,8 @@ export class CurrentUserUtils {
         return CurrentUserUtils.setupDashboards(userDoc);
     }
 
-    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker. 
-    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  
+    // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.
+    // when clicked, this panel will be displayed in the target container (ie, sidebarContainer)
     static async setupToolsBtnPanel(doc: Doc) {
         // setup a masonry view of all he creators
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
@@ -753,6 +754,29 @@ export class CurrentUserUtils {
             })) as any as Doc;
         }
         return doc.myDashboards as any as Doc;
+    }
+
+    static async setupPresentations(doc: Doc) {
+        await doc.myPresentations;
+        if (doc.myPresentations === undefined) {
+            doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "PRESENTATION TRAILS", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, treeViewOpen: true, system: true
+            }));
+        }
+
+        if (doc["sidebar-presentations"] === undefined) {
+            const newPresentations = ScriptField.MakeScript(`createNewPresentation()`);
+            (doc.myPresentations as Doc).contextMenuScripts = new List<ScriptField>([newPresentations!]);
+            (doc.myPresentations as Doc).contextMenuLabels = new List<string>(["Create New Presentation"]);
+            const presentations = doc.myPresentations as Doc;
+
+            doc["sidebar-presentations"] = new PrefetchProxy(Docs.Create.TreeDocument([presentations], {
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false, treeViewOpen: true,
+                lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
+            })) as any as Doc;
+        }
+        return doc.myPresentations as any as Doc;
     }
 
     static setupCatalog(doc: Doc) {
@@ -831,6 +855,7 @@ export class CurrentUserUtils {
         await CurrentUserUtils.setupToolsBtnPanel(doc);
         CurrentUserUtils.setupDashboards(doc);
         CurrentUserUtils.setupCatalog(doc);
+        CurrentUserUtils.setupPresentations(doc);
         CurrentUserUtils.setupInactiveDocs(doc);
         CurrentUserUtils.setupUserDoc(doc);
     }
@@ -895,7 +920,7 @@ export class CurrentUserUtils {
 
     static setupClickEditorTemplates(doc: Doc) {
         if (doc["clickFuncs-child"] === undefined) {
-            // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target 
+            // to use this function, select it from the context menu of a collection.  then edit the onChildClick script.  Add two Doc variables: 'target' and 'thisContainer', then assign 'target' to some target collection.  After that, clicking on any document in the initial collection will open it in the target
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "docCast(thisContainer.target).then((target) => target && (target.proto.data = new List([self]))) ",
                 { thisContainer: Doc.name }), {
@@ -1012,7 +1037,8 @@ export class CurrentUserUtils {
 
 Scripting.addGlobal(function createNewDashboard() { return MainView.Instance.createNewDashboard(); },
     "creates a new dashboard when called");
-
+Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); },
+    "creates a new presentation when called");
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
     "returns all the links to the document or its annotations", "(doc: any)");
 Scripting.addGlobal(function directLinks(doc: any) { return new List(LinkManager.Instance.getAllDirectLinks(doc)); },

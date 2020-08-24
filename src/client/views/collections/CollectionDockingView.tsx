@@ -788,7 +788,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         observer.observe(this.props.glContainer._element[0]);
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.tab?.isActive && this.onActiveContentItemChanged();
-        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: color() }), () => updateTabColor(), { fireImmediately: true });
+        this._tabReaction = reaction(() => ({ views: SelectionManager.SelectedDocuments(), color: color() }), updateTabColor, { fireImmediately: true });
     }
 
     componentWillUnmount() {

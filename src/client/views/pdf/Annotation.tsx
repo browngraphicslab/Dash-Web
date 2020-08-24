@@ -6,7 +6,7 @@ import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
-import PDFMenu from "./PDFMenu";
+import { PDFMenu } from "./PDFMenu";
 import "./Annotation.scss";
 
 interface IAnnotationProps {
@@ -19,7 +19,7 @@ interface IAnnotationProps {
 }
 
 @observer
-export default
+export
     class Annotation extends React.Component<IAnnotationProps> {
     render() {
         return DocListCast(this.props.anno.annotations).map(a => (

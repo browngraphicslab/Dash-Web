@@ -1,5 +1,3 @@
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip } from "@material-ui/core";
 import { action, computed, observable } from "mobx";
@@ -11,9 +9,6 @@ import { LinkManager } from "../../util/LinkManager";
 import { undoBatch } from "../../util/UndoManager";
 import './LinkEditor.scss';
 import React = require("react");
-
-library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
-
 
 interface GroupTypesDropdownProps {
     groupType: string;

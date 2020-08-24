@@ -1,18 +1,14 @@
-import { action, observable, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentView } from "../nodes/DocumentView";
-import { LinkEditor } from "./LinkEditor";
-import './LinkMenu.scss';
-import React = require("react");
 import { Doc } from "../../../fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
-import { LinkMenuGroup } from "./LinkMenuGroup";
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentLinksButton } from "../nodes/DocumentLinksButton";
+import { DocumentView } from "../nodes/DocumentView";
 import { LinkDocPreview } from "../nodes/LinkDocPreview";
-
-library.add(faTrash);
+import { LinkEditor } from "./LinkEditor";
+import './LinkMenu.scss';
+import { LinkMenuGroup } from "./LinkMenuGroup";
+import React = require("react");
 
 interface Props {
     docView: DocumentView;

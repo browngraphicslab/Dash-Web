@@ -26,7 +26,7 @@ import * as fitCurve from 'fit-curve';
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
 
 @observer
-export default class GestureOverlay extends Touchable {
+export class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
     @observable public InkShape: string = "";

@@ -1,24 +1,19 @@
-import * as React from "react";
-import { observable, action, runInAction, computed } from "mobx";
-import { SelectionManager } from "./SelectionManager";
-import MainViewModal from "../views/MainViewModal";
-import { observer } from "mobx-react";
-import { Doc, DocListCast, Opt, DocListCastAsync } from "../../fields/Doc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as fa from '@fortawesome/free-solid-svg-icons';
-import { library } from "@fortawesome/fontawesome-svg-core";
-import SharingManager, { User } from "./SharingManager";
-import { Utils } from "../../Utils";
-import * as RequestPromise from "request-promise";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import * as React from "react";
 import Select from 'react-select';
-import "./GroupManager.scss";
-import { StrCast, Cast } from "../../fields/Types";
-import GroupMemberView from "./GroupMemberView";
+import * as RequestPromise from "request-promise";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../fields/Doc";
+import { Cast, StrCast } from "../../fields/Types";
 import { setGroups } from "../../fields/util";
+import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
+import { MainViewModal } from "../views/MainViewModal";
 import { TaskCompletionBox } from "../views/nodes/TaskCompletedBox";
-
-library.add(fa.faPlus, fa.faTimes, fa.faInfoCircle, fa.faCaretUp, fa.faCaretRight, fa.faCaretDown);
+import "./GroupManager.scss";
+import { GroupMemberView } from "./GroupMemberView";
+import { SharingManager, User } from "./SharingManager";
 
 /**
  * Interface for options for the react-select component
@@ -29,7 +24,7 @@ export interface UserOptions {
 }
 
 @observer
-export default class GroupManager extends React.Component<{}> {
+export class GroupManager extends React.Component<{}> {
 
     static Instance: GroupManager;
     @observable isOpen: boolean = false; // whether the GroupManager is to be displayed or not.
@@ -314,7 +309,7 @@ export default class GroupManager extends React.Component<{}> {
                     <div className={"close-button"} onClick={action(() => {
                         this.createGroupModalOpen = false; TaskCompletionBox.taskCompleted = false;
                     })}>
-                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                        <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
                 </div>
                 <input
@@ -398,19 +393,19 @@ export default class GroupManager extends React.Component<{}> {
                 <div className="group-heading">
                     <p><b>Manage Groups</b></p>
                     <button onClick={action(() => this.createGroupModalOpen = true)}>
-                        <FontAwesomeIcon icon={fa.faPlus} size={"sm"} /> Create Group
+                        <FontAwesomeIcon icon={"plus-hexagon"} size={"sm"} /> Create Group
                     </button>
                     <div className={"close-button"} onClick={this.close}>
-                        <FontAwesomeIcon icon={fa.faTimes} color={"black"} size={"lg"} />
+                        <FontAwesomeIcon icon={"times"} color={"black"} size={"lg"} />
                     </div>
                 </div>
                 <div className="main-container">
                     <div
                         className="sort-groups"
                         onClick={action(() => this.groupSort = this.groupSort === "ascending" ? "descending" : this.groupSort === "descending" ? "none" : "ascending")}>
-                        Name {this.groupSort === "ascending" ? <FontAwesomeIcon icon={fa.faCaretUp} size={"xs"} />
-                            : this.groupSort === "descending" ? <FontAwesomeIcon icon={fa.faCaretDown} size={"xs"} />
-                                : <FontAwesomeIcon icon={fa.faCaretRight} size={"xs"} />
+                        Name {this.groupSort === "ascending" ? <FontAwesomeIcon icon={"caret-up"} size={"xs"} />
+                            : this.groupSort === "descending" ? <FontAwesomeIcon icon={"caret-down"} size={"xs"} />
+                                : <FontAwesomeIcon icon={"caret-right"} size={"xs"} />
                         }
                     </div>
                     <div className="group-body">
@@ -421,7 +416,7 @@ export default class GroupManager extends React.Component<{}> {
                             >
                                 <div className="group-name" >{group.groupName}</div>
                                 <div className="group-info" onClick={action(() => this.currentGroup = group)}>
-                                    <FontAwesomeIcon icon={fa.faInfoCircle} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
+                                    <FontAwesomeIcon icon={"info-circle"} color={"#e8e8e8"} size={"sm"} style={{ backgroundColor: "#1e89d7", borderRadius: "100%", border: "1px solid #1e89d7" }} />
                                 </div>
                             </div>
                         )}

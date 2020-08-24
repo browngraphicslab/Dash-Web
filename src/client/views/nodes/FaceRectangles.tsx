@@ -17,7 +17,7 @@ export interface RectangleTemplate {
 }
 
 @observer
-export default class FaceRectangles extends React.Component<FaceRectanglesProps> {
+export class FaceRectangles extends React.Component<FaceRectanglesProps> {
 
     render() {
         const faces = DocListCast(this.props.document.faces);

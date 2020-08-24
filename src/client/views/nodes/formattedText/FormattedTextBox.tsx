@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
 import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
@@ -22,7 +20,7 @@ import { InkTool } from '../../../../fields/InkField';
 import { PrefetchProxy } from '../../../../fields/Proxy';
 import { RichTextField } from "../../../../fields/RichTextField";
 import { RichTextUtils } from '../../../../fields/RichTextUtils';
-import { createSchema, makeInterface } from "../../../../fields/Schema";
+import { makeInterface } from "../../../../fields/Schema";
 import { Cast, DateCast, NumCast, StrCast, ScriptCast, BoolCast } from "../../../../fields/Types";
 import { TraceMobx, OVERRIDE_ACL, GetEffectiveAcl } from '../../../../fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils, setupMoveUpEvents } from '../../../../Utils';
@@ -33,8 +31,8 @@ import { DocumentType } from '../../../documents/DocumentTypes';
 import { DictationManager } from '../../../util/DictationManager';
 import { DragManager } from "../../../util/DragManager";
 import { makeTemplate } from '../../../util/DropConverter';
-import buildKeymap, { updateBullets } from "./ProsemirrorExampleTransfer";
-import RichTextMenu, { RichTextMenuPlugin } from './RichTextMenu';
+import { buildKeymap, updateBullets } from "./ProsemirrorExampleTransfer";
+import { RichTextMenu, RichTextMenuPlugin } from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
 
 //import { DashDocView } from "./DashDocView";
@@ -60,9 +58,6 @@ import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin, findLinkMark } from './FormattedTextBoxComment';
 import React = require("react");
 import { DocumentManager } from '../../../util/DocumentManager';
-
-library.add(faEdit);
-library.add(faSmile, faTextHeight, faUpload);
 
 export interface FormattedTextBoxProps {
     makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
@@ -915,7 +910,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     return linkIndex !== -1 && marks[linkIndex].attrs.allLinks.find((item: { href: string }) => scrollToLinkID === item.href.replace(/.*\/doc\//, "")) ? node : undefined;
                 };
 
-                let start = 0;
+                const start = 0;
                 if (this._editorView && scrollToLinkID) {
                     const editor = this._editorView;
                     const ret = findLinkFrag(editor.state.doc.content, editor);

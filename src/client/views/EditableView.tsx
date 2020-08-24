@@ -4,10 +4,8 @@ import { observer } from 'mobx-react';
 import * as Autosuggest from 'react-autosuggest';
 import { ObjectField } from '../../fields/ObjectField';
 import { SchemaHeaderField } from '../../fields/SchemaHeaderField';
-import "./EditableView.scss";
 import { DragManager } from '../util/DragManager';
-import { ComputedField } from '../../fields/ScriptField';
-import { FieldValue } from '../../fields/Types';
+import "./EditableView.scss";
 
 export interface EditableProps {
     /**
@@ -171,6 +169,7 @@ export class EditableView extends React.Component<EditableProps> {
                     onPointerDown: this.stopPropagation,
                     onClick: this.stopPropagation,
                     onPointerUp: this.stopPropagation,
+                    onKeyPress: this.stopPropagation,
                     value: this.props.autosuggestProps.value,
                     onChange: this.props.autosuggestProps.onChange
                 }}
@@ -179,6 +178,10 @@ export class EditableView extends React.Component<EditableProps> {
                 defaultValue={this.props.GetValue()}
                 onKeyDown={this.onKeyDown}
                 autoFocus={true}
+                onKeyPress={e => {
+                    e.stopPropagation();
+                    (e.nativeEvent as any).Aaaa = 3;
+                }}
                 onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
                 onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                 style={{ display: this.props.display, fontSize: this.props.fontSize, minWidth: 20 }}

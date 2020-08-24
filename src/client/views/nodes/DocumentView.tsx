@@ -21,7 +21,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { LinkManager } from '../../util/LinkManager';
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from "../../util/SelectionManager";
-import SharingManager from '../../util/SharingManager';
+import { SharingManager } from '../../util/SharingManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";

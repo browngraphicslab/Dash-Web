@@ -1,6 +1,5 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action } from "mobx";
 import { ReactTableDefaults, RowInfo, TableCellRenderer } from "react-table";
 import { Doc } from "../../../fields/Doc";
@@ -13,9 +12,6 @@ import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import "./CollectionSchemaView.scss";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-
-library.add(faGripVertical, faTrash);
 
 export interface MovableColumnProps {
     columnRenderer: TableCellRenderer;

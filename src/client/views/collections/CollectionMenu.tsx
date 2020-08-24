@@ -22,18 +22,18 @@ import { DragManager } from "../../util/DragManager";
 import { Scripting } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
-import AntimodeMenu, { AntimodeMenuProps } from "../AntimodeMenu";
+import { AntimodeMenu, AntimodeMenuProps } from "../AntimodeMenu";
 import { EditableView } from "../EditableView";
-import GestureOverlay from "../GestureOverlay";
+import { GestureOverlay } from "../GestureOverlay";
 import { ActiveFillColor, ActiveInkColor, SetActiveArrowEnd, SetActiveArrowStart, SetActiveBezierApprox, SetActiveFillColor, SetActiveInkColor, SetActiveInkWidth } from "../InkingStroke";
 import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 import { DocumentView } from "../nodes/DocumentView";
-import RichTextMenu from "../nodes/formattedText/RichTextMenu";
+import { RichTextMenu } from "../nodes/formattedText/RichTextMenu";
 import "./CollectionMenu.scss";
 import { CollectionViewType, COLLECTION_BORDER_WIDTH } from "./CollectionView";
 
 @observer
-export default class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
+export class CollectionMenu extends AntimodeMenu<AntimodeMenuProps> {
     static Instance: CollectionMenu;
 
     @observable SelectedCollection: DocumentView | undefined;
