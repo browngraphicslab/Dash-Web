@@ -210,7 +210,7 @@ export namespace InteractionUtils {
                 points={strpts}
                 style={{
                     filter: drawHalo ? "url(#inkSelectionHalo)" : undefined,
-                    fill: fill ? fill : "transparent",
+                    fill: fill ? fill : "none",
                     opacity: strokeWidth !== width ? 0.5 : undefined,
                     pointerEvents: pevents as any,
                     stroke: color ?? "rgb(0, 0, 0)",

@@ -105,17 +105,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _lastTap: number = 0;
     private _doubleTap = false;
     private _mainCont = React.createRef<HTMLDivElement>();
-    private _dropDisposer?: DragManager.DragDropDisposer;
-    private _showKPQuery: boolean = false;
-    private _queries: string = "";
     private _titleRef = React.createRef<EditableView>();
+    private _dropDisposer?: DragManager.DragDropDisposer;
     private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
+    private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    private get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
@@ -308,7 +306,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             shiftKey: e.shiftKey
                         }, console.log);
                         func();
-                    } else {
+                    } else if (!Doc.IsSystem(this.props.Document)) {
                         UndoManager.RunInBatch(() => {
                             let fullScreenDoc = this.props.Document;
                             if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
@@ -732,7 +730,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
             cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
-            cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+            item.label && cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
         const appearance = cm.findByDescription("UI Controls...");
@@ -743,21 +741,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
+        !this.props.treeViewDoc && this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Freeform && optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         !options && cm.addItem({ description: "Options...", subitems: optionItems, icon: "compass" });
 
-
-        const existingOnClick = cm.findByDescription("OnClick...");
-        const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-        onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
-        !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
-        onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
-        onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
-        !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
+        if (!Doc.IsSystem(this.rootDoc) && this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Tree) {
+            const existingOnClick = cm.findByDescription("OnClick...");
+            const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
+            onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(self, "${this.Document.layoutKey}")`), icon: "concierge-bell" });
+            onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+            onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: () => this.toggleFollowLink("inPlace", true, false), icon: "link" });
+            !this.Document.isLinkButton && onClicks.push({ description: "Follow Link on Right", event: () => this.toggleFollowLink("onRight", false, false), icon: "link" });
+            onClicks.push({ description: this.Document.isLinkButton || this.onClickHandler ? "Remove Click Behavior" : "Follow Link", event: () => this.toggleFollowLink(undefined, false, false), icon: "link" });
+            onClicks.push({ description: (this.Document.isPushpin ? "Remove" : "Make") + " Pushpin", event: () => this.toggleFollowLink(undefined, false, true), icon: "map-pin" });
+            onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocUtils.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "terminal" });
+            !existingOnClick && cm.addItem({ description: "OnClick...", noexpand: true, addDivider: true, subitems: onClicks, icon: "mouse-pointer" });
+        }
 
         const funcs: ContextMenuProps[] = [];
         if (this.layoutDoc.onDragStart) {

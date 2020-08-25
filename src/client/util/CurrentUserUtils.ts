@@ -394,7 +394,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true });
+                { title: "Untitled Presentation", _viewType: CollectionViewType.Stacking, _width: 400, _height: 500, targetDropAction: "alias", _chromeStatus: "replaced", boxShadow: "0 0", system: true, cloneFieldFilter: new List<string>(["system"]) });
             ((doc.emptyPresentation as Doc).proto as Doc)["dragFactory-count"] = 0;
         }
         if (doc.emptyCollection === undefined) {
@@ -444,29 +444,17 @@ export class CurrentUserUtils {
             { toolTip: "Tap to create a cat image in a new pane, drag for a cat image", title: "Image", icon: "cat", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyImage as Doc },
             { toolTip: "Tap to create a comparison box in a new pane, drag for a comparison box", title: "Compare", icon: "columns", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyComparison as Doc, noviceMode: true },
             { toolTip: "Tap to create a screen grabber in a new pane, drag for a screen grabber", title: "Grab", icon: "photo-video", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScreenshot as Doc },
-            //  { title: "Drag a webcam", title: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { toolTip: "Tap to create an audio recorder in a new pane, drag for an audio recorder", title: "Audio", icon: "microphone", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyAudio as Doc, noviceMode: true },
             { toolTip: "Tap to create a button in a new pane, drag for a button", title: "Button", icon: "bolt", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyButton as Doc, noviceMode: true },
-
-            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
+            { toolTip: "Tap to create a presentation in a new pane, drag for a presentation", title: "Trails", icon: "pres-trail", click: 'openOnRight(Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory))', drag: `Doc.UserDoc().activePresentation = copyDragFactory(this.dragFactory)`, dragFactory: doc.emptyPresentation as Doc, noviceMode: true },
             { toolTip: "Tap to create a search box in a new pane, drag for a search box", title: "Query", icon: "search", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptySearch as Doc },
             { toolTip: "Tap to create a scripting box in a new pane, drag for a scripting box", title: "Script", icon: "terminal", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyScript as Doc },
-            // { title: "Drag an import folder", title: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { toolTip: "Tap to create a mobile view in a new pane, drag for a mobile view", title: "Phone", icon: "mobile", click: 'openOnRight(Doc.UserDoc().activeMobileMenu)', drag: 'this.dragFactory', dragFactory: doc.activeMobileMenu as Doc },
-            // { title: "Drag an instance of the device collection", title: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
-            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "blue", ischecked: `sameDocs(this.activeInkPen,  this)`, activeInkPen: doc },
-            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activeInkPen, this)`, activeInkPen: doc },
-            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activeInkPen = sameDocs(this.activeInkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "pink", activeInkPen: doc },
-            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activeInkPen = this;', ischecked: `sameDocs(this.activeInkPen, this)`, backgroundColor: "white", activeInkPen: doc },
             { toolTip: "Tap to create a document previewer in a new pane, drag for a document previewer", title: "Prev", icon: "expand", click: 'openOnRight(copyDragFactory(this.dragFactory))', drag: 'copyDragFactory(this.dragFactory)', dragFactory: doc.emptyDocHolder as Doc },
             { toolTip: "Toggle a Calculator REPL", title: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
-            { toolTip: "Connect a Google Account", title: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
-
-
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static async setupCreatorButtons(doc: Doc) {
@@ -496,7 +484,8 @@ export class CurrentUserUtils {
             dragFactory,
             clickFactory,
             userDoc: noviceMode ? undefined as any : doc,
-            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"), system: true
+            hidden: noviceMode ? undefined as any : ComputedField.MakeFunction("self.userDoc.noviceMode"),
+            system: true
         }));
 
         if (dragCreatorSet === undefined) {

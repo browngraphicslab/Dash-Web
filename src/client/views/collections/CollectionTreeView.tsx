@@ -135,8 +135,9 @@ class TreeView extends React.Component<TreeViewProps> {
         super(props);
         const titleScript = ScriptField.MakeScript(`{setInPlace(self, 'editTitle', '${this._uniqueId}'); documentView.select();} `, { documentView: "any" });
         const openScript = ScriptField.MakeScript(`openOnRight(self)`);
-        this._editTitleScript = titleScript && (() => titleScript);
-        this._openScript = openScript && (() => openScript);
+        const treeOpenScript = ScriptField.MakeScript(`self.treeViewOpen = !self.treeViewOpen`);
+        this._editTitleScript = !Doc.IsSystem(this.props.document) ? titleScript && (() => titleScript) : treeOpenScript && (() => treeOpenScript);
+        this._openScript = !Doc.IsSystem(this.props.document) ? openScript && (() => openScript) : undefined;
         if (Doc.GetT(this.doc, "editTitle", "string", true) === "*") Doc.SetInPlace(this.doc, "editTitle", this._uniqueId, false);
     }
 
@@ -414,7 +415,7 @@ class TreeView extends React.Component<TreeViewProps> {
         this._docRef.current?.ContentDiv && simulateMouseClick(this._docRef.current.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
     }
     focusOnDoc = (doc: Doc) => DocumentManager.Instance.getFirstDocumentView(doc)?.props.focus(doc, true);
-    contextMenuItems = () => [{ script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }, { script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }];
+    contextMenuItems = () => Doc.IsSystem(this.doc) ? [] : [{ script: ScriptField.MakeFunction(`openOnRight(self)`)!, label: "Open" }, { script: ScriptField.MakeFunction(`DocFocus(self)`)!, label: "Focus" }];
     truncateTitleWidth = () => NumCast(this.props.treeViewDoc.treeViewTruncateTitleWidth, 0);
     showTitleEdit = () => ["*", this._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || "");
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.editTitleScript));
@@ -479,7 +480,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContainingCollectionDoc={this.props.containingCollection}
             />;
         return <>
-            <div className="docContainer" ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
+            <div className={`docContainer${Doc.IsSystem(this.props.document) ? "-system" : ""}`} ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
                 style={{
                     fontWeight: Doc.IsSearchMatch(this.doc) !== undefined ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.doc, "title", "string", true) ? "underline" : undefined,
@@ -488,7 +489,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 }} >
                 {view}
             </div >
-            {headerElements}
+            {Doc.IsSystem(this.doc) ? (null) : headerElements}
         </>;
     }
 

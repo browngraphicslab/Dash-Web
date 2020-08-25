@@ -85,6 +85,15 @@
     white-space: pre-wrap;
     min-width: 10px;
 }
+.docContainer-system {
+    font-variant: all-small-caps;
+    border-radius: 5px;
+    background: grey;
+    color: white;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-bottom: 2px;
+}
 
 .treeViewItem-openRight {
     display: none;

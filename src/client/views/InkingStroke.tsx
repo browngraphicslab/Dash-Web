@@ -113,18 +113,18 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const strokeColor = StrCast(this.layoutDoc.color, "");
 
         const points = InteractionUtils.CreatePolyline(data, left, top, strokeColor, strokeWidth, strokeWidth,
-            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
             StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
             StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5 && lineBot - lineTop > 1 && lineRgt - lineLft > 1, false);
 
         const hpoints = InteractionUtils.CreatePolyline(data, left, top,
             this.props.isSelected() && strokeWidth > 5 ? strokeColor : "transparent", strokeWidth, (strokeWidth + 15),
-            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
             "none", "none", undefined, scaleX, scaleY, "", this.props.active() ? "visiblepainted" : "none", false, true);
 
         //points for adding
         const apoints = InteractionUtils.CreatePoints(data, left, top, strokeColor, strokeWidth, strokeWidth,
-            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "transparent"),
+            StrCast(this.layoutDoc.strokeBezier), StrCast(this.layoutDoc.fillColor, "none"),
             StrCast(this.layoutDoc.strokeStartMarker), StrCast(this.layoutDoc.strokeEndMarker),
             StrCast(this.layoutDoc.strokeDash), scaleX, scaleY, "", "none", this.props.isSelected() && strokeWidth <= 5, false);
 
@@ -208,6 +208,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
                     if (cm) {
                         !Doc.UserDoc().noviceMode && cm.addItem({ description: "Recognize Writing", event: this.analyzeStrokes, icon: "paint-brush" });
                         cm.addItem({ description: "Make Mask", event: this.makeMask, icon: "paint-brush" });
+                        cm.addItem({ description: "Edit Points", event: action(() => FormatShapePane.Instance._controlBtn = !FormatShapePane.Instance._controlBtn), icon: "paint-brush" });
                         //cm.addItem({ description: "Format Shape...", event: this.formatShape, icon: "paint-brush" });
                     }
                 }}
