@@ -244,6 +244,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.hideMarquee();
             MarqueeOptionsMenu.Instance.fadeOut(true);
             document.removeEventListener("pointerdown", hideMarquee);
+            document.removeEventListener("wheel", hideMarquee);
         };
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
@@ -255,6 +256,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
             MarqueeOptionsMenu.Instance.pinWithView = this.pinWithView;
             document.addEventListener("pointerdown", hideMarquee);
+            document.addEventListener("wheel", hideMarquee);
         } else {
             this.hideMarquee();
         }
