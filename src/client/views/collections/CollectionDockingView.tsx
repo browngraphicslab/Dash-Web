@@ -631,7 +631,15 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
         }
     }
 
+    stackActiveChanged = () => {
+        try {
+            CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
+            this.stateChanged();
+        } catch (e) { } // catch exception thrown when config has not been initialzed yet
+    }
+
     stackCreated = (stack: any) => {
+        stack.layoutManager.on("activeContentItemChanged", this.stackActiveChanged);
         //stack.header.controlsContainer.find('.lm_popout').hide();
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
