@@ -724,6 +724,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
     set _url(value) {
         if (this.selectedDoc) {
             Doc.GetProto(this.selectedDoc).data = new WebField(value);
+            Doc.SetInPlace(this.selectedDoc, "title", value, true);
         }
     }
 
@@ -809,7 +810,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
             <div className="webBox-buttons"
                 onDrop={this.onUrlDrop}
                 onDragOver={this.onUrlDragover} style={{ display: "flex" }}>
-                <input className="webpage-urlInput"
+                <input className="webpage-urlInput" key={this._url}
                     placeholder="ENTER URL"
                     defaultValue={this._url}
                     onDrop={this.onUrlDrop}
