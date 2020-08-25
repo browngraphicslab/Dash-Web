@@ -152,7 +152,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const isEditable = !this.props.headerIsEditing;
 
         columns.push({
-            expander: true, Header: "", width: 60,
+            expander: true, Header: "", width: 58,
             Expander: (rowInfo) => {
                 return rowInfo.original.type !== DocumentType.COL ? (null) :
                     <div className="collectionSchemaView-expander" onClick={action(() => (this._openCollections[rowInfo.isExpanded ? "delete" : "add"])(rowInfo.viewIndex))}>
