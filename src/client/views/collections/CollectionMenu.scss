@@ -357,11 +357,13 @@
 .webpage-urlInput {
     padding: 12px 10px 11px 10px;
     border: 0px;
-    color: grey;
+    color: black;
+    font-size: 10px;
     letter-spacing: 2px;
     outline-color: black;
     background: rgb(238, 238, 238);
     width: 100%;
+    min-width: 350px;
     margin-right: 10px;
     height: 100%;
 }
