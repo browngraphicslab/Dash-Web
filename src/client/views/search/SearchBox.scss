@@ -11,7 +11,19 @@
     line-height: 1;
     overflow-y: auto;
     overflow-x: visible;
-    background: lightgrey,
+    background: lightgrey;
+
+    .searchBox-lozenge {
+        background-color: #313131;
+        border-radius: 5px;
+        height: 15px;
+        padding: 4px;
+        box-shadow: lightgrey 0.15em 0.15em 0.1em;
+        margin: 2px;
+        margin-bottom: 4px;
+        border-top: dimgrey 1px solid;
+        border-left: dimgrey 1px solid;
+    }
 }
 
 .searchBox-bar {

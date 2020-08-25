@@ -489,7 +489,17 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     render() {
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
-                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>{`${Doc.CurrentUserEmail}/${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.title}`}</div>
+                <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>
+                    <div className="searchBox-lozenge">
+                        {`${Doc.CurrentUserEmail}`}
+                    </div>
+                    <div className="searchBox-lozenge">
+                        {`UI project`}
+                    </div>
+                    <div className="searchBox-lozenge"  >
+                        {`➱ ${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.title}`}
+                    </div>
+                </div>
                 <div className="searchBox-bar">
                     <div style={{ position: "relative", display: "flex", width: 450 }}>
                         <input value={this.newsearchstring} autoComplete="off" onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this._inputRef}
