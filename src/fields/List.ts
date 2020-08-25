@@ -324,7 +324,7 @@ class ListImpl<T extends Field> extends ObjectField {
         return `new List([${(this as any).map((field: any) => Field.toScriptString(field))}])`;
     }
     [ToString]() {
-        return "List";
+        return `List(${(this as any).length})`;
     }
 }
 export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];

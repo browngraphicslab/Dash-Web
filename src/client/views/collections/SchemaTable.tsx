@@ -5,7 +5,7 @@ import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, Column, ComponentPropsGetterR, Resize, SortingRule } from "react-table";
 import "react-table/react-table.css";
-import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { Doc, DocListCast, Field, Opt, AclPrivate, AclReadonly, DataSym } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -27,6 +27,9 @@ import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { GetEffectiveAcl } from "../../../fields/util";
+import { DateField } from "../../../fields/DateField";
+import { ImageField } from "../../../fields/URLField";
 
 
 enum ColumnType {
@@ -227,7 +230,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         showDoc: this.showDoc,
                     };
 
-                    switch (this.getColumnType(col)) {
+
+                    switch (this.getColumnType(col, rowProps.original, rowProps.column.id)) {
                         case ColumnType.Number: return <CollectionSchemaNumberCell {...props} />;
                         case ColumnType.String: return <CollectionSchemaStringCell {...props} />;
                         case ColumnType.Boolean: return <CollectionSchemaCheckboxCell {...props} />;
@@ -235,7 +239,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         case ColumnType.Image: return <CollectionSchemaImageCell {...props} />;
                         case ColumnType.List: return <CollectionSchemaListCell {...props} />;
                         case ColumnType.Date: return <CollectionSchemaDateCell {...props} />;
-                        default: return <CollectionSchemaCell {...props} />;
+                        default:
+                            return <CollectionSchemaCell {...props} />;
                     }
                 },
                 minWidth: 200,
@@ -295,7 +300,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     tableAddDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
-        return Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
+        const tableDoc = this.props.Document[DataSym];
+        const effectiveAcl = GetEffectiveAcl(tableDoc);
+
+        if (effectiveAcl !== AclPrivate && effectiveAcl !== AclReadonly) {
+            doc.context = this.props.Document;
+            tableDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            return Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
+        }
+        return false;
     }
 
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
@@ -380,7 +393,14 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    getColumnType = (column: SchemaHeaderField): ColumnType => {
+    getColumnType = (column: SchemaHeaderField, doc?: Doc, field?: string): ColumnType => {
+        if (doc && field && column.type === ColumnType.Any) {
+            const val = doc[CollectionSchemaCell.resolvedFieldKey(field, doc)];
+            if (val instanceof ImageField) return ColumnType.Image;
+            if (val instanceof Doc) return ColumnType.Doc;
+            if (val instanceof DateField) return ColumnType.Date;
+            if (val instanceof List) return ColumnType.List;
+        }
         if (column.type && column.type !== 0) {
             return column.type;
         }

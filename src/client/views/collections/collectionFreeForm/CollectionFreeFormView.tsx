@@ -1408,7 +1408,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     viewDefDivClick={this.props.viewDefDivClick}
                     zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                     {this.children}
-                </CollectionFreeFormViewPannableContents></div>
+                </CollectionFreeFormViewPannableContents>
+            </div>
             {this.showTimeline ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
         </MarqueeView>;
     }
