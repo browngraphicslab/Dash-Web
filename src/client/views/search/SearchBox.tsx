@@ -10,7 +10,7 @@ import { List } from '../../../fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { returnFalse, returnZero } from '../../../Utils';
+import { returnFalse, returnZero, setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { SetupDrag } from '../../util/DragManager';
@@ -443,7 +443,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight();
     selectElement = (doc: Doc) => { /* this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex)); */ };
-    returnHeight = () => 31 + 31 * 6;
+    returnHeight = () => NumCast(this.layoutDoc._height);
     returnLength = () => Math.min(window.innerWidth, 51 + 205 * Cast(this.props.Document._schemaHeaders, listSpec(SchemaHeaderField), []).length);
 
     @action
@@ -532,7 +532,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 {!this._searchbarOpen ? (null) :
                     <div style={{ zIndex: 20000, color: "black" }} ref={(r) => r?.focus()}>
                         <div style={{ display: "flex", justifyContent: "center", }}>
-                            <div style={{ display: this.open ? "flex" : "none", overflow: "auto", }}>
+                            <div style={{ display: this.open ? "flex" : "none", overflow: "auto", position: "absolute" }}>
                                 <CollectionSchemaView {...this.props}
                                     CollectionView={undefined}
                                     annotationsKey={""}
@@ -546,6 +546,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                                     focus={this.selectElement}
                                     ScreenToLocalTransform={Transform.Identity}
                                 />
+                                <div style={{ position: "absolute", right: 5, bottom: 7, width: 15, height: 15, }}
+                                    onPointerDown={e => setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
+                                        this.props.Document._height = NumCast(this.props.Document._height) + delta[1];
+                                        return false;
+                                    }, returnFalse, emptyFunction)}
+                                >
+                                    <FontAwesomeIcon icon="grip-lines" size="lg" />
+                                </div>
                             </div>
                         </div>
                     </div>

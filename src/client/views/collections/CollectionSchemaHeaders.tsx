@@ -414,12 +414,9 @@ export class KeysDropdown extends React.Component<KeysDropdownProps> {
             }
         }
         const options = keyOptions.map(key => {
-            //Doc.setDocFilter(this.props.Document!, this._key, key, undefined);
             let bool = false;
-            console.log(filters);
             if (filters !== undefined) {
                 bool = filters.includes(key) && filters[filters.indexOf(key) + 1] === "check";
-                console.log(filters.includes(key));
             }
             return <div key={key} className="key-option" style={{
                 border: "1px solid lightgray", paddingLeft: 5, textAlign: "left",
