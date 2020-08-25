@@ -42,11 +42,6 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         this.props.Document.isInkMask = true;
     }
 
-    @action
-    private formatShape = () => {
-        FormatShapePane.Instance.Pinned = true;
-    }
-
     public _prevX = 0;
     public _prevY = 0;
     private _controlNum = 0;
@@ -160,36 +155,31 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const dotsize = String(Math.max(width * scaleX, height * scaleY) / 40);
 
         const addpoints = apoints.map((pts, i) =>
-
-            <svg height="10" width="10">
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="invisible" stroke-width={String(Number(dotsize) / 2)} fill="invisible"
+            <svg height="10" width="10" key={`add${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="invisible" strokeWidth={String(Number(dotsize) / 2)} fill="invisible"
                     onPointerDown={(e) => { FormatShapePane.Instance.addPoints(pts.X, pts.Y, apoints, i, controlPoints); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
 
         const controls = controlPoints.map((pts, i) =>
-
-            <svg height="10" width="10">
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" stroke-width={String(Number(dotsize) / 2)} fill="red"
+            <svg height="10" width="10" key={`ctrl${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="red"
                     onPointerDown={(e) => { this.changeCurrPoint(pts.I); this.onControlDown(e, pts.I); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);
         const handles = handlePoints.map((pts, i) =>
-
-            <svg height="10" width="10">
-                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" stroke-width={String(Number(dotsize) / 2)} fill="green"
+            <svg height="10" width="10" key={`hdl${i}`}>
+                <circle cx={(pts.X - left - strokeWidth / 2) * scaleX + strokeWidth / 2} cy={(pts.Y - top - strokeWidth / 2) * scaleY + strokeWidth / 2} r={dotsize} stroke="black" strokeWidth={String(Number(dotsize) / 2)} fill="green"
                     onPointerDown={(e) => this.onControlDown(e, pts.I)} pointerEvents="all" cursor="all-scroll" display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
             </svg>);
         const handleLines = handleLine.map((pts, i) =>
-
-            <svg height="100" width="100">
+            <svg height="100" width="100" key={`line${i}`}>
                 <line x1={(pts.X1 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y1 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
-                    x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" stroke-width={String(Number(dotsize) / 2)}
+                    x2={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
                     display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
                 <line x1={(pts.X2 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y1={(pts.Y2 - top - strokeWidth / 2) * scaleY + strokeWidth / 2}
-                    x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" stroke-width={String(Number(dotsize) / 2)}
+                    x2={(pts.X3 - left - strokeWidth / 2) * scaleX + strokeWidth / 2} y2={(pts.Y3 - top - strokeWidth / 2) * scaleY + strokeWidth / 2} stroke="green" strokeWidth={String(Number(dotsize) / 2)}
                     display={(pts.dot1 === FormatShapePane.Instance._currPoint || pts.dot2 === FormatShapePane.Instance._currPoint) ? "inherit" : "none"} />
-
             </svg>);
 
 

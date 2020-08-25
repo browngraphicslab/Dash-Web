@@ -501,7 +501,7 @@ export namespace Doc {
     }
 
     export function MakeAlias(doc: Doc, id?: string) {
-        const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
+        const alias = !GetT(doc, "isPrototype", "boolean", true) && doc.proto ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
         const layout = Doc.LayoutField(alias);
         if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));

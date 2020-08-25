@@ -132,7 +132,6 @@ export namespace InteractionUtils {
         if (isNaN(scaley)) {
             scaley = 1;
         }
-        console.log(pts.length);
         return pts;
     }
 
@@ -188,7 +187,7 @@ export namespace InteractionUtils {
 
         const addables = pts.map((pts, i) =>
             <svg height="10" width="10">
-                <circle cx={(pts.X - left - width / 2) * scalex + width / 2} cy={(pts.Y - top - width / 2) * scaley + width / 2} r={strokeWidth / 2} stroke="black" stroke-width={1} fill="blue"
+                <circle cx={(pts.X - left - width / 2) * scalex + width / 2} cy={(pts.Y - top - width / 2) * scaley + width / 2} r={strokeWidth / 2} stroke="black" strokeWidth={1} fill="blue"
                     onDoubleClick={(e) => { console.log(i); }} pointerEvents="all" cursor="all-scroll"
                 />
             </svg>);

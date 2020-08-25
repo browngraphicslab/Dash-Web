@@ -283,7 +283,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         const newY = Math.sin(angle) * (ink.X - this._centerPoints[index].X) + Math.cos(angle) * (ink.Y - this._centerPoints[index].Y) + this._centerPoints[index].Y;
                         newPoints.push({ X: newX, Y: newY });
                     }
-                    doc.data = new InkField(newPoints);
+                    Doc.GetProto(doc).data = new InkField(newPoints);
                     const xs = newPoints.map(p => p.X);
                     const ys = newPoints.map(p => p.Y);
                     const left = Math.min(...xs);
@@ -531,7 +531,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         const newY = ((doc.y || 0) - this._inkDocs[index].y) + (i.Y * (doc._height || 0)) / this._inkDocs[index].height;
                         newPoints.push({ X: newX, Y: newY });
                     });
-                    doc.data = new InkField(newPoints);
+                    Doc.GetProto(doc).data = new InkField(newPoints);
 
                 }
                 doc._nativeWidth = 0;

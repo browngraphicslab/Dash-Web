@@ -23,6 +23,7 @@ import { PDFMenu } from "./pdf/PDFMenu";
 import { ContextMenu } from "./ContextMenu";
 import { GroupManager } from "../util/GroupManager";
 import { CollectionFreeFormViewChrome } from "./collections/CollectionMenu";
+import { FormatShapePane } from "./collections/collectionFreeForm/FormatShapePane";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -90,6 +91,7 @@ export class KeyManager {
                 // }
                 DocumentLinksButton.StartLink = undefined;
                 DocumentLinksButton.StartLinkView = undefined;
+                FormatShapePane.Instance._controlBtn = false;
 
                 const main = MainView.Instance;
                 Doc.SetSelectedTool(InkTool.None);

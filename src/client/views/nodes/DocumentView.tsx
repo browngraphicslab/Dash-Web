@@ -38,6 +38,7 @@ import { LinkDescriptionPopup } from './LinkDescriptionPopup';
 import { RadialMenu } from './RadialMenu';
 import { TaskCompletionBox } from './TaskCompletedBox';
 import React = require("react");
+import { FormatShapePane } from '../collections/collectionFreeForm/FormatShapePane';
 
 export type DocFocusFunc = () => boolean;
 
@@ -307,15 +308,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }, console.log);
                         func();
                     } else if (!Doc.IsSystem(this.props.Document)) {
-                        UndoManager.RunInBatch(() => {
-                            let fullScreenDoc = this.props.Document;
-                            if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
-                                fullScreenDoc = Doc.MakeAlias(this.props.Document);
-                                fullScreenDoc.layoutKey = "layout_fullScreen";
-                            }
-                            this.props.addDocTab(fullScreenDoc, "inTab");
-                        }, "double tap");
-                        SelectionManager.DeselectAll();
+                        if (this.props.Document.type === DocumentType.INK) {
+                            FormatShapePane.Instance._controlBtn = true;
+                        } else {
+                            UndoManager.RunInBatch(() => {
+                                let fullScreenDoc = this.props.Document;
+                                if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
+                                    fullScreenDoc = Doc.MakeAlias(this.props.Document);
+                                    fullScreenDoc.layoutKey = "layout_fullScreen";
+                                }
+                                this.props.addDocTab(fullScreenDoc, "inTab");
+                            }, "double tap");
+                            SelectionManager.DeselectAll();
+                        }
                         Doc.UnBrushDoc(this.props.Document);
                     }
                 }
