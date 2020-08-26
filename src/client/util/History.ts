@@ -1,8 +1,8 @@
 import { Doc } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
-import { MainView } from "../views/MainView";
 import * as qs from 'query-string';
 import { Utils, OmitKeys } from "../../Utils";
+import { CurrentUserUtils } from "./CurrentUserUtils";
 
 export namespace HistoryUtil {
     export interface DocInitializerList {
@@ -197,7 +197,7 @@ export namespace HistoryUtil {
             await Promise.all(Object.keys(init).map(id => initDoc(id, init[id])));
         }
         if (field instanceof Doc) {
-            MainView.Instance.openDashboard(field, true);
+            CurrentUserUtils.openDashboard(Doc.UserDoc(), field, true);
         }
     }
 

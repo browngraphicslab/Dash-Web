@@ -1,4 +1,4 @@
-import { computed, observable, reaction } from "mobx";
+import { computed, observable, reaction, action } from "mobx";
 import * as rp from 'request-promise';
 import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
@@ -24,6 +24,8 @@ import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMu
 import { LabelBox } from "../views/nodes/LabelBox";
 import { LinkManager } from "./LinkManager";
 import { Id } from "../../fields/FieldSymbols";
+import { HistoryUtil } from "./History";
+import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -730,7 +732,7 @@ export class CurrentUserUtils {
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
-            const newDashboard = ScriptField.MakeScript(`createNewDashboard()`);
+            const newDashboard = ScriptField.MakeScript(`createNewDashboard(Doc.UserDoc())`);
             (doc.myDashboards as any as Doc).contextMenuScripts = new List<ScriptField>([newDashboard!]);
             (doc.myDashboards as any as Doc).contextMenuLabels = new List<string>(["Create New Dashboard"]);
         }
@@ -976,9 +978,90 @@ export class CurrentUserUtils {
             }
         });
     }
+
+    public static _urlState: HistoryUtil.DocUrl;
+
+    public static openDashboard = (userDoc: Doc, doc: Doc, fromHistory = false) => {
+        CurrentUserUtils.MainDocId = doc[Id];
+
+        if (doc) {  // this has the side-effect of setting the main container since we're assigning the active/guest dashboard
+            !("presentationView" in doc) && (doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]));
+            userDoc ? (userDoc.activeDashboard = doc) : (CurrentUserUtils.GuestDashboard = doc);
+        }
+        const state = CurrentUserUtils._urlState;
+        if (state.sharing === true && !userDoc) {
+            DocServer.Control.makeReadOnly();
+        } else {
+            fromHistory || HistoryUtil.pushState({
+                type: "doc",
+                docId: doc[Id],
+                readonly: state.readonly,
+                nro: state.nro,
+                sharing: false,
+            });
+            if (state.readonly === true || state.readonly === null) {
+                DocServer.Control.makeReadOnly();
+            } else if (state.safe) {
+                if (!state.nro) {
+                    DocServer.Control.makeReadOnly();
+                }
+                CollectionView.SetSafeMode(true);
+            } else if (state.nro || state.nro === null || state.readonly === false) {
+            } else if (doc.readOnly) {
+                DocServer.Control.makeReadOnly();
+            } else {
+                DocServer.Control.makeEditable();
+            }
+        }
+
+        return true;
+    }
+
+    public static snapshotDashboard = (userDoc: Doc) => {
+        const activeDashboard = Cast(userDoc.activeDashboard, Doc, null);
+        CollectionDockingView.Copy(activeDashboard).then(copy => {
+            Doc.AddDocToList(Cast(userDoc.myDashboards, Doc, null), "data", copy);
+            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+            setTimeout(() => CurrentUserUtils.openDashboard(userDoc, copy), 0);
+        });
+    }
+
+    public static createNewDashboard = async (userDoc: Doc, id?: string) => {
+        const myPresentations = userDoc.myPresentations as Doc;
+        const presentation = Doc.MakeCopy(userDoc.emptyPresentation as Doc, true);
+        const dashboards = Cast(userDoc.myDashboards, Doc) as Doc;
+        const dashboardCount = DocListCast(dashboards.data).length + 1;
+        const emptyPane = Cast(userDoc.emptyPane, Doc, null);
+        emptyPane["dragFactory-count"] = NumCast(emptyPane["dragFactory-count"]) + 1;
+        const freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            _width: 1500,
+            _height: 1000,
+            title: `Untitled Tab ${NumCast(emptyPane["dragFactory-count"])}`,
+        };
+        const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        const dashboardDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600 }], { title: `Dashboard ${dashboardCount}` }, id, "row");
+        Doc.AddDocToList(myPresentations, "data", presentation);
+        userDoc.activePresentation = presentation;
+        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        const snapshotDashboard = ScriptField.MakeScript(`snapshotDashboard()`);
+        const createDashboard = ScriptField.MakeScript(`createNewDashboard()`);
+        dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, snapshotDashboard!, createDashboard!]);
+        dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
+
+        Doc.AddDocToList(dashboards, "data", dashboardDoc);
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => {
+            CurrentUserUtils.openDashboard(userDoc, dashboardDoc);
+        }, 0);
+    }
 }
 
-Scripting.addGlobal(function createNewDashboard() { return MainView.Instance.createNewDashboard(); },
+Scripting.addGlobal(function snapshotDashboard() { CurrentUserUtils.snapshotDashboard(Doc.UserDoc()); },
+    "creates a snapshot copy of a dashboard");
+Scripting.addGlobal(function createNewDashboard() { return CurrentUserUtils.createNewDashboard(Doc.UserDoc()); },
     "creates a new dashboard when called");
 Scripting.addGlobal(function createNewPresentation() { return MainView.Instance.createNewPresentation(); },
     "creates a new presentation when called");

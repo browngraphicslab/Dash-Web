@@ -6,23 +6,69 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    position: absolute;
+    position: relative;
     font-size: 10px;
     line-height: 1;
     overflow-y: auto;
     overflow-x: visible;
     background: lightgrey;
+    overflow: visible;
+    z-index: 10000;
 
+    .searchBox-lozenge-user,
+    .searchBox-lozenge-dashboard,
     .searchBox-lozenge {
         background-color: #313131;
         border-radius: 5px;
-        height: 15px;
+        height: 18px;
         padding: 4px;
         box-shadow: lightgrey 0.15em 0.15em 0.1em;
         margin: 2px;
         margin-bottom: 4px;
         border-top: dimgrey 1px solid;
         border-left: dimgrey 1px solid;
+        display: flex;
+        .searchBox-logoff,
+        .searchBox-dashboards {
+            border-radius: 3px;
+            background: olivedrab;
+            color: white;
+            position: relative;
+            display: none;
+            margin-left: 3px;
+            padding-left: 2px;
+            padding-right: 2px;
+            padding-bottom: 11px;
+            cursor: default;
+        }
+        .searchBox-logoff {
+            background: red;
+        }
+
+        .searchBox-dashSelect{
+            background-color: black;
+            color: white;
+            font-size: 9;
+            margin-right: 6;
+            border-radius: 5px;
+            position: relative;
+            height: 15px;
+            transform: translate(0,-3px);
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+    .searchBox-lozenge-user:hover {
+        .searchBox-logoff {
+            display:inline-block;
+        }
+    }
+    .searchBox-lozenge-dashboard:hover {
+        .searchBox-dashboards {
+            display:inline-block;
+        }
     }
 }
 

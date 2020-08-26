@@ -5,14 +5,15 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
 import { documentSchema } from "../../../fields/documentSchemas";
-import { Id, Copy } from '../../../fields/FieldSymbols';
+import { Copy, Id } from '../../../fields/FieldSymbols';
 import { List } from '../../../fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { returnFalse, returnZero, setupMoveUpEvents, emptyFunction } from '../../../Utils';
+import { emptyFunction, returnFalse, returnZero, setupMoveUpEvents, Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
 import { Transform } from '../../util/Transform';
@@ -22,6 +23,7 @@ import { CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./SearchBox.scss";
+import { undoBatch } from "../../util/UndoManager";
 
 export const searchSchema = createSchema({ Document: Doc });
 
@@ -486,18 +488,34 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             collectionView.props.Document._docFilters = docsForFilter?.length && docFilters?.length ? new List<string>(docFilters) : undefined;
         }
     }
+    showLogout = () => {
+
+    }
     render() {
+        const myDashboards = DocListCast(Cast(Doc.UserDoc().myDashboards, Doc, null).data);
         return (
             <div style={{ pointerEvents: "all" }} className="searchBox-container">
                 <div style={{ position: "absolute", left: 15, height: 32, alignItems: "center", display: "flex" }}>
-                    <div className="searchBox-lozenge">
+                    <div className="searchBox-lozenge-user">
                         {`${Doc.CurrentUserEmail}`}
+                        <div className="searchBox-logoff" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                            Logoff
+                        </div>
                     </div>
                     <div className="searchBox-lozenge">
                         {`UI project`}
                     </div>
-                    <div className="searchBox-lozenge"  >
-                        {`➱ ${Cast(Doc.UserDoc().activeDashboard, Doc, null)?.title}`}
+                    <div className="searchBox-lozenge-dashboard"  >
+                        <select className="searchBox-dashSelect" onChange={e => CurrentUserUtils.openDashboard(Doc.UserDoc(), myDashboards[Number(e.target.value)])}
+                            value={myDashboards.indexOf(Cast(Doc.UserDoc().activeDashboard, Doc, null)!)}>
+                            {myDashboards.map((dash, i) => <option key={dash[Id]} value={i}> {StrCast(dash.title)} </option>)}
+                        </select>
+                        <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.createNewDashboard(Doc.UserDoc()))}>
+                            New
+                        </div>
+                        <div className="searchBox-dashboards" onClick={undoBatch(() => CurrentUserUtils.snapshotDashboard(Doc.UserDoc()))}>
+                            Snapshot
+                        </div>
                     </div>
                 </div>
                 <div className="searchBox-bar">

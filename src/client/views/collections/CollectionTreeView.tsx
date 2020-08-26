@@ -20,7 +20,6 @@ import { undoBatch, UndoManager } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
-import { MainView } from '../MainView';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { DocumentView } from '../nodes/DocumentView';
 import { ImageBox } from '../nodes/ImageBox';
@@ -32,6 +31,7 @@ import { CollectionViewType } from './CollectionView';
 import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
 import { TraceMobx } from '../../../fields/util';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 
 export interface TreeViewProps {
     document: Doc;
@@ -739,7 +739,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myDashboards) {
-            ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => MainView.Instance.createNewDashboard(), icon: "plus" });
+            ContextMenu.Instance.addItem({ description: "Create Dashboard", event: () => CurrentUserUtils.createNewDashboard(Doc.UserDoc()), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Dashboard", event: () => this.remove(this.doc), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();

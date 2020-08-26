@@ -25,7 +25,6 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { SnappingManager } from '../../util/SnappingManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from "../../util/UndoManager";
-import { MainView } from '../MainView';
 import { DocumentView } from "../nodes/DocumentView";
 import { PresBox } from '../nodes/PresBox';
 import "./CollectionDockingView.scss";
@@ -34,6 +33,7 @@ import { SubCollectionViewProps, CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from './CollectionView';
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -87,7 +87,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @action
     public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
         if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
-            return MainView.Instance.openDashboard(docView.props.Document);
+            return CurrentUserUtils.openDashboard(Doc.UserDoc(), docView.props.Document);
         }
         const document = Doc.MakeAlias(docView.props.Document);
         const newItemStackConfig = {
@@ -188,7 +188,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
     @action
     public static AddRightSplit(document: Doc, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
-        if (document._viewType === CollectionViewType.Docking) return MainView.Instance.openDashboard(document);
+        if (document._viewType === CollectionViewType.Docking) return CurrentUserUtils.openDashboard(Doc.UserDoc(), document);
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
             type: 'stack',
@@ -864,7 +864,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
         if (doc._viewType === CollectionViewType.Docking) {
-            return MainView.Instance.openDashboard(doc);
+            return CurrentUserUtils.openDashboard(Doc.UserDoc(), doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {
