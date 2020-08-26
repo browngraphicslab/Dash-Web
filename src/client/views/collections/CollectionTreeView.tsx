@@ -135,7 +135,7 @@ class TreeView extends React.Component<TreeViewProps> {
         const openScript = ScriptField.MakeScript(`openOnRight(self)`);
         const treeOpenScript = ScriptField.MakeScript(`self.treeViewOpen = !self.treeViewOpen`);
         this._editTitleScript = !Doc.IsSystem(this.props.document) ? titleScript && (() => titleScript) : treeOpenScript && (() => treeOpenScript);
-        this._openScript = !Doc.IsSystem(this.props.document) && !this.props.treeViewDoc.treeViewOutlineMode ? openScript && (() => openScript) : undefined;
+        this._openScript = !Doc.IsSystem(this.props.document) ? openScript && (() => openScript) : undefined;
         if (Doc.GetT(this.doc, "editTitle", "string", true) === "*") Doc.SetInPlace(this.doc, "editTitle", this._uniqueId, false);
     }
 
@@ -199,7 +199,7 @@ class TreeView extends React.Component<TreeViewProps> {
         }}
         OnTab={undoBatch((shift?: boolean) => {
             shift ? this.props.outdentDocument?.() : this.props.indentDocument?.();
-            setTimeout(() => Doc.SetInPlace(this.doc, "editTitle", "*", false), 250);
+            setTimeout(() => Doc.SetInPlace(this.doc, "editTitle", "*", false), 0);
         })}
     />)
 
@@ -417,7 +417,7 @@ class TreeView extends React.Component<TreeViewProps> {
     truncateTitleWidth = () => NumCast(this.props.treeViewDoc.treeViewTruncateTitleWidth, 0);
     showTitleEdit = () => ["*", this._uniqueId].includes(Doc.GetT(this.doc, "editTitle", "string", true) || "");
     onChildClick = () => this.props.onChildClick?.() ?? (this._editTitleScript?.() || ScriptCast(this.doc.treeChildClick));
-    onChildDoubleClick = () => this._openScript?.() || ScriptCast(this.doc.treeChildDoubleClick);
+    onChildDoubleClick = () => (!this.props.treeViewDoc.treeViewOutlineMode && this._openScript?.()) || ScriptCast(this.doc.treeChildDoubleClick);
     /**
      * Renders the EditableView title element for placement into the tree.
      */
