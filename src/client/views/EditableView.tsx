@@ -151,7 +151,7 @@ export class EditableView extends React.Component<EditableProps> {
     @action
     setIsFocused = (value: boolean) => {
         const wasFocused = this._editing;
-        //this._editing = value;
+        this._editing = value;
         return wasFocused !== this._editing;
     }
 

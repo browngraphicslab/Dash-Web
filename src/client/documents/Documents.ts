@@ -187,7 +187,7 @@ export interface DocumentOptions {
     cloneFieldFilter?: List<string>; // fields not to copy when the document is cloned
     _stayInCollection?: boolean;// whether the document should remain in its collection when someone tries to drag and drop it elsewhere
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
-    treeViewHideTopLevel?: boolean; // whether to hide the top document of a tree view
+    treeViewHideTitle?: boolean; // whether to hide the top document of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
@@ -333,7 +333,7 @@ export namespace Docs {
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: defaultDataKey },
-                options: { backgroundColor: "transparent" }
+                options: { _fontFamily: "cursive", backgroundColor: "transparent" }
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
@@ -683,7 +683,7 @@ export namespace Docs {
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, {
                 dontRegisterChildViews: true,
-                isLinkButton: true, treeViewHideTopLevel: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
+                isLinkButton: true, treeViewHideTitle: true, backgroundColor: "lightBlue", // lightBlue is default color for linking dot and link documents text comment area
                 treeViewExpandedView: "fields", removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options
             }, id);
             const linkDocProto = Doc.GetProto(doc);
@@ -694,7 +694,7 @@ export namespace Docs {
             linkDocProto.anchor2_timecode = target.doc._currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.linkBoxExcludedKeys === undefined) {
-                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTopLevel", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "aliases", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
@@ -723,6 +723,7 @@ export namespace Docs {
             I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
+            I._fontFamily = "cursive";
             I.author = Doc.CurrentUserEmail;
             I.rotation = 0;
             I.data = new InkField(points);

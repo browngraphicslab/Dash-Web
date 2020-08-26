@@ -550,7 +550,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                     bringToFront={emptyFunction}
                     active={this.props.active}
                     whenActiveChanged={returnFalse}
-                    treeViewHideTopLevel={true}
+                    treeViewHideTitle={true}
                     ContentScaling={returnOne}
                     focus={returnFalse}
                     treeViewHideHeaderFields={true}

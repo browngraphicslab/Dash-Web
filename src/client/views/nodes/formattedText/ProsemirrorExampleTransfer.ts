@@ -143,7 +143,7 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
             newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
-            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
+            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }
@@ -168,7 +168,7 @@ export function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKey
             const layoutKey = StrCast(originalDoc.layoutKey);
             const newDoc = Doc.MakeCopy(originalDoc, true);
             newDoc[DataSym][Doc.LayoutFieldKey(newDoc)] = undefined;
-            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
+            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
             if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
                 newDoc[layoutKey] = originalDoc[layoutKey];
             }

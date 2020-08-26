@@ -1257,7 +1257,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         !this.props.isAnnotationOverlay && !Doc.UserDoc().noviceMode &&
             optionItems.push({ description: (this.showTimeline ? "Close" : "Open") + " Animation Timeline", event: action(() => this.showTimeline = !this.showTimeline), icon: "eye" });
         this.props.ContainingCollectionView &&
-            optionItems.push({ description: "Undo Collection", event: this.promoteCollection, icon: "table" });
+            optionItems.push({ description: "Move Items Out of Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         optionItems.push({ description: "Use Background Color as Default", event: () => Cast(Doc.UserDoc().emptyCollection, Doc, null)._backgroundColor = StrCast(this.layoutDoc._backgroundColor), icon: "palette" });
         if (!Doc.UserDoc().noviceMode) {

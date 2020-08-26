@@ -218,7 +218,7 @@ export class CurrentUserUtils {
 
             const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
             const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: "12pt" };
-            const descriptionWrapperOpts = { title: "descriptions", _height: 300, _columnWidth: -1, treeViewHideTopLevel: true, _pivotField: "title", system: true };
+            const descriptionWrapperOpts = { title: "descriptions", _height: 300, _columnWidth: -1, treeViewHideTitle: true, _pivotField: "title", system: true };
 
             const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
             descriptionWrapper._columnHeaders = new List<SchemaHeaderField>([
@@ -726,7 +726,7 @@ export class CurrentUserUtils {
         if (doc.myDashboards === undefined) {
             doc.myDashboards = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Dashboards", _height: 400,
-                treeViewHideTopLevel: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
@@ -742,7 +742,7 @@ export class CurrentUserUtils {
         if (doc.myPresentations === undefined) {
             doc.myPresentations = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "My Presentations", _height: 100,
-                treeViewHideTopLevel: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
@@ -760,7 +760,7 @@ export class CurrentUserUtils {
         if (doc.myInactiveDocs === undefined) {
             doc.myInactiveDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Inactive", _height: 500,
-                treeViewHideTopLevel: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
@@ -776,7 +776,7 @@ export class CurrentUserUtils {
             doc.treeViewOpen = true;
             doc.treeViewExpandedView = "fields";
             doc.myUserDoc = new PrefetchProxy(Docs.Create.TreeDocument([doc], {
-                treeViewHideTopLevel: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
+                treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, title: "My UserDoc",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             })) as any as Doc;

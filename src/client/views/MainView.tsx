@@ -293,7 +293,7 @@ export class MainView extends React.Component {
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
         const copyDashboard = ScriptField.MakeScript(`copyDashboard()`);
-        const createDashboard = ScriptField.MakeScript(`createDashb oard()`);
+        const createDashboard = ScriptField.MakeScript(`createDashboard()`);
         dashboardDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, copyDashboard!, createDashboard!]);
         dashboardDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "Snapshot Dashboard", "Create Dashboard"]);
 
