@@ -725,6 +725,8 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
         if (this.selectedDoc) {
             Doc.GetProto(this.selectedDoc).data = new WebField(value);
             Doc.SetInPlace(this.selectedDoc, "title", value, true);
+            const annots = Doc.GetProto(this.selectedDoc)["data-annotations-" + this.urlHash(value)];
+            Doc.GetProto(this.selectedDoc)["data-annotations"] = annots instanceof ObjectField ? ObjectField.MakeCopy(annots) : new List<Doc>([]);
         }
     }
 
@@ -751,9 +753,7 @@ export class CollectionFreeFormViewChrome extends React.Component<CollectionMenu
                         }
                         future && (future.length = 0);
                     }
-                    Doc.GetProto(selectedDoc).data = new WebField(URLy);
-                    const annots = Doc.GetProto(selectedDoc)["data-annotations-" + this.urlHash(url)];
-                    Doc.GetProto(selectedDoc)["data-annotations"] = annots instanceof ObjectField ? ObjectField.MakeCopy(annots) : new List<Doc>([]);
+                    this._url = url;
                 }
             }
         } catch (e) {

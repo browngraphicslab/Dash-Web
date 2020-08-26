@@ -825,7 +825,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     whenActiveChanged = (isActive: boolean) => {
         this.props.whenActiveChanged(this._isChildActive = isActive);
     }
-    active = (outsideReaction: boolean | undefined) => { return this.props.active(outsideReaction) || this._isChildActive; }
+    active = (outsideReaction: boolean | undefined) => this.props.active(outsideReaction) || this._isChildActive;
     render() {
         TraceMobx();
         if (!(this.doc instanceof Doc)) return (null);

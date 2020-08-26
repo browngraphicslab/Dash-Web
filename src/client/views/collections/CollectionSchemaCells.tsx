@@ -169,7 +169,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             const targetContext = aliasdoc.length <= 0 ? undefined : Cast(aliasdoc[0].context, Doc, null);
             DocumentManager.Instance.jumpToDocument(this._rowDoc, false, () => undefined, targetContext);
         }
-    };
+    }
     renderCellWithType(type: string | undefined) {
         const dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -330,7 +330,7 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
 
     componentWillUnmount() { this.onBlur(); }
 
-    onBlur = () => { this._overlayDisposer?.(); }
+    onBlur = () => { this._overlayDisposer?.(); };
     onFocus = () => {
         this.onBlur();
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
@@ -443,7 +443,7 @@ export class CollectionSchemaListCell extends CollectionSchemaCell {
     }
 
     render() {
-        let link = false;
+        const link = false;
         const reference = React.createRef<HTMLDivElement>();
 
         if (this._optionsList?.length) {
