@@ -1,7 +1,7 @@
 import React = require("react");
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Field, Opt } from "../../../../fields/Doc";
 import { Document } from "../../../../fields/documentSchemas";
@@ -91,7 +91,7 @@ export class FormatShapePane extends AntimodeMenu<AntimodeMenuProps> {
         super(props);
         FormatShapePane.Instance = this;
         this._canFade = false;
-        this.Pinned = BoolCast(Doc.UserDoc()["menuFormatShape-pinned"]);
+        runInAction(() => this.Pinned = BoolCast(Doc.UserDoc()["menuFormatShape-pinned"]));
     }
 
     @action

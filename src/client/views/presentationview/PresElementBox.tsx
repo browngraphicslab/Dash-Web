@@ -20,6 +20,7 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { Tooltip } from "@material-ui/core";
 import { DragManager } from "../../util/DragManager";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
+import { undoBatch } from "../../util/UndoManager";
 
 export const presSchema = createSchema({
     presentationTargetDoc: Doc,
@@ -206,6 +207,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         }
     }
 
+    @undoBatch
     @action
     removeItem = (e: React.MouseEvent) => {
         this.props.removeDocument?.(this.rootDoc);

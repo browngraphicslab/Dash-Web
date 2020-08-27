@@ -86,7 +86,7 @@ export abstract class AntimodeMenu<T extends AntimodeMenuProps> extends React.Co
 
     @action
     protected togglePin = (e: React.MouseEvent) => {
-        this.Pinned = !this.Pinned;
+        runInAction(() => this.Pinned = !this.Pinned);
     }
 
     protected dragStart = (e: React.PointerEvent) => {

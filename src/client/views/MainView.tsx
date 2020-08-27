@@ -94,7 +94,7 @@ export class MainView extends React.Component {
         } else { return undefined; }
     }
 
-    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth));
+    propertiesWidth = () => Math.max(0, Math.min(this._panelWidth - 50, CurrentUserUtils.propertiesWidth || 0));
 
     @computed get propertiesIcon() {
         if (this.propertiesWidth() < 10) {
@@ -146,8 +146,6 @@ export class MainView extends React.Component {
         this.sidebarContent.proto = undefined;
         CurrentUserUtils._urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
-
-        CurrentUserUtils.propertiesWidth = 0;
 
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== "/home") {
@@ -352,7 +350,7 @@ export class MainView extends React.Component {
         TraceMobx();
         const mainContainer = this.mainContainer;
         const width = this.flyoutWidth + this.propertiesWidth();
-        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: `calc(100% - ${SEARCH_PANEL_HEIGHT})` }}>
+        return <div className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)`, height: "100%" }}>
             {!mainContainer ? (null) : this.mainDocView}
         </div>;
     }
@@ -383,6 +381,7 @@ export class MainView extends React.Component {
         }
     }
 
+    @computed get topOffset() { return (CollectionMenu.Instance?.Pinned ? 35 : 0) + Number(SEARCH_PANEL_HEIGHT.replace("px", "")); }
     flyoutWidthFunc = () => this.flyoutWidth;
     addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
@@ -395,7 +394,7 @@ export class MainView extends React.Component {
     @computed get flyout() {
         if (!this.sidebarContent) return null;
         return <div className="mainView-libraryFlyout">
-            <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${SEARCH_PANEL_HEIGHT})`, width: "100%", overflow: "visible" }}>
+            <div className="mainView-contentArea" style={{ position: "relative", height: "100%", width: "100%", overflow: "visible" }}>
                 {/* {this.flyoutWidth > 0 ? <div className="mainView-libraryFlyout-close"
                     onPointerDown={this.closeFlyout}>
                     <FontAwesomeIcon icon="times" color="black" size="lg" />
@@ -575,8 +574,8 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const n = (CollectionMenu.Instance?.Pinned ? 1 : 0);
-        const height = `calc(100% - ${n * Number(ANTIMODEMENU_HEIGHT.replace("px", ""))}px)`;
+        const height = `calc(100% - ${this.topOffset}px)`;
+        console.log("Height = " + height);
         const pinned = FormatShapePane.Instance?.Pinned;
         const innerContent = this.mainInnerContent;
         return !this.userDoc ? (null) : (

@@ -75,7 +75,7 @@ export class RichTextMenu extends AntimodeMenu<AntimodeMenuProps>   {
         RichTextMenu.Instance = this;
         this._canFade = false;
         //this.Pinned = BoolCast(Doc.UserDoc()["menuRichText-pinned"]);
-        this.Pinned = true;
+        runInAction(() => this.Pinned = true);
 
         this.fontSizeOptions = [
             { mark: schema.marks.pFontSize.create({ fontSize: 7 }), title: "Set font size", label: "7pt", command: this.changeFontSize },
