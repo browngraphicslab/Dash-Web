@@ -611,7 +611,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                 if (doc instanceof Doc) {
                     const theDoc = doc;
 
-                    const recent = await Cast(Doc.UserDoc().myInactiveDocs, Doc);
+                    const recent = await Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc);
                     if (recent) {
                         Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
@@ -682,7 +682,7 @@ export class CollectionDockingView extends CollectionSubView(doc => doc) {
                     const doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
                         let recent: Doc | undefined;
-                        if (recent = await Cast(Doc.UserDoc().myInactiveDocs, Doc)) {
+                        if (recent = await Cast(Doc.UserDoc().myRecentlyClosedDocs, Doc)) {
                             Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                         }
                         const theDoc = doc;

@@ -508,7 +508,7 @@ export class CurrentUserUtils {
         this.setupSharingSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         return [
             { title: "Dashboards", target: Cast(doc.myDashboards, Doc, null), icon: "desktop", click: 'selectMainMenu(self)' },
-            { title: "Inactive", target: Cast(doc.myInactiveDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
+            { title: "Recently Closed", target: Cast(doc.myRecentlyClosedDocs, Doc, null), icon: "archive", click: 'selectMainMenu(self)' },
             { title: "Import", target: Cast(doc.myImportPanel, Doc, null), icon: "upload", click: 'selectMainMenu(self)' },
             { title: "Sharing", target: Cast(doc.mySharedDocs, Doc, null), icon: "users", click: 'selectMainMenu(self)', watchedDocuments: doc.mySharedDocs as Doc },
             { title: "Tools", target: Cast(doc.myTools, Doc, null), icon: "wrench", click: 'selectMainMenu(self)' },
@@ -758,17 +758,17 @@ export class CurrentUserUtils {
 
     static setupInactiveDocs(doc: Doc) {
         // setup Recently Closed library item
-        doc.myInactiveDocs === undefined;
-        if (doc.myInactiveDocs === undefined) {
-            doc.myInactiveDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
+        doc.myRecentlyClosedDocs === undefined;
+        if (doc.myRecentlyClosedDocs === undefined) {
+            doc.myRecentlyClosedDocs = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "Inactive", _height: 500,
                 treeViewHideTitle: true, _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias",
                 treeViewTruncateTitleWidth: 150, hideFilterView: true, treeViewPreventOpen: false,
                 lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true, targetDropAction: "same", system: true
             }));
             const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-            (doc.myInactiveDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-            (doc.myInactiveDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+            (doc.myRecentlyClosedDocs as any as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+            (doc.myRecentlyClosedDocs as any as Doc).contextMenuLabels = new List<string>(["Clear All"]);
         }
     }
 

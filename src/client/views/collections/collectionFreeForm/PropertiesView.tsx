@@ -233,8 +233,8 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
 
     @undoBatch
     setKeyValue = (value: string) => {
-        if (this.selectedDoc && this.dataDoc) {
-            const doc = this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc;
+        const docs = SelectionManager.SelectedDocuments().length < 2 && this.selectedDoc ? [this.layoutFields ? Doc.Layout(this.selectedDoc) : this.dataDoc] : SelectionManager.SelectedDocuments().map(dv => this.layoutFields ? dv.layoutDoc : dv.dataDoc);
+        docs.forEach(doc => {
             if (value.indexOf(":") !== -1) {
                 const newVal = value[0].toUpperCase() + value.substring(1, value.length);
                 KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
@@ -244,7 +244,7 @@ export class PropertiesView extends React.Component<PropertiesViewProps> {
                 KeyValueBox.SetField(doc, newVal.substring(0, newVal.indexOf(":")), newVal.substring(newVal.indexOf(":") + 1, newVal.length), true);
                 return true;
             }
-        }
+        });
         return false;
     }
 

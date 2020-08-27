@@ -744,8 +744,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        } else if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myInactiveDocs) {
-            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myInactiveDocs = new List<Doc>(), icon: "plus" });
+        } else if (!e.isPropagationStopped() && this.doc === Doc.UserDoc().myRecentlyClosedDocs) {
+            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myRecentlyClosedDocs = new List<Doc>(), icon: "plus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
